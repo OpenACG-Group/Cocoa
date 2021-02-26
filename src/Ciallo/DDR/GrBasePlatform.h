@@ -78,6 +78,8 @@ public:
     uint8_t *writableBuffer();
     void expose();
 
+    // Libs--
+
 protected:
     GrBasePlatform(GrPlatformKind kind,
                    const GrPlatformOptions& opts);
