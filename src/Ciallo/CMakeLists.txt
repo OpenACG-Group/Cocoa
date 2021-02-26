@@ -2,7 +2,7 @@ include(FindPkgConfig)
 
 find_package(Vulkan REQUIRED)
 find_package(OpenCL REQUIRED)
-pkg_check_modules(XCB xcb xcb-image xcb-render xcb-renderutil REQUIRED)
+pkg_check_modules(XCB xcb xcb-renderutil REQUIRED)
 
 set(ciallo_target Ciallo)
 set(ciallo_sources
