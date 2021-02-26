@@ -80,13 +80,24 @@ GrOpenCLCompositor::GrOpenCLCompositor(int32_t width,
       fClSrcOverKernel(nullptr),
       fImages{nullptr, nullptr},
       fCurrentOutputImage(0),
-      fInWaitingEvent(nullptr)
+      fInWaitingEvent(nullptr),
+      fHostBuffer(nullptr)
 {
+    fHostBuffer = static_cast<uint8_t*>(std::malloc(width * height * sizeof(uint32_t)));
+    if (!fHostBuffer)
+    {
+        throw RuntimeException::Builder(__FUNCTION__)
+                .append("Failed to create host buffer")
+                .make<RuntimeException>();
+    }
 }
 
 GrOpenCLCompositor::~GrOpenCLCompositor()
 {
     this->Dispose();
+
+    if (fHostBuffer)
+        std::free(fHostBuffer);
 
     if (fInWaitingEvent != nullptr)
         ::clReleaseEvent(fInWaitingEvent);
@@ -536,18 +547,18 @@ void GrOpenCLCompositor::onPresent()
     region[1] = this->height();
     region[2] = 1;
 
-    GrBasePlatform::ScopedAcquireBuffer scopedAcquireBuffer(getPlatform());
     cl_int ret = ::clEnqueueReadImage(fClCommandQueue,
                                       fImages[fCurrentOutputImage],
                                       CL_TRUE,
                                       origin,
                                       region,
                                       0, 0,
-                                      getPlatform()->writableBuffer(),
+                                      fHostBuffer,
                                       0,
                                       nullptr,
                                       nullptr);
     this->toRetChecked(ret, __FUNCTION__, "clEnqueueReadImage");
+    getPlatform()->present(fHostBuffer);
 }
 
 GrBaseRenderLayer * GrOpenCLCompositor::onCreateRenderLayer(int32_t width,

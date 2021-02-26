@@ -44,18 +44,6 @@ struct GrPlatformOptions
 class GrBasePlatform
 {
 public:
-    class ScopedAcquireBuffer
-    {
-    public:
-        explicit ScopedAcquireBuffer(GrBasePlatform *platform)
-            : fPlatform(platform) { fPlatform->acquireBuffer(); }
-        ~ScopedAcquireBuffer()
-        { fPlatform->releaseBuffer(); }
-
-    private:
-        GrBasePlatform  *fPlatform;
-    };
-
     virtual ~GrBasePlatform() = default;
 
     /**
@@ -66,19 +54,7 @@ public:
     inline GrPlatformKind kind() const              { return fKind; }
     inline const GrPlatformOptions& options() const { return fOptions; }
 
-    bool tryAcquireBuffer()
-    { return fBufferMutex.try_lock(); }
-
-    void acquireBuffer()
-    { fBufferMutex.lock(); }
-
-    void releaseBuffer()
-    { fBufferMutex.unlock(); }
-
-    uint8_t *writableBuffer();
-    void expose();
-
-    // Libs--
+    void present(const uint8_t *pBuffer);
 
 protected:
     GrBasePlatform(GrPlatformKind kind,
@@ -87,14 +63,12 @@ protected:
     inline GrPlatformOptions& writableOptions()  { return fOptions; }
     virtual std::shared_ptr<GrBaseCompositor> onCreateCompositor() = 0;
 
-    virtual uint8_t *onWritableBuffer() = 0;
-    virtual void onExpose() = 0;
+    virtual void onPresent(const uint8_t *pBuffer) = 0;
 
 private:
     std::shared_ptr<GrBaseCompositor>   fCompositor;
     GrPlatformKind                      fKind;
     GrPlatformOptions                   fOptions;
-    std::mutex                          fBufferMutex;
 };
 
 CIALLO_END_NS

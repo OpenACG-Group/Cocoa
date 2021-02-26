@@ -84,6 +84,7 @@ private:
     int8_t                      fCurrentOutputImage;
     ClDeviceProperties          fClDeviceProperties;
     ::cl_event                  fInWaitingEvent;
+    uint8_t                    *fHostBuffer;
 
     size_t                      fGlobalWorkSize[2]{};
     size_t                      fLocalWorkSize[2]{};

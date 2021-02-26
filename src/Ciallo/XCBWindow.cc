@@ -140,7 +140,6 @@ XCBWindow::EventResponse XCBWindow::threadHandleExpose(xcb_expose_event_t *ev)
     {
         /* Here we must wait until the composition is done. */
         GContext()->emitCmdPresent()->wait();
-        GContext()->asPlatform()->expose();
     }
     return EventResponse::kNormal;
 }

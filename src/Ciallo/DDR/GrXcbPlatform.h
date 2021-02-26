@@ -38,8 +38,7 @@ private:
     void setPictureFormatInfo();
 
     std::shared_ptr<GrBaseCompositor> onCreateCompositor() override;
-    uint8_t *onWritableBuffer() override;
-    void onExpose() override;
+    void onPresent(const uint8_t *pBuffer) override;
 
     std::shared_ptr<GrBaseCompositor> createGpuCompositor();
     std::shared_ptr<GrBaseCompositor> createCpuCompositor();
@@ -55,12 +54,8 @@ private:
                                 *fWindowAttributes;
     ::xcb_screen_t              *fScreen;
 
-    ::xcb_image_t               *fXcbImage;
-    ::xcb_pixmap_t               fXcbPixmap;
     ::xcb_gcontext_t             fXcbGContext;
-    uint8_t                     *fBufferAddr;
     size_t                       fBufferSize;
-
     GrColorFormat                fColorFormat;
 };
 

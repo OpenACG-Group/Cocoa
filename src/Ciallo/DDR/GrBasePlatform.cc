@@ -21,14 +21,9 @@ std::shared_ptr<GrBaseCompositor> GrBasePlatform::compositor()
     return fCompositor;
 }
 
-void GrBasePlatform::expose()
+void GrBasePlatform::present(const uint8_t *pBuffer)
 {
-    return this->onExpose();
-}
-
-uint8_t *GrBasePlatform::writableBuffer()
-{
-    return this->onWritableBuffer();
+    onPresent(pBuffer);
 }
 
 CIALLO_END_NS

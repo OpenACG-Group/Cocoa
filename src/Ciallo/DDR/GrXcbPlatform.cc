@@ -33,11 +33,7 @@ GrXcbPlatform::GrXcbPlatform(::xcb_connection_t *connection,
       fHeight(height),
       fWindowAttributes(attrs),
       fScreen(screen),
-
-      fXcbImage(nullptr),
-      fXcbPixmap(0),
       fXcbGContext(0),
-      fBufferAddr(nullptr),
       fBufferSize(0)
 {
 }
@@ -47,10 +43,6 @@ GrXcbPlatform::~GrXcbPlatform()
     if (fWindowAttributes)
         std::free(fWindowAttributes);
 
-    if (fXcbImage)
-        ::xcb_image_destroy(fXcbImage);
-    if (fXcbPixmap)
-        ::xcb_free_pixmap(fConnection, fXcbPixmap);
     if (fXcbGContext)
         ::xcb_free_gc(fConnection, fXcbGContext);
 }
@@ -270,25 +262,6 @@ std::shared_ptr<GrBaseCompositor> GrXcbPlatform::createOpenCLCompositor()
 void GrXcbPlatform::createXcbResources()
 {
     fBufferSize = fWidth * fHeight * sizeof(uint32_t);
-    fBufferAddr = new uint8_t[fBufferSize];
-
-    fXcbPixmap = ::xcb_generate_id(fConnection);
-    ::xcb_create_pixmap(fConnection,
-                        fScreen->root_depth,
-                        fXcbPixmap,
-                        fWindow,
-                        fWidth,
-                        fHeight);
-
-    fXcbImage = ::xcb_image_create_native(fConnection,
-                                          fWidth,
-                                          fHeight,
-                                          XCB_IMAGE_FORMAT_Z_PIXMAP,
-                                          fScreen->root_depth,
-                                          fBufferAddr,
-                                          fBufferSize,
-                                          fBufferAddr);
-    RUNTIME_EXCEPTION_ASSERT(fXcbImage != nullptr);
 
     fXcbGContext = ::xcb_generate_id(fConnection);
     ::xcb_create_gc(fConnection,
@@ -297,32 +270,20 @@ void GrXcbPlatform::createXcbResources()
                     0, nullptr);
 }
 
-uint8_t *GrXcbPlatform::onWritableBuffer()
+void GrXcbPlatform::onPresent(const uint8_t *pBuffer)
 {
-    return fBufferAddr;
-}
-
-void GrXcbPlatform::onExpose()
-{
-    if (this->compositor()->getDeviceType() != CompositeDevice::kGpuVulkan)
-    {
-        acquireBuffer();
-        ::xcb_image_put(fConnection,
-                        fXcbPixmap,
-                        fXcbGContext,
-                        fXcbImage,
-                        0, 0, 0);
-        ::xcb_copy_area(fConnection,
-                        fXcbPixmap,
-                        fWindow,
-                        fXcbGContext,
-                        0, 0,
-                        0, 0,
-                        fWidth,
-                        fHeight);
-        ::xcb_flush(fConnection);
-        releaseBuffer();
-    }
+    xcb_put_image(fConnection,
+                  XCB_IMAGE_FORMAT_Z_PIXMAP,
+                  fWindow,
+                  fXcbGContext,
+                  fWidth,
+                  fHeight,
+                  0, 0,
+                  0,
+                  24,
+                  fBufferSize,
+                  pBuffer);
+    xcb_flush(fConnection);
 }
 
 CIALLO_END_NS

@@ -73,12 +73,15 @@ GrTargetSurface GrCpuCompositor::onTargetSurface()
 
 void GrCpuCompositor::onPresent()
 {
-    GrBasePlatform::ScopedAcquireBuffer scopedAcquireBuffer(getPlatform());
-    SkImageInfo imageInfo = SkImageInfo::Make(SkISize::Make(this->width(), this->height()),
-                                              ToSkColorType(this->colorFormat()),
-                                              SkAlphaType::kPremul_SkAlphaType);
-    fBitmapSurface->readPixels(imageInfo, getPlatform()->writableBuffer(),
-                               imageInfo.minRowBytes(), 0, 0);
+    SkPixmap pixmap;
+    if (!fBitmapSurface->peekPixels(&pixmap))
+    {
+        throw RuntimeException::Builder(__FUNCTION__)
+                .append("Failed to reading pixels from composition buffer")
+                .make<RuntimeException>();
+    }
+
+    getPlatform()->present(static_cast<const uint8_t *>(pixmap.addr()));
 }
 
 GrBaseRenderLayer *GrCpuCompositor::onCreateRenderLayer(int32_t width, int32_t height,
