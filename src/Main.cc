@@ -6,22 +6,25 @@
 #include "Core/Journal.h"
 #include "Core/Exception.h"
 #include "Core/Configurator.h"
-#include "Core/MeasuredTable.h"
+#include "Core/EventDispatcher.h"
 
-#include "Ciallo/DDR/GrXcbPlatform.h"
-#include "Ciallo/DIR/PaintNode.h"
-#include "Ciallo/GraphicsContext.h"
-#include "Ciallo/XCBWindow.h"
+#include "crpkg/Deserializer.h"
+
+#include "Ciallo/XcbConnection.h"
+#include "Ciallo/XcbEventQueue.h"
+#include "Ciallo/XcbScreen.h"
+#include "Ciallo/XcbWindow.h"
+#include "Ciallo/Skia2d/GrContext.h"
+#include "Ciallo/Cairo2d/CrSurface.h"
+#include "Ciallo/Cairo2d/CrCanvas.h"
 
 #if TEST_CIALLO
 #include "include/core/SkPicture.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkPaint.h"
-#include "include/codec/SkCodec.h"
-#include "include/effects/SkDiscretePathEffect.h"
-#include "include/effects/SkGradientShader.h"
-#include "include/effects/SkRuntimeEffect.h"
-#include "include/core/SkVertices.h"
+#include "include/core/SkPictureRecorder.h"
+#include "include/core/SkFont.h"
+#include "include/core/SkFontMgr.h"
 #endif
 
 #include <memory>
@@ -32,83 +35,114 @@
 namespace cocoa
 {
 
-constexpr uint32_t WIDTH = 1270;
-constexpr uint32_t HEIGHT = 720;
-
-void draw(ciallo::PaintNode *node, const sk_sp<SkShader>& shader)
+using namespace ciallo;
+class Renderer : public DrawableListener
 {
-    ciallo::PaintNode::ScopedPaint scopedPaint(node);
-
-    SkCanvas *canvas = node->asCanvas();
-
-    static SkScalar px = 128;
-    static int direction = 1;
-    SkScalar py = ((px * px) / -400) + 2 * px;
-
-    SkPaint paint;
-    const SkScalar R = 60.0f;
-    SkPath path;
-    path.moveTo(px + R, py);
-    for (int i = 1; i < 15; ++i)
+public:
+    explicit Renderer(Drawable *drawable, XcbConnection *conn)
+            : fCtx(drawable, GrContextOptions::MakeFromPropertyTree()),
+              fConn(conn)
     {
-        SkScalar a = 0.44879895f * i;
-        SkScalar r = R + R * (i % 2);
-        path.lineTo(px + r * cos(a), py + r * sin(a));
+        layer = fCtx.comp()->overlay(800, 600, 0, 0, 0);
     }
 
-    paint.setPathEffect(SkDiscretePathEffect::Make(10.0f, 4.0f));
-    SkPoint points[2] = {SkPoint::Make(0.0f, 0.0f), SkPoint::Make(node->width() - 1, node->height() - 1)};
-    SkColor colors[2] = {SkColorSetRGB(66, 133, 244), SkColorSetRGB(15, 157, 88)};
-    paint.setShader(
-        SkGradientShader::MakeLinear(points, colors, NULL, 2, SkTileMode::kClamp, 0, NULL));
-    paint.setAntiAlias(true);
-    paint.setAlphaf(0.7);
-    canvas->clear(0x9fffffff);
+    ~Renderer() override = default;
 
-    canvas->drawPath(path, paint);
-    px += direction;
-    if (px > node->width() - 128)
-        direction = -1;
-    else if (px < 128.0f)
-        direction = 1;
-}
-
-void displayFps()
-{
-    static auto start = std::chrono::steady_clock::now();
-    static double cnt = 0;
-
-    auto now = std::chrono::steady_clock::now();
-    double sec = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count() / 1e3;
-    if (sec >= 1)
+    void onRender() override
     {
-        std::cout << cnt / sec << " fps" << std::endl;
-        cnt = 0;
-        start = std::chrono::steady_clock::now();
+        SkPictureRecorder rec;
+        SkCanvas *canvas = rec.beginRecording(layer->width(), layer->height());
+
+        auto mgr = SkFontMgr::RefDefault();
+        auto *set = mgr->matchFamily("Consolas");
+        sk_sp<SkTypeface> typeface = nullptr;
+        for (int32_t i = 0; i < set->count(); i++)
+        {
+            SkFontStyle style;
+            SkString styleName;
+            set->getStyle(i, &style, &styleName);
+            if (styleName.equals("Italic"))
+                typeface.reset(set->createTypeface(i));
+        }
+        set->unref();
+
+        canvas->clear(SK_ColorWHITE);
+        SkFont font(typeface);
+        SkPaint paint;
+        font.setSize(30);
+        canvas->drawString("Hello, World", 20, 100, font, paint);
+
+        layer->paint(rec.finishRecordingAsPicture(), 0, 0);
+        layer->update();
+        fCtx.comp()->present();
     }
-    cnt++;
-}
+
+    bool onClose() override
+    {
+        fConn->disconnect();
+        return true;
+    }
+
+private:
+    GrContext      fCtx;
+    std::shared_ptr<GrBaseRenderLayer> layer;
+    XcbConnection *fConn;
+};
+
+class CrRenderer : public DrawableListener
+{
+public:
+    CrRenderer(Drawable *drawable, XcbConnection *conn)
+        : fSurface(CrSurface::MakeFromDrawable(drawable)),
+          fCanvas(fSurface),
+          fConn(conn)
+    {
+        fCanvas.setSource(CrSurface::MakeImage("src.png"), 0, 0);
+    }
+
+    ~CrRenderer() override = default;
+
+    void onRender() override
+    {
+        /*
+        fCanvas.selectFontFace("Consolas", CAIRO_FONT_SLANT_ITALIC, CAIRO_FONT_WEIGHT_NORMAL);
+        fCanvas.setFontSize(30);
+        fCanvas.moveTo(20, 100);
+        fCanvas.drawText("Hello, World");
+        */
+        // 2c8fb2
+        fCanvas.setAntialias(CAIRO_ANTIALIAS_BEST);
+        fCanvas.drawArc(300, 300, 250, 0, M_PI * 2);
+        fCanvas.drawFill();
+        // fSurface->flush();
+    }
+
+    bool onClose() override
+    {
+        fConn->disconnect();
+        return true;
+    }
+
+private:
+    std::shared_ptr<CrSurface> fSurface;
+    CrCanvas fCanvas;
+    XcbConnection *fConn;
+};
 
 void xcbRender()
 {
-    using namespace ciallo;
+    XcbConnection connection;
+    XcbWindow window(connection.screen(), SkIRect::MakeXYWH(0, 0, 800, 600));
 
-    XCBWindow window(nullptr, WIDTH, HEIGHT);
-    window.createWindow();
-    window.setWindowTitle("Ciallo Test");
+    window.setTitle("Hello, World");
+    window.setResizable(true);
 
-    RenderNode *renderNode = window.GContext()->createRenderNode("#front",
-                                                                 800, 600, 50, 20, 1);
+    auto renderer = std::make_shared<CrRenderer>(&window, &connection);
+    window.setListener(renderer);
 
-    PaintNode *paintNode = PaintNode::MakeFromParent(renderNode, 800, 600, 0, 0);
-    renderNode->asRenderLayer()->setVisibility(true);
-
-    while (!window.isClosed())
-    {
-        draw(paintNode, nullptr);
-        window.GContext()->emitCmdRenderNodeUpdate(renderNode)->wait();
-        window.update();
-    }
+    int32_t events;
+    while ((events = EventDispatcher::Instance()->wait()))
+        EventDispatcher::Instance()->handleEvents(events);
 }
 
 Configurator::State Initialize(int argc, char const **argv)
@@ -122,7 +156,7 @@ Configurator::State Initialize(int argc, char const **argv)
         state == Configurator::State::kError)
         return state;
 
-    std::string level = prop->asNode("/runtime/journal/level")
+    std::string level = prop->resolve("/runtime/journal/level")
                             ->cast<PropertyTreeDataNode>()->extract<std::string>();
 
     int filter;
@@ -144,10 +178,10 @@ Configurator::State Initialize(int argc, char const **argv)
                 .make<RuntimeException>();
     }
 
-    bool rainbow = prop->asNode("/runtime/journal/textShader")
+    bool rainbow = prop->resolve("/runtime/journal/textShader")
             ->cast<PropertyTreeDataNode>()->value().extract<bool>();
 
-    std::string redirect = prop->asNode("/runtime/journal/stdout")
+    std::string redirect = prop->resolve("/runtime/journal/stdout")
                                ->cast<PropertyTreeDataNode>()->value().extract<std::string>();
     if (redirect == "<stdout>")
         Journal::New(STDOUT_FILENO, filter, rainbow);
@@ -156,11 +190,14 @@ Configurator::State Initialize(int argc, char const **argv)
     else
         Journal::New(redirect.c_str(), filter, rainbow);
 
+    EventDispatcher::New();
+
     return Configurator::State::kSuccessful;
 }
 
 void Finalize()
 {
+    EventDispatcher::Delete();
     Journal::Delete();
     PropertyTree::Delete();
 }
@@ -168,31 +205,43 @@ void Finalize()
 void Run()
 {
     log_write(LOG_DEBUG) << "Content of property tree:" << log_endl;
-    utils::DumpPropertyTree(PropertyTree::Instance()->asNode("/"), [](const std::string& str) -> void {
+    utils::DumpPropertyTree(PropertyTree::Ref()("/"), [](const std::string& str) -> void {
         log_write(LOG_DEBUG) << str << log_endl;
     });
 
-    xcbRender();
+    // xcbRender();
+    crpkg::Deserializer deserializer("Test.crpkg.blob");
+    auto *node = PropertyTreeNode::NewDirNode(PropertyTree::Ref()("/"),
+                                              "packages")->cast<PropertyTreeDirNode>();
+    deserializer.extractTo(node);
+
+    utils::DumpPropertyTree(PropertyTree::Ref()("/"), [](const std::string& str) -> void {
+        log_write(LOG_DEBUG) << str << log_endl;
+    });
 }
 
 int Main(int argc, char const **argv)
 {
+    BeforeLeaveScope beforeLeaveScope([]() -> void { Finalize(); });
     try
     {
-        Configurator::State state = Initialize(argc, argv);
-        if (state == Configurator::State::kError)
+        switch (Initialize(argc, argv))
+        {
+        case Configurator::State::kError:
             return 1;
-        if (state == Configurator::State::kShouldExitNormally)
+        case Configurator::State::kShouldExitNormally:
             return 0;
+        case Configurator::State::kSuccessful:
+            break;
+        }
 
         Run();
-        Finalize();
     }
     catch (const RuntimeException& e)
     {
         if (Journal::Instance())
         {
-            bool color = PropertyTree::Instance()->asNode("/runtime/journal/exceptionTextShader")
+            bool color = PropertyTree::Instance()->resolve("/runtime/journal/exceptionTextShader")
                             ->cast<PropertyTreeDataNode>()->extract<bool>();
             utils::DumpRuntimeException(e, color, [](const std::string& str) -> void {
                 log_write(LOG_EXCEPTION) << str << log_endl;

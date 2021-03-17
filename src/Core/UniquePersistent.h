@@ -16,6 +16,10 @@ public:
         return fpSelf;
     }
 
+    static T& Ref() {
+        return *Instance();
+    }
+
     template<typename...ArgsT>
     static void New(ArgsT&&...args) {
         fpSelf = new T(std::forward<ArgsT>(args)...);

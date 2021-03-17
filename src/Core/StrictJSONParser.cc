@@ -187,7 +187,7 @@ void parseJSONObject(Poco::JSON::Object::Ptr pObject, const ObjectTemplate *pTem
         if (pMemberTemplate == nullptr)
         {
             throw RuntimeException::Builder(__FUNCTION__)
-                    .append("JSON object ")
+                    .append("JSON template ")
                     .append(pTemplate->name())
                     .append(" not contains member named ")
                     .append(member.first)

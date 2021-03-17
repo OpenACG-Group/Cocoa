@@ -2,7 +2,7 @@
 deprecated/*
 
 # External sources
-deps/*
+third_party/*
 res/lab/*
 
 # Building directories

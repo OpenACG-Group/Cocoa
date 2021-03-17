@@ -9,8 +9,7 @@
 
   "features": {
     "useStrictHardwareDraw": false,
-    "useGpuDraw": false,
-    "enableGpuDebugJournal": false,
-    "useOpenCl": false
+    "useGpuDraw": true,
+    "enableGpuDebugJournal": false
   }
 }

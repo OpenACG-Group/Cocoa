@@ -63,16 +63,10 @@ OBJECT_TEMPLATE(true, journal, {
 FINAL_VALUE_TEMPLATE(true, useStrictHardwareDraw, Boolean)
 FINAL_VALUE_TEMPLATE(true, useGpuDraw, Boolean)
 FINAL_VALUE_TEMPLATE(true, enableGpuDebugJournal, Boolean)
-FINAL_VALUE_TEMPLATE(true, useOpenCl, Boolean)
-FINAL_VALUE_TEMPLATE(true, useOpenClPlatformKeyword, String)
-FINAL_VALUE_TEMPLATE(true, useOpenClDeviceKeyword, String)
 OBJECT_TEMPLATE(true, features, {
     FINAL_VALUE_MEMBER(useStrictHardwareDraw)
     FINAL_VALUE_MEMBER(useGpuDraw)
     FINAL_VALUE_MEMBER(enableGpuDebugJournal)
-    FINAL_VALUE_MEMBER(useOpenCl)
-    FINAL_VALUE_MEMBER(useOpenClPlatformKeyword)
-    FINAL_VALUE_MEMBER(useOpenClDeviceKeyword)
 })
 
 OBJECT_TEMPLATE(true, root, {
@@ -226,8 +220,7 @@ const std::string defaultJSON = R"(
   "features": {
     "useStrictHardwareDraw": false,
     "useGpuDraw": true,
-    "enableGpuDebugJournal": false,
-    "useOpenCl": false
+    "enableGpuDebugJournal": false
   }
 })";
 
@@ -237,15 +230,15 @@ namespace cocoa {
 
 Configurator::Configurator()
 {
-    if (PropertyTree::Instance()->asNode("/runtime") == nullptr)
+    if (PropertyTree::Instance()->resolve("/runtime") == nullptr)
     {
-        PropertyTreeNode::NewDirNode(PropertyTree::Instance()->asNode("/"),
+        PropertyTreeNode::NewDirNode(PropertyTree::Instance()->resolve("/"),
                                      "runtime");
     }
 
-    fpNode = PropertyTree::Instance()->asNode("/runtime")
+    fpNode = PropertyTree::Instance()->resolve("/runtime")
             ->cast<PropertyTreeDirNode>();
-    PropertyTreeNode::NewDirNode(PropertyTree::Instance()->asNode("/"),
+    PropertyTreeNode::NewDirNode(PropertyTree::Instance()->resolve("/"),
                                  "bootstrap");
 }
 
@@ -258,10 +251,9 @@ Configurator::State Configurator::parse(int argc, const char **argv)
     }
 
     /* Dump command line to property tree */
-    PropertyTreeNode::NewArrayNode(fpNode, "command");
-    auto *pCommandArrayNode = PropertyTree::Instance()->asNode("/runtime/command");
-    for (int i = 0; i < argc; i++)
-        PropertyTreeNode::NewDataNode(pCommandArrayNode, argv[i]);
+    auto *pCommandNode = PropertyTreeNode::NewDirNode(fpNode, "command");
+    PropertyTreeNode::NewDataNode(pCommandNode, "argc", argc);
+    PropertyTreeNode::NewDataNode(pCommandNode, "argv", argv);
 
     /* Pass 1: Parsing command line, don't process overrides */
     std::vector<CmdOption> options;
@@ -315,7 +307,7 @@ Configurator::State Configurator::parse(int argc, const char **argv)
         else if_opt_l("work-directory")
         {
             require_argument
-            PropertyTreeNode::NewDataNode(PropertyTree::Instance()->asNode("/bootstrap"),
+            PropertyTreeNode::NewDataNode(PropertyTree::Instance()->resolve("/bootstrap"),
                                           "pwd", opt.value.value());
 
             utils::ChangeWorkDirectory(opt.value.value());
@@ -335,7 +327,7 @@ Configurator::State Configurator::parse(int argc, const char **argv)
         std::cerr << "At least one script file is required" << std::endl;
         return State::kError;
     }
-    PropertyTreeNode::NewDataNode(PropertyTree::Instance()->asNode("/bootstrap"),
+    PropertyTreeNode::NewDataNode(PropertyTree::Instance()->resolve("/bootstrap"),
                                   "scriptFile", scriptFile[0]);
 
     /* Pass 2: Loading default configuration */

@@ -193,7 +193,7 @@ PropertyTree::~PropertyTree()
     delete fRoot;
 }
 
-PropertyTreeNode *PropertyTree::asNode(const std::string& path)
+PropertyTreeNode *PropertyTree::resolve(const std::string& path)
 {
     PropertyTreeNode *pNode = fRoot;
     auto directive = parsePropertyPath(path);

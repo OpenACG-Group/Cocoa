@@ -1,8 +1,5 @@
 #include <unistd.h>
 
-#include <Poco/CppParser/Parser.h>
-#include <Poco/CppParser/Symbol.h>
-
 #include "Core/Utils.h"
 #include "Core/MeasuredTable.h"
 #include "Core/Exception.h"

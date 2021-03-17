@@ -11,7 +11,9 @@ set(core_sources
         Configurator.h
         Configurator.cc
         Utils.h
-        Utils.cc)
+        Utils.cc
+        EventDispatcher.h
+        EventDispatcher.cc)
 
 add_library(${core_target} STATIC ${core_sources})
 
@@ -22,8 +24,7 @@ target_link_libraries(${core_target}
             ffi
             unwind
             Poco::Foundation
-            Poco::JSON
-            Poco::CppParser)
+            Poco::JSON)
 
 ## For symbol analyzing in RuntimeException
 add_link_options(-rdynamic)

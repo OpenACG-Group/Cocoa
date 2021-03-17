@@ -55,8 +55,7 @@ public:
     Iterable children();
 
     template<typename T>
-    T *cast()
-    {
+    T *cast() {
         return dynamic_cast<T*>(this);
     }
 
@@ -132,7 +131,11 @@ public:
     PropertyTree();
     ~PropertyTree();
 
-    PropertyTreeNode *asNode(const std::string& path);
+    PropertyTreeNode *resolve(const std::string& path);
+    inline PropertyTreeNode *operator()(const std::string& path)
+    {
+        return resolve(path);
+    }
 
 private:
     PropertyTreeDirNode     *fRoot;
