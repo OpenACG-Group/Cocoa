@@ -134,6 +134,12 @@ void RuntimeException::recordFrames()
             continue;
         }
 
+        if (dynLinkerInfo.dli_saddr == nullptr)
+        {
+            unw_word_t sp;
+            unw_get_reg(&cursor, UNW_REG_SP, &sp);
+        }
+
         frame.file = dynLinkerInfo.dli_fname;
         frame.symbol = demangle_cpp_symbol(dynLinkerInfo.dli_sname);
         frame.procAddress = dynLinkerInfo.dli_saddr;

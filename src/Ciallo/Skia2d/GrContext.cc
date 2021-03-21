@@ -84,8 +84,8 @@ void GrContext::createCompNormally(Drawable *drawable, const GrContextOptions& o
         } catch (const RuntimeException& e) {
             log_write(LOG_ERROR) << "Failed to create GPU compositor, using software composition instead." << log_endl;
             log_write(LOG_ERROR) << "Enable features.useStrictHardwareDraw to see what happens." << log_endl;
+            createRasterComp(drawable, opts);
         }
-        createRasterComp(drawable, opts);
     }
     else
         createRasterComp(drawable, opts);

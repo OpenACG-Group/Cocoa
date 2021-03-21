@@ -2,30 +2,19 @@
 
 #include <xcb/xcb.h>
 
+#include "Core/Project.h"
+#include "Core/PosixSignalCatcher.h"
 #include "Core/Utils.h"
 #include "Core/Journal.h"
 #include "Core/Exception.h"
 #include "Core/Configurator.h"
 #include "Core/EventDispatcher.h"
 
-#include "crpkg/Deserializer.h"
-
+#include "NaGui/NaGui.h"
 #include "Ciallo/XcbConnection.h"
 #include "Ciallo/XcbEventQueue.h"
 #include "Ciallo/XcbScreen.h"
 #include "Ciallo/XcbWindow.h"
-#include "Ciallo/Skia2d/GrContext.h"
-#include "Ciallo/Cairo2d/CrSurface.h"
-#include "Ciallo/Cairo2d/CrCanvas.h"
-
-#if TEST_CIALLO
-#include "include/core/SkPicture.h"
-#include "include/core/SkCanvas.h"
-#include "include/core/SkPaint.h"
-#include "include/core/SkPictureRecorder.h"
-#include "include/core/SkFont.h"
-#include "include/core/SkFontMgr.h"
-#endif
 
 #include <memory>
 #include <iostream>
@@ -35,114 +24,34 @@
 namespace cocoa
 {
 
-using namespace ciallo;
-class Renderer : public DrawableListener
+class MyWindow : public NaGui::NaWindow
 {
 public:
-    explicit Renderer(Drawable *drawable, XcbConnection *conn)
-            : fCtx(drawable, GrContextOptions::MakeFromPropertyTree()),
-              fConn(conn)
+    ~MyWindow() override = default;
+
+    void onRepaint() override
     {
-        layer = fCtx.comp()->overlay(800, 600, 0, 0, 0);
+        std::cout << "repaint" << std::endl;
+        SetWindowTitle("MyWindow");
+        SetWindowResizable(true);
+
+        TextLabel("Hello, World!");
     }
-
-    ~Renderer() override = default;
-
-    void onRender() override
-    {
-        SkPictureRecorder rec;
-        SkCanvas *canvas = rec.beginRecording(layer->width(), layer->height());
-
-        auto mgr = SkFontMgr::RefDefault();
-        auto *set = mgr->matchFamily("Consolas");
-        sk_sp<SkTypeface> typeface = nullptr;
-        for (int32_t i = 0; i < set->count(); i++)
-        {
-            SkFontStyle style;
-            SkString styleName;
-            set->getStyle(i, &style, &styleName);
-            if (styleName.equals("Italic"))
-                typeface.reset(set->createTypeface(i));
-        }
-        set->unref();
-
-        canvas->clear(SK_ColorWHITE);
-        SkFont font(typeface);
-        SkPaint paint;
-        font.setSize(30);
-        canvas->drawString("Hello, World", 20, 100, font, paint);
-
-        layer->paint(rec.finishRecordingAsPicture(), 0, 0);
-        layer->update();
-        fCtx.comp()->present();
-    }
-
-    bool onClose() override
-    {
-        fConn->disconnect();
-        return true;
-    }
-
-private:
-    GrContext      fCtx;
-    std::shared_ptr<GrBaseRenderLayer> layer;
-    XcbConnection *fConn;
 };
 
-class CrRenderer : public DrawableListener
+void RendererEntry()
 {
-public:
-    CrRenderer(Drawable *drawable, XcbConnection *conn)
-        : fSurface(CrSurface::MakeFromDrawable(drawable)),
-          fCanvas(fSurface),
-          fConn(conn)
-    {
-        fCanvas.setSource(CrSurface::MakeImage("src.png"), 0, 0);
-    }
+    ciallo::XcbConnection::New();
+    NaGui::NaContext::New();
 
-    ~CrRenderer() override = default;
-
-    void onRender() override
-    {
-        /*
-        fCanvas.selectFontFace("Consolas", CAIRO_FONT_SLANT_ITALIC, CAIRO_FONT_WEIGHT_NORMAL);
-        fCanvas.setFontSize(30);
-        fCanvas.moveTo(20, 100);
-        fCanvas.drawText("Hello, World");
-        */
-        // 2c8fb2
-        fCanvas.setAntialias(CAIRO_ANTIALIAS_BEST);
-        fCanvas.drawArc(300, 300, 250, 0, M_PI * 2);
-        fCanvas.drawFill();
-        // fSurface->flush();
-    }
-
-    bool onClose() override
-    {
-        fConn->disconnect();
-        return true;
-    }
-
-private:
-    std::shared_ptr<CrSurface> fSurface;
-    CrCanvas fCanvas;
-    XcbConnection *fConn;
-};
-
-void xcbRender()
-{
-    XcbConnection connection;
-    XcbWindow window(connection.screen(), SkIRect::MakeXYWH(0, 0, 800, 600));
-
-    window.setTitle("Hello, World");
-    window.setResizable(true);
-
-    auto renderer = std::make_shared<CrRenderer>(&window, &connection);
-    window.setListener(renderer);
+    NaGui::BindDrawableWindow(
+            new ciallo::XcbWindow(ciallo::XcbConnection::Ref().screen(),
+                                  SkIRect::MakeXYWH(0, 0, 400, 300)),
+            NaGui::NaWindow::Make<MyWindow>());
 
     int32_t events;
-    while ((events = EventDispatcher::Instance()->wait()))
-        EventDispatcher::Instance()->handleEvents(events);
+    while ((events = EventDispatcher::Ref().wait()))
+        EventDispatcher::Ref().handleEvents(events);
 }
 
 Configurator::State Initialize(int argc, char const **argv)
@@ -191,12 +100,16 @@ Configurator::State Initialize(int argc, char const **argv)
         Journal::New(redirect.c_str(), filter, rainbow);
 
     EventDispatcher::New();
+    PosixSignalCatcher::New();
 
     return Configurator::State::kSuccessful;
 }
 
 void Finalize()
 {
+    NaGui::NaContext::Delete();
+    ciallo::XcbConnection::Delete();
+    PosixSignalCatcher::Delete();
     EventDispatcher::Delete();
     Journal::Delete();
     PropertyTree::Delete();
@@ -209,15 +122,8 @@ void Run()
         log_write(LOG_DEBUG) << str << log_endl;
     });
 
-    // xcbRender();
-    crpkg::Deserializer deserializer("Test.crpkg.blob");
-    auto *node = PropertyTreeNode::NewDirNode(PropertyTree::Ref()("/"),
-                                              "packages")->cast<PropertyTreeDirNode>();
-    deserializer.extractTo(node);
-
-    utils::DumpPropertyTree(PropertyTree::Ref()("/"), [](const std::string& str) -> void {
-        log_write(LOG_DEBUG) << str << log_endl;
-    });
+    RendererEntry();
+    log_write(LOG_INFO) << "Renderer finished" << log_endl;
 }
 
 int Main(int argc, char const **argv)

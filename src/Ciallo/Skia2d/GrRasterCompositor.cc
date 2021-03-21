@@ -79,7 +79,7 @@ GrBaseRenderLayer *GrRasterCompositor::onCreateRenderLayer(int32_t width, int32_
     auto format = SkColorInfoFromImageFormat(drawable()->format());
 
     SkISize size = SkISize::Make(width, height);
-    SkImageInfo imageInfo = SkImageInfo::Make(size, std::get<0>(format), SkAlphaType::kUnpremul_SkAlphaType);
+    SkImageInfo imageInfo = SkImageInfo::Make(size, std::get<0>(format), SkAlphaType::kPremul_SkAlphaType);
     return new GrRasterRenderLayer(this, left, top, zindex,
                                    width, height, imageInfo);
 }

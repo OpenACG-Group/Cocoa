@@ -72,16 +72,26 @@ public:
     void setTitle(const std::string& title) override;
     void setResizable(bool value) override;
 
+    void repaint() override;
+
     void close() override;
-    bool isClosed() const;
+    bool isClosed() const override;
 
 private:
     void closeWindow();
     void createWindow(XcbWindow *parent);
     void configureWindow();
+    void selectXInputEvents();
 
     void handleExposeEvent(const xcb_expose_event_t *ev) override;
     void handleClientMessageEvent(const xcb_client_message_event_t *ev) override;
+    void handleXInputButtonPress(const xcb_ge_event_t *ev) override;
+    void handleXInputButtonRelease(const xcb_ge_event_t *ev) override;
+    void handleXInputMotion(const xcb_ge_event_t *ev) override;
+    void handleXInputEnter(const xcb_ge_event_t *ev) override;
+    void handleXInputLeave(const xcb_ge_event_t *ev) override;
+    void handleFocusInEvent(const xcb_focus_in_event_t *ev) override;
+    void handleFocusOutEvent(const xcb_focus_out_event_t *ev) override;
 
 private:
     XcbScreen           *fScreen;

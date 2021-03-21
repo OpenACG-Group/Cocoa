@@ -12,6 +12,8 @@ CIALLO_BEGIN_NS
 class CrSurface
 {
 public:
+    using Ptr = std::shared_ptr<CrSurface>;
+
     enum class [[nodiscard]] Backend
     {
         kDrawableSurface,

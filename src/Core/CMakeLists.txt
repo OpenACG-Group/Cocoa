@@ -1,3 +1,5 @@
+enable_language(C ASM CXX)
+
 set(core_target Core)
 set(core_sources
         Journal.h
@@ -12,6 +14,9 @@ set(core_sources
         Configurator.cc
         Utils.h
         Utils.cc
+        PosixSignalCatcher.h
+        PosixSignalCatcher.cc
+        PosixSigsegvHelper.S
         EventDispatcher.h
         EventDispatcher.cc)
 

@@ -1,7 +1,7 @@
 include(FindPkgConfig)
 
 find_package(Vulkan REQUIRED)
-pkg_check_modules(XCB xcb xcb-renderutil xcb-util REQUIRED)
+pkg_check_modules(XCB xcb xcb-util xcb-xinput REQUIRED)
 pkg_check_modules(Cairo cairo REQUIRED)
 
 set(ciallo_target Ciallo)
@@ -9,6 +9,12 @@ set(ciallo_sources
         ## Ciallo
         Ciallo.h
         Ciallo.cc
+        DrBaseEvent.h
+        DrBaseEvent.cc
+        DrRepaintEvent.h
+        DrButtonPressEvent.h
+        DrButtonReleaseEvent.h
+        DrMotionEvent.h
         Drawable.h
         Drawable.cc
         DrawableListener.h

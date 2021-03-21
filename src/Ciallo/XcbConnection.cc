@@ -29,6 +29,8 @@ XcbConnection::XcbConnection(const char *pDisplay)
             xcb_disconnect(fConnection);
     });
 
+    requireExtensions();
+
     fAtom.initialize(fConnection);
     fSetup = xcb_get_setup(fConnection);
 
@@ -47,6 +49,38 @@ XcbConnection::~XcbConnection()
     delete fEventQueue;
     delete fScreen;
     xcb_disconnect(fConnection);
+}
+
+void XcbConnection::requireExtensions()
+{
+    const xcb_query_extension_reply_t *reply = xcb_get_extension_data(fConnection,
+                                                                      &xcb_input_id);
+    if (!reply || !reply->present)
+    {
+        throw RuntimeException::Builder(__FUNCTION__)
+                .append("Require XInput extension for X11 platform")
+                .make<RuntimeException>();
+    }
+
+    auto xinputVer = xcb_input_xi_query_version_reply(
+            fConnection,
+            xcb_input_xi_query_version(fConnection, 2, 2),
+            nullptr);
+
+    BeforeLeaveScope before([xinputVer]() -> void {
+        if (xinputVer)
+            std::free(xinputVer);
+    });
+
+    if (xinputVer == nullptr || xinputVer->major_version < 2)
+    {
+        throw RuntimeException::Builder(__FUNCTION__)
+                    .append("X server doesn't support XInput 2")
+                    .make<RuntimeException>();
+    }
+
+    log_write(LOG_INFO) << "X11: XInput version " << xinputVer->major_version
+                        << '.' << xinputVer->minor_version << log_endl;
 }
 
 const xcb_setup_t * XcbConnection::setup() const
@@ -130,28 +164,25 @@ void XcbConnection::processXcbError(xcb_generic_error_t *err)
     const char *pRequest = xcb_event_get_request_label(err->major_code);
 
     log_write(LOG_ERROR) << "XCB Error: Request " << I(err->major_code) << ":" << I(err->minor_code)
-                         << " (" << pRequest << "), Sequence " << err->sequence << ", "
-                         << "Error " << I(err->error_code) << " (" << pError << ")" << log_endl;
+                         << " (" << (pRequest ? pRequest : "<unknown>") << "), Sequence " << err->sequence << ", "
+                         << "Error " << I(err->error_code) << " (" << (pError ? pError : "<unknown>") << ")" << log_endl;
 #undef I
 }
 
 XcbWindowEventListener *XcbConnection::selectListener(xcb_window_t window)
 {
     if (!fWindowEventListeners.contains(window))
-    {
-        log_write(LOG_ERROR) << "XcbConnection: The X11 server reported an event for a window, "
-                             << "but we could not find any event listeners registered for this window."
-                             << log_endl;
         return nullptr;
-    }
 
     return fWindowEventListeners[window];
 }
 
-#define SELECT_LISTENER                                            \
-    XcbWindowEventListener *listener = selectListener(ev->window); \
-    if (listener == nullptr)                                       \
+#define SELECT_LISTENER_FOR(wnd)    \
+    XcbWindowEventListener *listener = selectListener(wnd); \
+    if (listener == nullptr)        \
         return;
+
+#define SELECT_LISTENER     SELECT_LISTENER_FOR(ev->window)
 
 void XcbConnection::processExpose(xcb_expose_event_t *ev)
 {
@@ -171,7 +202,52 @@ void XcbConnection::processClientMessage(xcb_client_message_event_t *ev)
     listener->handleClientMessageEvent(ev);
 }
 
+void XcbConnection::processGenericEvent(xcb_ge_event_t *ev)
+{
+    /* Select a listener */
+    SELECT_LISTENER_FOR(reinterpret_cast<xcb_input_button_press_event_t*>(ev)->event)
+
+    switch (ev->event_type)
+    {
+    case XCB_INPUT_BUTTON_PRESS:
+        listener->handleXInputButtonPress(ev);
+        break;
+
+    case XCB_INPUT_BUTTON_RELEASE:
+        listener->handleXInputButtonRelease(ev);
+        break;
+
+    case XCB_INPUT_MOTION:
+        listener->handleXInputMotion(ev);
+        break;
+
+    case XCB_INPUT_ENTER:
+        listener->handleXInputEnter(ev);
+        break;
+
+    case XCB_INPUT_LEAVE:
+        listener->handleXInputLeave(ev);
+        break;
+
+    default:
+        break;
+    }
+}
+
+void XcbConnection::processFocusIn(xcb_focus_in_event_t *ev)
+{
+    SELECT_LISTENER_FOR(ev->event)
+    listener->handleFocusInEvent(ev);
+}
+
+void XcbConnection::processFocusOut(xcb_focus_out_event_t *ev)
+{
+    SELECT_LISTENER_FOR(ev->event)
+    listener->handleFocusOutEvent(ev);
+}
+
 #undef SELECT_LISTENER
+#undef SELECT_LISTENER_FOR
 
 #define EV_CAST(ev) reinterpret_cast<xcb_##ev##_event_t*>(event)
 #define ERR_CAST    reinterpret_cast<xcb_generic_error_t*>(event)
@@ -200,6 +276,18 @@ void XcbConnection::processEvent()
 
     case XCB_CLIENT_MESSAGE:
         processClientMessage(EV_CAST(client_message));
+        break;
+
+    case XCB_GE_GENERIC:
+        processGenericEvent(EV_CAST(ge));
+        break;
+
+    case XCB_FOCUS_IN:
+        processFocusIn(EV_CAST(focus_in));
+        break;
+
+    case XCB_FOCUS_OUT:
+        processFocusOut(EV_CAST(focus_out));
         break;
 
     default:

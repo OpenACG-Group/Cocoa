@@ -12,12 +12,16 @@ set(ZSTD_BUILD_PROGRAMS OFF)
 set(ZSTD_MULTITHREAD_SUPPORT ON)
 add_subdirectory(third_party/zstd/build/cmake)
 
+set(ASMJIT_TARGET_TYPE SHARED)
+add_subdirectory(third_party/asmjit)
+
 ## Link options and include directories
 include_directories(
         src
         third_party/skia
         third_party/v8
-        third_party/zstd/lib)
+        third_party/zstd/lib
+        third_party/asmjit/src)
 
 link_directories(third_party/skia/out/Shared)
 
@@ -31,15 +35,16 @@ add_compile_definitions(COCOA_PROJECT=1 V8_COMPRESS_POINTERS)
 add_compile_options("-Wall")
 
 add_subdirectory(src/Core)
+#add_subdirectory(src/Reactor)
 add_subdirectory(src/Ciallo)
-add_subdirectory(src/crpkg)
+add_subdirectory(src/NaGui)
+# add_subdirectory(src/crpkg)
 
 add_compile_options(${Cairo_CFLAGS})
 add_executable(Cocoa
                src/Main.cc)
 
-target_link_libraries(Cocoa
-        PRIVATE
-            Ciallo
-            Core
-            crpkg)
+target_link_libraries(Cocoa PRIVATE
+                      NaGui
+                      Ciallo
+                      Core)

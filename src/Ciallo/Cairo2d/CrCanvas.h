@@ -63,6 +63,7 @@ public:
                         cairo_font_weight_t weight);
     void setFontSize(double size);
     void setFontMatrix(const cairo_matrix_t *matrix);
+    void setFontOptions(cairo_font_options_t *options);
     void drawText(const char *utf8);
     cairo_text_extents_t textExtents(const char *utf8);
 

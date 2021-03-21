@@ -228,4 +228,9 @@ cairo_text_extents_t CrCanvas::textExtents(const char *utf8)
     return extents;
 }
 
+void CrCanvas::setFontOptions(cairo_font_options_t *options)
+{
+    cairo_set_font_options(fCairo, options);
+}
+
 CIALLO_END_NS

@@ -66,7 +66,8 @@ GPU acceleration is a special case, you can update the window at any time,
 see "Rendering Backends" below).
 
 ### Event Loop in Window System
-TODO: Complete this.
+All of the events which are received by windows will be handled by __EventDispatcher__
+in __Core__ module. See also [Core Module](Core.md).
 
 ## Rendering Backends
 Ciallo abstracts two rendering interface, Cairo2d and Skia2d. As you can see,
@@ -110,10 +111,28 @@ You can also make a surface by Drawable:
 // Create a window before calling this.
 auto surface = CrSurface::MakeFromDrawable(&window);
 ```
+The "real backend" Cairo2d uses is undefined and depends on your display
+server. Cairo2d just converts all the drawing operations to trapezoids
+and composition operations, and then sends them to the display server.
+The rasterization of trapezoids and image composition is the display server's
+responsibility.
+
+For X11 platform, Xorg server may use GLAMOR acceleration when it's available.
+In that case, Cairo2d will draw with OpenGL acceleration.
+
+Note that Cairo2d itself also has the ability of rasterization and composition.
+The  internal rasterizer and compositor will be used when your display server don't
+have the ability of rasterization and composition, which may cause performance
+loss.
+
+Cairo2d is a simple 2D engine designed to handle UI rendering, it communicates
+with the display server directly. For better performance (with GPU acceleration)
+and advanced effects (like fragment shaders, drawing vertices), use Skia2d.
 
 ### Skia2d
 The __Skia2d__ interface can render content through a CPU rasterizer or a GPU
 acclerated pipeline. It's the most important part of Ciallo. All of the drawing
 operations from Javascript will be performed by it. The source code is in
 `src/Ciallo/Skia2d`.
+
 

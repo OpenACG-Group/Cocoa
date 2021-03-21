@@ -49,13 +49,8 @@ int32_t EventDispatcher::wait() const
     do
     {
         ret = read(fEventFd, &num, sizeof(int64_t));
-    } while (ret == EINTR);
+    } while (ret < 0);
 
-    if (ret < 0)
-    {
-        log_write(LOG_ERROR) << "Failed to read event counter" << log_endl;
-        return 0;
-    }
     return num;
 }
 

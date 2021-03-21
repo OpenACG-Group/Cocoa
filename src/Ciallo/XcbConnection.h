@@ -8,6 +8,7 @@
 #include <xcb/xinput.h>
 
 #include "Core/BaseEventProcessor.h"
+#include "Core/UniquePersistent.h"
 #include "Ciallo/Ciallo.h"
 #include "Ciallo/XcbAtom.h"
 CIALLO_BEGIN_NS
@@ -23,25 +24,30 @@ public:
     virtual ~XcbWindowEventListener() = default;
 
 protected:
+    /* Exposure and window manager's events */
     virtual void handleExposeEvent(const xcb_expose_event_t *) {}
     virtual void handleClientMessageEvent(const xcb_client_message_event_t *) {}
+
+    /* XInput2 events */
+    virtual void handleXInputButtonPress(const xcb_ge_event_t *) {}
+    virtual void handleXInputButtonRelease(const xcb_ge_event_t *) {}
+    virtual void handleXInputMotion(const xcb_ge_event_t *) {}
+    virtual void handleXInputEnter(const xcb_ge_event_t *) {}
+    virtual void handleXInputLeave(const xcb_ge_event_t *) {}
+
+    /* Focus events */
+    virtual void handleFocusInEvent(const xcb_focus_in_event_t *) {}
+    virtual void handleFocusOutEvent(const xcb_focus_out_event_t *) {}
+
     virtual void handleConfigureNotifyEvent(const xcb_configure_notify_event_t *) {}
     virtual void handleMapNotifyEvent(const xcb_map_notify_event_t *) {}
     virtual void handleUnmapNotifyEvent(const xcb_unmap_notify_event_t *) {}
     virtual void handleDestroyNotifyEvent(const xcb_destroy_notify_event_t *) {}
-    virtual void handleButtonPressEvent(const xcb_button_press_event_t *) {}
-    virtual void handleButtonReleaseEvent(const xcb_button_release_event_t *) {}
-    virtual void handleMotionNotifyEvent(const xcb_motion_notify_event_t *) {}
-    virtual void handleEnterNotifyEvent(const xcb_enter_notify_event_t *) {}
-    virtual void handleLeaveNotifyEvent(const xcb_leave_notify_event_t *) {}
-    virtual void handleFocusInEvent(const xcb_focus_in_event_t *) {}
-    virtual void handleFocusOutEvent(const xcb_focus_out_event_t *) {}
     virtual void handlePropertyNotifyEvent(const xcb_property_notify_event_t *) {}
-    virtual void handleXIMouseEvent(xcb_ge_event_t *) {}
-    virtual void handleXIEnterLeave(xcb_ge_event_t *) {}
 };
 
-class XcbConnection : public BaseEventProcessor
+class XcbConnection : public UniquePersistent<XcbConnection>,
+                      public BaseEventProcessor
 {
 public:
     explicit XcbConnection(const char *pDisplay = nullptr);
@@ -64,9 +70,14 @@ public:
     void processEvent() override;
 
 private:
+    void requireExtensions();
+
     XcbWindowEventListener *selectListener(xcb_window_t window);
     void processExpose(xcb_expose_event_t *ev);
     void processClientMessage(xcb_client_message_event_t *ev);
+    void processGenericEvent(xcb_ge_event_t *ev);
+    void processFocusIn(xcb_focus_in_event_t *ev);
+    void processFocusOut(xcb_focus_out_event_t *ev);
     void processXcbError(xcb_generic_error_t *event);
 
 private:

@@ -51,9 +51,6 @@ void XcbEventQueue::run()
 
         EventDispatcher::Instance()->wakeup(fConnection);
     }
-
-    /* Notify event dispatcher we're dead, event loop should exit */
-    EventDispatcher::Instance()->dispose();
 }
 
 void XcbEventQueue::enqueue(xcb_generic_event_t *event)

@@ -8,6 +8,7 @@
 #include "Core/Journal.h"
 #include "Core/Exception.h"
 #include "Ciallo/XcbWindow.h"
+#include "Ciallo/DrButtonPressEvent.h"
 
 CIALLO_BEGIN_NS
 
@@ -134,14 +135,7 @@ void XcbWindow::createWindow(XcbWindow *parent)
     const uint32_t maskValues[2] = {
             fScreen->nativeHandle()->white_pixel,
             XCB_EVENT_MASK_EXPOSURE |
-            XCB_EVENT_MASK_POINTER_MOTION |
-            XCB_EVENT_MASK_BUTTON_PRESS |
-            XCB_EVENT_MASK_BUTTON_RELEASE |
-            XCB_EVENT_MASK_BUTTON_MOTION |
-            XCB_EVENT_MASK_KEY_PRESS |
-            XCB_EVENT_MASK_KEY_RELEASE |
-            XCB_EVENT_MASK_ENTER_WINDOW |
-            XCB_EVENT_MASK_LEAVE_WINDOW
+            XCB_EVENT_MASK_FOCUS_CHANGE
     };
 
     fWindow = xcb_generate_id(fConnection);
@@ -172,6 +166,7 @@ void XcbWindow::configureWindow()
                         XCB_ATOM_ATOM,
                         32, 1,
                         &deleteWindowAtom);
+    selectXInputEvents();
 }
 
 void XcbWindow::setTitle(const std::string& title)
@@ -221,9 +216,42 @@ ImageFormat XcbWindow::format() const
     return fFormat;
 }
 
+void XcbWindow::selectXInputEvents()
+{
+    struct {
+        xcb_input_event_mask_t header;
+        uint32_t               mask;
+    } mask{
+        .header = {
+                .deviceid = XCB_INPUT_DEVICE_ALL_MASTER,
+                .mask_len = 1
+        },
+        .mask = XCB_INPUT_XI_EVENT_MASK_BUTTON_PRESS |
+                XCB_INPUT_XI_EVENT_MASK_BUTTON_RELEASE |
+                XCB_INPUT_XI_EVENT_MASK_MOTION |
+                XCB_INPUT_XI_EVENT_MASK_ENTER |
+                XCB_INPUT_XI_EVENT_MASK_LEAVE |
+                XCB_INPUT_XI_EVENT_MASK_TOUCH_BEGIN |
+                XCB_INPUT_XI_EVENT_MASK_TOUCH_UPDATE |
+                XCB_INPUT_XI_EVENT_MASK_TOUCH_END
+    };
+
+    auto cookie = xcb_input_xi_select_events_checked(fConnection, fWindow, 1, &mask.header);
+    xcb_generic_error_t *error = xcb_request_check(fConnection, cookie);
+    if (error)
+    {
+        std::free(error);
+        throw RuntimeException::Builder(__FUNCTION__)
+                .append("Failed to select XInput events")
+                .make<RuntimeException>();
+    }
+}
+
 void XcbWindow::handleExposeEvent(const xcb_expose_event_t *ev)
 {
-    Drawable::listener()->onRender();
+    Drawable::listener()->onRender(DrMakeEvent<DrRepaintEvent>(0,
+                                                               ev->x, ev->y,
+                                                               ev->width, ev->height));
 }
 
 void XcbWindow::handleClientMessageEvent(const xcb_client_message_event_t *ev)
@@ -234,6 +262,110 @@ void XcbWindow::handleClientMessageEvent(const xcb_client_message_event_t *ev)
         if (shouldClose)
             closeWindow();
     }
+}
+
+static inline int fp1616ToInt(xcb_input_fp1616_t val)
+{
+    return int(DrScalar(val) / 0x10000);
+}
+
+void XcbWindow::handleXInputButtonPress(const xcb_ge_event_t *ev)
+{
+    auto *event = reinterpret_cast<const xcb_input_button_press_event_t*>(ev);
+
+    DrButton button;
+    switch (event->detail)
+    {
+    case 1:
+        button = DrButton::kLeftButton;
+        break;
+    case 2:
+        button = DrButton::kMiddleButton;
+        break;
+    case 3:
+        button = DrButton::kRightButton;
+        break;
+    default:
+        return;
+    }
+    Drawable::listener()->onButtonPress(DrMakeEvent<DrButtonPressEvent>(button,
+                                                                        event->time,
+                                                                        fp1616ToInt(event->event_x),
+                                                                        fp1616ToInt(event->event_y)));
+}
+
+void XcbWindow::handleXInputButtonRelease(const xcb_ge_event_t *ev)
+{
+    auto *event = reinterpret_cast<const xcb_input_button_release_event_t*>(ev);
+
+    DrButton button;
+    switch (event->detail)
+    {
+    case 1:
+        button = DrButton::kLeftButton;
+        break;
+    case 2:
+        button = DrButton::kMiddleButton;
+        break;
+    case 3:
+        button = DrButton::kRightButton;
+        break;
+    default:
+        return;
+    }
+    Drawable::listener()->onButtonRelease(DrMakeEvent<DrButtonReleaseEvent>(button,
+                                                                            event->time,
+                                                                            fp1616ToInt(event->event_x),
+                                                                            fp1616ToInt(event->event_y)));
+}
+
+void XcbWindow::handleXInputMotion(const xcb_ge_event_t *ev)
+{
+    auto *event = reinterpret_cast<const xcb_input_motion_event_t*>(ev);
+    Drawable::listener()->onMotion(DrMakeEvent<DrMotionEvent>(event->time,
+                                                              fp1616ToInt(event->event_x),
+                                                              fp1616ToInt(event->event_y)));
+}
+
+void XcbWindow::handleXInputEnter(const xcb_ge_event_t *ev)
+{
+    Drawable::listener()->onEnter();
+}
+
+void XcbWindow::handleXInputLeave(const xcb_ge_event_t *ev)
+{
+    Drawable::listener()->onLeave();
+}
+
+void XcbWindow::handleFocusInEvent(const xcb_focus_in_event_t *ev)
+{
+    Drawable::listener()->onFocusIn();
+}
+
+void XcbWindow::handleFocusOutEvent(const xcb_focus_out_event_t *ev)
+{
+    Drawable::listener()->onFocusOut();
+}
+
+void XcbWindow::repaint()
+{
+    xcb_expose_event_t event {
+            .response_type = XCB_EXPOSE,
+            .sequence = 0,
+            .window = fWindow,
+            .x = 0,
+            .y = 0,
+            .width = static_cast<uint16_t>(fGeometry.width()),
+            .height = static_cast<uint16_t>(fGeometry.height()),
+            .count = 1
+    };
+
+    xcb_send_event(fConnection,
+                   false,
+                   fWindow,
+                   XCB_EVENT_MASK_EXPOSURE,
+                   reinterpret_cast<const char*>(&event));
+    xcb_flush(fConnection);
 }
 
 void XcbWindow::close()
