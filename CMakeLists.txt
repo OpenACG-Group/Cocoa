@@ -6,12 +6,6 @@ set(CMAKE_CXX_STANDARD 20)
 ## Dependencies
 find_package(Poco REQUIRED Foundation JSON)
 
-set(ZSTD_BUILD_SHARED OFF)
-set(ZSTD_BUILD_STATIC ON)
-set(ZSTD_BUILD_PROGRAMS OFF)
-set(ZSTD_MULTITHREAD_SUPPORT ON)
-add_subdirectory(third_party/zstd/build/cmake)
-
 set(ASMJIT_TARGET_TYPE SHARED)
 add_subdirectory(third_party/asmjit)
 
@@ -38,9 +32,8 @@ add_subdirectory(src/Core)
 #add_subdirectory(src/Reactor)
 add_subdirectory(src/Ciallo)
 add_subdirectory(src/NaGui)
-# add_subdirectory(src/crpkg)
+#add_subdirectory(src/Virtfs)
 
-add_compile_options(${Cairo_CFLAGS})
 add_executable(Cocoa
                src/Main.cc)
 
@@ -48,3 +41,4 @@ target_link_libraries(Cocoa PRIVATE
                       NaGui
                       Ciallo
                       Core)
+target_compile_options(Cocoa PRIVATE ${Cairo_CFLAGS})

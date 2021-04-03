@@ -233,4 +233,14 @@ void CrCanvas::setFontOptions(cairo_font_options_t *options)
     cairo_set_font_options(fCairo, options);
 }
 
+void CrCanvas::newPath()
+{
+    cairo_new_path(fCairo);
+}
+
+void CrCanvas::newSubPath()
+{
+    cairo_new_sub_path(fCairo);
+}
+
 CIALLO_END_NS

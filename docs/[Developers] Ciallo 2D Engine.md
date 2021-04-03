@@ -1,5 +1,9 @@
-# Cocoa/Ciallo 2D Renderer
+# Ciallo 2D Rendering Engine
+<span style="font-family: Georgia, serif; font-style: italic; font-size: medium">
+Developer's Manual Chapter II
+</span>
 
+---------------
 ## Introduction
 __Ciallo__ is a platform-depended 2D rendering engine. It provides a
 platform-independed interface for rendering both UI and complex images.

@@ -46,6 +46,7 @@ public:
      *        This should be used in Cairo2d.
      */
     cairo_surface_t *createCairoSurface() override;
+    void resizeCairoSurface(cairo_surface_t *surface, int32_t w, int32_t h) override;
 
     /**
      * @brief Create a vulkan surface for window that can be
@@ -92,6 +93,7 @@ private:
     void handleXInputLeave(const xcb_ge_event_t *ev) override;
     void handleFocusInEvent(const xcb_focus_in_event_t *ev) override;
     void handleFocusOutEvent(const xcb_focus_out_event_t *ev) override;
+    void handleConfigureNotifyEvent(const xcb_configure_notify_event_t *ev) override;
 
 private:
     XcbScreen           *fScreen;

@@ -7,7 +7,8 @@ CIALLO_BEGIN_NS
 class CrRecordingSurface : public CrSurface
 {
 public:
-    explicit CrRecordingSurface(cairo_content_t content, const CrRect& cullRect);
+    CrRecordingSurface(cairo_content_t content, const CrRect& cullRect);
+    explicit CrRecordingSurface(cairo_content_t content);
     ~CrRecordingSurface() override = default;
 
     int32_t width() override;

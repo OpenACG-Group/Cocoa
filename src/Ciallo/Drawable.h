@@ -38,6 +38,7 @@ public:
 
     virtual void writePixmap(const SkPixmap& pixmap, const SkIRect& rect) = 0;
     virtual cairo_surface_t *createCairoSurface() = 0;
+    virtual void resizeCairoSurface(cairo_surface_t *surface, int32_t w, int32_t h) = 0;
     virtual VkSurfaceKHR createVkSurface(VkInstance instance) = 0;
 
     virtual void setTitle(const std::string& title) = 0;

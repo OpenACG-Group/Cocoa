@@ -65,6 +65,11 @@ cairo_surface_t *XcbWindow::createCairoSurface()
     return pSurface;
 }
 
+void XcbWindow::resizeCairoSurface(cairo_surface_t *surface, int32_t w, int32_t h)
+{
+    cairo_xcb_surface_set_size(surface, w, h);
+}
+
 VkSurfaceKHR XcbWindow::createVkSurface(VkInstance instance)
 {
     VkSurfaceKHR surface;
@@ -135,7 +140,8 @@ void XcbWindow::createWindow(XcbWindow *parent)
     const uint32_t maskValues[2] = {
             fScreen->nativeHandle()->white_pixel,
             XCB_EVENT_MASK_EXPOSURE |
-            XCB_EVENT_MASK_FOCUS_CHANGE
+            XCB_EVENT_MASK_FOCUS_CHANGE |
+            XCB_EVENT_MASK_STRUCTURE_NOTIFY
     };
 
     fWindow = xcb_generate_id(fConnection);
@@ -345,6 +351,14 @@ void XcbWindow::handleFocusInEvent(const xcb_focus_in_event_t *ev)
 void XcbWindow::handleFocusOutEvent(const xcb_focus_out_event_t *ev)
 {
     Drawable::listener()->onFocusOut();
+}
+
+void XcbWindow::handleConfigureNotifyEvent(const xcb_configure_notify_event_t *ev)
+{
+    fGeometry.setXYWH(ev->x, ev->y, ev->width, ev->height);
+    Drawable::listener()->onConfigure(DrMakeEvent<DrConfigureEvent>(ev->x, ev->y,
+                                                                    ev->width, ev->height,
+                                                                    DrConfigureEvent::NOT_TIME_SENSITIVE));
 }
 
 void XcbWindow::repaint()

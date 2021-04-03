@@ -13,6 +13,7 @@ public:
 
     int32_t width() override;
     int32_t height() override;
+    void resize(int w, int h) override;
 
 private:
     Drawable    *fDrawable;

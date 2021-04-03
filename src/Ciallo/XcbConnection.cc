@@ -246,6 +246,12 @@ void XcbConnection::processFocusOut(xcb_focus_out_event_t *ev)
     listener->handleFocusOutEvent(ev);
 }
 
+void XcbConnection::processConfigureNotify(xcb_configure_notify_event_t *ev)
+{
+    SELECT_LISTENER_FOR(ev->window)
+    listener->handleConfigureNotifyEvent(ev);
+}
+
 #undef SELECT_LISTENER
 #undef SELECT_LISTENER_FOR
 
@@ -288,6 +294,10 @@ void XcbConnection::processEvent()
 
     case XCB_FOCUS_OUT:
         processFocusOut(EV_CAST(focus_out));
+        break;
+
+    case XCB_CONFIGURE_NOTIFY:
+        processConfigureNotify(EV_CAST(configure_notify));
         break;
 
     default:

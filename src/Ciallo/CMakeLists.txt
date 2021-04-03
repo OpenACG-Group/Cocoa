@@ -15,6 +15,7 @@ set(ciallo_sources
         DrButtonPressEvent.h
         DrButtonReleaseEvent.h
         DrMotionEvent.h
+        DrConfigureEvent.h
         Drawable.h
         Drawable.cc
         DrawableListener.h

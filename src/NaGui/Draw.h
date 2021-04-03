@@ -1,29 +1,47 @@
-#ifndef COCOA_NADRAW_H
-#define COCOA_NADRAW_H
+#ifndef COCOA_DRAW_H
+#define COCOA_DRAW_H
 
-#include "NaGui/NaGuiNamespace.h"
-#include "NaGui/DrawContext.h"
+#include <string>
+
+#include "Ciallo/Cairo2d/CrSurface.h"
+#include "Ciallo/Cairo2d/CrCanvas.h"
+#include "NaGui/Base.h"
+#include "NaGui/Math.h"
+
+struct nk_user_font;
+struct nk_context;
+
 NAGUI_NS_BEGIN
+
+struct DrawContext;
+struct InputState;
 
 class Draw
 {
 public:
-    Draw(DrawContext& ctx, InputState& input);
+    explicit Draw(ciallo::CrSurface::Ptr surface);
     ~Draw();
 
-    /**
-     * @brief Playback the recorded drawing operations on a specified
-     *        canvas.
-     * @param canvas A Cairo canvas which will be the destination.
-     */
-    void playback(ciallo::CrCanvas& canvas);
+    int32_t addTypeface(const std::string& family, cairo_font_slant_t slant,
+                        cairo_font_weight_t weight, double size);
+
+    void test();
+
+    void render();
+
+    void _privBeginInput();
+    void _privEndInput();
+    void _privMouseLeftButton(bool down, const Vec2i& pos);
+    void _privMouseRightButton(bool down, const Vec2i& pos);
+    void _privMouseMiddleButton(bool down, const Vec2i& pos);
+    void _privMouseMotion(const Vec2i& pos);
 
 private:
-    DrawContext&            fCtx;
-    InputState&             fInput;
-    ciallo::CrSurface::Ptr  fSurface;
-    ciallo::CrCanvas        fCanvas;
+    ciallo::CrSurface::Ptr       fSurface;
+    ciallo::CrCanvas             fCanvas;
+    nk_context                  *fpCtx;
+    std::vector<nk_user_font*>   fTypefaces;
 };
 
 NAGUI_NS_END
-#endif //COCOA_NADRAW_H
+#endif //COCOA_DRAW_H

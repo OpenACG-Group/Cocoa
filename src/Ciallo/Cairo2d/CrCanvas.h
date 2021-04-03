@@ -65,7 +65,13 @@ public:
     void setFontMatrix(const cairo_matrix_t *matrix);
     void setFontOptions(cairo_font_options_t *options);
     void drawText(const char *utf8);
+    void newPath();
+    void newSubPath();
     cairo_text_extents_t textExtents(const char *utf8);
+    inline cairo_t *nativeHandle()
+    {
+        return fCairo;
+    }
 
 private:
     struct References

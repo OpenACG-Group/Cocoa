@@ -12,6 +12,7 @@ void DrawableListener::onLeave()    {}
 void DrawableListener::onRender(DrEventPtr<DrRepaintEvent>) {}
 bool DrawableListener::onClose()    { return true; }
 void DrawableListener::onDestroy()  {}
+void DrawableListener::onConfigure(DrEventPtr<DrConfigureEvent>)            {}
 
 Drawable::Drawable(Backend backend)
     : fBackend(backend),

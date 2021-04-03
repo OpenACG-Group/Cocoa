@@ -78,6 +78,7 @@ private:
     void processGenericEvent(xcb_ge_event_t *ev);
     void processFocusIn(xcb_focus_in_event_t *ev);
     void processFocusOut(xcb_focus_out_event_t *ev);
+    void processConfigureNotify(xcb_configure_notify_event_t *ev);
     void processXcbError(xcb_generic_error_t *event);
 
 private:

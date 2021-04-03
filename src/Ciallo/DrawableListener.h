@@ -8,6 +8,7 @@
 #include "Ciallo/DrButtonPressEvent.h"
 #include "Ciallo/DrButtonReleaseEvent.h"
 #include "Ciallo/DrMotionEvent.h"
+#include "Ciallo/DrConfigureEvent.h"
 CIALLO_BEGIN_NS
 
 class DrawableListener
@@ -29,6 +30,7 @@ public:
     virtual void onLeave();
     virtual void onFocusIn();
     virtual void onFocusOut();
+    virtual void onConfigure(DrEventPtr<DrConfigureEvent> event);
 
     /**
      * onClose() will be called when the window needs close.

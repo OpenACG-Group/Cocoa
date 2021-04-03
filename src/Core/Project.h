@@ -16,4 +16,24 @@
 #define COCOA_VERSION   "0.0.1-develop"
 #define COCOA_LICENSE   "General Public License (GPLv3)"
 
+/* Compiler compatibilities */
+#define _SHARP #
+#if defined(__clang__)
+#define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_PUSH \
+    clang diagnostic push
+#define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_POP \
+    clang diagnostic pop
+#define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_IGNORE(ignore) \
+    clang diagnostic ignore #ignore
+#elif defined(__GNUC__) || defined(__GNUG__)
+  #define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_PUSH #pragma GCC diagnostic push
+  #define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_POP  #pragma GCC diagnostic pop
+  #define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_IGNORE(ignore) #pragma GCC diagnostic ignore #ignore
+#else
+  #define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_PUSH
+  #define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_POP
+  #define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_IGNORE(ignore)
+#endif
+#undef _SHARP
+
 #endif // __VERSION_H__

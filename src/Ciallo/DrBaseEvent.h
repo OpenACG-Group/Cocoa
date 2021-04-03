@@ -35,10 +35,15 @@ public:
         kFocusOut,
         kRepaint,
         kClose,
-        kDestroy
+        kDestroy,
+        kConfigure
     };
 
-    using TimeStamp = uint64_t;
+    using TimeStamp = int64_t;
+    enum TimeStampConst
+    {
+        NOT_TIME_SENSITIVE = -1
+    };
 
     DrBaseEvent(Kind kind, TimeStamp stamp);
     virtual ~DrBaseEvent() = default;

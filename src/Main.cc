@@ -10,7 +10,8 @@
 #include "Core/Configurator.h"
 #include "Core/EventDispatcher.h"
 
-#include "NaGui/NaGui.h"
+#include "NaGui/Context.h"
+#include "NaGui/Window.h"
 #include "Ciallo/XcbConnection.h"
 #include "Ciallo/XcbEventQueue.h"
 #include "Ciallo/XcbScreen.h"
@@ -24,30 +25,26 @@
 namespace cocoa
 {
 
-class MyWindow : public NaGui::NaWindow
+class MyWindow : public NaGui::Window
 {
 public:
     ~MyWindow() override = default;
 
-    void onRepaint() override
+    void onRepaint(NaGui::Draw& draw) override
     {
-        std::cout << "repaint" << std::endl;
-        SetWindowTitle("MyWindow");
-        SetWindowResizable(true);
-
-        TextLabel("Hello, World!");
+        draw.test();
     }
 };
 
 void RendererEntry()
 {
     ciallo::XcbConnection::New();
-    NaGui::NaContext::New();
+    NaGui::Context::New();
 
     NaGui::BindDrawableWindow(
             new ciallo::XcbWindow(ciallo::XcbConnection::Ref().screen(),
                                   SkIRect::MakeXYWH(0, 0, 400, 300)),
-            NaGui::NaWindow::Make<MyWindow>());
+            NaGui::Window::Make<MyWindow>());
 
     int32_t events;
     while ((events = EventDispatcher::Ref().wait()))
@@ -107,7 +104,7 @@ Configurator::State Initialize(int argc, char const **argv)
 
 void Finalize()
 {
-    NaGui::NaContext::Delete();
+    NaGui::Context::Delete();
     ciallo::XcbConnection::Delete();
     PosixSignalCatcher::Delete();
     EventDispatcher::Delete();

@@ -15,7 +15,7 @@ void posix_sigsegv_callee(uint64_t rip)
 {
     using namespace cocoa;
     auto e = RuntimeException::Builder(__FUNCTION__)
-                .append("Segmentation fault, %ip = ")
+                .append("Exception on segmentation fault, %ip = ")
                 .append(reinterpret_cast<void*>(rip))
                 .make<RuntimeException>();
 
@@ -35,10 +35,31 @@ namespace
 
 #ifdef __x86_64__
 
+#define DUMP_REG(reg)   std::cerr << "  %" #reg ": " \
+                                  << reinterpret_cast<void*>(ctx->uc_mcontext.gregs[REG_##reg]) \
+                                  << std::endl;
 void posix_dump_proc_context(ucontext_t *ctx)
 {
+    std::cerr << "Platform registers:" << std::endl;
+    DUMP_REG(RIP)
+    DUMP_REG(RSP)
+    DUMP_REG(RBP)
+    DUMP_REG(RAX)
+    DUMP_REG(RBX)
+    DUMP_REG(RCX)
+    DUMP_REG(RDX)
+    DUMP_REG(R8)
+    DUMP_REG(R9)
+    DUMP_REG(R10)
+    DUMP_REG(R11)
+    DUMP_REG(R12)
+    DUMP_REG(R13)
+    DUMP_REG(R14)
+    DUMP_REG(R15)
+    DUMP_REG(EFL)
+    DUMP_REG(CR2)
 }
-
+#undef DUMP_REG
 #else
 void posix_dump_proc_context(ucontext_t *ctx)
 {
@@ -54,6 +75,7 @@ void posix_signal_handle_exit(int sig)
 
 void posix_signal_handle_sigsegv(siginfo_t *info, ucontext_t *ctx)
 {
+    std::cerr << "[=========== Segmentation fault ===========]" << std::endl;
     posix_dump_proc_context(ctx);
 #if defined(__x86_64__)
     posix_sigsegv_caller_save_rip(ctx->uc_mcontext.gregs[REG_RIP]);

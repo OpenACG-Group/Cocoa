@@ -28,6 +28,11 @@ std::shared_ptr<CrSurface> CrSurface::MakeRecording(cairo_content_t content, con
     return std::make_shared<CrRecordingSurface>(content, cull);
 }
 
+std::shared_ptr<CrSurface> CrSurface::MakeRecording(cairo_content_t content)
+{
+    return std::make_shared<CrRecordingSurface>(content);
+}
+
 // ----------------------------------------------------------------------
 
 CrSurface::CrSurface(cairo_surface_t *surface, Backend backend)
@@ -55,6 +60,10 @@ void CrSurface::flush()
 void CrSurface::finish()
 {
     cairo_surface_finish(fSurface);
+}
+
+void CrSurface::resize(int width, int height)
+{
 }
 
 void CrSurface::writeToPNG(const std::string& file)
@@ -128,6 +137,11 @@ int32_t CrDrawableSurface::width()
     return fDrawable->geometry().width();
 }
 
+void CrDrawableSurface::resize(int width, int height)
+{
+    fDrawable->resizeCairoSurface(CrSurface::nativeHandle(), width, height);
+}
+
 // -----------------------------------------------------------------------------------
 
 CrImageSurface::CrImageSurface(int32_t width, int32_t height)
@@ -184,6 +198,20 @@ CrRecordingSurface::CrRecordingSurface(cairo_content_t content, const CrRect& cu
     : CrSurface(nullptr, Backend::kRecordingSurface)
 {
     cairo_surface_t *surf = cairo_recording_surface_create(content, cullRect.const_ptr());
+    if (surf == nullptr)
+    {
+        throw RuntimeException::Builder(__FUNCTION__)
+                .append("Cairo2d: Failed to create an recording surface")
+                .make<RuntimeException>();
+    }
+
+    CrSurface::setNative(surf);
+}
+
+CrRecordingSurface::CrRecordingSurface(cairo_content_t content)
+    : CrSurface(nullptr, Backend::kRecordingSurface)
+{
+    cairo_surface_t *surf = cairo_recording_surface_create(content, nullptr);
     if (surf == nullptr)
     {
         throw RuntimeException::Builder(__FUNCTION__)

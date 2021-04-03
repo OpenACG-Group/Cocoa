@@ -27,6 +27,7 @@ public:
     static std::shared_ptr<CrSurface> MakeImage(int32_t width, int32_t height);
     static std::shared_ptr<CrSurface> MakeImage(const std::string& file);
     static std::shared_ptr<CrSurface> MakeRecording(cairo_content_t content, const CrRect& cull);
+    static std::shared_ptr<CrSurface> MakeRecording(cairo_content_t content);
 
     Backend backend() const;
     virtual int32_t width() = 0;
@@ -46,6 +47,12 @@ public:
     void markDirty(int x, int y, int width, int height);
     void setDeviceScale(double xScale, double yScale);
     void setDeviceOffset(double xOffset, double yOffset);
+
+    /**
+     * @brief Resize a Drawable surface when you receiving
+     *        a "reconfigure" event from window system.
+     */
+    virtual void resize(int width, int height);
 
     /**
      * @brief Get pixels buffer.
