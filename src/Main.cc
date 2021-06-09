@@ -1,30 +1,23 @@
-#define TEST_CIALLO         1
+#include <iostream>
+#include <Poco/Stopwatch.h>
+#include <gperftools/profiler.h>
 
-#include <xcb/xcb.h>
-
-#include "Core/Project.h"
 #include "Core/PosixSignalCatcher.h"
 #include "Core/Utils.h"
 #include "Core/Journal.h"
 #include "Core/Exception.h"
 #include "Core/Configurator.h"
-#include "Core/EventDispatcher.h"
+#include "Core/EventLoop.h"
 
-#include "NaGui/Context.h"
-#include "NaGui/Window.h"
-#include "Ciallo/XcbConnection.h"
-#include "Ciallo/XcbEventQueue.h"
-#include "Ciallo/XcbScreen.h"
-#include "Ciallo/XcbWindow.h"
-
-#include <memory>
-#include <iostream>
-#include <Poco/Stopwatch.h>
-#include <gperftools/profiler.h>
+#include "Scripter/Runtime.h"
+#include "Vanilla/Context.h"
+#include "Vanilla/VaDisplay.h"
+#include "Vanilla/VaWindow.h"
 
 namespace cocoa
 {
 
+#if 0
 class MyWindow : public NaGui::Window
 {
 public:
@@ -41,15 +34,18 @@ void RendererEntry()
     ciallo::XcbConnection::New();
     NaGui::Context::New();
 
-    NaGui::BindDrawableWindow(
-            new ciallo::XcbWindow(ciallo::XcbConnection::Ref().screen(),
-                                  SkIRect::MakeXYWH(0, 0, 400, 300)),
-            NaGui::Window::Make<MyWindow>());
+    auto drawable = new ciallo::XcbWindow(ciallo::XcbConnection::Ref().screen(),
+                                          SkIRect::MakeXYWH(0, 0, 400, 300));
+    drawable->setResizable(true);
+    drawable->setTitle("NativeGui Test");
+    NaGui::BindDrawableWindow(drawable, NaGui::Window::Make<MyWindow>());
 
     int32_t events;
     while ((events = EventDispatcher::Ref().wait()))
         EventDispatcher::Ref().handleEvents(events);
 }
+
+#endif
 
 Configurator::State Initialize(int argc, char const **argv)
 {
@@ -96,7 +92,7 @@ Configurator::State Initialize(int argc, char const **argv)
     else
         Journal::New(redirect.c_str(), filter, rainbow);
 
-    EventDispatcher::New();
+    EventLoop::New();
     PosixSignalCatcher::New();
 
     return Configurator::State::kSuccessful;
@@ -104,10 +100,9 @@ Configurator::State Initialize(int argc, char const **argv)
 
 void Finalize()
 {
-    NaGui::Context::Delete();
-    ciallo::XcbConnection::Delete();
+    scripter::Dispose();
     PosixSignalCatcher::Delete();
-    EventDispatcher::Delete();
+    EventLoop::Delete();
     Journal::Delete();
     PropertyTree::Delete();
 }
@@ -119,8 +114,63 @@ void Run()
         log_write(LOG_DEBUG) << str << log_endl;
     });
 
-    RendererEntry();
-    log_write(LOG_INFO) << "Renderer finished" << log_endl;
+    auto ctx = vanilla::Context::MakeX11(EventLoop::Instance(), nullptr);
+    auto window = vanilla::VaWindow::Make(ctx->display(),
+                                          vanilla::VaVec2f(400, 300),
+                                          vanilla::VaVec2f(0, 0));
+    window->show();
+    window->setTitle("Vanilla");
+    window->setIconFile("/home/sora/Project/C++/Cocoa/res/koinu.png");
+
+    window->signalClose().connect([](const vanilla::Handle<vanilla::VaWindow>& win) -> void {
+        win->close();
+        win->getDisplay()->dispose();
+    });
+    // window->update();
+
+    EventLoop::Ref().run();
+
+#if 0
+    scripter::Initialize();
+    auto runtime = scripter::Runtime::MakeFromSnapshot("/home/sora/Project/C++/Cocoa/cmake-build-debug/snapshot_blob.bin",
+                                                       "/home/sora/Project/C++/Cocoa/cmake-build-debug/icudtl.dat");
+    v8::Isolate::Scope isolateScope(runtime->isolate());
+    v8::HandleScope handleScope(runtime->isolate());
+    v8::Context::Scope contextScope(runtime->context());
+    const char *script = R"(
+vmInvokeOp("op_print_async", {str: "Hello, World!"})
+    .then(() => {
+        vmInvokeOp("op_print", {str: "Asynchronous succeed"});
+    });
+)";
+    runtime->execute(script);
+    sleep(1);
+    runtime->runPromisesCheckpoint();
+#endif
+
+#if 0
+    komorebi::InitializeShaderCompiler();
+
+    auto program = komorebi::ShaderProgram::Make();
+    komorebi::ShaderModule::MakeFromSource("TestShader",
+                                           program,
+                                           "test source")->moveToProgram();
+
+    auto sym = program->lookupSymbol("main");
+    if (!sym)
+    {
+        std::cerr << "Failed to compile" << std::endl;
+        return;
+    }
+    auto fn = reinterpret_cast<int(*)()>(sym->getAddress());
+
+    std::cout << "Result: " << fn() << std::endl;
+#endif
+
+#if 0
+    komorebi::KRSLParserDriver drv;
+    drv.parse(std::cin, std::cout);
+#endif
 }
 
 int Main(int argc, char const **argv)

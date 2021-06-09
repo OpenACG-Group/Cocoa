@@ -1,0 +1,32 @@
+#[[version(1.0)]]
+
+uniform vec4 color1;
+uniform vec4 color2;
+
+void main()
+{
+    Path path;
+    const scalar R = 60, C = 128;
+
+    emit { moveTo C + R, C; } => path;
+
+    for (scalar i = 1; i < 15; i++)
+    {
+        scalar a = 0.44879895f * i;
+        scalar r = R + R * (i % 2);
+        emit {
+            lineTo C + r * cos(a), C + r * sin(a);
+        } => path;
+    }
+
+    Paint paint = {
+        shader: makeLinearGradient({vec2(0, 0), vec2(256, 256)},
+                                   {color1, color2},
+                                   KrTileModeClamp),
+        antialias: true,
+        pathEffect: makeDiscretePathEffect(10, 4)
+    };
+
+    #[[breakpoint("before_stroke", path, paint)]]
+    stroke path, paint;
+}

@@ -17,8 +17,14 @@ set(core_sources
         PosixSignalCatcher.h
         PosixSignalCatcher.cc
         PosixSigsegvHelper.S
-        EventDispatcher.h
-        EventDispatcher.cc)
+        EventSource.h
+        EventLoop.h
+        EventLoop.cc
+        #EventDispatcher.h
+        #EventDispatcher.cc
+        #EventLoop.h
+        #EventLoop.cc
+        )
 
 add_library(${core_target} STATIC ${core_sources})
 
@@ -28,8 +34,9 @@ target_link_libraries(${core_target}
             dl
             ffi
             unwind
-            Poco::Foundation
-            Poco::JSON)
+            uv_a
+            PocoFoundation
+            PocoJSON)
 
 ## For symbol analyzing in RuntimeException
 add_link_options(-rdynamic)

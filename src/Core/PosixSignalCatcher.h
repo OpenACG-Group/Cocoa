@@ -3,19 +3,16 @@
 
 #include <csignal>
 
-#include "Core/BaseEventProcessor.h"
 #include "Core/UniquePersistent.h"
 
 namespace cocoa {
 
-class PosixSignalCatcher : public BaseEventProcessor,
-                           public UniquePersistent<PosixSignalCatcher>
+class PosixSignalCatcher : public UniquePersistent<PosixSignalCatcher>
 {
 public:
     PosixSignalCatcher();
-    ~PosixSignalCatcher() override;
+    ~PosixSignalCatcher();
 
-    void processEvent() override;
     void setCaughtSignal(int signum);
 
 private:

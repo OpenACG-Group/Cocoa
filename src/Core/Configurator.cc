@@ -346,6 +346,10 @@ Configurator::State Configurator::parse(int argc, const char **argv)
 
     /* TODO: Implement pass 4, parses overrides
              in command which are stored in fCmdOverrides */
+    for (const auto& str : fCmdOverrides)
+    {
+        std::cout << "Override: " << str << std::endl;
+    }
 
     return State::kSuccessful;
 }

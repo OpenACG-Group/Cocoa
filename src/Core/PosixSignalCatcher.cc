@@ -7,7 +7,6 @@
 #include "Core/Journal.h"
 #include "Core/Utils.h"
 #include "Core/PosixSignalCatcher.h"
-#include "Core/EventDispatcher.h"
 
 #if defined(__x86_64__)
 extern "C" {
@@ -70,7 +69,7 @@ void posix_dump_proc_context(ucontext_t *ctx)
 void posix_signal_handle_exit(int sig)
 {
     PosixSignalCatcher::Ref().setCaughtSignal(sig);
-    EventDispatcher::Ref().wakeup(PosixSignalCatcher::Instance());
+    // TODO: Do something to exit
 }
 
 void posix_signal_handle_sigsegv(siginfo_t *info, ucontext_t *ctx)
@@ -145,20 +144,6 @@ PosixSignalCatcher::~PosixSignalCatcher()
 void PosixSignalCatcher::setCaughtSignal(int signum)
 {
     fCaughtSignal = signum;
-}
-
-void PosixSignalCatcher::processEvent()
-{
-    if (fCaughtSignal == SIGINT ||
-        fCaughtSignal == SIGTERM)
-    {
-        log_write(LOG_INFO) << "Terminated by signal" << log_endl;
-        EventDispatcher::Ref().dispose();
-    }
-    else
-    {
-        log_write(LOG_ERROR) << "Unknown UNIX signal: " << fCaughtSignal << log_endl;
-    }
 }
 
 } // namespace cocoa

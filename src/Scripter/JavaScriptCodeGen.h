@@ -1,0 +1,6 @@
+#ifndef COCOA_JAVASCRIPTCODEGEN_H
+#define COCOA_JAVASCRIPTCODEGEN_H
+
+#define __js_codegen_pragma(E)
+
+#endif //COCOA_JAVASCRIPTCODEGEN_H

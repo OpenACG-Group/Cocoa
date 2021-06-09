@@ -39,7 +39,7 @@ public:
     class Builder
     {
     public:
-        Builder(const std::string& who);
+        explicit Builder(const std::string& who);
 
         Builder(const Builder&) = delete;
         Builder(Builder&&) = delete;
