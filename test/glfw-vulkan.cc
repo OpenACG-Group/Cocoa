@@ -1,5 +1,6 @@
 #define GLFW_INCLUDE_VULKAN
 
+#include <iostream>
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
@@ -11,6 +12,10 @@ int main(int argc, char const *argv[])
     ::glfwInit();
     ::glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     ::glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
+	uint32_t count = 0;
+	vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+	std::cout << "Count = " << count << std::endl;
 
     uint32_t exts = 0;
     char const **extensions = ::glfwGetRequiredInstanceExtensions(&exts);

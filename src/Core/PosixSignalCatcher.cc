@@ -3,8 +3,8 @@
 #include <csignal>
 #include <iostream>
 
-#include "Core/Exception.h"
 #include "Core/Journal.h"
+#include "Core/Exception.h"
 #include "Core/Utils.h"
 #include "Core/PosixSignalCatcher.h"
 
@@ -14,13 +14,11 @@ void posix_sigsegv_callee(uint64_t rip)
 {
     using namespace cocoa;
     auto e = RuntimeException::Builder(__FUNCTION__)
-                .append("Exception on segmentation fault, %ip = ")
+                .append("Exception on segmentation fault, \\%ip = ")
                 .append(reinterpret_cast<void*>(rip))
                 .make<RuntimeException>();
 
-    utils::DumpRuntimeException(e, false, [](const std::string& str) -> void {
-        std::cerr << str << std::endl;
-    });
+    utils::DumpRuntimeException(e);
 }
 extern void posix_sigsegv_caller();
 extern void posix_sigsegv_caller_save_rip(uint64_t rip);
@@ -111,8 +109,8 @@ PosixSignalCatcher::PosixSignalCatcher()
                            PROT_WRITE | PROT_READ,
                            MAP_PRIVATE | MAP_ANONYMOUS | MAP_GROWSDOWN,
                            -1, 0);
-    log_write(LOG_DEBUG) << "Unix signals will be handled on stack "
-                         << fAlternateStack << log_endl;
+    Journal::Ref()(LOG_DEBUG, "Unix signals will be handled on stack {}", fAlternateStack);
+
     stack_t st{
         .ss_sp = fAlternateStack,
         .ss_flags = 0,

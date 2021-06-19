@@ -1,18 +1,13 @@
-#ifndef __LOG_H__
-#define __LOG_H__
+#ifndef COCOA_JOURNAL_H
+#define COCOA_JOURNAL_H
 
-#include <string>
-#include <sstream>
-#include <ostream>
-#include <chrono>
-#include <cstdint>
 #include <mutex>
+#include <string>
+#include <chrono>
 
-#include "Core/Project.h"
+#include "fmt/format.h"
 #include "Core/UniquePersistent.h"
-
-namespace cocoa
-{
+namespace cocoa {
 
 enum LogType
 {
@@ -32,70 +27,38 @@ enum LogLevel
     LOG_LEVEL_DISABLED  = 0x0000
 };
 
-struct __endl_struct {};
-using endl_t = struct __endl_struct *;
-
-#define log_endl        static_cast<cocoa::endl_t>(nullptr)
-#define log_write(t)    cocoa::Journal::Instance()->stream(t)
-
-class Journal;
-
-class StreamHolder
-{
-public:
-    explicit StreamHolder(Journal *logObject);
-    ~StreamHolder();
-
-    template<typename T>
-    StreamHolder& operator<<(T&& val)
-    {
-        mBuffer << std::forward<T>(val);
-        return *this;
-    }
-
-    template<>
-    StreamHolder& operator<<(endl_t&& val)
-    {
-        mBuffer << '\n';
-        commitBuffer();
-        mBuffer.str("");
-        return *this;
-    }
-
-private:
-    void commitBuffer();
-
-private:
-    std::ostringstream  mBuffer;
-    Journal            *mLogger;
-};
-
 class Journal : public UniquePersistent<Journal>
 {
 public:
-    Journal(int fd, int filter, bool color);
-    Journal(char const *file, int filter, bool color);
+    enum class OutputDevice
+    {
+        kStandardError,
+        kStandardOut,
+        kFile
+    };
+
+    Journal(LogLevel level, OutputDevice output, bool enableColor, char const *file = nullptr);
     ~Journal();
 
-    void write(char const *str);
-    StreamHolder& stream(int type);
-    bool textShader() const;
-    void setTextShader(bool enable);
+    template<typename...ArgsT>
+    void operator()(LogType type, fmt::format_string<ArgsT...> format, ArgsT&&...args)
+    {
+        if (!this->filter(type))
+            return;
+        this->commit(type, fmt::format(format, std::forward<ArgsT>(args)...));
+    }
 
 private:
-    void welcome();
-    void redirectToFile(char const *path);
+    void commit(LogType type, const std::string& str);
+    bool filter(LogType type);
 
-private:
-    StreamHolder    *mStream;
-    int              mFilter;
-    int              mCurType;
-    std::mutex       mOutMutex;
-    bool             mColor;
-    int              mFd;
-    std::chrono::steady_clock::time_point mStartTime;
+    bool                                    fEnableColor;
+    std::mutex                              fWriteMutex;
+    LogLevel                                fLevel;
+    int                                     fOutputFd;
+    std::chrono::steady_clock::time_point   fStartTime;
 };
 
 } // namespace cocoa
 
-#endif // __LOG_H__
+#endif //COCOA_JOURNAL_H

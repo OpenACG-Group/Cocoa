@@ -3,7 +3,7 @@
 #include "Vanilla/VaDisplay.h"
 VANILLA_NS_BEGIN
 
-VaWindow::VaWindow(WeakHandle<VaDisplay> display, VaColorFormat format)
+VaWindow::VaWindow(WeakHandle<VaDisplay> display, SkColorType format)
     : fDisplay(std::move(display)),
       fFormat(format)
 {

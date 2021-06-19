@@ -1,7 +1,7 @@
 #ifndef COCOA_CONTEXT_H
 #define COCOA_CONTEXT_H
 
-#include <vector>
+#include <map>
 
 #include <sigc++/sigc++.h>
 #include "Core/EventLoop.h"
@@ -9,23 +9,35 @@
 VANILLA_NS_BEGIN
 
 class VaDisplay;
-class Context
+class Context : public std::enable_shared_from_this<Context>
 {
 public:
-    Context(EventLoop *loop,
-            Handle<VaDisplay> display);
+    enum class Backend
+    {
+        kBackend_X11
+    };
+
+    enum DisplayId
+    {
+        kDisplay_Default = 0
+    };
+
+    Context(EventLoop *loop, Backend backend);
     ~Context() = default;
 
-    static Handle<Context> MakeX11(EventLoop *loop, const char *displayName);
+    static Handle<Context> Make(EventLoop *loop, Backend backend);
 
-    inline EventLoop *eventLoop()
+    va_nodiscard inline EventLoop *eventLoop()
     { return fEventLoop; }
-    inline Handle<VaDisplay> display()
-    { return fDisplay; }
+    va_nodiscard Handle<VaDisplay> display(int32_t id);
+
+    void open(char const *displayName, int32_t id);
 
 private:
     EventLoop                       *fEventLoop;
-    Handle<VaDisplay>                fDisplay;
+    Backend                          fBackend;
+    std::map<int32_t, Handle<VaDisplay>>
+                                     fDisplays;
 };
 
 VANILLA_NS_END

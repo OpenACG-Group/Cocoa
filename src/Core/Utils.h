@@ -10,7 +10,7 @@ namespace cocoa::utils {
 using Printer = std::function<void(const std::string&)>;
 
 void DumpPropertyTree(PropertyTreeNode *pRoot, Printer printer);
-void DumpRuntimeException(const RuntimeException& except, bool color, Printer printer);
+void DumpRuntimeException(const RuntimeException& except);
 
 void ChangeWorkDirectory(const std::string& dir);
 

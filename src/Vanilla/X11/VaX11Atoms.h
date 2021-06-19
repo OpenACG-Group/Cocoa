@@ -13,6 +13,8 @@ public:
         WM_DELETE_WINDOW = 0,
         _NET_WM_ICON = 1,
         CARDINAL = 2,
+
+        VA_CLOSE_CONNECTION = 3,
         LAST_ATOM
     };
 

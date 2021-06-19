@@ -1,6 +1,5 @@
 #include <iostream>
 #include <Poco/Stopwatch.h>
-#include <gperftools/profiler.h>
 
 #include "Core/PosixSignalCatcher.h"
 #include "Core/Utils.h"
@@ -9,10 +8,9 @@
 #include "Core/Configurator.h"
 #include "Core/EventLoop.h"
 
+#include "general_tests.h"
+
 #include "Scripter/Runtime.h"
-#include "Vanilla/Context.h"
-#include "Vanilla/VaDisplay.h"
-#include "Vanilla/VaWindow.h"
 
 namespace cocoa
 {
@@ -61,7 +59,7 @@ Configurator::State Initialize(int argc, char const **argv)
     std::string level = prop->resolve("/runtime/journal/level")
                             ->cast<PropertyTreeDataNode>()->extract<std::string>();
 
-    int filter;
+    LogLevel filter;
     if (level == "debug")
         filter = LogLevel::LOG_LEVEL_DEBUG;
     else if (level == "normal")
@@ -86,11 +84,11 @@ Configurator::State Initialize(int argc, char const **argv)
     std::string redirect = prop->resolve("/runtime/journal/stdout")
                                ->cast<PropertyTreeDataNode>()->value().extract<std::string>();
     if (redirect == "<stdout>")
-        Journal::New(STDOUT_FILENO, filter, rainbow);
+        Journal::New(filter, Journal::OutputDevice::kStandardOut, rainbow);
     else if (redirect == "<stderr>")
-        Journal::New(STDERR_FILENO, filter, rainbow);
+        Journal::New(filter, Journal::OutputDevice::kStandardError, rainbow);
     else
-        Journal::New(redirect.c_str(), filter, rainbow);
+        Journal::New(filter, Journal::OutputDevice::kFile, false, redirect.c_str());
 
     EventLoop::New();
     PosixSignalCatcher::New();
@@ -100,7 +98,7 @@ Configurator::State Initialize(int argc, char const **argv)
 
 void Finalize()
 {
-    scripter::Dispose();
+    // scripter::Dispose();
     PosixSignalCatcher::Delete();
     EventLoop::Delete();
     Journal::Delete();
@@ -109,26 +107,13 @@ void Finalize()
 
 void Run()
 {
-    log_write(LOG_DEBUG) << "Content of property tree:" << log_endl;
+    Journal::Ref()(LOG_DEBUG, "Content of property tree:");
     utils::DumpPropertyTree(PropertyTree::Ref()("/"), [](const std::string& str) -> void {
-        log_write(LOG_DEBUG) << str << log_endl;
+        Journal::Ref()(LOG_DEBUG, "{}", str);
     });
 
-    auto ctx = vanilla::Context::MakeX11(EventLoop::Instance(), nullptr);
-    auto window = vanilla::VaWindow::Make(ctx->display(),
-                                          vanilla::VaVec2f(400, 300),
-                                          vanilla::VaVec2f(0, 0));
-    window->show();
-    window->setTitle("Vanilla");
-    window->setIconFile("/home/sora/Project/C++/Cocoa/res/koinu.png");
-
-    window->signalClose().connect([](const vanilla::Handle<vanilla::VaWindow>& win) -> void {
-        win->close();
-        win->getDisplay()->dispose();
-    });
-    // window->update();
-
-    EventLoop::Ref().run();
+    // test::vanilla_render_test();
+    test::vanilla_xcb_test();
 
 #if 0
     scripter::Initialize();
@@ -192,20 +177,7 @@ int Main(int argc, char const **argv)
     }
     catch (const RuntimeException& e)
     {
-        if (Journal::Instance())
-        {
-            bool color = PropertyTree::Instance()->resolve("/runtime/journal/exceptionTextShader")
-                            ->cast<PropertyTreeDataNode>()->extract<bool>();
-            utils::DumpRuntimeException(e, color, [](const std::string& str) -> void {
-                log_write(LOG_EXCEPTION) << str << log_endl;
-            });
-        }
-        else
-        {
-            utils::DumpRuntimeException(e, false, [](const std::string& str) -> void {
-                std::cerr << str << std::endl;
-            });
-        }
+        utils::DumpRuntimeException(e);
     }
 
     return 0;

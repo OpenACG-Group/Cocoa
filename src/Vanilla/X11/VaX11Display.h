@@ -5,20 +5,22 @@
 #include "Vanilla/Base.h"
 #include "Vanilla/VaDisplay.h"
 #include "Vanilla/X11/VaX11Atoms.h"
+#include "Vanilla/X11/VaX11EventQueue.h"
 VANILLA_NS_BEGIN
 
 class VaX11Window;
 class VaX11Display : public VaDisplay,
-                     public PollSource,
                      public std::enable_shared_from_this<VaX11Display>
 {
+    friend class VaX11EventQueue;
+
 public:
-    explicit VaX11Display(EventLoop *loop,
+    explicit VaX11Display(const Handle<Context>& ctx,
                           Display *display,
                           Screen *screen,
                           int32_t screenNum,
                           Visual *visual,
-                          VaColorFormat format);
+                          SkColorType format);
     ~VaX11Display() noexcept override;
 
     int32_t width() override;
@@ -37,7 +39,9 @@ public:
     void dispose() override;
 
 private:
-    KeepInLoop dispatch(int status, int events) override;
+    void eventQueueDispatch(const std::vector<UniqueHandle<XEvent>>& events);
+    void dispatchEachEvent(const XEvent& event);
+    void realDispose();
     Handle<VaWindow> onCreateWindow(VaVec2f size, VaVec2f pos, Handle<VaWindow> parent) override;
 
     Handle<VaX11Window> matchWindow(Window window);
@@ -46,9 +50,10 @@ private:
     Screen             *fScreen;
     int32_t             fScreenNumber;
     Visual             *fVisual;
-    VaColorFormat       fColorFormat;
+    SkColorType         fColorFormat;
     VaX11Atoms          fAtoms;
     bool                fDisposed;
+    VaX11EventQueue     fEventQueue;
 };
 
 VANILLA_NS_END

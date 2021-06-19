@@ -13,11 +13,8 @@ class VaX11Window : public VaWindow
 {
 public:
     VaX11Window(WeakHandle<VaX11Display> display, Window window,
-                int32_t width, int32_t height, VaColorFormat format);
+                int32_t width, int32_t height, SkColorType format);
     ~VaX11Window() override;
-
-    inline Window window()
-    { return fWindow; }
 
     void setTitle(const std::string& title) override;
     void setResizable(bool resizable) override;
@@ -27,28 +24,23 @@ public:
     int32_t height() override;
     void update(const SkRect& rect) override;
 
+    va_nodiscard inline Window nativeWindowHandle() const
+    { return fWindow; }
+
     void dispatchCloseEvent();
     void dispatchMapEvent();
     void dispatchUnmapEvent();
-    void dispatchConfigureEvent(XConfigureEvent& ev);
-    void dispatchExposure(XExposeEvent& expose);
+    void dispatchConfigureEvent(const XConfigureEvent& ev);
+    void dispatchExposure(const XExposeEvent& expose);
 
 private:
     void onClose() override;
-
-    struct WindowOperationCache
-    {
-        std::optional<std::string> title;
-        std::optional<std::string> iconFile;
-        std::optional<bool>        resizable;
-    };
 
     Display                *fXDisplay;
     Window                  fWindow;
     int32_t                 fWidth;
     int32_t                 fHeight;
     bool                    fMapped;
-    WindowOperationCache    fOperationCache;
 };
 
 VANILLA_NS_END

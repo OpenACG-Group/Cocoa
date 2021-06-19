@@ -13,7 +13,7 @@
 VANILLA_NS_BEGIN
 
 VaX11Window::VaX11Window(WeakHandle<VaX11Display> display, Window window,
-                         int32_t width, int32_t height, VaColorFormat format)
+                         int32_t width, int32_t height, SkColorType format)
     : VaWindow(std::move(display), format),
       fXDisplay(nullptr),
       fWindow(window),
@@ -30,24 +30,12 @@ VaX11Window::~VaX11Window()
 
 void VaX11Window::setTitle(const std::string& title)
 {
-    if (!fMapped)
-    {
-        fOperationCache.title = title;
-        return;
-    }
-
     XStoreName(fXDisplay, fWindow, title.c_str());
     getDisplay()->flush();
 }
 
 void VaX11Window::setResizable(bool resizable)
 {
-    if (!fMapped)
-    {
-        fOperationCache.resizable = resizable;
-        return;
-    }
-
     XSizeHints sizeHints{};
     sizeHints.flags = PMaxSize | PMinSize;
     if (resizable)
@@ -123,12 +111,6 @@ std::tuple<int32_t, uint8_t*> LoadIconFile(const std::string& file)
 
 void VaX11Window::setIconFile(const std::string& file)
 {
-    if (!fMapped)
-    {
-        fOperationCache.iconFile = file;
-        return;
-    }
-
     auto result = LoadIconFile(file);
     if (std::get<0>(result) == 0)
         return;
@@ -202,7 +184,7 @@ void VaX11Window::dispatchCloseEvent()
     VaWindow::signalClose().emit(shared_from_this());
 }
 
-void VaX11Window::dispatchConfigureEvent(XConfigureEvent& ev)
+void VaX11Window::dispatchConfigureEvent(const XConfigureEvent& ev)
 {
     fWidth = ev.width;
     fHeight = ev.height;
@@ -216,24 +198,6 @@ void VaX11Window::dispatchConfigureEvent(XConfigureEvent& ev)
 void VaX11Window::dispatchMapEvent()
 {
     fMapped = true;
-    if (fOperationCache.title.has_value())
-    {
-        setTitle(fOperationCache.title.value());
-        fOperationCache.title.reset();
-    }
-
-    if (fOperationCache.resizable.has_value())
-    {
-        setResizable(fOperationCache.resizable.value());
-        fOperationCache.resizable.reset();
-    }
-
-    if (fOperationCache.iconFile.has_value())
-    {
-        setIconFile(fOperationCache.iconFile.value());
-        fOperationCache.iconFile.reset();
-    }
-
     VaWindow::signalMap().emit(shared_from_this());
 }
 
@@ -243,7 +207,7 @@ void VaX11Window::dispatchUnmapEvent()
     VaWindow::signalUnmap().emit(shared_from_this());
 }
 
-void VaX11Window::dispatchExposure(XExposeEvent& expose)
+void VaX11Window::dispatchExposure(const XExposeEvent& expose)
 {
     SkRect rect = SkRect::MakeXYWH(static_cast<SkScalar>(expose.x),
                                    static_cast<SkScalar>(expose.y),

@@ -19,24 +19,20 @@ set(core_sources
         PosixSigsegvHelper.S
         EventSource.h
         EventLoop.h
-        EventLoop.cc
-        #EventDispatcher.h
-        #EventDispatcher.cc
-        #EventLoop.h
-        #EventLoop.cc
-        )
+        EventLoop.cc)
 
 add_library(${core_target} STATIC ${core_sources})
 
 target_link_libraries(${core_target}
         PRIVATE
-            pthread
-            dl
-            ffi
-            unwind
-            uv_a
-            PocoFoundation
-            PocoJSON)
+        pthread
+        dl
+        ffi
+        unwind
+        PocoFoundation
+        PocoJSON
+        uv_a
+        fmt::fmt)
 
 ## For symbol analyzing in RuntimeException
 add_link_options(-rdynamic)

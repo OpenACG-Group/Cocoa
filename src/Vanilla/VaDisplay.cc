@@ -1,8 +1,9 @@
 #include "Vanilla/VaDisplay.h"
 VANILLA_NS_BEGIN
 
-VaDisplay::VaDisplay(DisplayBackend backend)
-    : fBackend(backend)
+VaDisplay::VaDisplay(DisplayBackend backend, const Handle<Context>& ctx)
+    : fBackend(backend),
+      fContext(ctx)
 {
 }
 

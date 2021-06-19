@@ -8,12 +8,12 @@
 #include "Vanilla/X11/VaX11Window.h"
 VANILLA_NS_BEGIN
 
-Handle<VaDisplay> VaDisplay::OpenX11(EventLoop *loop, const char *dispName)
+Handle<VaDisplay> VaDisplay::OpenX11(const Handle<Context>& ctx, const char *dispName)
 {
     Display *display = XOpenDisplay(dispName);
     if (display == nullptr)
     {
-        log_write(LOG_ERROR) << "Failed to open X11 display" << log_endl;
+        Journal::Ref()(LOG_ERROR, "Failed to open X11 display");
         return nullptr;
     }
     BeforeLeaveScope leave([display]() -> void {
@@ -32,68 +32,73 @@ Handle<VaDisplay> VaDisplay::OpenX11(EventLoop *loop, const char *dispName)
         int event, error;
         if (!XRenderQueryExtension(display, &event, &error))
         {
-            log_write(LOG_ERROR) << "XRender extension is unavailable" << log_endl;
+            Journal::Ref()(LOG_ERROR, "XRender extension is unavailable");
             return nullptr;
         }
     }
 
-    VaColorFormat format;
+    SkColorType format;
     {
         XRenderPictFormat *format1 = XRenderFindStandardFormat(display, PictStandardRGB24);
         XRenderPictFormat *format2 = XRenderFindStandardFormat(display, PictStandardARGB32);
         XRenderPictFormat *visualFormat = XRenderFindVisualFormat(display, visual);
-        if (format1->id == visualFormat->id)
-            format = VaColorFormat::kRGB_8888;
-        else if (format2->id == visualFormat->id)
-            format = VaColorFormat::kARGB_8888;
+        if (format1->id == visualFormat->id ||
+            format2->id == visualFormat->id)
+            format = SkColorType::kBGRA_8888_SkColorType;
         else
         {
-            log_write(LOG_ERROR) << "Unsupported picture format (ARGB32 or RGB24 is required)" << log_endl;
+            Journal::Ref()(LOG_ERROR, "Unsupported picture format (ARGB32 or RGB24 is required)");
             return nullptr;
         }
     }
 
     leave.cancel();
-    return std::make_shared<VaX11Display>(loop, display, screen,
+    return std::make_shared<VaX11Display>(ctx, display, screen,
                                           screenNumber, visual, format);
 }
 
-VaX11Display::VaX11Display(EventLoop *loop,
+VaX11Display::VaX11Display(const Handle<Context>& ctx,
                            Display *display,
                            Screen *screen,
                            int32_t screenNum,
                            Visual *visual,
-                           VaColorFormat format)
-    : VaDisplay(DisplayBackend::kDisplay_X11),
-      PollSource(loop, XConnectionNumber(display)),
+                           SkColorType format)
+    : VaDisplay(DisplayBackend::kDisplay_X11, ctx),
       fDisplay(display),
       fScreen(screen),
       fScreenNumber(screenNum),
       fVisual(visual),
       fColorFormat(format),
       fAtoms(display),
-      fDisposed(false)
+      fDisposed(false),
+      fEventQueue(this)
 {
-    PollSource::startPoll(UV_READABLE | UV_DISCONNECT);
 }
 
 VaX11Display::~VaX11Display() noexcept
 {
-    PollSource::stopPoll();
-    if (fDisplay)
-        XCloseDisplay(fDisplay);
+    if (!fDisposed)
+        this->realDispose();
 }
 
 void VaX11Display::dispose()
 {
+    this->realDispose();
+}
+
+void VaX11Display::realDispose()
+{
     fDisposed = true;
+    fEventQueue.disposeInMainThread();
+    if (fDisplay)
+        XCloseDisplay(fDisplay);
 }
 
 Handle<VaX11Window> VaX11Display::matchWindow(Window window)
 {
     Handle<VaWindow> result = nullptr;
     VaDisplay::forEachWindow([window, &result](Handle<VaWindow> pWindow) -> bool {
-        if (std::dynamic_pointer_cast<VaX11Window>(pWindow)->window() == window)
+        if (std::dynamic_pointer_cast<VaX11Window>(pWindow)->nativeWindowHandle() == window)
         {
             result = pWindow;
             return false;
@@ -114,7 +119,7 @@ Handle<VaWindow> VaX11Display::onCreateWindow(VaVec2f size, VaVec2f pos, Handle<
     if (parent != nullptr)
     {
         assert(parent->getDisplay()->backend() == DisplayBackend::kDisplay_X11);
-        pureParent = std::dynamic_pointer_cast<VaX11Window>(parent)->window();
+        pureParent = std::dynamic_pointer_cast<VaX11Window>(parent)->nativeWindowHandle();
     }
 
     auto x = static_cast<int32_t>(pos.x()),
@@ -140,22 +145,18 @@ Handle<VaWindow> VaX11Display::onCreateWindow(VaVec2f size, VaVec2f pos, Handle<
     return std::make_shared<VaX11Window>(shared_from_this(), window, w, h, fColorFormat);
 }
 
-KeepInLoop VaX11Display::dispatch(int status, int events)
+void VaX11Display::eventQueueDispatch(const std::vector<UniqueHandle<XEvent>>& events)
 {
-    if (status < 0)
+    for (const auto& ev : events)
     {
-        log_write(LOG_ERROR) << "Failed to dispatch X11 events: "
-                             << uv_strerror(status) << log_endl;
-        return KeepInLoop::kNo;
+        dispatchEachEvent(*ev);
+        if (fDisposed)
+            break;
     }
-    if (events == UV_DISCONNECT)
-    {
-        log_write(LOG_WARNING) << "Lost X11 connection" << log_endl;
-        return KeepInLoop::kNo;
-    }
+}
 
-    XEvent event;
-    XNextEvent(fDisplay, &event);
+void VaX11Display::dispatchEachEvent(const XEvent& event)
+{
     switch (event.type)
     {
     case ClientMessage:
@@ -205,14 +206,9 @@ KeepInLoop VaX11Display::dispatch(int status, int events)
         break;
 
     default:
-        log_write(LOG_WARNING) << "Unknown X11 event " << &event
-                               << " type " << event.type << log_endl;
+        Journal::Ref()(LOG_WARNING, "Unknown event {} type {}", fmt::ptr(&event), event.type);
         break;
     }
-
-    if (fDisposed)
-        return KeepInLoop::kNo;
-    return KeepInLoop::kYes;
 }
 
 int32_t VaX11Display::width()

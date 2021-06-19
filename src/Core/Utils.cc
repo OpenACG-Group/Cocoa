@@ -1,6 +1,7 @@
 #include <unistd.h>
 
 #include "Core/Utils.h"
+#include "Core/Journal.h"
 #include "Core/MeasuredTable.h"
 #include "Core/Exception.h"
 namespace cocoa::utils {
@@ -40,49 +41,6 @@ static void dump_property_tree_recursive(const Printer& printer, PropertyTreeNod
     }
 }
 
-void dump_plaintext_runtime_exception(const RuntimeException& except, const Printer& printer)
-{
-    printer(std::string(except.what()) + ":");
-    printer("Traceback (most recent call last):");
-
-    MeasuredTable table(1);
-    for (const RuntimeException::Frame& f : except.frames())
-    {
-        std::ostringstream hdr, content;
-        hdr << "  " << f.pc << " <+" << f.offset << ">";
-        content << f.symbol << " from " << f.file;
-
-        table.append(hdr.str(), content.str());
-    }
-
-    table.flush(printer);
-}
-
-void dump_colored_runtime_exception(const RuntimeException& except, const Printer& printer)
-{
-#ifndef __linux__
-    dump_plaintext_runtime_exception(except, printer);
-#else
-
-    printer(std::string("\033[1m") + except.what() + "\033[0m");
-    printer("Traceback (most recent call last):");
-
-    MeasuredTable table(1);
-    for (const RuntimeException::Frame& f : except.frames())
-    {
-        std::ostringstream hdr, content;
-        hdr << "  \033[34m" << f.pc << "\033[0m \033[36m<+" << f.offset
-            << ">\033[0m";
-        content << "\033[33m" << f.symbol << "\033[0m from \033[32m " << f.file;
-
-        table.append(hdr.str(), content.str());
-    }
-
-    table.flush(printer);
-
-#endif // __linux__
-}
-
 void DumpPropertyTree(PropertyTreeNode *pRoot, Printer printer)
 {
     std::vector<std::string> rec;
@@ -104,12 +62,24 @@ void ChangeWorkDirectory(const std::string& dir)
     }
 }
 
-void DumpRuntimeException(const RuntimeException& except, bool color, Printer printer)
+void DumpRuntimeException(const RuntimeException& except)
 {
-    if (color)
-        dump_colored_runtime_exception(except, printer);
-    else
-        dump_plaintext_runtime_exception(except, printer);
+    Journal::Ref()(LOG_EXCEPTION, "{}:", except.what());
+    Journal::Ref()(LOG_EXCEPTION, "Traceback (most recent call last):");
+
+    MeasuredTable table(1);
+    for (const RuntimeException::Frame& f : except.frames())
+    {
+        std::ostringstream hdr, content;
+        hdr << "  " << f.pc << " <+" << f.offset << ">";
+        content << f.symbol << " from " << f.file;
+
+        table.append(hdr.str(), content.str());
+    }
+
+    table.flush([](const std::string& str) -> void {
+        Journal::Ref()(LOG_EXCEPTION, "{}", str);
+    });
 }
 
 } // namespace cocoa

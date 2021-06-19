@@ -1,574 +1,507 @@
-#include <iostream>
-#include <cmath>
-#include <chrono>
-#include <cstring>
-#include <iomanip>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/stat.h>
+#include <vector>
+#include <sstream>
+#include <cassert>
+#include <optional>
 
+#include "fmt/format.h"
+#include "fmt/ranges.h"
 #include "Core/Journal.h"
-#include "Core/Exception.h"
-#include "Core/Configurator.h"
+namespace cocoa {
 
 namespace {
 
-enum Identifier
+int open_real_journal_file(const char *path)
 {
-    /* catch_block tokens */
-    MAYBE_TIMESTAMP_OR_LEVEL_OR_DECLARATIVE,
-    MAYBE_MODULE_NAME,
-    MAYBE_NUMBER,
-    MAYBE_CONTENT_OR_DEFINITION,
-    /* Final tokens */
-    TIMESTAMP,
-    LEVEL_TRACE,
-    LEVEL_DEBUG,
-    LEVEL_INFO,
-    LEVEL_WARN,
-    LEVEL_ERROR,
-    LEVEL_FATAL,
-    LEVEL_OFF,
-    DECLARATIVE,
-    DEFINITION,
-    MODULE_NAME,
-    NUMBER,
-    STRING,
-    SPACE,
-    OPERATOR,
-    CONTENT
-};
-
-enum Colors
-{
-    NONE = 0,
-    GREEN = 0x001,
-    RED = 0x002,
-    YELLOW = 0x004,
-    BLUE = 0x008,
-    PURPLE = 0x010,
-    DEEP_GREEN = 0x020,
-    WHITE = 0x040,
-    GRAY = 0x080,
-    HIGHLIGHT = 0x100,
-    DISABLE = 0x200
-};
-
-typedef struct
-{
-    int color;
-    char const *attribute;
-} ColorAttributeMap;
-
-typedef struct
-{
-    Identifier ident;
-    int color;
-} IdentColorMap;
-
-typedef struct
-{
-    char const *begin;
-    char const *end;
-    Identifier ident;
-} catch_block;
-
-typedef struct
-{
-    Identifier level;
-    char const *str;
-} LevelStringMap;
-
-const ColorAttributeMap text_shader_camap[] = {
-        {GREEN,      "\033[32m"},
-        {RED,        "\033[31m"},
-        {YELLOW,     "\033[33m"},
-        {BLUE,       "\033[34m"},
-        {PURPLE,     "\033[35m"},
-        {DEEP_GREEN, "\033[36m"},
-        {WHITE,      "\033[37m"},
-        {GRAY,       "\033[38m"},
-        {HIGHLIGHT,  "\033[1m"},
-        {DISABLE,    "\033[0m"},
-        {NONE,       ""}
-};
-
-const IdentColorMap text_shader_icmap[] = {
-        {TIMESTAMP,   PURPLE},
-        {LEVEL_TRACE, GRAY | HIGHLIGHT},
-        {LEVEL_DEBUG, PURPLE},
-        {LEVEL_INFO,  GREEN},
-        {LEVEL_WARN,  YELLOW},
-        {LEVEL_ERROR, RED},
-        {LEVEL_FATAL, RED | HIGHLIGHT},
-        {LEVEL_OFF,   WHITE | HIGHLIGHT},
-        {MODULE_NAME, WHITE | HIGHLIGHT},
-        {NUMBER,      DEEP_GREEN},
-        {STRING,      YELLOW},
-        {SPACE,       NONE},
-        {CONTENT,     NONE},
-        {OPERATOR,    RED},
-        {DECLARATIVE, BLUE | HIGHLIGHT},
-        {DEFINITION,  DEEP_GREEN}
-};
-
-const LevelStringMap text_shader_lsmap[] = {
-        {LEVEL_TRACE, "trace"},
-        {LEVEL_DEBUG, "debug"},
-        {LEVEL_INFO,  "info"},
-        {LEVEL_WARN,  "warn"},
-        {LEVEL_ERROR, "error"},
-        {LEVEL_FATAL, "fatal"},
-        {LEVEL_OFF,   "off"}
-};
-
-bool text_shader_matches_catch_block(char const *str, catch_block *catch_block)
-{
-    bool expects = false;
-    bool expectExclude = false;
-    char expect;
-
-    if (*str == '\0')
-        return false;
-
-    while (*str != '\0')
+    if (access(path, W_OK))
     {
-        if (expects)
+        std::string newName(std::string(path) + ".old");
+        if (rename(path, newName.c_str()) < 0)
         {
-            if (expect != *str)
-                goto next;
-            catch_block->end = str;
-            if (expectExclude)
-                catch_block->end--;
+            fmt::print("Failed to rename old log file {}: {}\n", path, std::strerror(errno));
+            return -1;
+        }
+    }
+
+    int fd = open(path, O_WRONLY | O_CREAT,
+                  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
+    if (fd < 0)
+    {
+        fmt::print("Failed to open log file {}: {}\n", path, std::strerror(errno));
+        return -1;
+    }
+    return fd;
+}
+
+struct Token
+{
+    enum class Type
+    {
+        kFragment,
+        kDecorator
+    };
+
+    explicit Token(Type t) : type(t) {}
+    virtual ~Token() = default;
+    Type    type;
+};
+
+struct Fragment : public Token
+{
+    Fragment() : Token(Type::kFragment) {}
+    ~Fragment() override = default;
+    std::string_view view;
+};
+
+struct Decorator : public Token
+{
+    Decorator() : Token(Type::kDecorator) {}
+    ~Decorator() override = default;
+    std::string_view specifier;
+    std::vector<std::string_view> args;
+};
+
+void unacceptable_pattern(int pos, char const *message)
+{
+    throw std::runtime_error(fmt::format("[{:3d}] Error: {}", pos, message));
+}
+
+bool is_ident(char ch)
+{
+    return std::isdigit(ch) || std::isalpha(ch) || ch == '_';
+}
+
+void match_and_transit(char ch, const std::vector<char>& match, const std::vector<int>& transition, int& st)
+{
+    assert(match.size() == transition.size());
+
+    for (int i = 0; i < match.size(); i++)
+    {
+        if (match[i] == ch)
+        {
+            st = transition[i];
             break;
         }
+    }
+}
 
-        catch_block->begin = str;
-        if (*str == '[')
+std::vector<std::shared_ptr<Token>> parse_decorators(const std::string_view& origin)
+{
+    std::vector<std::shared_ptr<Token>> tokens;
+    std::shared_ptr<Token> current;
+    int len = origin.length();
+    int state = 0;
+
+    auto as_fragment = [&current]() -> std::shared_ptr<Fragment> {
+        return std::dynamic_pointer_cast<Fragment>(current);
+    };
+
+    auto as_decorator = [&current]() -> std::shared_ptr<Decorator> {
+        return std::dynamic_pointer_cast<Decorator>(current);
+    };
+
+    for (int i = 0; i < len + 1; i++)
+    {
+        char ch = origin[i];
+        switch (state)
         {
-            catch_block->ident = MAYBE_TIMESTAMP_OR_LEVEL_OR_DECLARATIVE;
-            expects = true;
-            expect = ']';
-        } else if (*str == '<')
-        {
-            catch_block->ident = MAYBE_MODULE_NAME;
-            expects = true;
-            expect = '>';
-        } else if (*str >= '0' && *str <= '9')
-        {
-            catch_block->ident = MAYBE_NUMBER;
-            expects = true;
-            expectExclude = true;
-            expect = ' ';
-        } else if (*str == '\"' || *str == '\'')
-        {
-            catch_block->ident = STRING;
-            expects = true;
-            expect = *str;
-        } else if (*str == ' ')
-        {
-            catch_block->begin = str;
-            catch_block->end = str;
-            catch_block->ident = SPACE;
+        case 0:
+            if (ch == '\0' || ch == '%' || ch == '\\')
+            {
+                if (current)
+                {
+                    as_fragment()->view.remove_suffix(len - i);
+                    tokens.emplace_back(std::move(current));
+                }
+                match_and_transit(ch, {'%', '\0', '\\'}, {1, 4, 5}, state);
+            }
+            else
+            {
+                if (!current)
+                {
+                    current = std::make_shared<Fragment>();
+                    as_fragment()->view = std::string_view(origin);
+                    as_fragment()->view.remove_prefix(i);
+                }
+                // Implicit transition: 0 -> 0
+            }
             break;
-        } else if (*str == '=' || *str == '+' || *str == '-'
-                   || *str == '*' || *str == '/' || *str == '>'
-                   || *str == '<')
-        {
-            catch_block->end = str;
-            catch_block->ident = OPERATOR;
+
+        case 1:
+            if (ch == '<' || ch == '\0')
+            {
+                if (!current)
+                    unacceptable_pattern(i, "Unexpected whitespace, '<' or null-terminator");
+                as_decorator()->specifier.remove_suffix(len - i);
+                match_and_transit(ch, {'<', '\0'}, {2, 4}, state);
+                if (ch != '<')
+                    tokens.emplace_back(std::move(current));
+            }
+            else if (is_ident(ch))
+            {
+                if (!current)
+                {
+                    current = std::make_shared<Decorator>();
+                    as_decorator()->specifier = std::string_view(origin);
+                    as_decorator()->specifier.remove_prefix(i);
+                }
+                // Implicit transition: 1 -> 1
+            }
+            else
+            {
+                if (!current)
+                    unacceptable_pattern(i, "Unexpected character after %");
+                as_decorator()->specifier.remove_suffix(len - i);
+                tokens.emplace_back(std::move(current));
+                i--;
+                state = 0;
+            }
             break;
-        } else if (*str == '\033')
-        {
-            catch_block->ident = CONTENT;
-            catch_block->end = str + std::strlen(str) - 1;
+
+        case 2:
+            if (ch == ' ' || ch == '\t')
+            {
+                // Implicit transition: 2 -> 2
+                break;
+            }
+            else if (ch == '>')
+            {
+                // as_decorator()->specifier.remove_suffix(len - i);
+                tokens.emplace_back(std::move(current));
+                state = 0;
+            }
+            else if (is_ident(ch))
+            {
+                as_decorator()->args.emplace_back(origin);
+                as_decorator()->args.back().remove_prefix(i);
+                state = 3;
+            }
+            else if (ch == '\0')
+                unacceptable_pattern(i, "Unexpected null-terminator in %specifier<...>");
+            else
+                unacceptable_pattern(i, "Unexpected character in %specifier<...>");
             break;
-        } else
-        {
-            catch_block->ident = MAYBE_CONTENT_OR_DEFINITION;
-            expects = true;
-            expect = ' ';
-            expectExclude = true;
+
+        case 3:
+            if (ch == ',')
+            {
+                as_decorator()->args.back().remove_suffix(len - i);
+                state = 2;
+            }
+            else if (ch == '>')
+            {
+                as_decorator()->args.back().remove_suffix(len - i);
+                tokens.emplace_back(std::move(current));
+                state = 0;
+            }
+            else if (is_ident(ch))
+            {
+                // Implicit transition: 3 -> 3
+                break;
+            }
+            else
+                unacceptable_pattern(i, "Unexpected character");
+            break;
+
+        case 4:
+            // Accepted
+            break;
+
+        case 5:
+            current = std::make_shared<Fragment>();
+            as_fragment()->view = origin;
+            as_fragment()->view.remove_prefix(i);
+            as_fragment()->view.remove_suffix(len - i - 1);
+            tokens.emplace_back(std::move(current));
+            state = 0;
+            break;
+
+        default:
+            unacceptable_pattern(i, "Internal: Invalid state");
+            break;
         }
-
-        next:
-        str++;
     }
 
-    if (expects && expect == ' ' && *str == '\0')
-        catch_block->end = str - 1;
-    return true;
+    return tokens;
 }
 
-inline bool text_shader_is_number(char ch)
-{ return (ch >= '0' && ch <= '9'); }
-
-inline bool text_shader_is_upper(char ch)
-{ return (ch >= 'A' && ch <= 'Z'); }
-
-inline bool text_shader_is_lower(char ch)
-{ return (ch >= 'a' && ch <= 'z'); }
-
-inline char text_shader_to_lower(char ch)
+struct TranslationContext
 {
-    if (text_shader_is_lower(ch))
-        return ch;
-    else
-    {
-        if (text_shader_is_upper(ch))
-            return char('a' + (ch - 'A'));
-    }
-    return ch;
-}
+    bool enabled;
+    std::chrono::steady_clock::time_point startTime;
+    std::shared_ptr<Decorator> decorator;
+    bool enableColor;
+};
 
-bool text_shader_case_insensitive_compare_equal(const char *begin, const char *end, char const *str)
+struct TranslationResult
 {
-    if (begin > end)
-        return false;
-    if (static_cast<size_t>(end - begin + 1) != strlen(str))
-        return false;
-
-    char const *p0 = begin, *p1 = str;
-    while (p0 <= end && *p1 != '\0')
+    enum class Operation
     {
-        char c0 = text_shader_to_lower(*p0);
-        char c1 = text_shader_to_lower(*p1);
-        if (c0 != c1)
-            return false;
-        p0++;
-        p1++;
-    }
-    return true;
-}
+        kRemove,
+        kReplace
+    };
 
-bool text_shader_is_integer(char const *begin, char const *end)
+    TranslationResult() : op(Operation::kRemove) {}
+    explicit TranslationResult(std::string replace)
+        : op(Operation::kReplace), replacement(std::move(replace)) {}
+    Operation op;
+    std::optional<std::string> replacement;
+};
+
+using TranslatorFunc = TranslationResult(*)(TranslationContext*);
+struct Translator
 {
-    if (begin > end)
-        return false;
-    while (begin <= end)
-    {
-        if (!text_shader_is_number(*begin))
-            return false;
-        begin++;
-    }
-    return true;
-}
+    const char *specifier;
+    int argc;
+    TranslatorFunc pfn;
+};
 
-bool text_shader_is_float(char const *begin, char const *end)
+bool match_list(const std::string_view& str, const std::vector<std::string>& vec)
 {
-    if (begin > end)
-        return false;
-
-    bool point = false;
-    while (begin <= end)
-    {
-        if (*begin == '.')
-        {
-            if (point || begin == end)
-                return false;
-            point = true;
-        } else if (!text_shader_is_number(*begin))
-            return false;
-        begin++;
-    }
-    return true;
-}
-
-bool text_shader_check_number(catch_block *cb)
-{
-    if (text_shader_is_integer(cb->begin, cb->end)
-        || text_shader_is_float(cb->begin, cb->end))
-    {
-        cb->ident = NUMBER;
-        return true;
-    }
-    return false;
-}
-
-/* There's no regex engine, so we must handle it manually... */
-bool text_shader_check_timestamp(catch_block *cb)
-{
-    const char *ptr = cb->begin + 1;
-    while (*ptr++ == ' ');
-
-    if (text_shader_is_float(ptr, cb->end - 1))
-    {
-        cb->ident = TIMESTAMP;
-        return true;
-    }
-    return false;
-}
-
-#define ARRAY_SIZE(a)   (sizeof(a) / sizeof(a[0]))
-
-bool text_shader_check_level(catch_block *cb)
-{
-    for (auto i : text_shader_lsmap)
-    {
-        if (text_shader_case_insensitive_compare_equal(cb->begin + 1, cb->end - 1,
-                                                     i.str))
-        {
-            cb->ident = i.level;
+    for (const auto& item : vec)
+        if (str == item)
             return true;
-        }
-    }
     return false;
 }
 
-bool text_shader_is_llegal_identifier(char const *begin, char const *end)
-{
-    if (begin > end)
-        return 0;
-
-    bool allowNumber = 0;
-    while (begin <= end)
-    {
-        if ((text_shader_is_number(*begin) && !allowNumber) ||
-            (!text_shader_is_lower(*begin) && !text_shader_is_upper(*begin) &&
-             !text_shader_is_number(*begin) && *begin != '_'))
-            return false;
-        allowNumber = true;
-        begin++;
-    }
-    return true;
-}
-
-bool text_shader_check_modulename(catch_block *cb)
-{
-    /* A module name is like: org.sora.xxx */
-    char const *p = cb->begin;
-    char const *pIdBegin = cb->begin + 1, *pIdEnd;
-    while (p <= cb->end)
-    {
-        if (*p == '.' || p == cb->end)
+Translator translators[] = {
         {
-            pIdEnd = p - 1;
-            if (!text_shader_is_llegal_identifier(pIdBegin, pIdEnd))
-                return false;
-            pIdBegin = p + 1;
-        }
-        p++;
-    }
-    cb->ident = MODULE_NAME;
-    return true;
-}
-
-bool text_shader_check_definition(catch_block *cb)
-{
-    if (!text_shader_is_llegal_identifier(cb->begin, cb->end))
-        return false;
-
-    char const *p = cb->begin;
-    while (p <= cb->end)
-    {
-        if (!text_shader_is_upper(*p) && *p != '_' && !text_shader_is_number(*p))
-            return false;
-        p++;
-    }
-    cb->ident = DEFINITION;
-    return true;
-}
-
-void text_shader_catch_block_tochecked(catch_block *cb)
-{
-    switch (cb->ident)
-    {
-    case MAYBE_TIMESTAMP_OR_LEVEL_OR_DECLARATIVE:
-        if (!text_shader_check_timestamp(cb) && !text_shader_check_level(cb))
-            cb->ident = DECLARATIVE;
-        break;
-    case MAYBE_NUMBER:
-        if (!text_shader_check_number(cb))
-            cb->ident = CONTENT;
-        break;
-    case MAYBE_MODULE_NAME:
-        if (!text_shader_check_modulename(cb))
-            cb->ident = CONTENT;
-        break;
-    case MAYBE_CONTENT_OR_DEFINITION:
-        if (!text_shader_check_definition(cb))
-            cb->ident = CONTENT;
-        break;
-    default:
-        break;
-    }
-}
-
-void text_shader_apply(int fd, catch_block *cb)
-{
-    int color = NONE;
-    for (auto i : text_shader_icmap)
-    {
-        if (i.ident == cb->ident)
+            "disable",
+            0,
+            [](TranslationContext *ctx) -> TranslationResult {
+                ctx->enabled = false;
+                return TranslationResult();
+            }
+        },
         {
-            color = i.color;
-            break;
-        }
-    }
-
-    char const *disable_attribute;
-    for (auto i : text_shader_camap)
-    {
-        if (color & i.color)
+            "enable",
+            0,
+            [](TranslationContext *ctx) -> TranslationResult {
+                ctx->enabled = true;
+                return TranslationResult();
+            }
+        },
         {
-            ::write(fd, i.attribute, std::strlen(i.attribute));
+            "timestamp",
+            0,
+            [](TranslationContext *ctx) -> TranslationResult {
+                using namespace std::chrono;
+                if (!ctx->enabled)
+                    return TranslationResult();
+                auto duration = duration_cast<microseconds>(steady_clock::now() - ctx->startTime);
+                double dt = static_cast<double>(duration.count()) *
+                            microseconds::period::num / microseconds::period::den;
+                return TranslationResult(fmt::format("[{:12.6f}]", dt));
+            }
+        },
+        {
+            "reset",
+            0,
+            [](TranslationContext *ctx) -> TranslationResult {
+                if (!ctx->enabled || !ctx->enableColor)
+                    return TranslationResult();
+                return TranslationResult("\033[0m");
+            }
+        },
+        {
+            "fg",
+            -1,
+            [](TranslationContext *ctx) -> TranslationResult {
+                if (!ctx->enabled || !ctx->enableColor)
+                    return TranslationResult();
+                std::string buf;
+                for (const auto& item : ctx->decorator->args)
+                {
+                    if (match_list(item, {"bk", "black"}))
+                        buf.append("\033[30m");
+                    else if (match_list(item, {"re", "red"}))
+                        buf.append("\033[31m");
+                    else if (match_list(item, {"gr", "green"}))
+                        buf.append("\033[32m");
+                    else if (match_list(item, {"ye", "yellow"}))
+                        buf.append("\033[33m");
+                    else if (match_list(item, {"bl", "blue"}))
+                        buf.append("\033[34m");
+                    else if (match_list(item, {"ma", "magenta"}))
+                        buf.append("\033[35m");
+                    else if (match_list(item, {"cy", "cyan"}))
+                        buf.append("\033[36m");
+                    else if (match_list(item, {"wh", "white"}))
+                        buf.append("\033[37m");
+                    else if (match_list(item, {"hl", "highlight"}))
+                        buf.append("\033[1m");
+                    else
+                        throw std::runtime_error(fmt::format("Unknown color code \"{}\"", item));
+                }
+                return TranslationResult(buf);
+            }
+        },
+        {
+            "pid",
+            0,
+            [](TranslationContext *ctx) -> TranslationResult {
+                if (!ctx->enabled)
+                    return TranslationResult();
+                return TranslationResult(fmt::format("{}", getpid()));
+            }
+        },
+        {
+            "tid",
+            0,
+            [](TranslationContext *ctx) -> TranslationResult {
+                if (!ctx->enabled)
+                    return TranslationResult();
+                return TranslationResult(fmt::format("{}", gettid()));
+            }
         }
-        if (i.color == DISABLE)
-            disable_attribute = i.attribute;
+};
+
+std::string translate_decorators(const std::string_view& origin,
+                                 std::chrono::steady_clock::time_point startTime,
+                                 bool color)
+{
+    auto tokens = parse_decorators(origin);
+    TranslationContext ctx{};
+    ctx.enabled = true;
+    ctx.startTime = startTime;
+    ctx.enableColor = color;
+
+    std::ostringstream finalString;
+
+    for (const auto& t : tokens)
+    {
+        if (t->type == Token::Type::kDecorator)
+        {
+            auto decorator = std::dynamic_pointer_cast<Decorator>(t);
+            ctx.decorator = decorator;
+            const Translator *translator = nullptr;
+            for (const Translator& trans : translators)
+                if (trans.specifier == decorator->specifier)
+                {
+                    translator = &trans;
+                    break;
+                }
+
+            if (translator == nullptr)
+                throw std::runtime_error(fmt::format("Invalid decorator specifier \"{}\"", decorator->specifier));
+            if (translator->argc >= 0 && decorator->args.size() != translator->argc)
+            {
+                throw std::runtime_error(fmt::format("Decorator \"{}\" requires {} argument(s), but {} are provided",
+                                                     translator->specifier, translator->argc, decorator->args.size()));
+            }
+            TranslationResult result = translator->pfn(&ctx);
+            if (result.op == TranslationResult::Operation::kReplace)
+            {
+                assert(result.replacement.has_value());
+                finalString << result.replacement.value();
+            }
+        }
+        else
+        {
+            auto f = std::dynamic_pointer_cast<Fragment>(t);
+            finalString << f->view;
+        }
     }
-
-    size_t siz = cb->end - cb->begin + 1;
-    char buffer[siz + 1];
-    std::memcpy(buffer, cb->begin, siz);
-    buffer[siz] = '\0';
-
-    ::write(fd, buffer, std::strlen(buffer));
-    ::write(fd, disable_attribute, std::strlen(disable_attribute));
+    return finalString.str();
 }
 
-void text_shader_commit(int fd, char const *str)
+std::vector<std::string_view> separate_lines(const std::string& str)
 {
-    catch_block catch_block;
-    while (text_shader_matches_catch_block(str, &catch_block))
+    std::vector<std::string_view> views;
+    views.emplace_back(str);
+
+    size_t pos = 0;
+    size_t len = str.length();
+    while ((pos = str.find('\n', pos + 1)) != std::string::npos)
     {
-        text_shader_catch_block_tochecked(&catch_block);
-        text_shader_apply(fd, &catch_block);
-        str = catch_block.end + 1;
+        views.back().remove_suffix(len - pos);
+        views.emplace_back(str);
+        views.back().remove_prefix(pos + 1);
     }
+    return views;
 }
 
 } // namespace anonymous
 
-namespace cocoa {
-
-StreamHolder::StreamHolder(Journal *obj)
-    : mLogger(obj)
+Journal::Journal(LogLevel level, OutputDevice output,
+                 bool enableColor, const char *file)
+    : fEnableColor(enableColor),
+      fLevel(level),
+      fOutputFd(-1),
+      fStartTime(std::chrono::steady_clock::now())
 {
-}
+    switch (output)
+    {
+    case OutputDevice::kStandardOut:
+        fOutputFd = STDOUT_FILENO;
+        break;
+    case OutputDevice::kStandardError:
+        fOutputFd = STDERR_FILENO;
+        break;
+    case OutputDevice::kFile:
+        fOutputFd = open_real_journal_file(file);
+        break;
+    }
 
-StreamHolder::~StreamHolder()
-{
-}
-
-void StreamHolder::commitBuffer()
-{
-    std::string str = mBuffer.str();
-    mLogger->write(str.c_str());
-}
-
-static const char *infoPrompt[] = {
-    "[Debug]",
-    "[Info]",
-    "[Warn]",
-    "[Error]",
-    "[Fatal]"
-};
-
-Journal::Journal(int fd, int filter, bool color)
-    : mStream(new StreamHolder(this)),
-      mColor(color),
-      mStartTime(std::chrono::steady_clock::now())
-{
-    mFd = fd;
-    mFilter = filter;
-
-    welcome();
-}
-
-Journal::Journal(char const *file, int filter, bool color)
-    : mStream(new StreamHolder(this)),
-      mColor(color),
-      mStartTime(std::chrono::steady_clock::now())
-{
-    BeforeLeaveScope beforeLeaveScope([&]() -> void { delete mStream; });
-    redirectToFile(file);
-    beforeLeaveScope.cancel();
-
-    mFilter = filter;
-
-    welcome();
+    if (fOutputFd < 0)
+        throw std::runtime_error("Failed to open log file");
 }
 
 Journal::~Journal()
 {
-    mOutMutex.lock();
-    delete mStream;
-    mOutMutex.unlock();
+    if (fOutputFd != STDOUT_FILENO && fOutputFd == STDERR_FILENO)
+        close(fOutputFd);
 }
 
-void Journal::welcome()
+bool Journal::filter(LogType type)
 {
-    stream(LOG_INFO) << "Cocoa 2D Rendering Engine version " << COCOA_VERSION << log_endl;
-    stream(LOG_INFO) << "This software is under " << COCOA_LICENSE << log_endl;
-    stream(LOG_INFO) << log_endl;
+    return (static_cast<uint32_t>(fLevel) & static_cast<uint32_t>(type)) == type;
 }
 
-StreamHolder& Journal::stream(int type)
+void Journal::commit(LogType type, const std::string& str)
 {
-    mOutMutex.lock();
-    mCurType = type;
-    return *mStream;
-}
-
-void Journal::write(char const *str)
-{
-    if (!(mCurType & mFilter))
+    const char *levelStr = nullptr;
+    const char *levelColor = nullptr;
+    switch (type)
     {
-        mOutMutex.unlock();
-        return ;
-    }
-    
-    int idx = std::log2(mCurType);
-    const char *header =  infoPrompt[idx];
-    
-    auto now = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(now - mStartTime);
-    double dt = static_cast<double>(duration.count()) * std::chrono::microseconds::period::num
-        / std::chrono::microseconds::period::den;
-
-    std::ostringstream ss;
-    ss.setf(std::ios_base::right | std::ios_base::fixed);
-    ss.precision(6);
-    ss << '[' << std::setw(12) << dt << "] ";
-    
-    ss << header << " " << str;
-    std::string res = ss.str();
-    // ::write(mFd, res.c_str(), res.size());
-    if (mColor)
-        text_shader_commit(mFd, res.c_str());
-    else
-        ::write(mFd, res.c_str(), res.length());
-
-    mOutMutex.unlock();
-}
-
-void Journal::redirectToFile(const char *path)
-{
-    int fd = ::open(path, O_RDWR);
-    if (fd >= 0)
-    {
-        ::close(fd);
-        char *p = new char[std::strlen(path) + 5];
-        sprintf(p, "%s.old", path);
-        ::rename(path, p);
-        delete[] p;
+    case LOG_DEBUG:
+        levelStr = "debug";
+        levelColor = "cy";
+        break;
+    case LOG_INFO:
+        levelStr = "info";
+        levelColor = "gr";
+        break;
+    case LOG_WARNING:
+        levelStr = "warn";
+        levelColor = "ye";
+        break;
+    case LOG_EXCEPTION:
+        levelStr = "fatal";
+        levelColor = "re,hl";
+        break;
+    case LOG_ERROR:
+        levelStr = "error";
+        levelColor = "re";
+        break;
+    default:
+        throw std::runtime_error("Unknown log level");
     }
 
-    fd = ::open(path, O_RDWR | O_CREAT, S_IWUSR | S_IRUSR | S_IWGRP | S_IRGRP | S_IROTH);
-    if (fd < 0)
-        throw std::runtime_error("Could not open log file");
+    std::vector<std::string_view> lineViews = separate_lines(str);
+    std::string finalStr;
+    for (const auto& view : lineViews)
+    {
+        std::string formatted = fmt::format(
+                "%fg<ma>%timestamp%reset %fg<{}>[{}:%tid]%reset {}",
+                levelColor, levelStr, view);
+        finalStr.append(translate_decorators(formatted, fStartTime, fEnableColor));
+        finalStr.push_back('\n');
+    }
 
-    mFd = fd;
-}
-
-bool Journal::textShader() const
-{
-    return mColor;
-}
-
-void Journal::setTextShader(bool enable)
-{
-    mColor = enable;
+    std::scoped_lock<std::mutex> lock(fWriteMutex);
+    write(fOutputFd, finalStr.c_str(), finalStr.length() + 1);
 }
 
 } // namespace cocoa

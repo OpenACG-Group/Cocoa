@@ -13,16 +13,17 @@ class VaWindow;
 
 enum class DisplayBackend
 {
-    kDisplay_X11
+    kDisplay_Xcb
 };
 
 class VaDisplay
 {
 public:
-    explicit VaDisplay(DisplayBackend backend);
+    explicit VaDisplay(DisplayBackend backend, const Handle<Context>& ctx);
     virtual ~VaDisplay() = default;
 
-    static Handle<VaDisplay> OpenX11(EventLoop *loop, const char *dispName);
+    static Handle<VaDisplay> OpenX11(const Handle<Context>& ctx, const char *dispName);
+    static Handle<VaDisplay> OpenXcb(const Handle<Context>& ctx, const char *displayName);
 
     inline DisplayBackend backend() const
     { return fBackend; }
@@ -42,8 +43,6 @@ public:
      */
     void detachWindow(Handle<VaWindow> window);
 
-    inline void attachContext(const Handle<Context>& context)
-    { fContext = context; }
     inline Handle<Context> getContext()
     { return fContext.lock(); }
 
@@ -51,8 +50,8 @@ protected:
     virtual Handle<VaWindow> onCreateWindow(VaVec2f size, VaVec2f pos, Handle<VaWindow> parent) = 0;
 
 private:
-    WeakHandle<Context>             fContext;
     DisplayBackend                  fBackend;
+    WeakHandle<Context>             fContext;
     std::list<Handle<VaWindow>>     fWindows;
 };
 

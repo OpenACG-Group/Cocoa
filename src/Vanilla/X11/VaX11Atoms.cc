@@ -11,6 +11,7 @@ VaX11Atoms::VaX11Atoms(Display *display)
     fAtoms[AtomType::WM_DELETE_WINDOW] = XInternAtom(fDisplay, "WM_DELETE_WINDOW", False);
     fAtoms[AtomType::_NET_WM_ICON] = XInternAtom(fDisplay, "_NET_WM_ICON", False);
     fAtoms[AtomType::CARDINAL] = XInternAtom(fDisplay, "CARDINAL", False);
+    fAtoms[AtomType::VA_CLOSE_CONNECTION] = XInternAtom(fDisplay, "VA_CLOSE_CONNECTION", False);
 }
 
 Atom& VaX11Atoms::get(AtomType type)

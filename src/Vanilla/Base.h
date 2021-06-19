@@ -4,6 +4,7 @@
 #include <memory>
 #include <source_location>
 #include <sigc++/sigc++.h>
+#include "include/core/SkImageInfo.h"
 #include "Core/Exception.h"
 
 #define VANILLA_NS_BEGIN        namespace cocoa::vanilla {
@@ -26,12 +27,6 @@ template<typename T> using Handle = std::shared_ptr<T>;
 template<typename T> using UniqueHandle = std::unique_ptr<T>;
 template<typename T> using WeakHandle = std::weak_ptr<T>;
 
-enum class VaColorFormat
-{
-    kRGB_8888,
-    kARGB_8888
-};
-
 using VaScalar = double;
 class VaVec2f
 {
@@ -45,6 +40,9 @@ private:
     VaScalar fY;
 };
 
+/* Other definitions */
+#define va_nodiscard    [[nodiscard]]
+
 /* Signals */
 #define VA_SIG_SIGNATURE(signature, name) \
     sigc::signal<signature> s_##name;
@@ -56,6 +54,21 @@ private:
 
 #define VA_SIG_GETTER(name) \
     inline auto& signal##name() { return __signals__.s_##name; }
+
+#define va_slot
+#define VA_SLOT_SIGNATURE(emitterClass, name) \
+    sigc::connection s_##emitterClass##name;
+
+#define VA_SLOT_FIELDS(...) \
+    struct Connections {    \
+        __VA_ARGS__         \
+    } __connections__;
+
+#define va_slot_connect(emitterClass, name, emitter, slot) \
+    __connections__.s_##emitterClass##name = emitter->signal##name().connect(slot)
+
+#define va_slot_disconnect(emitterClass, name) \
+    __connections__.s_##emitterClass##name.disconnect()
 
 VANILLA_NS_END
 #endif //COCOA_VANILLA_BASE_H

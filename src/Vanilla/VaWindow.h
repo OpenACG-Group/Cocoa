@@ -13,7 +13,7 @@ class Context;
 class VaWindow : public std::enable_shared_from_this<VaWindow>
 {
 public:
-    explicit VaWindow(WeakHandle<VaDisplay> display, VaColorFormat format);
+    explicit VaWindow(WeakHandle<VaDisplay> display, SkColorType format);
     virtual ~VaWindow() = default;
 
     static Handle<VaWindow> Make(const Handle<VaDisplay>& display,
@@ -29,7 +29,7 @@ public:
     void update();
     void close();
 
-    inline VaColorFormat format() const
+    inline SkColorType format() const
     { return fFormat; }
     inline Handle<VaDisplay> getDisplay()
     { return fDisplay.lock(); }
@@ -52,7 +52,7 @@ private:
                   VA_SIG_SIGNATURE(void(const Handle<VaWindow>&, const SkRect&), Configure))
 
     WeakHandle<VaDisplay>       fDisplay;
-    VaColorFormat               fFormat;
+    SkColorType                 fFormat;
     sigc::signal<void(void)>    fWindowMap;
 };
 
