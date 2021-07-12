@@ -38,7 +38,7 @@ public:
     void stopTimer();
 
 protected:
-    virtual KeepInLoop dispatch() = 0;
+    virtual KeepInLoop timerDispatch() = 0;
 
 private:
     static void Callback(uv_timer_t *handle);
@@ -54,12 +54,28 @@ public:
 protected:
     void disableAsync();
     void wakeupAsync();
-    virtual void dispatch() = 0;
+    virtual void asyncDispatch() = 0;
 
 private:
     static void Callback(uv_async_t *handle);
     uv_async_t  fUvAsync;
     bool fDisabled;
+};
+
+class CheckHandleSource : public EventSource
+{
+public:
+    explicit CheckHandleSource(EventLoop *loop);
+    ~CheckHandleSource() override;
+
+protected:
+    void startCheckHandle();
+    void stopCheckHandle();
+    virtual KeepInLoop checkHandleDispatch() = 0;
+
+private:
+    static void Callback(uv_check_t *handle);
+    uv_check_t  fCheck;
 };
 
 class PollSource : public EventSource
@@ -71,7 +87,7 @@ public:
 protected:
     void startPoll(int events);
     void stopPoll();
-    virtual KeepInLoop dispatch(int status, int events) = 0;
+    virtual KeepInLoop pollDispatch(int status, int events) = 0;
 
 private:
     static void Callback(uv_poll_t *handle, int status, int events);

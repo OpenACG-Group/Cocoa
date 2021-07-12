@@ -91,14 +91,14 @@ Configurator::State Initialize(int argc, char const **argv)
         Journal::New(filter, Journal::OutputDevice::kFile, false, redirect.c_str());
 
     EventLoop::New();
-    PosixSignalCatcher::New();
+    // PosixSignalCatcher::New();
 
     return Configurator::State::kSuccessful;
 }
 
 void Finalize()
 {
-    // scripter::Dispose();
+    scripter::Dispose();
     PosixSignalCatcher::Delete();
     EventLoop::Delete();
     Journal::Delete();
@@ -107,30 +107,26 @@ void Finalize()
 
 void Run()
 {
-    Journal::Ref()(LOG_DEBUG, "Content of property tree:");
-    utils::DumpPropertyTree(PropertyTree::Ref()("/"), [](const std::string& str) -> void {
-        Journal::Ref()(LOG_DEBUG, "{}", str);
-    });
+    //Journal::Ref()(LOG_DEBUG, "Content of property tree:");
+    //utils::DumpPropertyTree(PropertyTree::Ref()("/"), [](const std::string& str) -> void {
+    //    Journal::Ref()(LOG_DEBUG, "{}", str);
+    //});
 
     // test::vanilla_render_test();
-    test::vanilla_xcb_test();
+    // test::vanilla_xcb_test();
 
-#if 0
+#if 1
     scripter::Initialize();
-    auto runtime = scripter::Runtime::MakeFromSnapshot("/home/sora/Project/C++/Cocoa/cmake-build-debug/snapshot_blob.bin",
-                                                       "/home/sora/Project/C++/Cocoa/cmake-build-debug/icudtl.dat");
+    auto runtime = scripter::Runtime::MakeFromSnapshot(EventLoop::Instance(),
+                                                       "/home/sora/Project/C++/Cocoa/third_party/v8/out/x64.release/snapshot_blob.bin",
+                                                       "/home/sora/Project/C++/Cocoa/third_party/v8/out/x64.release/icudtl.dat");
     v8::Isolate::Scope isolateScope(runtime->isolate());
     v8::HandleScope handleScope(runtime->isolate());
     v8::Context::Scope contextScope(runtime->context());
     const char *script = R"(
-vmInvokeOp("op_print_async", {str: "Hello, World!"})
-    .then(() => {
-        vmInvokeOp("op_print", {str: "Asynchronous succeed"});
-    });
+Cocoa.core.opCall(Cocoa.core.OP_PRINT, {str: "Hello, Javascript!"});
 )";
     runtime->execute(script);
-    sleep(1);
-    runtime->runPromisesCheckpoint();
 #endif
 
 #if 0

@@ -23,14 +23,9 @@ __js_codegen_pragma(error_definitions#end)
 
 __js_codegen_pragma(vmcall_definitions#begin)
 #define OP_PRINT   "op_print"
-#define OP_OPEN    "op_open"
 __js_codegen_pragma(vmcall_definitions#end)
 
 __js_codegen_pragma(eternal_rds_definitions#begin)
-#define RD_STDIN        0
-#define RD_STDOUT       1
-#define RD_STDERR       2
-#define RD_VMPIPE       3
 __js_codegen_pragma(eternal_rds_definitions#end)
 
 __js_codegen_pragma(rd_mode_definitions#begin)

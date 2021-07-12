@@ -20,7 +20,7 @@ public:
     void disposeFromMainThread();
 
 private:
-    void dispatch() override;
+    void asyncDispatch() override;
 
     bool tryEnqueue(xcb_generic_event_t *event);
     bool isDisposeEvent(xcb_generic_event_t *pEvent);

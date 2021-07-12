@@ -10,6 +10,7 @@
 #include "Vanilla/VaWindow.h"
 #include "Vanilla/Xcb/VaXcbDisplay.h"
 #include "Vanilla/Xcb/VaXcbWindow.h"
+#include "Vanilla/Xcb/VaXcbKeyboard.h"
 VANILLA_NS_BEGIN
 
 VaXcbWindow::VaXcbWindow(WeakHandle<VaXcbDisplay> display,
@@ -228,6 +229,99 @@ VA_WIN_HANDLER_IMPL(VaXcbWindow, map_notify)
 VA_WIN_HANDLER_IMPL(VaXcbWindow, unmap_notify)
 {
     emit_event_no_arg(Unmap);
+}
+
+namespace {
+
+inline VaScalar xi_fp1616_to_scalar(xcb_input_fp1616_t val)
+{
+    return VaScalar(val) / 0x10000;
+}
+
+Button xi_detail_to_button(uint32_t detail)
+{
+    switch (detail)
+    {
+    case 1:
+        return Button::kLeft;
+    case 2:
+        return Button::kMiddle;
+    case 3:
+        return Button::kRight;
+    case 4:
+        return Button::kWheelUp;
+    case 5:
+        return Button::kWheelDown;
+    default:
+        return Button::kUnknown;
+    }
+}
+} // namespace anonymous
+
+VA_WIN_HANDLER_IMPL(VaXcbWindow, input_button_press)
+{
+    Button button = xi_detail_to_button(event->detail);
+    if (button == Button::kUnknown)
+        return;
+
+    VaScalar x = xi_fp1616_to_scalar(event->event_x);
+    VaScalar y = xi_fp1616_to_scalar(event->event_y);
+    emit_event(ButtonPress, button, VaVec2f(x, y));
+}
+
+VA_WIN_HANDLER_IMPL(VaXcbWindow, input_button_release)
+{
+    Button button = xi_detail_to_button(event->detail);
+    if (button == Button::kUnknown)
+        return;
+
+    VaScalar x = xi_fp1616_to_scalar(event->event_x);
+    VaScalar y = xi_fp1616_to_scalar(event->event_y);
+    emit_event(ButtonRelease, button, VaVec2f(x, y));
+}
+
+VA_WIN_HANDLER_IMPL(VaXcbWindow, input_motion)
+{
+    VaScalar x = xi_fp1616_to_scalar(event->event_x);
+    VaScalar y = xi_fp1616_to_scalar(event->event_y);
+    emit_event(Motion, VaVec2f(x, y));
+}
+
+VA_WIN_HANDLER_IMPL(VaXcbWindow, input_touch_begin)
+{
+    VaScalar x = xi_fp1616_to_scalar(event->event_x);
+    VaScalar y = xi_fp1616_to_scalar(event->event_y);
+    emit_event(TouchBegin, VaVec2f(x, y));
+}
+
+VA_WIN_HANDLER_IMPL(VaXcbWindow, input_touch_end)
+{
+    VaScalar x = xi_fp1616_to_scalar(event->event_x);
+    VaScalar y = xi_fp1616_to_scalar(event->event_y);
+    emit_event(TouchEnd, VaVec2f(x, y));
+}
+
+VA_WIN_HANDLER_IMPL(VaXcbWindow, input_touch_update)
+{
+    VaScalar x = xi_fp1616_to_scalar(event->event_x);
+    VaScalar y = xi_fp1616_to_scalar(event->event_y);
+    emit_event(TouchUpdate, VaVec2f(x, y));
+}
+
+VA_WIN_HANDLER_IMPL(VaXcbWindow, key_press)
+{
+    VaXcbKeyboard& kb = std::dynamic_pointer_cast<VaXcbDisplay>(getDisplay())->keyboard();
+    KeySymbol symbol = kb.symbol(event->detail);
+
+    emit_event(KeyPress, symbol, kb.proxy()->activeMods(), kb.proxy()->activeLeds());
+}
+
+VA_WIN_HANDLER_IMPL(VaXcbWindow, key_release)
+{
+    VaXcbKeyboard& kb = std::dynamic_pointer_cast<VaXcbDisplay>(getDisplay())->keyboard();
+    KeySymbol symbol = kb.symbol(event->detail);
+
+    emit_event(KeyRelease, symbol, kb.proxy()->activeMods(), kb.proxy()->activeLeds());
 }
 
 #undef emit_event

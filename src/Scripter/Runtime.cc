@@ -29,9 +29,13 @@ void vmInvokeOpAsynchronously(v8::Isolate *isolate, v8::Local<v8::Object> param,
                               v8::ReturnValue<v8::Value>& returnValue)
 {
     auto *rt = reinterpret_cast<Runtime*>(isolate->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR));
-    auto info = std::make_shared<OpParameterInfo>(isolate, param, OpParameterInfo::StorageType::kPersistent);
+    auto info = std::make_shared<OpParameterInfo>(isolate,
+                                                  param,
+                                                  OpParameterInfo::StorageType::kPersistent);
     v8::Local<v8::Promise::Resolver> promiseResolver =
             v8::Promise::Resolver::New(isolate->GetCurrentContext()).ToLocalChecked();
+
+    rt->pushAsyncOpEntry(opEntry, param, promiseResolver);
     returnValue.Set(promiseResolver->GetPromise());
 }
 
@@ -82,10 +86,34 @@ static const char internalCoreJs[] = R"(
  * CocoaJs Core Object, Javascript ES6 Standard.
  * Copyright(C) 2021, Jingheng Luo (masshiro.io@qq.com)
  */
-var Cocoa;
+let Cocoa = new Object();
 (function (Cocoa) {
     "use strict";
-})(Cocoa || (Cocoa = {}));
+    Cocoa.core = {
+        OP_SUCCESS: 0,
+        OP_ETYPE: 1,
+        OP_EARGC: 2,
+        OP_EOPNUM: 3,
+        OP_EINTERNAL: 4,
+        OP_EINVARG: 5,
+        OP_EASYNC: 6,
+        OP_ENOMEM: 7,
+
+        OP_PRINT: "op_print"
+    };
+
+    Cocoa.core.opCall = (name, args) => {
+        return __cocoa_op_call(name, args);
+    };
+
+    Cocoa.core.getScripterInfo = () => {
+        return {
+            version: [1, 0, 0],
+            manufacture: "org.OpenACG.Cocoa",
+            capabilities: ["capabilities::lang", "capabilities::opCall"]
+        };
+    };
+})(Cocoa);
 )";
 
 void Initialize()
@@ -103,7 +131,8 @@ Runtime::Options::Options()
 {
 }
 
-std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(const std::string& snapshotFile,
+std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(EventLoop *loop,
+                                                   const std::string& snapshotFile,
                                                    const std::string& icuDataFile,
                                                    const Options& options)
 {
@@ -128,20 +157,23 @@ std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(const std::string& snapshotFi
     v8::HandleScope scope(isolate);
 
     auto objectTemplate = v8::ObjectTemplate::New(isolate);
-    objectTemplate->Set(isolate, "vmInvokeOp", v8::FunctionTemplate::New(isolate, vmInvokeOp));
+    objectTemplate->Set(isolate, "__cocoa_op_call", v8::FunctionTemplate::New(isolate, vmInvokeOp));
 
     v8::Global<v8::Context> context(isolate, v8::Context::New(isolate, nullptr, objectTemplate));
-    return std::make_shared<Runtime>(std::move(platform),
+    return std::make_shared<Runtime>(loop,
+                                     std::move(platform),
                                      params.array_buffer_allocator,
                                      isolate,
                                      std::move(context));
 }
 
-Runtime::Runtime(std::unique_ptr<v8::Platform> platform,
+Runtime::Runtime(EventLoop *loop,
+                 std::unique_ptr<v8::Platform> platform,
                  v8::ArrayBuffer::Allocator *allocator,
                  v8::Isolate *isolate,
                  v8::Global<v8::Context> context)
-    : fPlatform(std::move(platform)),
+    : CheckHandleSource(loop),
+      fPlatform(std::move(platform)),
       fArrayBufferAllocator(allocator),
       fIsolate(isolate),
       fContext(std::move(context))
@@ -150,6 +182,7 @@ Runtime::Runtime(std::unique_ptr<v8::Platform> platform,
     v8::HandleScope handleScope(fIsolate);
     v8::Context::Scope ctxScope(this->context());
 
+    startCheckHandle();
     fIsolate->SetData(ISOLATE_DATA_SLOT_RUNTIME_PTR, this);
     this->execute("internal:core.js", internalCoreJs);
 }
@@ -198,9 +231,19 @@ v8::Local<v8::Value> Runtime::execute(const char *scriptName, const char *str)
     return handleScope.Escape(result);
 }
 
-void Runtime::runPromisesCheckpoint()
+KeepInLoop Runtime::checkHandleDispatch()
 {
     fIsolate->PerformMicrotaskCheckpoint();
+    return KeepInLoop::kYes;
+}
+
+void Runtime::pushAsyncOpEntry(const OpEntry *entry,
+                               v8::Local<v8::Object> param,
+                               v8::Local<v8::Promise::Resolver> resolver)
+{
+    std::cout << "Push async task " << entry->name << std::endl;
+    resolver->Resolve(fIsolate->GetCurrentContext(),
+                      v8::Integer::New(fIsolate, OpRet(OP_SUCCESS)));
 }
 
 SCRIPTER_NS_END

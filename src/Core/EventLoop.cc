@@ -60,7 +60,7 @@ void PollSource::stopPoll()
 void PollSource::Callback(uv_poll_t *handle, int status, int events)
 {
     auto *pThis = reinterpret_cast<PollSource*>(uv_handle_get_data((uv_handle_t*)handle));
-    KeepInLoop keep = pThis->dispatch(status, events);
+    KeepInLoop keep = pThis->pollDispatch(status, events);
     if (keep == KeepInLoop::kNo)
         pThis->stopPoll();
 }
@@ -91,7 +91,7 @@ void TimerSource::stopTimer()
 void TimerSource::Callback(uv_timer_t *handle)
 {
     auto *pThis = reinterpret_cast<TimerSource*>(uv_handle_get_data((uv_handle_t*)handle));
-    if (pThis->dispatch() == KeepInLoop::kNo)
+    if (pThis->timerDispatch() == KeepInLoop::kNo)
         pThis->stopTimer();
 }
 
@@ -126,7 +126,38 @@ void AsyncSource::wakeupAsync()
 void AsyncSource::Callback(uv_async_t *handle)
 {
     auto *pThis = reinterpret_cast<AsyncSource*>(uv_handle_get_data((uv_handle_t*)handle));
-    pThis->dispatch();
+    pThis->asyncDispatch();
+}
+
+CheckHandleSource::CheckHandleSource(EventLoop *loop)
+    : EventSource(loop),
+      fCheck{}
+{
+    uv_check_init(loop->handle(), &fCheck);
+    uv_handle_set_data((uv_handle_t*)&fCheck, this);
+}
+
+CheckHandleSource::~CheckHandleSource()
+{
+    uv_check_stop(&fCheck);
+    uv_unref((uv_handle_t*)&fCheck);
+}
+
+void CheckHandleSource::startCheckHandle()
+{
+    uv_check_start(&fCheck, CheckHandleSource::Callback);
+}
+
+void CheckHandleSource::stopCheckHandle()
+{
+    uv_check_stop(&fCheck);
+}
+
+void CheckHandleSource::Callback(uv_check_t *handle)
+{
+    auto *pThis = reinterpret_cast<CheckHandleSource*>(uv_handle_get_data((uv_handle_t*)handle));
+    if (pThis->checkHandleDispatch() == KeepInLoop::kNo)
+        pThis->stopCheckHandle();
 }
 
 } // namespace cocoa

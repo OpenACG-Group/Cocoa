@@ -26,7 +26,7 @@ VaXcbEventQueue::~VaXcbEventQueue()
     disposeFromMainThread();
 }
 
-void VaXcbEventQueue::dispatch()
+void VaXcbEventQueue::asyncDispatch()
 {
     fQueueMutex.lock();
     std::vector<xcb_generic_event_t*> events(fQueue.size());

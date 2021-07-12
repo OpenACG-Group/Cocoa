@@ -7,6 +7,7 @@
 #include "Vanilla/VaDisplay.h"
 #include "Vanilla/Xcb/VaXcbAtoms.h"
 #include "Vanilla/Xcb/VaXcbEventQueue.h"
+#include "Vanilla/Xcb/VaXcbKeyboard.h"
 VANILLA_NS_BEGIN
 
 class Context;
@@ -32,14 +33,20 @@ public:
     va_nodiscard inline xcb_atom_t atom(VaXcbAtoms::AtomType type)
     { return fAtoms.get(type); }
 
+    va_nodiscard inline VaXcbKeyboard& keyboard()
+    { return fKeyboard; }
+
     int32_t width() override;
     int32_t height() override;
     void flush() override;
     void dispose() override;
 
     void handleEvent(const xcb_generic_event_t *event);
+    VaKeyboardProxy *keyboardProxy() override;
 
 private:
+    void selectXInputEventForWindow(xcb_window_t window);
+    void handleXInputEvent(const xcb_ge_event_t *event);
     Handle<VaXcbWindow> matchWindow(xcb_window_t window);
 
     void onDispose();
@@ -51,6 +58,7 @@ private:
     SkColorType                  fFormat;
     VaXcbAtoms                   fAtoms;
     VaXcbEventQueue              fEventQueue;
+    VaXcbKeyboard                fKeyboard;
     bool                         fDisposed;
 };
 

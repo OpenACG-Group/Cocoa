@@ -4,7 +4,7 @@ project(Cocoa VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(SIGC REQUIRED IMPORTED_TARGET sigc++-2.0)
+pkg_check_modules(SIGC REQUIRED IMPORTED_TARGET sigc++-3.0)
 
 set(BUILD_SHARED_LIBS false)
 set(FMT_TEST false)
@@ -22,15 +22,15 @@ include_directories(
         third_party/skia
         third_party/v8
         third_party/v8/include
-        third_party/llvm/include
-        third_party/llvm/out/include
         third_party/fmt/include
+        third_party/build/include
+        third_party/build/include/dbus-cxx-2.0
         ${SIGC_INCLUDE_DIRS})
 
 link_directories(third_party/skia/out/Shared
                  third_party/poco/out/lib
                  third_party/v8/out/x64.release
-                 #third_party/llvm/out/lib
+                 third_party/build/lib
                  ${SIGC_LIBRARY_DIRS})
 
 ## To suppress warning from Poco library (Clang only)
@@ -40,15 +40,11 @@ endif()
 
 ## Compile options and targets
 add_compile_definitions(COCOA_PROJECT=1 V8_COMPRESS_POINTERS SK_VULKAN)
-add_compile_options(-Wall)
+add_compile_options(-Wall -mrdrnd)
 
 add_subdirectory(src/Core)
-#add_subdirectory(src/Ciallo)
-#add_subdirectory(src/Komorebi)
-#add_subdirectory(src/NaGui)
 add_subdirectory(src/Vanilla)
-#add_subdirectory(src/Scripter)
-#add_subdirectory(src/virtfs)
+add_subdirectory(src/Scripter)
 add_executable(Cocoa
                src/Main.cc
                src/general_tests.h
@@ -57,6 +53,5 @@ add_executable(Cocoa
 
 target_link_libraries(Cocoa PRIVATE
                       Vanilla
-                      #Scripter
-                      Core
-                      tcmalloc)
+                      Scripter
+                      Core)

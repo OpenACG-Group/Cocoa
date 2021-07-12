@@ -28,7 +28,7 @@ int open_real_journal_file(const char *path)
                   S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
     if (fd < 0)
     {
-        fmt::print("Failed to open log file {}: {}\n", path, std::strerror(errno));
+        fmt::print("Failed to connectDisplay log file {}: {}\n", path, std::strerror(errno));
         return -1;
     }
     return fd;
@@ -445,7 +445,7 @@ Journal::Journal(LogLevel level, OutputDevice output,
     }
 
     if (fOutputFd < 0)
-        throw std::runtime_error("Failed to open log file");
+        throw std::runtime_error("Failed to connectDisplay log file");
 }
 
 Journal::~Journal()

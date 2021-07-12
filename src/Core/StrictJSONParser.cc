@@ -245,7 +245,7 @@ void parseFile(const std::string& file, const ObjectTemplate *pTemplate, Propert
     if (!fs.is_open())
     {
         throw RuntimeException::Builder(__FUNCTION__)
-                .append("Couldn\'t open JSON file ")
+                .append("Couldn\'t connectDisplay JSON file ")
                 .append(file)
                 .make<RuntimeException>();
     }

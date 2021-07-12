@@ -2,6 +2,7 @@
 #define COCOA_VANILLA_BASE_H
 
 #include <memory>
+#include <ostream>
 #include <source_location>
 #include <sigc++/sigc++.h>
 #include "include/core/SkImageInfo.h"
@@ -14,6 +15,9 @@ VANILLA_NS_BEGIN
 #define VANILLA_MAJOR_VERSION   1
 #define VANILLA_MINOR_VERSION   0
 #define VANILLA_VERSION         "1.0"
+
+/* Other definitions */
+#define va_nodiscard    [[nodiscard]]
 
 class VanillaException : public RuntimeException
 {
@@ -33,15 +37,18 @@ class VaVec2f
 public:
     VaVec2f(VaScalar x, VaScalar y) : fX(x), fY(y) {}
     ~VaVec2f() = default;
-    inline VaScalar x() const { return fX; }
-    inline VaScalar y() const { return fY; }
+    va_nodiscard inline VaScalar x() const { return fX; }
+    va_nodiscard inline VaScalar y() const { return fY; }
 private:
     VaScalar fX;
     VaScalar fY;
 };
 
-/* Other definitions */
-#define va_nodiscard    [[nodiscard]]
+VaVec2f operator+(const VaVec2f& a, const VaVec2f& b);
+VaVec2f operator-(const VaVec2f& a);
+VaVec2f operator-(const VaVec2f& a, const VaVec2f& b);
+VaVec2f operator*(const VaVec2f& a, VaScalar scalar);
+std::ostream& operator<<(std::ostream& os, const VaVec2f& v);
 
 /* Signals */
 #define VA_SIG_SIGNATURE(signature, name) \

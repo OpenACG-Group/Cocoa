@@ -6,6 +6,7 @@
 #include <chrono>
 
 #include "fmt/format.h"
+#include "fmt/ostream.h"
 #include "Core/UniquePersistent.h"
 namespace cocoa {
 

@@ -12,7 +12,7 @@ namespace {
 xcb_screen_t *match_proper_screen(int screenNumber, const xcb_setup_t *setup)
 {
     xcb_screen_iterator_t itr = xcb_setup_roots_iterator(setup);
-    xcb_screen_t *screen = nullptr;
+    xcb_screen_t *screen;
     do {
         screen = itr.data;
         xcb_screen_next(&itr);
@@ -106,6 +106,7 @@ VaXcbDisplay::VaXcbDisplay(const Handle<Context>& context,
       fFormat(format),
       fAtoms(fConnection),
       fEventQueue(this),
+      fKeyboard(this),
       fDisposed(false)
 {
 }
@@ -155,7 +156,10 @@ Handle<VaWindow> VaXcbDisplay::onCreateWindow(VaVec2f size, VaVec2f pos, Handle<
     constexpr uint32_t valueMask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     uint32_t values[2] = {
             fScreen->black_pixel,
-            XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY
+            XCB_EVENT_MASK_EXPOSURE
+            | XCB_EVENT_MASK_STRUCTURE_NOTIFY
+            | XCB_EVENT_MASK_KEY_PRESS
+            | XCB_EVENT_MASK_KEY_RELEASE
     };
 
     xcb_window_t window = xcb_generate_id(fConnection);
@@ -176,8 +180,9 @@ Handle<VaWindow> VaXcbDisplay::onCreateWindow(VaVec2f size, VaVec2f pos, Handle<
                         XCB_ATOM_ATOM,
                         32, 1,
                         &deleteWindowAtom);
-    xcb_flush(fConnection);
 
+    selectXInputEventForWindow(window);
+    xcb_flush(fConnection);
     return std::make_shared<VaXcbWindow>(shared_from_this(),
                                          window, w, h, fFormat);
 }
@@ -197,6 +202,11 @@ Handle<VaXcbWindow> VaXcbDisplay::matchWindow(xcb_window_t window)
     return result;
 }
 
+VaKeyboardProxy *VaXcbDisplay::keyboardProxy()
+{
+    return fKeyboard.proxy();
+}
+
 #define event_cast(type) \
 auto type = reinterpret_cast<const xcb_##type##_event_t*>(event);
 
@@ -213,16 +223,190 @@ case _case:                                                   \
     break;                                                    \
 }
 
+namespace {
+
+const char *xcb_errors[] = {
+        "Success",
+        "BadRequest",
+        "BadValue",
+        "BadWindow",
+        "BadPixmap",
+        "BadAtom",
+        "BadCursor",
+        "BadFont",
+        "BadMatch",
+        "BadDrawable",
+        "BadAccess",
+        "BadAlloc",
+        "BadColor",
+        "BadGC",
+        "BadIDChoice",
+        "BadName",
+        "BadLength",
+        "BadImplementation",
+        "Unknown"
+};
+
+const char *xcb_requests[] = {
+        "Null",
+        "CreateWindow",
+        "ChangeWindowAttributes",
+        "GetWindowAttributes",
+        "DestroyWindow",
+        "DestroySubwindows",
+        "ChangeSaveSet",
+        "ReparentWindow",
+        "MapWindow",
+        "MapSubwindows",
+        "UnmapWindow",
+        "UnmapSubwindows",
+        "ConfigureWindow",
+        "CirculateWindow",
+        "GetGeometry",
+        "QueryTree",
+        "InternAtom",
+        "GetAtomName",
+        "ChangeProperty",
+        "DeleteProperty",
+        "GetProperty",
+        "ListProperties",
+        "SetSelectionOwner",
+        "GetSelectionOwner",
+        "ConvertSelection",
+        "SendEvent",
+        "GrabPointer",
+        "UngrabPointer",
+        "GrabButton",
+        "UngrabButton",
+        "ChangeActivePointerGrab",
+        "GrabKeyboard",
+        "UngrabKeyboard",
+        "GrabKey",
+        "UngrabKey",
+        "AllowEvents",
+        "GrabServer",
+        "UngrabServer",
+        "QueryPointer",
+        "GetMotionEvents",
+        "TranslateCoords",
+        "WarpPointer",
+        "SetInputFocus",
+        "GetInputFocus",
+        "QueryKeymap",
+        "OpenFont",
+        "CloseFont",
+        "QueryFont",
+        "QueryTextExtents",
+        "ListFonts",
+        "ListFontsWithInfo",
+        "SetFontPath",
+        "GetFontPath",
+        "CreatePixmap",
+        "FreePixmap",
+        "CreateGC",
+        "ChangeGC",
+        "CopyGC",
+        "SetDashes",
+        "SetClipRectangles",
+        "FreeGC",
+        "ClearArea",
+        "CopyArea",
+        "CopyPlane",
+        "PolyPoint",
+        "PolyLine",
+        "PolySegment",
+        "PolyRectangle",
+        "PolyArc",
+        "FillPoly",
+        "PolyFillRectangle",
+        "PolyFillArc",
+        "PutImage",
+        "GetImage",
+        "PolyText8",
+        "PolyText16",
+        "ImageText8",
+        "ImageText16",
+        "CreateColormap",
+        "FreeColormap",
+        "CopyColormapAndFree",
+        "InstallColormap",
+        "UninstallColormap",
+        "ListInstalledColormaps",
+        "AllocColor",
+        "AllocNamedColor",
+        "AllocColorCells",
+        "AllocColorPlanes",
+        "FreeColors",
+        "StoreColors",
+        "StoreNamedColor",
+        "QueryColors",
+        "LookupColor",
+        "CreateCursor",
+        "CreateGlyphCursor",
+        "FreeCursor",
+        "RecolorCursor",
+        "QueryBestSize",
+        "QueryExtension",
+        "ListExtensions",
+        "ChangeKeyboardMapping",
+        "GetKeyboardMapping",
+        "ChangeKeyboardControl",
+        "GetKeyboardControl",
+        "Bell",
+        "ChangePointerControl",
+        "GetPointerControl",
+        "SetScreenSaver",
+        "GetScreenSaver",
+        "ChangeHosts",
+        "ListHosts",
+        "SetAccessControl",
+        "SetCloseDownMode",
+        "KillClient",
+        "RotateProperties",
+        "ForceScreenSaver",
+        "SetPointerMapping",
+        "GetPointerMapping",
+        "SetModifierMapping",
+        "GetModifierMapping",
+        "Unknown"
+};
+
+constinit size_t xcb_errors_size = sizeof(xcb_errors) / sizeof(const char*);
+constinit size_t xcb_requests_size = sizeof(xcb_requests) / sizeof(const char*);
+
+void handle_xcb_error(const xcb_generic_error_t *ptr)
+{
+    uint16_t clamped_err = std::min<uint16_t>(ptr->error_code, xcb_errors_size - 1);
+    uint16_t clamped_major = std::min<uint16_t>(ptr->major_code, xcb_requests_size - 1);
+    Journal::Ref()(LOG_ERROR, "XCB Error: {} ({}), request {}:{} ({}), sequence {}, resource {}",
+                   ptr->error_code, xcb_errors[clamped_err],
+                   ptr->major_code, ptr->minor_code,
+                   xcb_requests[clamped_major],
+                   ptr->sequence,
+                   ptr->resource_id);
+}
+
+} // namespace anonymous
+
 void VaXcbDisplay::handleEvent(const xcb_generic_event_t *event)
 {
     assert(event != nullptr);
-    switch (event->response_type & ~0x80)
+
+    uint32_t type = event->response_type & ~0x80;
+    bool handled = true;
+    switch (type)
     {
+    case 0:
+        handle_xcb_error(reinterpret_cast<const xcb_generic_error_t*>(event));
+        break;
+
     invoke_window_handler_case(XCB_EXPOSE, expose, window)
     invoke_window_handler_case(XCB_CONFIGURE_NOTIFY, configure_notify, window)
     invoke_window_handler_case(XCB_CLIENT_MESSAGE, client_message, window)
     invoke_window_handler_case(XCB_MAP_NOTIFY, map_notify, window)
     invoke_window_handler_case(XCB_UNMAP_NOTIFY, unmap_notify, window)
+    invoke_window_handler_case(XCB_KEY_PRESS, key_press, event)
+    invoke_window_handler_case(XCB_KEY_RELEASE, key_release, event)
 
     case XCB_REPARENT_NOTIFY:
     {
@@ -232,11 +416,26 @@ void VaXcbDisplay::handleEvent(const xcb_generic_event_t *event)
         break;
     }
 
+    case XCB_GE_GENERIC:
+        handleXInputEvent(reinterpret_cast<const xcb_ge_event_t*>(event));
+        break;
+
     default:
-        Journal::Ref()(LOG_WARNING, "Unknown event from X server: response_type = 0x{:04x}",
-                       event->response_type);
+        handled = false;
         break;
     }
+
+    if (handled)
+    {
+        xcb_flush(fConnection);
+        return;
+    }
+
+    if (type == fKeyboard.xkbResponseType())
+        fKeyboard.handleXkbEvent(event);
+    else
+        Journal::Ref()(LOG_WARNING, "Unknown event from X server: response_type = 0x{:04x}",
+                event->response_type);
 
     xcb_flush(fConnection);
 }

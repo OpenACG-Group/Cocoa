@@ -11,7 +11,7 @@ Context::Context(EventLoop *loop, Backend backend)
 {
 }
 
-void Context::open(const char *displayName, int32_t id)
+void Context::connectTo(const char *displayName, int32_t id)
 {
     if (fDisplays.contains(id))
     {
@@ -20,7 +20,7 @@ void Context::open(const char *displayName, int32_t id)
     }
     switch (fBackend)
     {
-    case Backend::kBackend_X11:
+    case Backend::kXcb:
         fDisplays[id] = VaDisplay::OpenXcb(shared_from_this(), displayName);
     }
 }

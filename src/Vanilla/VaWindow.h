@@ -6,6 +6,8 @@
 
 #include "include/core/SkRect.h"
 #include "Vanilla/Base.h"
+#include "Vanilla/Typetraits.h"
+#include "Vanilla/VaKeySymbols.h"
 VANILLA_NS_BEGIN
 
 class VaDisplay;
@@ -40,6 +42,14 @@ public:
     VA_SIG_GETTER(Repaint)
     VA_SIG_GETTER(Close)
     VA_SIG_GETTER(Configure)
+    VA_SIG_GETTER(ButtonPress)
+    VA_SIG_GETTER(ButtonRelease)
+    VA_SIG_GETTER(Motion)
+    VA_SIG_GETTER(TouchBegin)
+    VA_SIG_GETTER(TouchUpdate)
+    VA_SIG_GETTER(TouchEnd)
+    VA_SIG_GETTER(KeyPress)
+    VA_SIG_GETTER(KeyRelease)
 
 protected:
     virtual void onClose() = 0;
@@ -49,11 +59,20 @@ private:
                   VA_SIG_SIGNATURE(void(const Handle<VaWindow>&), Unmap)
                   VA_SIG_SIGNATURE(void(const Handle<VaWindow>&, const SkRect&), Repaint)
                   VA_SIG_SIGNATURE(void(const Handle<VaWindow>&), Close)
-                  VA_SIG_SIGNATURE(void(const Handle<VaWindow>&, const SkRect&), Configure))
+                  VA_SIG_SIGNATURE(void(const Handle<VaWindow>&, const SkRect&), Configure)
+                  VA_SIG_SIGNATURE(void(const Handle<VaWindow>&, Button, VaVec2f), ButtonPress)
+                  VA_SIG_SIGNATURE(void(const Handle<VaWindow>&, Button, VaVec2f), ButtonRelease)
+                  VA_SIG_SIGNATURE(void(const Handle<VaWindow>&, VaVec2f), Motion)
+                  VA_SIG_SIGNATURE(void(const Handle<VaWindow>&, VaVec2f), TouchBegin)
+                  VA_SIG_SIGNATURE(void(const Handle<VaWindow>&, VaVec2f), TouchUpdate)
+                  VA_SIG_SIGNATURE(void(const Handle<VaWindow>&, VaVec2f), TouchEnd)
+                  VA_SIG_SIGNATURE(void(const Handle<VaWindow>&, KeySymbol,
+                          Bitfield<KeyModifier>, Bitfield<KeyLed>), KeyPress)
+                  VA_SIG_SIGNATURE(void(const Handle<VaWindow>&, KeySymbol,
+                          Bitfield<KeyModifier>, Bitfield<KeyLed>), KeyRelease))
 
     WeakHandle<VaDisplay>       fDisplay;
     SkColorType                 fFormat;
-    sigc::signal<void(void)>    fWindowMap;
 };
 
 VANILLA_NS_END

@@ -1,77 +1,154 @@
 #include <iostream>
+#include <utility>
+#include <random>
+#include <chrono>
+
 #include "general_tests.h"
 
 #include "include/core/SkCanvas.h"
 #include "include/core/SkRRect.h"
+#include "include/core/SkPaint.h"
+#include "include/core/SkPath.h"
 
 #include "Core/EventSource.h"
+#include "Core/RandomDevice.h"
 
 #include "Vanilla/Context.h"
 #include "Vanilla/VaDisplay.h"
 #include "Vanilla/VaWindow.h"
 #include "Vanilla/VaDrawContext.h"
 
+#include "Vanilla/Shader/ShaderExecutor.h"
+
 using namespace cocoa;
 using namespace cocoa::vanilla;
 namespace cocoa::test {
 
-void draw(SkCanvas *canvas)
-{
-    static uint64_t t = 0;
-    canvas->drawColor(SK_ColorWHITE);
-
-    SkPaint paint;
-    paint.setStyle(SkPaint::kFill_Style);
-    paint.setAntiAlias(true);
-    paint.setStrokeWidth(4);
-    paint.setColor(0xff4285F4);
-
-    SkRect rect = SkRect::MakeXYWH(t % 100, t % 100, 100, 160);
-    canvas->drawRect(rect, paint);
-
-    SkRRect oval;
-    oval.setOval(rect);
-    oval.offset(t % 50, t % 50);
-    paint.setColor(0xffDB4437);
-    canvas->drawRRect(oval, paint);
-
-    paint.setColor(0xff0F9D58);
-    canvas->drawCircle(180, 50, 25, paint);
-
-    rect.offset(80, 50);
-    paint.setColor(0xffF4B400);
-    paint.setStyle(SkPaint::kStroke_Style);
-    canvas->drawRoundRect(rect, 10, 10, paint);
-
-    t++;
-}
-
-class UpdateTimer : public TimerSource
+class ParticleSimulator
 {
 public:
-    UpdateTimer(EventLoop *loop, Handle<VaWindow> window)
-            : TimerSource(loop), fWindow(std::move(window))
-    {
-        startTimer(1000, 16);
-    }
-    ~UpdateTimer() override = default;
+    enum {
+        kMaxCategory = 3,
+        kMaxAge = 650,
+        kMaxParticles = 1000
+    };
 
-    KeepInLoop dispatch() override
+    struct Particle
     {
-        fWindow->update();
-        return KeepInLoop::kYes;
+        int         id = 0;
+        VaVec2f     pos{0, 0};
+        VaVec2f     velocity{0, 0};
+        SkScalar    radius = 6;
+        SkColor     color = 0;
+        int         age = 0;
+        int         category = 3;
+    };
+
+    ParticleSimulator() : fEmitterCount(0) {}
+    ~ParticleSimulator() = default;
+
+    void draw(SkCanvas *pCanvas, int32_t width, int32_t height)
+    {
+        pCanvas->clear(SK_ColorBLACK);
+
+        SkPath paths[kMaxCategory];
+        for (Particle& p : fParticles)
+        {
+            float x = width / 2.0f + p.pos.x();
+            float y = height / 2.0f - p.pos.y();
+            if (x >= width || y >= height || x < 0 || y < 0)
+                continue;
+
+            float radius = float(kMaxAge - p.age) / float(kMaxAge) * float(p.radius);
+            paths[p.category].addCircle(x, y, radius);
+        }
+
+        SkPaint paint;
+        paint.setStyle(SkPaint::kFill_Style);
+        paint.setAntiAlias(true);
+        paint.setBlendMode(SkBlendMode::kPlus);
+
+        constexpr SkColor colors[] = {
+                SkColor(0xFFFF7F00),
+                SkColor(0xFFFF3F9F),
+                SkColor(0xFF7F4FFF)
+        };
+
+        for (int i = 0; i < kMaxCategory; i++)
+        {
+            paint.setColor(colors[i]);
+            pCanvas->drawPath(paths[i], paint);
+        }
+    }
+
+    void evaluate()
+    {
+        int j = 0;
+        for (auto & p : fParticles)
+        {
+            p.pos = p.pos + p.velocity;
+            if (++p.age >= kMaxAge)
+                continue;
+            fParticles[j++] = p;
+        }
+        if (j > 0)
+            fParticles.resize(j);
+
+        unsigned long long seed;
+        __builtin_ia32_rdrand64_step(&seed);
+
+        std::mt19937 e(seed);
+        std::uniform_real_distribution<double> rnd(0, 1);
+
+        auto count = int32_t(rnd(e) * static_cast<int>(kMaxParticles));
+        for (int32_t i = 0; i < count; i++)
+        {
+            if (fParticles.size() >= kMaxParticles)
+                break;
+
+            VaScalar angle = rnd(e) * M_PI * 2.0;
+            VaScalar speed = std::max(rnd(e) * 6.0, 0.6);
+
+            Particle p;
+            p.id = fEmitterCount;
+            p.pos = {0, 0};
+            p.velocity = {speed * std::cos(angle), speed * std::sin(angle)};
+            p.age = int(std::min(rnd(e), 0.5) * static_cast<int>(kMaxAge));
+            p.category = int(rnd(e) * double(kMaxCategory - 1));
+            fParticles.push_back(p);
+            fEmitterCount++;
+        }
     }
 
 private:
-    Handle<VaWindow>    fWindow;
+    std::vector<Particle>   fParticles;
+    int                     fEmitterCount;
+};
+
+class CallbackTimer : public TimerSource
+{
+public:
+    CallbackTimer(EventLoop *loop, std::function<KeepInLoop(void)>  func)
+        : TimerSource(loop), fFunc(std::move(func))
+    {
+        startTimer(1000, 16);
+    }
+    ~CallbackTimer() override = default;
+
+    KeepInLoop timerDispatch() override
+    { return fFunc(); }
+
+private:
+    std::function<KeepInLoop(void)> fFunc;
 };
 
 void vanilla_xcb_test()
 {
-    auto context = Context::Make(EventLoop::Instance(), Context::Backend::kBackend_X11);
-    context->open(nullptr, Context::kDisplay_Default);
+    auto executor = ShaderExecutor::Create();
+    auto context = Context::Make(EventLoop::Instance(), Context::Backend::kXcb);
+    context->connectTo(nullptr, Context::kDefault);
 
-    auto w = VaWindow::Make(context->display(Context::kDisplay_Default),
+    auto w = VaWindow::Make(context->display(Context::kDefault),
                             {400, 300}, {0, 0});
 
     w->show();
@@ -80,13 +157,27 @@ void vanilla_xcb_test()
 
     auto drawContext = VaDrawContext::MakeVulkan(w);
 
-    w->signalRepaint().connect([&drawContext](const Handle<VaWindow>& win, const SkRect& rect) -> void {
-        VaDrawContext::ScopedFrame scope(drawContext, rect);
-        if (scope.surface())
-            draw(scope.surface()->getCanvas());
+    ParticleSimulator particle;
+    CallbackTimer timer(EventLoop::Instance(), [&w, &particle]() -> KeepInLoop {
+        particle.evaluate();
+        w->update();
+        return KeepInLoop::kYes;
     });
 
-    UpdateTimer timer(EventLoop::Instance(), w);
+    w->signalRepaint().connect([&drawContext, &particle](const Handle<VaWindow>& win, const SkRect& rect) -> void {
+        VaDrawContext::ScopedFrame scope(drawContext, rect);
+        if (scope.surface())
+        {
+            particle.draw(scope.surface()->getCanvas(),
+                          scope.surface()->width(),
+                          scope.surface()->height());
+        }
+    });
+
+    w->signalKeyPress().connect([](const Handle<VaWindow>& win, KeySymbol symbol, Bitfield<KeyModifier> mods, Bitfield<KeyLed> leds) -> void {
+        std::cout << "KeyPress: " << GetKeySymbolName(symbol) << std::endl;
+    });
+
     w->signalClose().connect([&timer](const Handle<VaWindow>& win) -> void {
         win->close();
         win->getDisplay()->dispose();

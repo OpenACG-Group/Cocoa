@@ -40,7 +40,7 @@ namespace tsl {
 
 
 /**
- * Implementation of an hash set using open adressing with robin hood with backshift delete to resolve collisions.
+ * Implementation of an hash set using connectDisplay adressing with robin hood with backshift delete to resolve collisions.
  * 
  * The particularity of this hash set is that it remembers the order in which the elements were added and
  * provide a way to access the structure which stores these values through the 'values_container()' method. 

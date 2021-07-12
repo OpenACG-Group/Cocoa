@@ -57,7 +57,7 @@ public:
     }
     ~UpdateTimer() override = default;
 
-    KeepInLoop dispatch() override
+    KeepInLoop timerDispatch() override
     {
         fWindow->update();
         return KeepInLoop::kYes;

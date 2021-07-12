@@ -10,7 +10,9 @@ add_library(Scripter STATIC
             ArrayBufferAllocator.h
             Runtime.h
             Runtime.cc
-        Ops.h
-        Ops.cc
-        OpParameterInfo.cc)
+            Ops.h
+            Ops.cc
+            OpParameterInfo.cc
+            ModuleUrl.h
+            ModuleUrl.cc)
 target_link_libraries(Scripter PRIVATE v8_libplatform v8)

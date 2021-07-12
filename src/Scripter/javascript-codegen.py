@@ -15,14 +15,11 @@ let Cocoa;
 
 corejs_epilogue = '''
     /* Wrapper functions for performing Op */
-    Cocoa.vmcall = (name, ...args) => {
-        return __do_vmcall(name, ...args);
-    };
-    Cocoa.vmcallAsync = (name, ...args) => {
-        return __do_vmcall_async(name + "_async", ...args);
+    Cocoa.opCall = (name, args) => {
+        return __cocoa_op_call(name, args);
     };
     
-    Cocoa.vminfo = () => {
+    Cocoa.vmInfo = () => {
         return {
             version: {corejs_codegen_version}
         };
@@ -117,6 +114,6 @@ options.parse(sys.argv)
 if len(options.options) == 0:
     print_usage_and_exit()
 
-#gen = CodeGenerator()
-#gen.parse_source_cpp_file("./Op.h")
-#print(gen.generated())
+gen = CodeGenerator()
+gen.parse_source_cpp_file("./Ops.h")
+print(gen.generated())

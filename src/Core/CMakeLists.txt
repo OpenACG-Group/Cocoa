@@ -19,7 +19,9 @@ set(core_sources
         PosixSigsegvHelper.S
         EventSource.h
         EventLoop.h
-        EventLoop.cc)
+        EventLoop.cc
+        RandomDevice.h
+        RandomDevice.cc)
 
 add_library(${core_target} STATIC ${core_sources})
 

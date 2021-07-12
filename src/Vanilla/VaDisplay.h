@@ -6,6 +6,7 @@
 
 #include "Core/EventSource.h"
 #include "Vanilla/Base.h"
+#include "Vanilla/VaKeyboardProxy.h"
 VANILLA_NS_BEGIN
 
 class Context;
@@ -22,11 +23,12 @@ public:
     explicit VaDisplay(DisplayBackend backend, const Handle<Context>& ctx);
     virtual ~VaDisplay() = default;
 
-    static Handle<VaDisplay> OpenX11(const Handle<Context>& ctx, const char *dispName);
     static Handle<VaDisplay> OpenXcb(const Handle<Context>& ctx, const char *displayName);
 
     inline DisplayBackend backend() const
     { return fBackend; }
+
+    virtual VaKeyboardProxy *keyboardProxy() = 0;
 
     virtual int32_t width() = 0;
     virtual int32_t height() = 0;

@@ -36,7 +36,7 @@ VaDrawContext::VaDrawContext(Handle<VaWindow> window, RasterizerType type)
       fRegion(SkRect::MakeEmpty()),
       fLastConfigure(SkRect::MakeWH(fWindow->width(), fWindow->height()))
 {
-    fWindow->signalConfigure().connect(sigc::mem_fun(this, &VaDrawContext::onWindowConfigure));
+    fWindow->signalConfigure().connect(sigc::mem_fun(*this, &VaDrawContext::onWindowConfigure));
     va_slot_connect(VaWindow, Configure, fWindow, sigc::mem_fun(*this, &VaDrawContext::onWindowConfigure));
 }
 

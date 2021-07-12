@@ -5,6 +5,7 @@
 
 #include "include/v8.h"
 #include "Core/UniquePersistent.h"
+#include "Core/EventSource.h"
 #include "Scripter/ScripterBase.h"
 #include "Scripter/AsyncOpTask.h"
 #include "Scripter/AsyncWorker.h"
@@ -17,7 +18,7 @@ SCRIPTER_NS_BEGIN
 void Initialize();
 void Dispose();
 
-class Runtime
+class Runtime : public CheckHandleSource
 {
 public:
     struct Options
@@ -26,15 +27,17 @@ public:
         uint32_t    v8_platform_thread_pool;
     };
 
-    Runtime(std::unique_ptr<v8::Platform> platform,
+    Runtime(EventLoop *loop,
+            std::unique_ptr<v8::Platform> platform,
             v8::ArrayBuffer::Allocator *allocator,
             v8::Isolate *isolate,
             v8::Global<v8::Context> context);
     Runtime(const Runtime&) = delete;
     Runtime& operator=(const Runtime&) = delete;
-    ~Runtime();
+    ~Runtime() override;
 
-    static std::shared_ptr<Runtime> MakeFromSnapshot(const std::string& snapshotFile,
+    static std::shared_ptr<Runtime> MakeFromSnapshot(EventLoop *loop,
+                                                     const std::string& snapshotFile,
                                                      const std::string& icuDataFile,
                                                      const Options& options = Options());
 
@@ -48,9 +51,12 @@ public:
     v8::Local<v8::Value> execute(const char *str);
     v8::Local<v8::Value> execute(const char *scriptName, const char *str);
 
-    void runPromisesCheckpoint();
+    void pushAsyncOpEntry(const OpEntry *entry, v8::Local<v8::Object> param,
+                          v8::Local<v8::Promise::Resolver> resolver);
 
 private:
+    KeepInLoop checkHandleDispatch() override;
+
     std::unique_ptr<v8::Platform>   fPlatform;
     v8::ArrayBuffer::Allocator     *fArrayBufferAllocator;
     v8::Isolate                    *fIsolate;

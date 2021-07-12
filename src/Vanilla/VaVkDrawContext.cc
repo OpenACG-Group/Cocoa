@@ -626,6 +626,7 @@ void VaVkDrawContext::checkSwapChain(int32_t width, int32_t height)
         throw VanillaException(__func__, "Invalid geometry size");
 
     SwapChainDetails details = vk_phy_query_swap_chain_details(fPhysicalDevice, fSurface);
+#if 0
     if (width < details.caps.minImageExtent.width ||
         height < details.caps.minImageExtent.height)
         throw VanillaException(__func__, "Invalid geometry size");
@@ -633,6 +634,7 @@ void VaVkDrawContext::checkSwapChain(int32_t width, int32_t height)
     if (width > details.caps.maxImageExtent.width ||
         height > details.caps.maxImageExtent.height)
         throw VanillaException(__func__, "Invalid geometry size");
+#endif
 
     fImageFormat = native_format_to_vk_format(this->getWindow()->format());
 

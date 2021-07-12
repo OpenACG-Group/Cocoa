@@ -2,6 +2,7 @@
 #define COCOA_VAXCBWINDOW_H
 
 #include <xcb/xcb.h>
+#include <xcb/xinput.h>
 
 #include "Vanilla/Base.h"
 #include "Vanilla/VaWindow.h"
@@ -34,6 +35,14 @@ public:
     VA_WIN_HANDLER_DECL(client_message)
     VA_WIN_HANDLER_DECL(map_notify)
     VA_WIN_HANDLER_DECL(unmap_notify)
+    VA_WIN_HANDLER_DECL(input_button_press)
+    VA_WIN_HANDLER_DECL(input_button_release)
+    VA_WIN_HANDLER_DECL(input_motion)
+    VA_WIN_HANDLER_DECL(input_touch_begin)
+    VA_WIN_HANDLER_DECL(input_touch_end)
+    VA_WIN_HANDLER_DECL(input_touch_update)
+    VA_WIN_HANDLER_DECL(key_press)
+    VA_WIN_HANDLER_DECL(key_release)
 
 private:
     void onClose() override;
