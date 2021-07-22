@@ -13,7 +13,7 @@
 
 #define COCOA_MAKE_VERSION(major, minor, patch)     (((major) << 24) | ((minor) << 16) | (patch))
 
-#define COCOA_VERSION   "0.0.1-develop"
+#define COCOA_VERSION   "1.0.0-develop"
 #define COCOA_LICENSE   "General Public License (GPLv3)"
 
 /* Compiler compatibilities */

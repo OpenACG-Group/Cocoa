@@ -2,7 +2,7 @@
 #include <fstream>
 #include <streambuf>
 
-#include "Core/PropertyTree.h"
+#include "Core/Properties.h"
 #include "Core/Utils.h"
 #include "Scripter/ScripterBase.h"
 #include "Scripter/ModuleUrl.h"
@@ -30,8 +30,8 @@ std::string simplify_and_absolutize_url(std::string url)
 {
     if (!url.starts_with('/'))
     {
-        std::string workingDir = PropertyTree::Ref()("/bootstrap/workingDir")
-                ->cast<PropertyTreeDataNode>()->value();
+        auto workingDir = prop::Cast<PropertyDataNode>(prop::Get()->next("runtime")->next("working-path"))
+                ->extract<std::string>();
         workingDir.push_back('/');
         workingDir.append(url);
         url = workingDir;

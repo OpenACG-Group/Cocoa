@@ -1,190 +1,556 @@
 #include <iostream>
-#include <Poco/Stopwatch.h>
+#include <optional>
+#include <vector>
 
-#include "Core/PosixSignalCatcher.h"
+#include "Core/Project.h"
+#include "Core/Properties.h"
 #include "Core/Utils.h"
+#include "Core/MeasuredTable.h"
 #include "Core/Journal.h"
 #include "Core/Exception.h"
-#include "Core/Configurator.h"
 #include "Core/EventLoop.h"
-
-#include "general_tests.h"
 
 #include "Scripter/Runtime.h"
 
-namespace cocoa
-{
+namespace cocoa {
+namespace cmd {
 
-#if 0
-class MyWindow : public NaGui::Window
+enum class ValueType
 {
-public:
-    ~MyWindow() override = default;
-
-    void onRepaint(NaGui::Draw& draw) override
-    {
-        draw.test();
-    }
+    kString,
+    kInteger,
+    kFloat,
+    kBoolean
 };
 
-void RendererEntry()
+struct Template
 {
-    ciallo::XcbConnection::New();
-    NaGui::Context::New();
+    enum class RequireValue
+    {
+        kEmpty,
+        kNecessary,
+        kOptional
+    };
 
-    auto drawable = new ciallo::XcbWindow(ciallo::XcbConnection::Ref().screen(),
-                                          SkIRect::MakeXYWH(0, 0, 400, 300));
-    drawable->setResizable(true);
-    drawable->setTitle("NativeGui Test");
-    NaGui::BindDrawableWindow(drawable, NaGui::Window::Make<MyWindow>());
+    const char                 *longName = nullptr;
+    std::optional<char>         shortName;
+    RequireValue                hasValue = RequireValue::kEmpty;
+    std::optional<ValueType>    valueType;
+    const char                 *desc = nullptr;
+};
 
-    int32_t events;
-    while ((events = EventDispatcher::Ref().wait()))
-        EventDispatcher::Ref().handleEvents(events);
+enum class ParseState
+{
+    kExit,
+    kSuccess,
+    kError
+};
+
+struct ParseResult
+{
+    struct Option
+    {
+        struct Value
+        {
+            std::string     v_str;
+            int32_t         v_int;
+            float           v_float;
+            bool            v_bool;
+        };
+        const Template          *matchedTemplate = nullptr;
+        std::string              origin;
+        std::optional<Value>     value;
+    };
+
+    std::vector<const char*> orphans;
+    std::vector<Option>      options;
+};
+
+const Template gTemplates[] = {
+        {
+            .longName = "help",
+            .shortName = 'h',
+            .desc = "Display available options"
+        },
+        {
+            .longName = "version",
+            .shortName = 'v',
+            .desc = "Display version information"
+        },
+        {
+            .longName = "log-file",
+            .shortName = 'o',
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kString,
+            .desc = "Specify a file to print logs"
+        },
+        {
+            .longName = "log-stderr",
+            .desc = "Print logs to standard error"
+        },
+        {
+            .longName = "log-level",
+            .shortName = 'L',
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kString,
+            .desc = "Specify log level. Valid arguments: debug|normal|quiet|silent|disabled"
+        },
+        {
+            .longName = "disable-color-log",
+            .desc = "Don't print logs with colors through ANSI escape code"
+        }
+};
+
+namespace {
+
+const Template *match_template(const std::string_view& longOpt)
+{
+    for (const Template& t : gTemplates)
+    {
+        if (longOpt == t.longName)
+            return &t;
+    }
+    return nullptr;
 }
 
-#endif
-
-Configurator::State Initialize(int argc, char const **argv)
+const Template *match_template(char shortOpt)
 {
-    PropertyTree::New();
-    PropertyTree *prop = PropertyTree::Instance();
-
-    Configurator conf;
-    Configurator::State state = conf.parse(argc, argv);
-    if (state == Configurator::State::kShouldExitNormally ||
-        state == Configurator::State::kError)
-        return state;
-
-    std::string level = prop->resolve("/runtime/journal/level")
-                            ->cast<PropertyTreeDataNode>()->extract<std::string>();
-
-    LogLevel filter;
-    if (level == "debug")
-        filter = LogLevel::LOG_LEVEL_DEBUG;
-    else if (level == "normal")
-        filter = LogLevel::LOG_LEVEL_NORMAL;
-    else if (level == "quiet")
-        filter = LogLevel::LOG_LEVEL_QUIET;
-    else if (level == "silent")
-        filter = LogLevel::LOG_LEVEL_SILENT;
-    else if (level == "disabled")
-        filter = LogLevel::LOG_LEVEL_DISABLED;
-    else
+    for (const Template& t : gTemplates)
     {
-        throw RuntimeException::Builder(__FUNCTION__)
-                .append("Unknown log level: ")
-                .append(level)
-                .make<RuntimeException>();
+        if (t.shortName.has_value() && shortOpt == t.shortName)
+            return &t;
+    }
+    return nullptr;
+}
+
+bool interpret_and_set_option_value(ParseResult::Option& opt, const std::string_view& str)
+{
+    std::string stored(str);
+
+    switch (opt.matchedTemplate->valueType.value())
+    {
+    case ValueType::kString:
+        opt.value = ParseResult::Option::Value{.v_str = stored};
+        break;
+    case ValueType::kInteger:
+    {
+        char *endptr = nullptr;
+        long n = std::strtol(stored.c_str(), &endptr, 10);
+        if (endptr != stored.c_str() + stored.length())
+        {
+            std::cerr << "Couldn't interpret the argument of option \""
+                      << opt.origin << "\" as an integer" << std::endl;
+            return false;
+        }
+        opt.value = ParseResult::Option::Value{.v_int = static_cast<int32_t>(n)};
+        break;
     }
 
-    bool rainbow = prop->resolve("/runtime/journal/textShader")
-            ->cast<PropertyTreeDataNode>()->value().extract<bool>();
+    case ValueType::kFloat:
+    {
+        char *endptr = nullptr;
+        float n = std::strtof(stored.c_str(), &endptr);
+        if (endptr != stored.c_str() + stored.length())
+        {
+            std::cerr << "Couldn't interpret the argument of option \""
+                      << opt.origin << "\" as a number" << std::endl;
+            return false;
+        }
+        opt.value = ParseResult::Option::Value{.v_float = n};
+        break;
+    }
 
-    std::string redirect = prop->resolve("/runtime/journal/stdout")
-                               ->cast<PropertyTreeDataNode>()->value().extract<std::string>();
-    if (redirect == "<stdout>")
-        Journal::New(filter, Journal::OutputDevice::kStandardOut, rainbow);
-    else if (redirect == "<stderr>")
-        Journal::New(filter, Journal::OutputDevice::kStandardError, rainbow);
-    else
-        Journal::New(filter, Journal::OutputDevice::kFile, false, redirect.c_str());
+    case ValueType::kBoolean:
+    {
+        bool v;
+        if (str == "true" || str == "TRUE")
+            v = true;
+        else if (str == "false" || str == "FALSE")
+            v = false;
+        else
+        {
+            std::cerr << "Couldn't interpret the argument of option \""
+                      << opt.origin << "\" as a boolean value" << std::endl;
+            return false;
+        }
+        opt.value = ParseResult::Option::Value{.v_bool = v};
+        break;
+    }
+    }
+
+    return true;
+}
+
+bool interpret_and_set_long_option(ParseResult::Option& opt, const std::string_view& str)
+{
+    std::string_view optionView(str);
+    std::string_view valueView;
+    optionView.remove_prefix(2);
+
+    size_t equalPos = str.find_first_of('=');
+    if (equalPos != std::string_view::npos)
+    {
+        if (equalPos + 1 == str.length())
+        {
+            std::cerr << R"(Unnecessary "=" in option ")"
+                      << std::string(str) << '\"' << std::endl;
+            return false;
+        }
+        optionView.remove_suffix(str.length() - equalPos);
+        valueView = str;
+        valueView.remove_prefix(equalPos + 1);
+    }
+
+    opt.matchedTemplate = match_template(optionView);
+    if (!opt.matchedTemplate)
+    {
+        std::cerr << "Unrecognized long option \""
+                  << std::string(str) << '\"' << std::endl;
+        return false;
+    }
+
+    if (opt.matchedTemplate->hasValue == Template::RequireValue::kEmpty &&
+        !valueView.empty())
+    {
+        std::cerr << "Unnecessary argument in option \""
+                  << std::string(str) << '\"' << std::endl;
+        return false;
+    }
+
+    opt.origin = str;
+    if (!valueView.empty())
+        return interpret_and_set_option_value(opt, valueView);
+    else if (opt.matchedTemplate->hasValue == Template::RequireValue::kNecessary)
+    {
+        std::cerr << "Expecting an argument for option \"" << std::string(str)
+                  << "\"" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+bool interpret_and_set_short_options(ParseResult& result, const std::string_view& str)
+{
+    std::string_view p(str);
+    p.remove_prefix(1);
+
+    if (p.empty())
+    {
+        std::cerr << "Empty short option is not allowed" << std::endl;
+        return false;
+    }
+
+    for (auto i = p.begin(); i != p.end(); i++)
+    {
+        ParseResult::Option opt;
+        opt.matchedTemplate = match_template(*i);
+        if (!opt.matchedTemplate)
+        {
+            std::cerr << "Unrecognized short option \"-" << *i
+                      << "\" in the short option sequence \"" << std::string(str) << "\""
+                      << std::endl;
+            return false;
+        }
+
+        if (opt.matchedTemplate->hasValue == Template::RequireValue::kNecessary &&
+            i != p.end() - 1)
+        {
+            std::cerr << "Short option \"-" << *i << "\" which requires an argument can only "
+                      << "be the last option in the short option sequence" << std::endl;
+            return false;
+        }
+        opt.origin = std::string("-") + *i;
+        result.options.push_back(opt);
+    }
+
+    return true;
+}
+
+} // namespace anonymous
+
+ParseState Parse(int argc, const char **argv, ParseResult& result)
+{
+    std::optional<ParseResult::Option*> pendingOption;
+    for (uint32_t i = 1; i < argc; i++)
+    {
+        std::string current(argv[i]);
+        if (current == "--")
+        {
+            if (pendingOption.has_value())
+            {
+                std::cerr << "Option " << pendingOption.value()->origin
+                          << " expects an argument" << std::endl;
+                return ParseState::kError;
+            }
+
+            for (uint32_t j = i + 1; j < argc; j++)
+                result.orphans.push_back(argv[j]);
+            break;
+        }
+        else if (current.starts_with("--"))
+        {
+            ParseResult::Option opt;
+            if (!interpret_and_set_long_option(opt, current))
+            {
+                std::cerr << "Illegal option \"" << current << "\"" << std::endl;
+                return ParseState::kError;
+            }
+            result.options.push_back(opt);
+        }
+        else if (current.starts_with('-'))
+        {
+            if (!interpret_and_set_short_options(result, current))
+            {
+                std::cerr << "Illegal option \"" << current << "\"" << std::endl;
+                return ParseState::kError;
+            }
+            auto hasValue = result.options.back().matchedTemplate->hasValue;
+            if (hasValue == Template::RequireValue::kOptional ||
+                hasValue == Template::RequireValue::kNecessary)
+            {
+                pendingOption = &result.options.back();
+                continue;
+            }
+        }
+        else if (pendingOption.has_value())
+        {
+            if (!interpret_and_set_option_value(*pendingOption.value(), current))
+            {
+                std::cerr << "Bad argument \"" << current << "\" for option "
+                          << pendingOption.value()->origin << std::endl;
+                return ParseState::kError;
+            }
+            pendingOption.reset();
+        }
+        else
+        {
+            result.orphans.push_back(argv[i]);
+        }
+
+        if (pendingOption.has_value())
+        {
+            if (pendingOption.value()->matchedTemplate->hasValue == Template::RequireValue::kNecessary)
+            {
+                std::cerr << "Option " << pendingOption.value()->origin
+                          << " expects an argument" << std::endl;
+                return ParseState::kError;
+            }
+            pendingOption.reset();
+        }
+    }
+
+    return ParseState::kSuccess;
+}
+
+void PrintHelp(const char *program)
+{
+    fmt::print(
+R"(Cocoa 2D Rendering Framework, version {}
+Usage {} [<options>...] [--] [<path>]
+
+Available options:
+)",
+    COCOA_VERSION, program);
+
+    MeasuredTable table;
+    for (const auto& p : gTemplates)
+    {
+        std::string hdr("--");
+        hdr.append(p.longName);
+        if (p.shortName.has_value())
+        {
+            hdr.append(", -");
+            hdr.push_back(p.shortName.value());
+        }
+
+        if (p.hasValue != Template::RequireValue::kEmpty)
+        {
+            const char *close = "";
+            if (p.hasValue == Template::RequireValue::kNecessary)
+            {
+                close = ">";
+                hdr.append(" <");
+            }
+            else if (p.hasValue == Template::RequireValue::kOptional)
+            {
+                close = ">]";
+                hdr.append(" [<");
+            }
+            switch (p.valueType.value())
+            {
+            case ValueType::kString:    hdr.append("string"); break;
+            case ValueType::kInteger:   hdr.append("int");    break;
+            case ValueType::kFloat:     hdr.append("real");   break;
+            case ValueType::kBoolean:   hdr.append("bool");   break;
+            }
+            hdr.append(close);
+        }
+
+        table.append(hdr, p.desc);
+    }
+
+    table.flush([](const std::string& line) -> void {
+        fmt::print("  {}\n", line);
+    });
+}
+
+void PrintVersion()
+{
+    fmt::print("Cocoa 2D Rendering Framework Version {}\n", COCOA_VERSION);
+    fmt::print("Copyright (C) 2021 OpenACG Group | GPLv3 License\n");
+}
+
+} // namespace cmd
+
+#define arg_longopt_match(s) (!std::strcmp(arg.matchedTemplate->longName, s))
+
+cmd::ParseState InitializeLogger(cmd::ParseResult& args)
+{
+    const char *file = nullptr;
+    LogLevel level = LOG_LEVEL_NORMAL;
+    bool color = true;
+    Journal::OutputDevice output = Journal::OutputDevice::kStandardOut;
+
+    for (const auto& arg : args.options)
+    {
+        if arg_longopt_match("log-file")
+        {
+            file = arg.value.value().v_str.c_str();
+            output = Journal::OutputDevice::kFile;
+        }
+        else if arg_longopt_match("log-stderr")
+            output = Journal::OutputDevice::kStandardError;
+        else if arg_longopt_match("log-level")
+        {
+            if (arg.value->v_str == "debug")         level = LOG_LEVEL_DEBUG;
+            else if (arg.value->v_str == "normal")   level = LOG_LEVEL_NORMAL;
+            else if (arg.value->v_str == "quiet")    level = LOG_LEVEL_QUIET;
+            else if (arg.value->v_str == "silent")   level = LOG_LEVEL_SILENT;
+            else if (arg.value->v_str == "disabled") level = LOG_LEVEL_DISABLED;
+            else
+            {
+                std::cerr << "Illegal specifier for log level: " << arg.value->v_str
+                          << std::endl;
+                return cmd::ParseState::kError;
+            }
+        }
+        else if arg_longopt_match("disable-color-log")
+            color = false;
+    }
+    if (output == Journal::OutputDevice::kFile)
+        color = false;
+
+    Journal::New(level, output, color, file);
+    return cmd::ParseState::kSuccess;
+}
+
+cmd::ParseState InitializeProperties(const char **argv, cmd::ParseResult& args)
+{
+    std::string workingPath = utils::GetAbsoluteDirectory(".");
+    if (args.orphans.size() > 1)
+    {
+        std::cerr << "Too many arguments" << std::endl;
+        return cmd::ParseState::kError;
+    }
+    else if (args.orphans.size() > 0)
+        workingPath = utils::GetAbsoluteDirectory(args.orphans[0]);
+
+    std::string execFile = utils::GetExecutablePath();
+    std::string execPath = execFile.substr(0, execFile.find_last_of('/') + 1);
+
+    auto runtimeProp = prop::New<PropertyObjectNode>();
+    runtimeProp->setMember("cmdline", prop::New<PropertyDataNode>(std::string(argv[0])));
+    runtimeProp->setMember("executable-file", prop::New<PropertyDataNode>(execFile));
+    runtimeProp->setMember("executable-path", prop::New<PropertyDataNode>(execPath));
+    runtimeProp->setMember("working-path", prop::New<PropertyDataNode>(workingPath));
+
+    prop::Get()->setMember("runtime", runtimeProp);
+    return cmd::ParseState::kSuccess;
+}
+
+cmd::ParseState Initialize(int argc, char const **argv)
+{
+    cmd::ParseResult args;
+    cmd::ParseState state = cmd::Parse(argc, argv, args);
+    if (state == cmd::ParseState::kError)
+        return cmd::ParseState::kError;
+
+    for (const auto& arg : args.options)
+    {
+        if arg_longopt_match("help")
+        {
+            cmd::PrintHelp(argv[0]);
+            return cmd::ParseState::kExit;
+        }
+        else if arg_longopt_match("version")
+        {
+            cmd::PrintVersion();
+            return cmd::ParseState::kExit;
+        }
+    }
+
+    /* Initialize logger */
+    state = InitializeLogger(args);
+    if (state == cmd::ParseState::kError)
+        return cmd::ParseState::kError;
+
+    /* Initialize necessary properties */
+    state = InitializeProperties(argv, args);
+    if (state == cmd::ParseState::kError)
+        return cmd::ParseState::kError;
 
     EventLoop::New();
-    // PosixSignalCatcher::New();
+    scripter::Initialize();
 
-    return Configurator::State::kSuccessful;
+    return cmd::ParseState::kSuccess;
 }
+
+#undef arg_longopt_match
 
 void Finalize()
 {
     scripter::Dispose();
-    PosixSignalCatcher::Delete();
     EventLoop::Delete();
     Journal::Delete();
-    PropertyTree::Delete();
 }
 
-void Run()
+void Execute()
 {
-    //Journal::Ref()(LOG_DEBUG, "Content of property tree:");
-    //utils::DumpPropertyTree(PropertyTree::Ref()("/"), [](const std::string& str) -> void {
-    //    Journal::Ref()(LOG_DEBUG, "{}", str);
-    //});
+    auto workingPath = prop::Cast<PropertyDataNode>(prop::Get()
+            ->next("runtime")->next("working-path"))->extract<std::string>();
+    auto execPath = prop::Cast<PropertyDataNode>(prop::Get()
+            ->next("runtime")->next("executable-path"))->extract<std::string>();
 
-    // test::vanilla_render_test();
-    // test::vanilla_xcb_test();
-
-#if 1
-    scripter::Initialize();
     auto runtime = scripter::Runtime::MakeFromSnapshot(EventLoop::Instance(),
-                                                       "/home/sora/Project/C++/Cocoa/third_party/v8/out/x64.release/snapshot_blob.bin",
-                                                       "/home/sora/Project/C++/Cocoa/third_party/v8/out/x64.release/icudtl.dat");
+                                                       execPath + "snapshot_blob.bin",
+                                                       execPath + "icudtl.dat");
     v8::Isolate::Scope isolateScope(runtime->isolate());
     v8::HandleScope handleScope(runtime->isolate());
     v8::Context::Scope contextScope(runtime->context());
 
-    runtime->evaluateModule("../maidcafe/out/test.js");
-
-    EventLoop::Ref().walk([](uv_handle_t *handle) -> void {
-        std::cout << uv_handle_type_name(uv_handle_get_type(handle));
-        if (uv_is_active(handle))
-            std::cout << " [ACT]";
-        std::cout << std::endl;
-    });
-
+    runtime->evaluateModule("index.js");
     EventLoop::Ref().run();
-
-#endif
-
-#if 0
-    komorebi::InitializeShaderCompiler();
-
-    auto program = komorebi::ShaderProgram::Make();
-    komorebi::ShaderModule::MakeFromSource("TestShader",
-                                           program,
-                                           "test source")->moveToProgram();
-
-    auto sym = program->lookupSymbol("main");
-    if (!sym)
-    {
-        std::cerr << "Failed to compile" << std::endl;
-        return;
-    }
-    auto fn = reinterpret_cast<int(*)()>(sym->getAddress());
-
-    std::cout << "Result: " << fn() << std::endl;
-#endif
-
-#if 0
-    komorebi::KRSLParserDriver drv;
-    drv.parse(std::cin, std::cout);
-#endif
 }
 
 int Main(int argc, char const **argv)
 {
     ScopeEpilogue beforeLeaveScope([]() -> void { Finalize(); });
-    try
-    {
+    try {
         switch (Initialize(argc, argv))
         {
-        case Configurator::State::kError:
-            return 1;
-        case Configurator::State::kShouldExitNormally:
-            return 0;
-        case Configurator::State::kSuccessful:
-            break;
+        case cmd::ParseState::kError:   return EXIT_FAILURE;
+        case cmd::ParseState::kExit:    return EXIT_SUCCESS;
+        case cmd::ParseState::kSuccess: break;
         }
-
-        Run();
-    }
-    catch (const RuntimeException& e)
-    {
+        Execute();
+    } catch (const RuntimeException& e) {
         utils::DumpRuntimeException(e);
+        return EXIT_FAILURE;
+    } catch (const std::exception& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+        return EXIT_FAILURE;
     }
-
-    return 0;
+    return EXIT_SUCCESS;
 }
 
 } // namespace cocoa

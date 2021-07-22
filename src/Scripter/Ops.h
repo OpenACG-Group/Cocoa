@@ -7,7 +7,6 @@
 
 #include "include/v8.h"
 #include "Scripter/ScripterBase.h"
-#include "Scripter/JavaScriptCodeGen.h"
 SCRIPTER_NS_BEGIN
 
 #define OP_SUCCESS     0

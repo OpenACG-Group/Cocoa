@@ -50,65 +50,809 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="625018aa-1ca1-4995-ae3f-94e4e8743e1f" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/maidcafe/internal:core.d.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/maidcafe/platform.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/maidcafe/test.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/res/ScenarioLoader.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/res/TestModule.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Scripter/GprObjectWrapper.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Scripter/GprTimer.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Scripter/GprTimer.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Scripter/Internals.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Scripter/Internals.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/Cocoa2.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Core/Properties.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Core/Properties.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.jshintrc" beforeDir="false" afterPath="$PROJECT_DIR$/.jshintrc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/BUILD.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/maidcafe/IOTest.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/maidcafe/PropertyTree.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/maidcafe/Stream.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/maidcafe/out/IOTest.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/maidcafe/out/PropertyTree.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/maidcafe/out/StandardIO.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/maidcafe/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/maidcafe/tsconfig.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/res/lab/Nuklear/demo/allegro5/Readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/res/lab/Nuklear/demo/allegro5/Readme.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/res/lab/Vulkan-Loader/BUILD.md" beforeDir="false" afterPath="$PROJECT_DIR$/res/lab/Vulkan-Loader/BUILD.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/res/lab/Vulkan-Loader/CONTRIBUTING.md" beforeDir="false" afterPath="$PROJECT_DIR$/res/lab/Vulkan-Loader/CONTRIBUTING.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/res/lab/Vulkan-Loader/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/res/lab/Vulkan-Loader/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/res/lab/Vulkan-Loader/loader/LoaderAndLayerInterface.md" beforeDir="false" afterPath="$PROJECT_DIR$/res/lab/Vulkan-Loader/loader/LoaderAndLayerInterface.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/res/lab/Vulkan-Loader/scripts/update_deps.py" beforeDir="false" afterPath="$PROJECT_DIR$/res/lab/Vulkan-Loader/scripts/update_deps.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/res/test.js" beforeDir="false" afterPath="$PROJECT_DIR$/res/test.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Configurator.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Configurator.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/EventLoop.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EventLoop.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/EventLoop.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EventLoop.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/EventSource.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EventSource.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Exception.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Exception.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Exception.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Exception.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/[Developers] Ciallo 2D Engine.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/[Developers] Core Module.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/[Developers] Native Gui.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/[Note] Command Specification.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/[Note] Command Specification.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/cocoa_layout_property.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/maidcafe/internal:core.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/internal:core.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/maidcafe/out/platform.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/platform.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/maidcafe/out/test.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/test.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/maidcafe/platform.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/platform.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/maidcafe/test.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/maidcafe/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/Cocoa.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/MainView.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/ScenarioLoader.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/TestModule.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/cocoa_layout.rts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/config.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/test.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/test.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Configurator.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Configurator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Journal.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Journal.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Journal_deprecated.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Journal_deprecated.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/PosixSignalCatcher.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/PosixSignalCatcher.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/PosixSigsegvHelper.S" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Project.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Project.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/PropertyTree.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/PropertyTree.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/QObject.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/QObject.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/StrictJSONParser.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/StrictJSONParser.h" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Core/Utils.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utils.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Core/Utils.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utils.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/laboratory/Configurator" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/laboratory/test" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/laboratory/test.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/laboratory/test.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/test/a.out" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/test/except" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/test/except.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/test/libfmtd.a" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/test/log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/test/log.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/test/persistent" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/test/persistent.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/test/property" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/test/property.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/test/semaphore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/test/semaphore.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/test/slots.cc" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Main.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/AsyncOpTask.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/AsyncOpTask.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/AsyncWorker.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/AsyncWorker.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ASCIIEncoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AbstractCache.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AbstractDelegate.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AbstractEvent.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AbstractObserver.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AbstractPriorityDelegate.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AbstractStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AccessExpirationDecorator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AccessExpireCache.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AccessExpireLRUCache.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AccessExpireStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ActiveDispatcher.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ActiveMethod.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ActiveResult.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ActiveRunnable.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ActiveStarter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Activity.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Alignment.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Any.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ArchiveStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Array.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Ascii.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AsyncChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AtomicCounter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AtomicFlag.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AutoPtr.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/AutoReleasePool.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Base32Decoder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Base32Encoder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Base64Decoder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Base64Encoder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/BasicEvent.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/BinaryReader.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/BinaryWriter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Buffer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/BufferAllocator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/BufferedBidirectionalStreamBuf.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/BufferedStreamBuf.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Bugcheck.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ByteOrder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Channel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Checksum.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ClassLibrary.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ClassLoader.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Clock.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Condition.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Config.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Configurable.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ConsoleChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/CountingStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/Cipher.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/CipherFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/CipherImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/CipherKey.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/CipherKeyImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/Crypto.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/CryptoException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/CryptoStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/CryptoTransform.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/DigestEngine.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/ECDSADigestEngine.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/ECKey.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/ECKeyImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/EVPPKey.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/KeyPair.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/KeyPairImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/OpenSSLInitializer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/PKCS12Container.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/RSACipherImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/RSADigestEngine.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/RSAKey.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/RSAKeyImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Crypto/X509Certificate.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/AbstractContainerNode.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/AbstractNode.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/Attr.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/AttrMap.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/AutoPtr.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/CDATASection.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/CharacterData.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/ChildNodesList.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/Comment.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/DOMBuilder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/DOMException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/DOMImplementation.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/DOMObject.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/DOMParser.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/DOMSerializer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/DOMWriter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/DTDMap.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/Document.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/DocumentEvent.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/DocumentFragment.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/DocumentType.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/Element.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/ElementsByTagNameList.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/Entity.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/EntityReference.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/Event.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/EventDispatcher.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/EventException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/EventListener.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/EventTarget.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/MutationEvent.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/NamedNodeMap.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/Node.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/NodeAppender.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/NodeFilter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/NodeIterator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/NodeList.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/Notation.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/ProcessingInstruction.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/Text.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DOM/TreeWalker.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/AbstractBinder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/AbstractBinding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/AbstractExtraction.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/AbstractExtractor.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/AbstractPreparation.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/AbstractPreparator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/AbstractSessionImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ArchiveStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/AutoTransaction.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Binding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Bulk.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/BulkBinding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/BulkExtraction.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Column.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Connector.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Constants.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Data.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/DataException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Date.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/DynamicDateTime.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/DynamicLOB.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Extraction.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/LOB.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/LOBStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Limit.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/MetaColumn.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/MySQL/Binder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/MySQL/Connector.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/MySQL/Extractor.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/MySQL/MySQL.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/MySQL/MySQLException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/MySQL/MySQLStatementImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/MySQL/ResultMetadata.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/MySQL/SessionHandle.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/MySQL/SessionImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/MySQL/StatementExecutor.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/MySQL/Utility.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/Binder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/ConnectionHandle.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/Connector.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/Diagnostics.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/EnvironmentHandle.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/Error.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/Extractor.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/Handle.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/ODBC.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/ODBCException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/ODBCMetaColumn.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/ODBCStatementImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/Parameter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/Preparator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/SessionImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/TypeInfo.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/Unicode.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/Unicode_UNIXODBC.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/Unicode_WIN32.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/ODBC/Utility.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/PooledSessionHolder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/PooledSessionImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Position.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Preparation.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Range.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/RecordSet.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Row.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/RowFilter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/RowFormatter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/RowIterator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/SQLChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Session.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/SessionFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/SessionImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/SessionPool.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/SessionPoolContainer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/SimpleRowFormatter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Statement.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/StatementCreator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/StatementImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Time.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/Transaction.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Data/TypeHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DataURIStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DataURIStreamFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DateTime.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DateTimeFormat.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DateTimeFormatter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DateTimeParser.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Debugger.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DefaultStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DeflatingStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Delegate.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DigestEngine.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DigestStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DirectoryIterator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DirectoryIteratorStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DirectoryIterator_UNIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DirectoryIterator_WIN32U.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DirectoryWatcher.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DoubleByteEncoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Dynamic/Pair.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Dynamic/Struct.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Dynamic/Var.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Dynamic/VarHolder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Dynamic/VarIterator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DynamicAny.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DynamicAnyHolder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DynamicFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/DynamicStruct.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Encodings.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Environment.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Environment_UNIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Environment_VX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Environment_WIN32U.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Environment_WINCE.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Error.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ErrorHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Event.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/EventArgs.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/EventChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/EventLogChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Event_POSIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Event_VX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Event_WIN32.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Exception.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ExpirationDecorator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Expire.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ExpireCache.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ExpireLRUCache.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ExpireStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FIFOBuffer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FIFOBufferStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FIFOEvent.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FIFOStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FPEnvironment.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FPEnvironment_C99.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FPEnvironment_DEC.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FPEnvironment_DUMMY.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FPEnvironment_QNX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FPEnvironment_SUN.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FPEnvironment_WIN32.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/File.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FileChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FileStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FileStreamFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FileStream_POSIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FileStream_WIN32.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/File_UNIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/File_VX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/File_WIN32U.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/File_WINCE.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Format.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Formatter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FormattingChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Foundation.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FunctionDelegate.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/FunctionPriorityDelegate.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Glob.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/HMACEngine.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Hash.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/HashFunction.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/HashMap.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/HashSet.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/HashStatistic.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/HashTable.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/HexBinaryDecoder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/HexBinaryEncoder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ISO8859_10Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ISO8859_11Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ISO8859_13Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ISO8859_14Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ISO8859_16Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ISO8859_3Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ISO8859_4Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ISO8859_5Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ISO8859_6Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ISO8859_7Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ISO8859_8Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ISO8859_9Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/InflatingStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Instantiator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSON/Array.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSON/Handler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSON/JSON.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSON/JSONException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSON/Object.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSON/ParseHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSON/Parser.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSON/ParserImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSON/PrintHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSON/Query.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSON/Stringifier.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSON/Template.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSON/TemplateCache.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JSONString.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JWT/JWT.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JWT/JWTException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JWT/Serializer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JWT/Signer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/JWT/Token.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/KeyValueArgs.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/LRUCache.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/LRUStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Latin1Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Latin2Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Latin9Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/LineEndingConverter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/LinearHashTable.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ListMap.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/LocalDateTime.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/LogFile.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/LogFile_STD.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/LogFile_WIN32U.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/LogStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Logger.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/LoggingFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/LoggingRegistry.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/MD4Engine.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/MD5Engine.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/MacCentralEurRomanEncoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/MacChineseSimpEncoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/MacChineseTradEncoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/MacCyrillicEncoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/MacJapaneseEncoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/MacKoreanEncoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/MacRomanEncoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Manifest.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/MemoryPool.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/MemoryStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Message.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/MetaObject.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/MetaProgramming.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Mutex.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Mutex_POSIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Mutex_VX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Mutex_WIN32.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Mutex_WINCE.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NObserver.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NamedEvent.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NamedEvent_Android.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NamedEvent_UNIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NamedEvent_WIN32U.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NamedMutex.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NamedMutex_Android.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NamedMutex_UNIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NamedMutex_WIN32U.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NamedTuple.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NestedDiagnosticContext.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/AbstractHTTPRequestHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/AcceptCertificateHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/CertificateHandlerFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/CertificateHandlerFactoryMgr.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/ConsoleCertificateHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/Context.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/DNS.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/DatagramSocket.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/DatagramSocketImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/DialogSocket.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/EscapeHTMLStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/FTPClientSession.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/FTPSClientSession.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/FTPSStreamFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/FTPStreamFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/FilePartSource.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTMLForm.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPAuthenticationParams.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPBasicCredentials.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPBasicStreamBuf.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPBufferAllocator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPChunkedStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPClientSession.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPCookie.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPCredentials.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPDigestCredentials.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPFixedLengthStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPHeaderStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPIOStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPMessage.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPNTLMCredentials.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPRequest.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPRequestHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPRequestHandlerFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPResponse.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPSClientSession.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPSSessionInstantiator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPSStreamFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPServer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPServerConnection.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPServerConnectionFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPServerParams.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPServerRequest.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPServerRequestImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPServerResponse.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPServerResponseImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPServerSession.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPSession.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPSessionFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPSessionInstantiator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HTTPStreamFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/HostEntry.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/ICMPClient.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/ICMPEventArgs.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/ICMPPacket.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/ICMPPacketImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/ICMPSocket.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/ICMPSocketImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/ICMPv4PacketImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/IPAddress.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/IPAddressImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/InvalidCertificateHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/KeyConsoleHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/KeyFileHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/MailMessage.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/MailRecipient.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/MailStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/MediaType.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/MessageHeader.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/MultiSocketPoller.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/MulticastSocket.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/MultipartReader.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/MultipartWriter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/NTLMCredentials.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/NTPClient.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/NTPEventArgs.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/NTPPacket.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/NameValueCollection.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/Net.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/NetException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/NetSSL.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/NetworkInterface.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/NullPartHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/OAuth10Credentials.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/OAuth20Credentials.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/POP3ClientSession.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/ParallelSocketAcceptor.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/ParallelSocketReactor.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/PartHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/PartSource.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/PartStore.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/PollSet.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/PrivateKeyFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/PrivateKeyFactoryMgr.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/PrivateKeyPassphraseHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/QuotedPrintableDecoder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/QuotedPrintableEncoder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/RawSocket.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/RawSocketImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/RejectCertificateHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/RemoteSyslogChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/RemoteSyslogListener.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SMTPChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SMTPClientSession.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SSLException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SSLManager.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SSPINTLMCredentials.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SecureSMTPClientSession.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SecureServerSocket.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SecureServerSocketImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SecureSocketImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SecureStreamSocket.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SecureStreamSocketImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/ServerSocket.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/ServerSocketImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/Session.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SingleSocketPoller.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/Socket.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SocketAcceptor.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SocketAddress.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SocketAddressImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SocketConnector.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SocketDefs.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SocketImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SocketNotification.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SocketNotifier.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SocketReactor.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/SocketStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/StreamSocket.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/StreamSocketImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/StringPartSource.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/TCPServer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/TCPServerConnection.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/TCPServerConnectionFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/TCPServerDispatcher.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/TCPServerParams.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/UDPClient.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/UDPHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/UDPServer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/UDPServerParams.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/UDPSocketReader.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/Utility.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/VerificationErrorArgs.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/WebSocket.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/WebSocketImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Net/X509Certificate.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Notification.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NotificationCenter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NotificationQueue.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NotificationStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NullChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NullStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Nullable.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NumberFormatter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NumberParser.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/NumericString.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ObjectPool.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Observer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Optional.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/OrderedMap.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/OrderedSet.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/PBKDF2Engine.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Path.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Path_UNIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Path_WIN32U.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Path_WINCE.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/PatternFormatter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Pipe.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/PipeImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/PipeImpl_DUMMY.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/PipeImpl_POSIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/PipeImpl_WIN32.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/PipeStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Platform.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Platform_POSIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Platform_VX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Platform_WIN32.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Poco.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/PriorityDelegate.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/PriorityEvent.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/PriorityExpire.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/PriorityNotificationQueue.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/PriorityStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Process.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Process_UNIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Process_VX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Process_WIN32U.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Process_WINCE.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/PurgeStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/RWLock.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/RWLock_Android.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/RWLock_POSIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/RWLock_VX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/RWLock_WIN32.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/RWLock_WINCE.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Random.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/RandomStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/RecursiveDirectoryIterator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/RecursiveDirectoryIteratorImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/RefCountedObject.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/RegularExpression.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/RotateStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Runnable.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/RunnableAdapter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/Attributes.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/AttributesImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/ContentHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/DTDHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/DeclHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/DefaultHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/EntityResolver.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/EntityResolverImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/ErrorHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/InputSource.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/LexicalHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/Locator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/LocatorImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/NamespaceSupport.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/SAXException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/SAXParser.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/WhitespaceFilter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/XMLFilter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/XMLFilterImpl.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SAX/XMLReader.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SHA1Engine.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SHA2Engine.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ScopedLock.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ScopedUnlock.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Semaphore.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Semaphore_POSIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Semaphore_VX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Semaphore_WIN32.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SharedLibrary.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SharedLibrary_HPUX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SharedLibrary_UNIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SharedLibrary_VX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SharedLibrary_WIN32U.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SharedMemory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SharedMemory_DUMMY.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SharedMemory_POSIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SharedMemory_WIN32.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SharedPtr.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SignalHandler.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SimpleFileChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SimpleHashTable.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SingletonHolder.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SortedDirectoryIterator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SplitterChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Stopwatch.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/StrategyCollection.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/StreamChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/StreamConverter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/StreamCopier.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/StreamTokenizer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/StreamUtil.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/String.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/StringTokenizer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SynchronizedObject.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/SyslogChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Task.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/TaskManager.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/TaskNotification.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/TeeStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/TemporaryFile.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/TextBufferIterator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/TextConverter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/TextEncoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/TextIterator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Thread.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ThreadLocal.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ThreadPool.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ThreadTarget.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Thread_POSIX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Thread_VX.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Thread_WIN32.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Thread_WINCE.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/TimedNotificationQueue.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Timer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Timespan.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Timestamp.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Timezone.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Token.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Tuple.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/TypeList.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Types.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/URI.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/URIStreamFactory.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/URIStreamOpener.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UTF16Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UTF32Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UTF8Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UTF8String.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UTFString.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UUID.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UUIDGenerator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UnWindows.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UnbufferedStreamBuf.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Unicode.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UnicodeConverter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UniqueAccessExpireCache.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UniqueAccessExpireLRUCache.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UniqueAccessExpireStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UniqueExpireCache.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UniqueExpireLRUCache.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/UniqueExpireStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/AbstractConfiguration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/Application.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/ConfigurationMapper.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/ConfigurationView.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/FilesystemConfiguration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/HelpFormatter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/IniFileConfiguration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/IntValidator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/JSONConfiguration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/LayeredConfiguration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/LoggingConfigurator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/LoggingSubsystem.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/MapConfiguration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/Option.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/OptionCallback.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/OptionException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/OptionProcessor.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/OptionSet.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/PropertyFileConfiguration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/RegExpValidator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/ServerApplication.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/Subsystem.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/SystemConfiguration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/Timer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/TimerTask.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/TimerTaskAdapter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/Units.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/Util.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/Validator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/WinRegistryConfiguration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/WinRegistryKey.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/WinService.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Util/XMLConfiguration.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ValidArgs.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Version.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Void.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows1250Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows1251Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows1252Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows1253Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows1254Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows1255Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows1256Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows1257Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows1258Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows874Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows932Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows936Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows949Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/Windows950Encoding.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/WindowsConsoleChannel.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/Content.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/Name.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/NamePool.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/NamespaceStrategy.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/ParserEngine.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/QName.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/ValueTraits.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/XML.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/XMLException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/XMLStream.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/XMLStreamParser.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/XMLStreamParserException.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/XMLString.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/XMLWriter.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/expat.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/XML/expat_external.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ordered_hash.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ordered_map.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/ordered_set.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/zconf.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Poco/zlib.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/JavaScriptCodeGen.h" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Scripter/ModuleUrl.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/ModuleUrl.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/ModuleUrl.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/ModuleUrl.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/OpParameterInfo.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/OpParameterInfo.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/Ops.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/Ops.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Scripter/Ops.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/Ops.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/Resource.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/ResourceDescriptorPool.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/ResourceDescriptorPool.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/ResourceDescriptorPool.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/ResourceObject.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/ResourceObject.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/Runtime.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/Runtime.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/Runtime.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/Runtime.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/core.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Context.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Context.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Context.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Context.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaKeyboardProxy.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/VaKeyboardProxy.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbDisplay.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbDisplay.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbEventQueue.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbEventQueue.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/javascript-codegen.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/depot_tools/PRESUBMIT.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/depot_tools/PRESUBMIT.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/depot_tools/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/depot_tools/README.md" afterDir="false" />
@@ -211,18 +955,6 @@
       <change beforePath="$PROJECT_DIR$/third_party/libuv/docs/src/guide/processes.rst" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libuv/docs/src/guide/processes.rst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/libuv/docs/src/loop.rst" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libuv/docs/src/loop.rst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/libuv/docs/src/tty.rst" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libuv/docs/src/tty.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/poco/CHANGELOG" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/poco/CHANGELOG" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/poco/CODE_OF_CONDUCT.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/poco/CODE_OF_CONDUCT.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/poco/Data/doc/00300-DataDeveloperManual.page" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/poco/Data/doc/00300-DataDeveloperManual.page" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/poco/JSON/src/ParserImpl.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/poco/JSON/src/ParserImpl.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/poco/PocoDoc/resources/js/CollapsibleLists.compressed.js" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/poco/PocoDoc/resources/js/CollapsibleLists.compressed.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/poco/PocoDoc/resources/js/CollapsibleLists.js" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/poco/PocoDoc/resources/js/CollapsibleLists.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/poco/doc/00100-GuidedTour.page" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/poco/doc/00100-GuidedTour.page" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/poco/doc/99100-ReleaseNotes.page" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/poco/doc/99100-ReleaseNotes.page" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/poco/packaging/Windows/NuGet/Poco.front" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/poco/packaging/Windows/NuGet/Poco.front" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/poco/packaging/Windows/NuGet/Poco.noarch.nuspec" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/poco/packaging/Windows/NuGet/Poco.noarch.nuspec" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/poco/packaging/Windows/NuGet/Poco.shared.nuspec" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/poco/packaging/Windows/NuGet/Poco.shared.nuspec" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/poco/packaging/Windows/NuGet/Poco.static.nuspec" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/poco/packaging/Windows/NuGet/Poco.static.nuspec" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/PRESUBMIT.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/PRESUBMIT.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/bin/compare" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/bin/compare" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/bin/fetch-clang-format" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/bin/fetch-clang-format" afterDir="false" />
@@ -1470,11 +2202,11 @@
       <recent name="$PROJECT_DIR$/src/NaGui" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/deprecated" />
       <recent name="$PROJECT_DIR$/src" />
       <recent name="$PROJECT_DIR$/src/Scripter/StaticTextCompiler" />
       <recent name="$PROJECT_DIR$/maidcafe" />
       <recent name="$PROJECT_DIR$/src/Ciallo" />
-      <recent name="$PROJECT_DIR$/src/Ciallo/test" />
     </key>
   </component>
   <component name="RunAnythingCache">
@@ -1489,7 +2221,12 @@
         <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="Cocoa" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="-c ../res/config.json ../res/test.js" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/cmake-build-debug" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Cocoa" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="Cocoa">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Cocoa" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/cmake-build-debug" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Cocoa" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="Cocoa">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -1798,7 +2535,7 @@
       <workItem from="1626144801229" duration="37726000" />
       <workItem from="1626837782111" duration="27513000" />
       <workItem from="1626916901291" duration="539000" />
-      <workItem from="1626917463342" duration="546000" />
+      <workItem from="1626917463342" duration="37516000" />
     </task>
     <servers />
   </component>
@@ -1924,11 +2661,6 @@
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/src/Core/QObject.cc</url>
-          <line>88</line>
-          <option name="timeStamp" value="2" />
-        </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/Komorebi/KTDLParser.cc</url>
           <line>168</line>

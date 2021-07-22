@@ -6,17 +6,10 @@ set(core_sources
         Journal.cc
         Exception.h
         Exception.cc
-        PropertyTree.h
-        PropertyTree.cc
-        StrictJSONParser.h
-        StrictJSONParser.cc
-        Configurator.h
-        Configurator.cc
+        Properties.h
+        Properties.cc
         Utils.h
         Utils.cc
-        PosixSignalCatcher.h
-        PosixSignalCatcher.cc
-        PosixSigsegvHelper.S
         EventSource.h
         EventLoop.h
         EventLoop.cc
@@ -31,8 +24,6 @@ target_link_libraries(${core_target}
         dl
         ffi
         unwind
-        PocoFoundation
-        PocoJSON
         uv_a
         fmt::fmt)
 

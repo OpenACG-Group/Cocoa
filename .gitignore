@@ -1,13 +1,13 @@
 # Deprecated
-/deprecated/*
+/deprecated
 
 # External sources
 /third_party/*
 !/third_party/package-lists.json
-/res/lab/*
 
 # Building directories
 /cmake-build-*
 /build
 
-/test/*
+/test
+/tools
