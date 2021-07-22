@@ -50,6 +50,8 @@ void VaXcbEventQueue::disposeFromMainThread()
         return;
     assert(std::this_thread::get_id() == fMainThreadId);
 
+    AsyncSource::disableAsync();
+
     xcb_client_message_event_t event{};
     std::memset(&event, 0xff, sizeof(event));
 
@@ -79,8 +81,6 @@ void VaXcbEventQueue::disposeFromMainThread()
 
     if (fThread.joinable())
         fThread.join();
-
-    AsyncSource::disableAsync();
 }
 
 bool VaXcbEventQueue::isDisposeEvent(xcb_generic_event_t *pEvent)
@@ -119,7 +119,8 @@ void VaXcbEventQueue::entrance()
         shouldExit = tryEnqueue(event);
         while (!shouldExit && (event = xcb_poll_for_queued_event(connection)) != nullptr)
             shouldExit = tryEnqueue(event);
-        AsyncSource::wakeupAsync();
+        if (!shouldExit)
+            AsyncSource::wakeupAsync();
     }
 
     if (shouldExit)

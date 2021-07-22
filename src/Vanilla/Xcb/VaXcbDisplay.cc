@@ -50,7 +50,7 @@ Handle<VaDisplay> VaDisplay::OpenXcb(const Handle<Context>& ctx, const char *dis
     xcb_connection_t *connection = xcb_connect(displayName, &screenNumber);
     if (!connection)
         return nullptr;
-    BeforeLeaveScope before([connection]() -> void {
+    ScopeEpilogue before([connection]() -> void {
         xcb_disconnect(connection);
     });
 
@@ -89,7 +89,7 @@ Handle<VaDisplay> VaDisplay::OpenXcb(const Handle<Context>& ctx, const char *dis
         return nullptr;
     }
 
-    before.cancel();
+    before.abolish();
     return std::make_shared<VaXcbDisplay>(ctx, connection, screen,
                                           visual, SkColorType::kBGRA_8888_SkColorType);
 }
@@ -114,12 +114,13 @@ VaXcbDisplay::VaXcbDisplay(const Handle<Context>& context,
 VaXcbDisplay::~VaXcbDisplay()
 {
     if (!fDisposed)
-        onDispose();
+        this->onDispose();
 }
 
 void VaXcbDisplay::dispose()
 {
-    this->onDispose();
+    if (!fDisposed)
+        this->onDispose();
 }
 
 void VaXcbDisplay::onDispose()

@@ -2,6 +2,8 @@
 #define COCOA_EVENTSOURCE_H
 
 #include <functional>
+#include <atomic>
+
 #include <uv.h>
 
 namespace cocoa
@@ -15,20 +17,40 @@ enum class KeepInLoop
     kNo
 };
 
+template<typename T, typename R>
 class EventSource
 {
 public:
-    explicit EventSource(EventLoop *loop);
-    virtual ~EventSource() = default;
+    explicit EventSource(EventLoop *loop)
+        : fLoop(loop), fHandle(nullptr)
+    {
+        fHandle = reinterpret_cast<uv_handle_t*>(std::malloc(sizeof(R)));
+    }
+    virtual ~EventSource() {
+        uv_close(fHandle, [](uv_handle_t *handle) -> void {
+            std::free(handle);
+        });
+    }
 
-    inline EventLoop *eventLoop()
-    { return fLoop; }
+    inline EventLoop *eventLoop() {
+        return fLoop;
+    }
+
+protected:
+    R *get() {
+        return reinterpret_cast<R*>(fHandle);
+    }
+
+    void setThis(T *ptr) {
+        uv_handle_set_data(fHandle, ptr);
+    }
 
 private:
-    EventLoop   *fLoop;
+    EventLoop       *fLoop;
+    uv_handle_t     *fHandle;
 };
 
-class TimerSource : public EventSource
+class TimerSource : public EventSource<TimerSource, uv_timer_t>
 {
 public:
     explicit TimerSource(EventLoop *loop);
@@ -42,14 +64,13 @@ protected:
 
 private:
     static void Callback(uv_timer_t *handle);
-    uv_timer_t  fUvTimer;
 };
 
-class AsyncSource : public EventSource
+class AsyncSource : public EventSource<AsyncSource, uv_async_t>
 {
 public:
     explicit AsyncSource(EventLoop *loop);
-    ~AsyncSource() override;
+    ~AsyncSource() override = default;
 
 protected:
     void disableAsync();
@@ -58,27 +79,25 @@ protected:
 
 private:
     static void Callback(uv_async_t *handle);
-    uv_async_t  fUvAsync;
-    bool fDisabled;
+    std::atomic<bool> fDisabled;
 };
 
-class CheckHandleSource : public EventSource
+class LoopPrologueSource : public EventSource<LoopPrologueSource, uv_prepare_t>
 {
 public:
-    explicit CheckHandleSource(EventLoop *loop);
-    ~CheckHandleSource() override;
+    explicit LoopPrologueSource(EventLoop *loop);
+    ~LoopPrologueSource() override;
 
 protected:
-    void startCheckHandle();
-    void stopCheckHandle();
-    virtual KeepInLoop checkHandleDispatch() = 0;
+    void startLoopPrologue();
+    void stopLoopPrologue();
+    virtual KeepInLoop loopPrologueDispatch() = 0;
 
 private:
-    static void Callback(uv_check_t *handle);
-    uv_check_t  fCheck;
+    static void Callback(uv_prepare_t *handle);
 };
 
-class PollSource : public EventSource
+class PollSource : public EventSource<PollSource, uv_poll_t>
 {
 public:
     explicit PollSource(EventLoop *loop, int fd);
@@ -91,8 +110,6 @@ protected:
 
 private:
     static void Callback(uv_poll_t *handle, int status, int events);
-    uv_poll_t   fUvPoll;
-    bool        fStopped;
 };
 
 } // namespace cocoa

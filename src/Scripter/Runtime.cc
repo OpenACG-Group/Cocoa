@@ -5,18 +5,15 @@
 #include "include/libplatform/libplatform.h"
 #include "include/v8.h"
 
+#include "Core/Utils.h"
+#include "Core/Exception.h"
+#include "Core/Journal.h"
+#include "Core/EventLoop.h"
 #include "Scripter/ScripterBase.h"
 #include "Scripter/Runtime.h"
 #include "Scripter/Ops.h"
+#include "Scripter/ModuleUrl.h"
 SCRIPTER_NS_BEGIN
-
-void vmcall_return_err_promise(const v8::FunctionCallbackInfo<v8::Value>& info,
-                               v8::Local<v8::Promise::Resolver> resolver, int32_t val)
-{
-    resolver->Reject(info.GetIsolate()->GetCurrentContext(),
-                     v8::Integer::New(info.GetIsolate(), val)).ToChecked();
-    info.GetReturnValue().Set(resolver->GetPromise());
-}
 
 void vmInvokeOpSynchronously(v8::Isolate *isolate, v8::Local<v8::Object> param, const OpEntry *opEntry,
                              v8::ReturnValue<v8::Value>& returnValue)
@@ -28,14 +25,14 @@ void vmInvokeOpSynchronously(v8::Isolate *isolate, v8::Local<v8::Object> param, 
 void vmInvokeOpAsynchronously(v8::Isolate *isolate, v8::Local<v8::Object> param, const OpEntry *opEntry,
                               v8::ReturnValue<v8::Value>& returnValue)
 {
-    auto *rt = reinterpret_cast<Runtime*>(isolate->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR));
-    auto info = std::make_shared<OpParameterInfo>(isolate,
-                                                  param,
-                                                  OpParameterInfo::StorageType::kPersistent);
     v8::Local<v8::Promise::Resolver> promiseResolver =
             v8::Promise::Resolver::New(isolate->GetCurrentContext()).ToLocalChecked();
+    OpParameterInfo info(isolate,
+                         param,
+                         promiseResolver,
+                         OpParameterInfo::StorageType::kLocal);
 
-    rt->pushAsyncOpEntry(opEntry, param, promiseResolver);
+    opEntry->pfn(info);
     returnValue.Set(promiseResolver->GetPromise());
 }
 
@@ -70,51 +67,21 @@ void vmInvokeOp(const v8::FunctionCallbackInfo<v8::Value>& info)
         return;
     }
 
-    switch (opEntry->executionType)
-    {
-    case OpEntry::ExecutionType::kSynchronous:
-        vmInvokeOpSynchronously(isolate, parameterObject, opEntry, retValue);
-        break;
-    case OpEntry::ExecutionType::kAsynchronous:
-        vmInvokeOpAsynchronously(isolate, parameterObject, opEntry, retValue);
-        break;
+    try {
+        switch (opEntry->executionType)
+        {
+        case OpEntry::ExecutionType::kSynchronous:
+            vmInvokeOpSynchronously(isolate, parameterObject, opEntry, retValue);
+            break;
+        case OpEntry::ExecutionType::kAsynchronous:
+            vmInvokeOpAsynchronously(isolate, parameterObject, opEntry, retValue);
+            break;
+        }
+    } catch (const RuntimeException& e) {
+        auto rt = reinterpret_cast<Runtime*>(isolate->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR));
+        rt->takeOverNativeException(e);
     }
 }
-
-static const char internalCoreJs[] = R"(
-/**
- * CocoaJs Core Object, Javascript ES6 Standard.
- * Copyright(C) 2021, Jingheng Luo (masshiro.io@qq.com)
- */
-let Cocoa = new Object();
-(function (Cocoa) {
-    "use strict";
-    Cocoa.core = {
-        OP_SUCCESS: 0,
-        OP_ETYPE: 1,
-        OP_EARGC: 2,
-        OP_EOPNUM: 3,
-        OP_EINTERNAL: 4,
-        OP_EINVARG: 5,
-        OP_EASYNC: 6,
-        OP_ENOMEM: 7,
-
-        OP_PRINT: "op_print"
-    };
-
-    Cocoa.core.opCall = (name, args) => {
-        return __cocoa_op_call(name, args);
-    };
-
-    Cocoa.core.getScripterInfo = () => {
-        return {
-            version: [1, 0, 0],
-            manufacture: "org.OpenACG.Cocoa",
-            capabilities: ["capabilities::lang", "capabilities::opCall"]
-        };
-    };
-})(Cocoa);
-)";
 
 void Initialize()
 {
@@ -172,29 +139,115 @@ Runtime::Runtime(EventLoop *loop,
                  v8::ArrayBuffer::Allocator *allocator,
                  v8::Isolate *isolate,
                  v8::Global<v8::Context> context)
-    : CheckHandleSource(loop),
+    : LoopPrologueSource(loop),
       fPlatform(std::move(platform)),
       fArrayBufferAllocator(allocator),
       fIsolate(isolate),
-      fContext(std::move(context))
+      fContext(std::move(context)),
+      fResourcePool(new ResourceDescriptorPool())
 {
     v8::Isolate::Scope isolateScope(fIsolate);
     v8::HandleScope handleScope(fIsolate);
     v8::Context::Scope ctxScope(this->context());
 
-    startCheckHandle();
+    LoopPrologueSource::startLoopPrologue();
     fIsolate->SetData(ISOLATE_DATA_SLOT_RUNTIME_PTR, this);
-    this->execute("internal:core.js", internalCoreJs);
 }
 
 Runtime::~Runtime()
 {
+    delete fResourcePool;
+
+    for (auto& module : fModuleCache)
+        module.second.Reset();
+
     fContext.Reset();
     fIsolate->Dispose();
     v8::V8::Dispose();
     v8::V8::ShutdownPlatform();
     delete fArrayBufferAllocator;
     fPlatform.reset();
+}
+
+v8::Local<v8::Module> Runtime::compileModule(const std::string& url)
+{
+    return Runtime::compileModule(".", url);
+}
+
+v8::Local<v8::Module> Runtime::compileModule(const std::string& refererUrl, const std::string& url)
+{
+    v8::Isolate::Scope isolateScope(fIsolate);
+    v8::EscapableHandleScope handleScope(fIsolate);
+    v8::Context::Scope contextScope(this->context());
+
+    auto [moduleSourceMaybe, moduleUrl] = ResolveModuleImportUrl(fIsolate, refererUrl, url);
+    if (moduleSourceMaybe.IsEmpty())
+        throw RuntimeException(__func__, "Failed to resolve ES6 module path " + url);
+
+    auto moduleSource = moduleSourceMaybe.ToLocalChecked();
+
+    if (fModuleCache.contains(moduleUrl))
+        return fModuleCache[moduleUrl].Get(fIsolate);
+
+    v8::ScriptOrigin scriptOrigin(v8::String::NewFromUtf8(fIsolate, moduleUrl.c_str()).ToLocalChecked(),
+                                  0,
+                                  0,
+                                  false,
+                                  -1,
+                                  v8::Local<v8::Value>(),
+                                  false,
+                                  false,
+                                  true);
+
+    v8::ScriptCompiler::Source source(moduleSource, scriptOrigin);
+    v8::Local<v8::Module> module;
+    v8::TryCatch tryCatch(fIsolate);
+    if (!v8::ScriptCompiler::CompileModule(fIsolate, &source).ToLocal(&module))
+    {
+        if (tryCatch.HasCaught())
+        {
+            std::string message(*v8::String::Utf8Value(fIsolate, tryCatch.Message()->Get()));
+            Journal::Ref()(LOG_ERROR, "Failed to compile ES6 module {}: {}", moduleUrl, message);
+        }
+        throw RuntimeException(__func__, "Failed to compile ES6 module " + moduleUrl);
+    }
+
+    fModuleCache[moduleUrl] = v8::Global<v8::Module>(fIsolate, module);
+    return handleScope.Escape(module);
+}
+
+v8::Local<v8::Value> Runtime::evaluateModule(const std::string& url)
+{
+    v8::Local<v8::Module> module = this->compileModule(url);
+    v8::Maybe<bool> instantiate =
+            module->InstantiateModule(this->context(), [](v8::Local<v8::Context> context,
+                                                          v8::Local<v8::String> specifier,
+                                                          v8::Local<v8::FixedArray> assertions,
+                                                          v8::Local<v8::Module> referer) {
+                auto *pRT = reinterpret_cast<Runtime*>(context->GetIsolate()->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR));
+                std::string refererUrl;
+                for (auto& cache : pRT->fModuleCache)
+                {
+                    if (cache.second == referer)
+                    {
+                        refererUrl = cache.first;
+                        break;
+                    }
+                }
+                if (refererUrl.empty())
+                    return v8::MaybeLocal<v8::Module>();
+
+                std::string url(*v8::String::Utf8Value(pRT->fIsolate, specifier));
+                try {
+                    return v8::MaybeLocal<v8::Module>(pRT->compileModule(refererUrl, url));
+                } catch (const RuntimeException& e) {
+                    return v8::MaybeLocal<v8::Module>();
+                }
+            });
+
+    if (instantiate.IsNothing())
+        throw RuntimeException(__func__, "Could not instantiate ES6 module " + url);
+    return module->Evaluate(this->context()).ToLocalChecked();
 }
 
 v8::Local<v8::Value> Runtime::execute(const char *str)
@@ -231,19 +284,33 @@ v8::Local<v8::Value> Runtime::execute(const char *scriptName, const char *str)
     return handleScope.Escape(result);
 }
 
-KeepInLoop Runtime::checkHandleDispatch()
+KeepInLoop Runtime::loopPrologueDispatch()
 {
+    while (v8::platform::PumpMessageLoop(fPlatform.get(),
+                                         fIsolate,
+                                         v8::platform::MessageLoopBehavior::kDoNotWait))
+    {
+        // Do nothing, just waiting
+    }
     fIsolate->PerformMicrotaskCheckpoint();
+
+    int handlesCount = 0;
+    EventSource::eventLoop()->walk([&handlesCount](uv_handle_t *handle) -> void {
+        if (uv_is_active(handle))
+            handlesCount++;
+    });
+
+    if (handlesCount <= 1)
+        stopLoopPrologue();
     return KeepInLoop::kYes;
 }
 
-void Runtime::pushAsyncOpEntry(const OpEntry *entry,
-                               v8::Local<v8::Object> param,
-                               v8::Local<v8::Promise::Resolver> resolver)
+void Runtime::takeOverNativeException(const RuntimeException& exception)
 {
-    std::cout << "Push async task " << entry->name << std::endl;
-    resolver->Resolve(fIsolate->GetCurrentContext(),
-                      v8::Integer::New(fIsolate, OpRet(OP_SUCCESS)));
+    utils::DumpRuntimeException(exception);
+    auto str = fmt::format("Native[method:{}]: {}", exception.who(), exception.what());
+    auto message = v8::String::NewFromUtf8(fIsolate, str.c_str()).ToLocalChecked();
+    fIsolate->ThrowException(v8::Exception::Error(message));
 }
 
 SCRIPTER_NS_END

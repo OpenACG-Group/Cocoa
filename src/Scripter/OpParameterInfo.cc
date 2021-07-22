@@ -1,11 +1,26 @@
 #include "Scripter/Ops.h"
+#include "Scripter/Runtime.h"
 SCRIPTER_NS_BEGIN
 
 OpParameterInfo::OpParameterInfo(v8::Isolate *isolate,
                                          v8::Local<v8::Object> object,
                                          StorageType type)
     : fIsolate(isolate),
+      fRuntime(reinterpret_cast<Runtime*>(fIsolate->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR))),
       fType(type)
+{
+    if (fType == StorageType::kLocal)
+        fLocal = object;
+    else
+        fPersistent.Reset(fIsolate, object);
+}
+
+OpParameterInfo::OpParameterInfo(v8::Isolate *isolate, v8::Local<v8::Object> object,
+                                 v8::Local<v8::Promise::Resolver> promise, StorageType type)
+    : fIsolate(isolate),
+      fRuntime(reinterpret_cast<Runtime*>(fIsolate->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR))),
+      fType(type),
+      fPromise(fIsolate, promise)
 {
     if (fType == StorageType::kLocal)
         fLocal = object;

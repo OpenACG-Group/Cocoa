@@ -2,22 +2,10 @@
 #include <cassert>
 
 #include "Scripter/ScripterBase.h"
-#include "Scripter/Resource.h"
+#include "Scripter/ResourceDescriptorPool.h"
 SCRIPTER_NS_BEGIN
 
 #define LOCK(E) std::scoped_lock scopedLock(E);
-
-ResourceDescriptorPool::ScopedAcquire::ScopedAcquire(ResourceDescriptorPool& pool, RID rid)
-    : fPool(pool)
-{
-    fPtr = pool.acquire(rid);
-    assert(fPtr != nullptr);
-}
-
-ResourceDescriptorPool::ScopedAcquire::~ScopedAcquire()
-{
-    fPool.giveBack(fPtr->getRID());
-}
 
 // ----------------------------------------------------------------------------------------
 
@@ -29,11 +17,15 @@ ResourceDescriptorPool::ResourceDescriptorPool(int32_t initialPoolSize)
 ResourceDescriptorPool::~ResourceDescriptorPool()
 {
     LOCK(fRIDOpMutex)
-    for (const auto& res : fResources)
+    for (RID rid : fTimeOrderedRIDList)
+    {
+        ResourceObject *res = fResources[rid];
         res->release();
+        delete res;
+    }
 }
 
-void ResourceDescriptorPool::bindResourceWithDescriptor(ResourceObject::Ptr resource)
+void ResourceDescriptorPool::bindResourceWithDescriptor(ResourceObject *resource)
 {
     LOCK(fRIDOpMutex)
 
@@ -52,7 +44,9 @@ void ResourceDescriptorPool::bindResourceWithDescriptor(ResourceObject::Ptr reso
         fResources.resize(size + 20);
         rid = static_cast<RID>(size);
     }
-    fResources[rid] = std::move(resource);
+    resource->setRID(rid);
+    fResources[rid] = resource;
+    fTimeOrderedRIDList.push_back(rid);
 }
 
 void ResourceDescriptorPool::release(RID rid)
@@ -64,11 +58,15 @@ void ResourceDescriptorPool::release(RID rid)
     if (ptr == nullptr)
         return;
     fResources[rid] = nullptr;
+
     ptr->release();
     ptr->fState = ResourceObject::State::kReleased;
+    delete ptr;
+
+    fTimeOrderedRIDList.remove(rid);
 }
 
-ResourceObject::Ptr ResourceDescriptorPool::acquire(RID rid)
+ResourceObject *ResourceDescriptorPool::acquire(RID rid)
 {
     LOCK(fRIDOpMutex)
     if (rid >= fResources.size())

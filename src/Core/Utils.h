@@ -13,6 +13,7 @@ void DumpPropertyTree(PropertyTreeNode *pRoot, Printer printer);
 void DumpRuntimeException(const RuntimeException& except);
 
 void ChangeWorkDirectory(const std::string& dir);
+std::string GetAbsoluteDirectory(const std::string& dir);
 
 } // namespace cocoa
 

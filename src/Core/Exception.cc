@@ -32,17 +32,17 @@ std::string demangle_cpp_symbol(char const *sym)
 
 namespace cocoa {
 
-BeforeLeaveScope::BeforeLeaveScope(std::function<void()> func)
+ScopeEpilogue::ScopeEpilogue(std::function<void()> func)
     : fFunction(std::move(func))
 {
 }
 
-BeforeLeaveScope::~BeforeLeaveScope()
+ScopeEpilogue::~ScopeEpilogue()
 {
     fFunction();
 }
 
-void BeforeLeaveScope::cancel()
+void ScopeEpilogue::abolish()
 {
     fFunction = []() -> void {};
 }

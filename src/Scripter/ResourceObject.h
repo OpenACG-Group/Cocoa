@@ -8,23 +8,20 @@
 SCRIPTER_NS_BEGIN
 
 #define RESOURCE_OBJECT(T) \
-static inline std::shared_ptr<T> Cast(const ResourceObject::Ptr& ptr) { \
-    auto ret = std::dynamic_pointer_cast<T>(ptr); \
+public:                    \
+static inline T *Cast(ResourceObject *ptr) { \
+    auto ret = dynamic_cast<T*>(ptr); \
     assert(ret != nullptr); \
     return ret; \
 }
 
-#define __outptr
-#define __inptr
-
 /* Resource Identifier (Resource Descriptor) */
-using RID = int64_t;
+using RID = int32_t;
+class Runtime;
 class ResourceObject
 {
 public:
     friend class ResourceDescriptorPool;
-
-    using Ptr = std::shared_ptr<ResourceObject>;
     enum class State
     {
         kReady,
@@ -33,11 +30,15 @@ public:
         kError
     };
 
-    ResourceObject();
+    explicit ResourceObject(Runtime *runtime)
+        : fRuntime(runtime), fRID(0), fState(State::kReady) {}
     virtual ~ResourceObject() = default;
 
     inline void setRID(RID rid)
     { fRID = rid; }
+
+    inline Runtime *runtime()
+    { return fRuntime; }
 
     inline RID getRID() const
     { return fRID; }
@@ -48,28 +49,10 @@ public:
     virtual void release() = 0;
 
 private:
-    RID         fRID;
-    State       fState;
+    Runtime         *fRuntime;
+    RID              fRID;
+    State            fState;
 };
 
-class IOResource : public ResourceObject
-{
-public:
-    RESOURCE_OBJECT(IOResource)
-
-    IOResource(int fd);
-    ~IOResource() override;
-
-    void release() override;
-    ssize_t write(__inptr const void *pSrc, size_t size);
-    ssize_t read(__outptr void *pDst, size_t size);
-
-private:
-    int     fFd;
-};
-
-#undef RESOURCE_OBJECT
-#undef __inptr
-#undef __outptr
 SCRIPTER_NS_END
 #endif //COCOA_RESOURCEOBJECT_H

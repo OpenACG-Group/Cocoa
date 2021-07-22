@@ -1,4 +1,5 @@
 #include <cassert>
+#include <iostream>
 
 #include "Core/EventLoop.h"
 #include "Core/EventSource.h"
@@ -24,18 +25,19 @@ int EventLoop::run()
     return uv_run(fLoop, UV_RUN_DEFAULT);
 }
 
-EventSource::EventSource(EventLoop *loop)
-    : fLoop(loop)
+void EventLoop::walk(std::function<void(uv_handle_t *)> function)
 {
+    uv_walk(fLoop, [](uv_handle_t *handle, void *closure) -> void {
+        auto pFunc = reinterpret_cast<std::function<void(uv_handle_t*)>*>(closure);
+        (*pFunc)(handle);
+    }, &function);
 }
 
 PollSource::PollSource(EventLoop *loop, int fd)
-    : EventSource(loop),
-      fUvPoll{},
-      fStopped(true)
+    : EventSource(loop)
 {
-    uv_poll_init(EventSource::eventLoop()->handle(), &fUvPoll, fd);
-    uv_handle_set_data((uv_handle_t*)&fUvPoll, this);
+    uv_poll_init(EventSource::eventLoop()->handle(), get(), fd);
+    setThis(this);
 }
 
 PollSource::~PollSource()
@@ -45,16 +47,12 @@ PollSource::~PollSource()
 
 void PollSource::startPoll(int events)
 {
-    uv_poll_start(&fUvPoll, events, PollSource::Callback);
-    fStopped = false;
+    uv_poll_start(get(), events, PollSource::Callback);
 }
 
 void PollSource::stopPoll()
 {
-    if (fStopped)
-        return;
-    uv_poll_stop(&fUvPoll);
-    fStopped = true;
+    uv_poll_stop(get());
 }
 
 void PollSource::Callback(uv_poll_t *handle, int status, int events)
@@ -66,11 +64,10 @@ void PollSource::Callback(uv_poll_t *handle, int status, int events)
 }
 
 TimerSource::TimerSource(EventLoop *loop)
-    : EventSource(loop),
-      fUvTimer{}
+    : EventSource(loop)
 {
-    uv_timer_init(loop->handle(), &fUvTimer);
-    uv_handle_set_data((uv_handle_t*)&fUvTimer, this);
+    uv_timer_init(loop->handle(), get());
+    setThis(this);
 }
 
 TimerSource::~TimerSource()
@@ -80,12 +77,12 @@ TimerSource::~TimerSource()
 
 void TimerSource::startTimer(uint64_t timeout, uint64_t repeat)
 {
-    uv_timer_start(&fUvTimer, TimerSource::Callback, timeout, repeat);
+    uv_timer_start(get(), TimerSource::Callback, timeout, repeat);
 }
 
 void TimerSource::stopTimer()
 {
-    uv_timer_stop(&fUvTimer);
+    uv_timer_stop(get());
 }
 
 void TimerSource::Callback(uv_timer_t *handle)
@@ -96,31 +93,21 @@ void TimerSource::Callback(uv_timer_t *handle)
 }
 
 AsyncSource::AsyncSource(EventLoop *loop)
-    : EventSource(loop),
-      fUvAsync{},
-      fDisabled(false)
+    : EventSource(loop), fDisabled(false)
 {
-    uv_async_init(loop->handle(), &fUvAsync, AsyncSource::Callback);
-    uv_handle_set_data((uv_handle_t*)&fUvAsync, this);
-}
-
-AsyncSource::~AsyncSource()
-{
-    disableAsync();
+    uv_async_init(loop->handle(), get(), AsyncSource::Callback);
+    setThis(this);
 }
 
 void AsyncSource::disableAsync()
 {
-    if (!fDisabled)
-    {
-        uv_unref((uv_handle_t *) &fUvAsync);
-        fDisabled = true;
-    }
+    fDisabled = true;
 }
 
 void AsyncSource::wakeupAsync()
 {
-    uv_async_send(&fUvAsync);
+    if (!fDisabled)
+        uv_async_send(get());
 }
 
 void AsyncSource::Callback(uv_async_t *handle)
@@ -129,35 +116,33 @@ void AsyncSource::Callback(uv_async_t *handle)
     pThis->asyncDispatch();
 }
 
-CheckHandleSource::CheckHandleSource(EventLoop *loop)
-    : EventSource(loop),
-      fCheck{}
+LoopPrologueSource::LoopPrologueSource(EventLoop *loop)
+    : EventSource(loop)
 {
-    uv_check_init(loop->handle(), &fCheck);
-    uv_handle_set_data((uv_handle_t*)&fCheck, this);
+    uv_prepare_init(loop->handle(), get());
+    setThis(this);
 }
 
-CheckHandleSource::~CheckHandleSource()
+LoopPrologueSource::~LoopPrologueSource()
 {
-    uv_check_stop(&fCheck);
-    uv_unref((uv_handle_t*)&fCheck);
+    uv_prepare_stop(get());
 }
 
-void CheckHandleSource::startCheckHandle()
+void LoopPrologueSource::startLoopPrologue()
 {
-    uv_check_start(&fCheck, CheckHandleSource::Callback);
+    uv_prepare_start(get(), LoopPrologueSource::Callback);
 }
 
-void CheckHandleSource::stopCheckHandle()
+void LoopPrologueSource::stopLoopPrologue()
 {
-    uv_check_stop(&fCheck);
+    uv_prepare_stop(get());
 }
 
-void CheckHandleSource::Callback(uv_check_t *handle)
+void LoopPrologueSource::Callback(uv_prepare_t *handle)
 {
-    auto *pThis = reinterpret_cast<CheckHandleSource*>(uv_handle_get_data((uv_handle_t*)handle));
-    if (pThis->checkHandleDispatch() == KeepInLoop::kNo)
-        pThis->stopCheckHandle();
+    auto *pThis = reinterpret_cast<LoopPrologueSource*>(uv_handle_get_data((uv_handle_t*)handle));
+    if (pThis->loopPrologueDispatch() == KeepInLoop::kNo)
+        pThis->stopLoopPrologue();
 }
 
 } // namespace cocoa

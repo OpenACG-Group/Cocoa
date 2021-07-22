@@ -33,7 +33,7 @@ void xkb_journal_forwarder(xkb_context *pCtx, enum xkb_log_level level, const ch
     size_t bufferSize = 512;
     size_t requireSize = std::vsnprintf(nullptr, 0, fmt, args);
 
-    BeforeLeaveScope leave([buffer]() -> void {
+    ScopeEpilogue leave([buffer]() -> void {
         delete[] buffer;
     });
     if (requireSize > bufferSize)
@@ -42,7 +42,7 @@ void xkb_journal_forwarder(xkb_context *pCtx, enum xkb_log_level level, const ch
         bufferSize = requireSize + 1;
     }
     else
-        leave.cancel();
+        leave.abolish();
 
     std::vsnprintf(buffer, bufferSize, fmt, args);
     Journal::Ref()(jLevel, "XKB@proxy:{}: {}", fmt::ptr(xkb_context_get_user_data(pCtx)), buffer);

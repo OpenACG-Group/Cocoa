@@ -38,7 +38,7 @@ public:
     };
 
     Context(EventLoop *loop, Backend backend);
-    ~Context() = default;
+    ~Context();
 
     va_nodiscard Backend backend() const
     { return fBackend; }
@@ -48,8 +48,11 @@ public:
     va_nodiscard inline EventLoop *eventLoop()
     { return fEventLoop; }
     va_nodiscard Handle<VaDisplay> display(int32_t id);
+    va_nodiscard inline bool hasDisplay(int32_t id)
+    { return fDisplays.contains(id); }
 
     void connectTo(char const *displayName, int32_t id);
+    bool allDisplaysAreUnique();
 
 private:
     EventLoop                       *fEventLoop;

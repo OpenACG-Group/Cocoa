@@ -11,13 +11,13 @@
 
 namespace cocoa {
 
-class BeforeLeaveScope
+class ScopeEpilogue
 {
 public:
-    explicit BeforeLeaveScope(std::function<void(void)> func);
-    ~BeforeLeaveScope();
+    explicit ScopeEpilogue(std::function<void(void)> func);
+    ~ScopeEpilogue();
 
-    void cancel();
+    void abolish();
 
 private:
     std::function<void(void)>   fFunction;

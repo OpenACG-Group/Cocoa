@@ -14,5 +14,13 @@ add_library(Scripter STATIC
             Ops.cc
             OpParameterInfo.cc
             ModuleUrl.h
-            ModuleUrl.cc)
+            ModuleUrl.cc
+            Internals.h
+            Internals.cc
+            ResourceDescriptorPool.h
+            ResourceDescriptorPool.cc
+            ResourceObject.h
+            GprTimer.h
+            GprTimer.cc
+            GprObjectWrapper.h)
 target_link_libraries(Scripter PRIVATE v8_libplatform v8)

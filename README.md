@@ -1,28 +1,21 @@
-Cocoa: 2D Rendering Engine
-==========================
-**************************
+Cocoa
+=====
+*****
 
-Introduction
-------------
-Cocoa is a 2D rendering engine written in C++. It provides a simple and quick way to create
-your own 2D interface by using Javascript (Typescript is optional).
-
-Cocoa can be used in many situations such as game, user interface or something else.
+Cocoa 是高性能、现代化的通用 2D 渲染引擎。
 
 Architecture
 ------------
-Cocoa consists of different modules:
+Cocoa consists of different parts:
 * **Core** provides basic functions for other parts.
-* **Ciallo** is a powerful and hardware-accelerated 2D rendering engine based on Skia.
-* **Komorebi** implements many widget in C++, and runs Javascript.
-* **MaidCafe** implements a "standard library" for Javascript. It allows Javascript
-  to read/write files, access network, play audio and so on. It compatible with Node.js.
-* **Reactor** is a JIT compiler based on LLVM.
+* **Vanilla** is an abstraction layer of window systems, and a hardware-accelerated
+  2D rendering engine based on Google's Skia.
+* **Komorebi** is an JIT implementation of Vanilla Shading Language (VSL) base on LLVM.
+* **Scripter** Executes JavaScript, and provides an runtime environment like Node.js.
 
-Javascript in Cocoa
------------------------
-Cocoa's Javascript engine is totally compatible with Node.js.
-See *docs/* directory for more detailed documentations.
+JavaScript in Cocoa
+-------------------
+Many modern operating systems divides the whole system into userspace and kernel-space.
 
 Animations
 ----------

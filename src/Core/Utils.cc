@@ -71,7 +71,10 @@ void DumpRuntimeException(const RuntimeException& except)
     for (const RuntimeException::Frame& f : except.frames())
     {
         std::ostringstream hdr, content;
-        hdr << "  " << f.pc << " <+" << f.offset << ">";
+        if (f.symbol == "Unknown")
+            hdr << "  " << f.pc << " <...>";
+        else
+            hdr << "  " << f.pc << " <+" << f.offset << ">";
         content << f.symbol << " from " << f.file;
 
         table.append(hdr.str(), content.str());
@@ -82,4 +85,12 @@ void DumpRuntimeException(const RuntimeException& except)
     });
 }
 
-} // namespace cocoa
+std::string GetAbsoluteDirectory(const std::string& dir)
+{
+    char buf[PATH_MAX];
+    realpath(dir.c_str(), buf);
+
+    return buf;
+}
+
+} // namespace cocoa::utils

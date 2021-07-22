@@ -7,6 +7,6 @@
     },
 
     "files": [
-        "./IOTest.ts"
+        "./test.ts"
     ]
 }

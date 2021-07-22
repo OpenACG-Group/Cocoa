@@ -123,10 +123,18 @@ void Run()
     v8::Isolate::Scope isolateScope(runtime->isolate());
     v8::HandleScope handleScope(runtime->isolate());
     v8::Context::Scope contextScope(runtime->context());
-    const char *script = R"(
-Cocoa.core.opCall(Cocoa.core.OP_PRINT, {str: "Hello, Javascript!"});
-)";
-    runtime->execute(script);
+
+    runtime->evaluateModule("../maidcafe/out/test.js");
+
+    EventLoop::Ref().walk([](uv_handle_t *handle) -> void {
+        std::cout << uv_handle_type_name(uv_handle_get_type(handle));
+        if (uv_is_active(handle))
+            std::cout << " [ACT]";
+        std::cout << std::endl;
+    });
+
+    EventLoop::Ref().run();
+
 #endif
 
 #if 0
@@ -156,7 +164,7 @@ Cocoa.core.opCall(Cocoa.core.OP_PRINT, {str: "Hello, Javascript!"});
 
 int Main(int argc, char const **argv)
 {
-    BeforeLeaveScope beforeLeaveScope([]() -> void { Finalize(); });
+    ScopeEpilogue beforeLeaveScope([]() -> void { Finalize(); });
     try
     {
         switch (Initialize(argc, argv))

@@ -2,13 +2,15 @@
 #define COCOA_RUNTIME_H
 
 #include <memory>
+#include <map>
 
 #include "include/v8.h"
 #include "Core/UniquePersistent.h"
 #include "Core/EventSource.h"
+#include "Core/Exception.h"
 #include "Scripter/ScripterBase.h"
-#include "Scripter/AsyncOpTask.h"
-#include "Scripter/AsyncWorker.h"
+#include "Scripter/Ops.h"
+#include "Scripter/ResourceDescriptorPool.h"
 SCRIPTER_NS_BEGIN
 
 #define CHECKED(E)  E.ToLocalChecked()
@@ -18,7 +20,7 @@ SCRIPTER_NS_BEGIN
 void Initialize();
 void Dispose();
 
-class Runtime : public CheckHandleSource
+class Runtime : public LoopPrologueSource
 {
 public:
     struct Options
@@ -48,19 +50,28 @@ public:
     inline v8::Isolate *isolate()
     { return fIsolate; }
 
+    inline ResourceDescriptorPool& resourcePool()
+    { return *fResourcePool; }
+
     v8::Local<v8::Value> execute(const char *str);
     v8::Local<v8::Value> execute(const char *scriptName, const char *str);
 
-    void pushAsyncOpEntry(const OpEntry *entry, v8::Local<v8::Object> param,
-                          v8::Local<v8::Promise::Resolver> resolver);
+    v8::Local<v8::Module> compileModule(const std::string& url);
+    v8::Local<v8::Module> compileModule(const std::string& refererUrl, const std::string& url);
+    v8::Local<v8::Value> evaluateModule(const std::string& url);
+
+    void takeOverNativeException(const RuntimeException& exception);
 
 private:
-    KeepInLoop checkHandleDispatch() override;
+    KeepInLoop loopPrologueDispatch() override;
 
     std::unique_ptr<v8::Platform>   fPlatform;
     v8::ArrayBuffer::Allocator     *fArrayBufferAllocator;
     v8::Isolate                    *fIsolate;
     v8::Global<v8::Context>         fContext;
+    std::map<std::string, v8::Global<v8::Module>>
+                                    fModuleCache;
+    ResourceDescriptorPool         *fResourcePool;
 };
 
 SCRIPTER_NS_END

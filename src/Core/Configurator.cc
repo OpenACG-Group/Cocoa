@@ -307,8 +307,8 @@ Configurator::State Configurator::parse(int argc, const char **argv)
         else if_opt_l("work-directory")
         {
             require_argument
-            PropertyTreeNode::NewDataNode(PropertyTree::Instance()->resolve("/bootstrap"),
-                                          "pwd", opt.value.value());
+            PropertyTreeNode::NewDataNode(PropertyTree::Ref()("/bootstrap"),
+                                          "workingDir", utils::GetAbsoluteDirectory(opt.value.value()));
 
             utils::ChangeWorkDirectory(opt.value.value());
         }
@@ -322,12 +322,18 @@ Configurator::State Configurator::parse(int argc, const char **argv)
 #undef if_opt_l
 #undef require_argument
 
+    if (!PropertyTree::Ref()("/bootstrap/workingDir"))
+    {
+        PropertyTreeNode::NewDataNode(PropertyTree::Ref()("/bootstrap"),
+                                      "workingDir", utils::GetAbsoluteDirectory("."));
+    }
+
     if (scriptFile.size() != 1)
     {
         std::cerr << "At least one script file is required" << std::endl;
         return State::kError;
     }
-    PropertyTreeNode::NewDataNode(PropertyTree::Instance()->resolve("/bootstrap"),
+    PropertyTreeNode::NewDataNode(PropertyTree::Ref()("/bootstrap"),
                                   "scriptFile", scriptFile[0]);
 
     /* Pass 2: Loading default configuration */

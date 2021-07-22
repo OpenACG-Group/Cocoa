@@ -50,12 +50,65 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="625018aa-1ca1-4995-ae3f-94e4e8743e1f" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/maidcafe/internal:core.d.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/maidcafe/platform.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/maidcafe/test.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/res/ScenarioLoader.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/res/TestModule.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Scripter/GprObjectWrapper.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Scripter/GprTimer.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Scripter/GprTimer.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Scripter/Internals.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Scripter/Internals.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Cocoa2.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.jshintrc" beforeDir="false" afterPath="$PROJECT_DIR$/.jshintrc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/maidcafe/IOTest.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/maidcafe/PropertyTree.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/maidcafe/Stream.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/maidcafe/out/IOTest.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/maidcafe/out/PropertyTree.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/maidcafe/out/StandardIO.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/maidcafe/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/maidcafe/tsconfig.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/res/lab/Nuklear/demo/allegro5/Readme.md" beforeDir="false" afterPath="$PROJECT_DIR$/res/lab/Nuklear/demo/allegro5/Readme.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/res/lab/Vulkan-Loader/BUILD.md" beforeDir="false" afterPath="$PROJECT_DIR$/res/lab/Vulkan-Loader/BUILD.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/res/lab/Vulkan-Loader/CONTRIBUTING.md" beforeDir="false" afterPath="$PROJECT_DIR$/res/lab/Vulkan-Loader/CONTRIBUTING.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/res/lab/Vulkan-Loader/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/res/lab/Vulkan-Loader/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/res/lab/Vulkan-Loader/loader/LoaderAndLayerInterface.md" beforeDir="false" afterPath="$PROJECT_DIR$/res/lab/Vulkan-Loader/loader/LoaderAndLayerInterface.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/res/lab/Vulkan-Loader/scripts/update_deps.py" beforeDir="false" afterPath="$PROJECT_DIR$/res/lab/Vulkan-Loader/scripts/update_deps.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/test.js" beforeDir="false" afterPath="$PROJECT_DIR$/res/test.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Configurator.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Configurator.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/EventLoop.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EventLoop.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/EventLoop.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EventLoop.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/EventSource.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EventSource.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Exception.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Exception.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Exception.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Exception.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Utils.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utils.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Utils.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utils.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/AsyncOpTask.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/AsyncOpTask.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/AsyncWorker.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/AsyncWorker.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/ModuleUrl.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/ModuleUrl.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/ModuleUrl.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/ModuleUrl.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/OpParameterInfo.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/OpParameterInfo.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/Ops.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/Ops.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/Ops.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/Ops.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/Resource.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/ResourceDescriptorPool.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/ResourceDescriptorPool.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/ResourceDescriptorPool.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/ResourceObject.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/ResourceObject.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/Runtime.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/Runtime.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/Runtime.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Scripter/Runtime.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Scripter/core.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Context.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Context.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Context.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Context.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaKeyboardProxy.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/VaKeyboardProxy.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbDisplay.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbDisplay.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbEventQueue.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbEventQueue.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/depot_tools/PRESUBMIT.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/depot_tools/PRESUBMIT.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/depot_tools/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/depot_tools/README.md" afterDir="false" />
@@ -1347,9 +1400,9 @@
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="TypeScript File" />
-        <option value="JavaScript File" />
         <option value="Python Script" />
         <option value="CMakeLists.txt" />
+        <option value="JavaScript File" />
       </list>
     </option>
   </component>
@@ -1436,12 +1489,7 @@
         <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="Cocoa" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="-c ../res/config.json test.js" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/cmake-build-debug" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Cocoa" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="Cocoa">
+    <configuration name="Cocoa" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="-c ../res/config.json ../res/test.js" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/cmake-build-debug" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Cocoa" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="Cocoa">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -1746,7 +1794,11 @@
       <workItem from="1625839406715" duration="4210000" />
       <workItem from="1625927108690" duration="4765000" />
       <workItem from="1626012603249" duration="5455000" />
-      <workItem from="1626077106013" duration="16303000" />
+      <workItem from="1626077106013" duration="16485000" />
+      <workItem from="1626144801229" duration="37726000" />
+      <workItem from="1626837782111" duration="27513000" />
+      <workItem from="1626916901291" duration="539000" />
+      <workItem from="1626917463342" duration="546000" />
     </task>
     <servers />
   </component>
