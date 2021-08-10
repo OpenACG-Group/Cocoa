@@ -1,6 +1,8 @@
 # Cocoa — Visual Novel Engine for Linux
 This project belongs to [OpenACG Group](https://github.com/OpenACG-Group).
+
 Primary maintainer is [Sora](https://github.com/wait1210day).
+
 わたしわ、高性能ですから！
 
 ## Introduction
