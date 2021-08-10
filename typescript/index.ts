@@ -1,13 +1,17 @@
+import {delay} from "./timer";
+import {VGContext, VGDisplay, VGWindowBackend} from "./render/vg_context";
+import {VGRect} from "./render/vg_rect";
 import {Platform} from "./platform";
 
-class VaContext extends Platform.ResourceBase {
-    constructor(backend: string) {
-        let rid = Platform.trap("op_va_ctx_create", {backend: backend});
-        if (rid < 0)
-            throw Error(Platform.strerror(Platform.getErrno(rid)));
-        super(rid);
-    }
-}
+(async function() {
+    let context: VGContext = new VGContext(VGWindowBackend.kXcb);
+    let display: VGDisplay = context.connect(1);
 
-let ctx = new VaContext("XCB");
-ctx.dispose();
+    let size: VGRect = display.geometry();
+    Platform.trap("op_print", {str: "width = " + size.width.toString()});
+    Platform.trap("op_print", {str: "height = " + size.height.toString()});
+
+    await delay(1000);
+    display.close();
+    context.dispose();
+})();

@@ -6,9 +6,9 @@
 #include "Core/EventLoop.h"
 #include "Core/EventSource.h"
 #include "Vanilla/Context.h"
-#include "Vanilla/VaDisplay.h"
-#include "Vanilla/VaWindow.h"
-#include "Vanilla/VaDrawContext.h"
+#include "Vanilla/Display.h"
+#include "Vanilla/Window.h"
+#include "Vanilla/DrawContext.h"
 
 #include <gperftools/profiler.h>
 #include "general_tests.h"

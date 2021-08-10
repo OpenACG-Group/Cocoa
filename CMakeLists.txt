@@ -16,6 +16,8 @@ set(LIBUV_BUILD_TESTS false)
 add_subdirectory(third_party/libuv)
 unset(LIBUV_BUILD_TESTS)
 
+add_subdirectory(third_party/libsquash)
+
 ## Link options and include directories
 include_directories(
         src
@@ -23,6 +25,7 @@ include_directories(
         third_party/v8
         third_party/v8/include
         third_party/fmt/include
+        third_party/libsquash/include
         third_party/build/include
         third_party/build/include/dbus-cxx-2.0
         ${SIGC_INCLUDE_DIRS})
@@ -33,9 +36,9 @@ link_directories(third_party/skia/out/Shared
                  third_party/build/lib
                  ${SIGC_LIBRARY_DIRS})
 
-## To suppress warning from Poco library (Clang only)
-if(${CMAKE_CXX_COMPILER} MATCHES "clang")
-    add_compile_options("-Wno-implicit-const-int-float-conversion")
+## For libsquash
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(squash PRIVATE -Wno-incompatible-pointer-types-discards-qualifiers)
 endif()
 
 ## Compile options and targets
@@ -44,14 +47,12 @@ add_compile_options(-Wall -mrdrnd)
 
 add_subdirectory(src/Core)
 add_subdirectory(src/Vanilla)
-add_subdirectory(src/Scripter)
-add_executable(Cocoa
-               src/Main.cc
-               src/general_tests.h
-               #src/vanilla_render_test.cc
-               src/vanilla_xcb_test.cc)
+add_subdirectory(src/Koi)
+add_executable(Cocoa src/Main.cc)
 
 target_link_libraries(Cocoa PRIVATE
+                      Koi
                       Vanilla
-                      Scripter
                       Core)
+
+add_subdirectory(test)

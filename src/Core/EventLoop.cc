@@ -102,6 +102,7 @@ AsyncSource::AsyncSource(EventLoop *loop)
 void AsyncSource::disableAsync()
 {
     fDisabled = true;
+    uv_unref(reinterpret_cast<uv_handle_t*>(get()));
 }
 
 void AsyncSource::wakeupAsync()

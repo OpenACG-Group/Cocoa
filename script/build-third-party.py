@@ -3,8 +3,7 @@
 import os
 import json
 import subprocess
-
-import cephfs
+import argparse
 
 
 class PackageLists:
@@ -23,7 +22,7 @@ class GlobalVariables:
             raise FileNotFoundError("Couldn't find configuration file " + self.json_config_path)
         json_file = open(self.json_config_path, "r")
         self.config = json.load(json_file, object_hook=PackageLists)
-        self.targets = ["dbus-cxx"]
+        self.targets = []
         self.force_refetch = False
 
 
@@ -146,11 +145,24 @@ def parse_root():
     package_count = len(__global.targets)
 
     print(str(len(__global.targets)) + " package(s) will be processed")
+    input("Press enter to continue...")
 
     idx = 1
     for obj in __global.config.packages:
         if obj.name in __global.targets:
             parse_package(obj, idx, package_count)
             idx += 1
+
+
+cmd_parser = argparse.ArgumentParser(prog="build-third-party.py",
+                                     description="Fetch and build third-party dependencies",
+                                     add_help=True)
+cmd_parser.add_argument("--targets",
+                        type=str,
+                        help="Specify which targets will be built",
+                        default="")
+
+args = cmd_parser.parse_args()
+__global.targets = args.targets.split(',')
 
 parse_root()

@@ -8,22 +8,7 @@
 #include "Vanilla/Base.h"
 VANILLA_NS_BEGIN
 
-class VaDisplay;
-
-/**
- * A Vanilla context is the highest-level container in Vanilla
- * which holds all of the necessary object instances of your platform.
- *
- * Display is an abstraction of a connection to display server
- * (for an example, X11 server on Unix systems). It allows you create
- * windows and acquire some information about display server. Display
- * also takes responsibility for receiving and handling events that
- * is sent by display server.
- *
- * Context will connect to the DBus daemon as soon as it's constructed
- * if DBus daemon is active. Then it requests a DBus service name
- * "org.OpenACG.Cocoa".
- */
+class Display;
 class Context : public std::enable_shared_from_this<Context>
 {
 public:
@@ -47,17 +32,18 @@ public:
 
     va_nodiscard inline EventLoop *eventLoop()
     { return fEventLoop; }
-    va_nodiscard Handle<VaDisplay> display(int32_t id);
+    va_nodiscard Handle<Display> display(int32_t id);
     va_nodiscard inline bool hasDisplay(int32_t id)
     { return fDisplays.contains(id); }
 
     void connectTo(char const *displayName, int32_t id);
+    void detachDisplay(int32_t id);
     bool allDisplaysAreUnique();
 
 private:
     EventLoop                       *fEventLoop;
     Backend                          fBackend;
-    std::map<int32_t, Handle<VaDisplay>>
+    std::map<int32_t, Handle<Display>>
                                      fDisplays;
 };
 

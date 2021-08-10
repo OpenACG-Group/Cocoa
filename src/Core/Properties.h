@@ -7,6 +7,8 @@
 #include <map>
 #include <any>
 
+#include "Core/Project.h"
+
 namespace cocoa {
 
 class PropertyNode : public std::enable_shared_from_this<PropertyNode>
@@ -47,6 +49,12 @@ public:
     void setMember(const std::string& name, std::shared_ptr<PropertyNode> member);
     void unsetMember(const std::string& name);
 
+    co_nodiscard inline auto begin()
+    { return fMembers.begin(); }
+
+    co_nodiscard inline auto end()
+    { return fMembers.end(); }
+
 private:
     std::map<std::string, std::shared_ptr<PropertyNode>> fMembers;
 };
@@ -60,6 +68,15 @@ public:
     void append(std::shared_ptr<PropertyNode> node);
     void erase(uint32_t i0);
     std::shared_ptr<PropertyNode> at(uint32_t i0);
+
+    co_nodiscard inline auto begin()
+    { return fSubscripts.begin(); }
+
+    co_nodiscard inline auto end()
+    { return fSubscripts.end(); }
+
+    co_nodiscard inline size_t size() const
+    { return fSubscripts.size(); }
 
 private:
     std::vector<std::shared_ptr<PropertyNode>> fSubscripts;

@@ -69,6 +69,10 @@ export var Platform;
         return "Unknown error";
     }
     Platform.strerror = strerror;
+    function errorByTrapsRetValue(desc, ret) {
+        return Error(desc + ": " + strerror(getErrno(ret)));
+    }
+    Platform.errorByTrapsRetValue = errorByTrapsRetValue;
     function trap(name, args) {
         if (name.endsWith("_async"))
             return -ErrorNumber.ErrAsync;
@@ -85,8 +89,12 @@ export var Platform;
     Platform.trapAsync = trapAsync;
     class ResourceBase {
         constructor(rid) {
-            this.rid = rid;
+            if (rid)
+                this.rid = rid;
             this.disposed = false;
+        }
+        setDescriptor(rid) {
+            this.rid = rid;
         }
         getDescriptor() {
             return this.rid;

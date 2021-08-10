@@ -5,6 +5,11 @@
 #error Project.h only can be included in Cocoa Project
 #endif
 
+#define co_noncopyable(T) \
+public:                   \
+T(const T&) = delete;     \
+T& operator=(const T&) = delete;
+
 #define COCOA_MAJOR     1
 #define COCOA_MINOR     0
 #define COCOA_PATCH     0
@@ -15,6 +20,8 @@
 
 #define COCOA_VERSION   "1.0.0-develop"
 #define COCOA_LICENSE   "General Public License (GPLv3)"
+
+#define co_nodiscard    [[nodiscard]]
 
 /* Compiler compatibilities */
 #define _SHARP #

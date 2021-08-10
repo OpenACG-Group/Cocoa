@@ -9,8 +9,11 @@
 #include "Core/Journal.h"
 #include "Core/Exception.h"
 #include "Core/EventLoop.h"
+#include "Core/CrpkgImage.h"
 
-#include "Scripter/Runtime.h"
+#include "Koi/Runtime.h"
+
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Main)
 
 namespace cocoa {
 namespace cmd {
@@ -98,6 +101,13 @@ const Template gTemplates[] = {
         {
             .longName = "disable-color-log",
             .desc = "Don't print logs with colors through ANSI escape code"
+        },
+        {
+            .longName = "enable-op-invocation-trace",
+            .hasValue = Template::RequireValue::kOptional,
+            .valueType = ValueType::kString,
+            .desc = "Trace JavaScript Op invocations. Write the trace output to "
+                    "the file rather than to log if specified."
         }
 };
 
@@ -400,6 +410,15 @@ void PrintVersion()
     fmt::print("Copyright (C) 2021 OpenACG Group | GPLv3 License\n");
 }
 
+void PrintGreeting()
+{
+    LOGF(LOG_INFO, "%fg<hl>Cocoa 2D Rendering Framework, version {}%reset", COCOA_VERSION)
+    LOGW(LOG_INFO, "%fg<hl>Copyright (C) 2021 OpenACG Group | GPLv3 License%reset")
+    auto dir = prop::Cast<PropertyDataNode>(prop::Get()->next("runtime")->next("working-path"))
+                ->extract<std::string>();
+    LOGF(LOG_INFO, "Startup script %fg<ye,hl>{}/index.js%reset", dir)
+}
+
 } // namespace cmd
 
 #define arg_longopt_match(s) (!std::strcmp(arg.matchedTemplate->longName, s))
@@ -452,19 +471,29 @@ cmd::ParseState InitializeProperties(const char **argv, cmd::ParseResult& args)
         std::cerr << "Too many arguments" << std::endl;
         return cmd::ParseState::kError;
     }
-    else if (args.orphans.size() > 0)
+    else if (!args.orphans.empty())
         workingPath = utils::GetAbsoluteDirectory(args.orphans[0]);
 
-    std::string execFile = utils::GetExecutablePath();
-    std::string execPath = execFile.substr(0, execFile.find_last_of('/') + 1);
+    /* Set `runtime` property object */
+    {
+        std::string execFile = utils::GetExecutablePath();
+        std::string execPath = execFile.substr(0, execFile.find_last_of('/') + 1);
 
-    auto runtimeProp = prop::New<PropertyObjectNode>();
-    runtimeProp->setMember("cmdline", prop::New<PropertyDataNode>(std::string(argv[0])));
-    runtimeProp->setMember("executable-file", prop::New<PropertyDataNode>(execFile));
-    runtimeProp->setMember("executable-path", prop::New<PropertyDataNode>(execPath));
-    runtimeProp->setMember("working-path", prop::New<PropertyDataNode>(workingPath));
+        auto runtimeProp = prop::New<PropertyObjectNode>();
+        runtimeProp->setMember("cmdline", prop::New<PropertyDataNode>(std::string(argv[0])));
+        runtimeProp->setMember("executable-file", prop::New<PropertyDataNode>(execFile));
+        runtimeProp->setMember("executable-path", prop::New<PropertyDataNode>(execPath));
+        runtimeProp->setMember("working-path", prop::New<PropertyDataNode>(workingPath));
+        prop::Get()->setMember("runtime", runtimeProp);
+    }
 
-    prop::Get()->setMember("runtime", runtimeProp);
+    /* Set `system` property object */
+    {
+        auto systemProp = prop::New<PropertyObjectNode>();
+        systemProp->setMember("mem-page-size", prop::New<PropertyDataNode>(utils::GetMemPageSize()));
+        prop::Get()->setMember("system", systemProp);
+    }
+
     return cmd::ParseState::kSuccess;
 }
 
@@ -500,7 +529,14 @@ cmd::ParseState Initialize(int argc, char const **argv)
         return cmd::ParseState::kError;
 
     EventLoop::New();
-    scripter::Initialize();
+    koi::Initialize();
+
+    {
+        auto persistentNode = prop::New<PropertyObjectNode>();
+        persistentNode->setMember("event-loop", prop::New<PropertyDataNode>(EventLoop::Instance()));
+        persistentNode->setMember("journal", prop::New<PropertyDataNode>(Journal::Instance()));
+        prop::Get()->setMember("persistent", persistentNode);
+    }
 
     return cmd::ParseState::kSuccess;
 }
@@ -509,39 +545,53 @@ cmd::ParseState Initialize(int argc, char const **argv)
 
 void Finalize()
 {
-    scripter::Dispose();
+    koi::Dispose();
     EventLoop::Delete();
     Journal::Delete();
 }
 
 void Execute()
 {
+    LOGW(LOG_INFO, "Current Properties Tree:")
+    utils::DumpProperties(prop::Get());
+
     auto workingPath = prop::Cast<PropertyDataNode>(prop::Get()
             ->next("runtime")->next("working-path"))->extract<std::string>();
     auto execPath = prop::Cast<PropertyDataNode>(prop::Get()
             ->next("runtime")->next("executable-path"))->extract<std::string>();
 
-    auto runtime = scripter::Runtime::MakeFromSnapshot(EventLoop::Instance(),
-                                                       execPath + "snapshot_blob.bin",
-                                                       execPath + "icudtl.dat");
+    std::string snapshotFile = execPath + "snapshot_blob.bin";
+    auto runtime = koi::Runtime::MakeFromSnapshot(EventLoop::Instance(), snapshotFile);
     v8::Isolate::Scope isolateScope(runtime->isolate());
     v8::HandleScope handleScope(runtime->isolate());
     v8::Context::Scope contextScope(runtime->context());
 
-    runtime->evaluateModule("index.js");
+    v8::Local<v8::Value> result;
+    if (!runtime->evaluateModule("index.js").ToLocal(&result))
+        return;
     EventLoop::Ref().run();
 }
 
 int Main(int argc, char const **argv)
 {
-    ScopeEpilogue beforeLeaveScope([]() -> void { Finalize(); });
+    ScopeEpilogue epilogue([]() -> void {
+        Finalize();
+    });
+
     try {
         switch (Initialize(argc, argv))
         {
-        case cmd::ParseState::kError:   return EXIT_FAILURE;
-        case cmd::ParseState::kExit:    return EXIT_SUCCESS;
-        case cmd::ParseState::kSuccess: break;
+        case cmd::ParseState::kError:
+            return EXIT_FAILURE;
+
+        case cmd::ParseState::kExit:
+            return EXIT_SUCCESS;
+
+        case cmd::ParseState::kSuccess:
+            break;
         }
+
+        cmd::PrintGreeting();
         Execute();
     } catch (const RuntimeException& e) {
         utils::DumpRuntimeException(e);

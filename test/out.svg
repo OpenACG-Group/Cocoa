@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1280pt" height="720pt" viewBox="0 0 1280 720" version="1.1">
-<g id="surface1">
-<rect x="0" y="0" width="1280" height="720" style="fill:rgb(100%,100%,100%);fill-opacity:1;stroke:none;"/>
-<path style="fill:none;stroke-width:2;stroke-linecap:butt;stroke-linejoin:miter;stroke:rgb(100%,0%,0%);stroke-opacity:1;stroke-miterlimit:10;" d="M 400 500 C 400 444.773438 444.773438 400 500 400 C 555.226562 400 600 444.773438 600 500 "/>
-</g>
-</svg>

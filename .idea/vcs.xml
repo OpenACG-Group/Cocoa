@@ -2,14 +2,11 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/res/lab/Nuklear" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/res/lab/Vulkan-Loader" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/dbus-cxx" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/depot_tools" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/fmt" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/libsquash" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/libuv" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/third_party/poco" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/skia" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/skia/buildtools" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/skia/third_party/externals/angle2" vcs="Git" />

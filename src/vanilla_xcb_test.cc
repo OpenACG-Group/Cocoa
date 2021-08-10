@@ -14,9 +14,9 @@
 #include "Core/RandomDevice.h"
 
 #include "Vanilla/Context.h"
-#include "Vanilla/VaDisplay.h"
-#include "Vanilla/VaWindow.h"
-#include "Vanilla/VaDrawContext.h"
+#include "Vanilla/Display.h"
+#include "Vanilla/Window.h"
+#include "Vanilla/DrawContext.h"
 
 #include "Vanilla/Shader/ShaderExecutor.h"
 

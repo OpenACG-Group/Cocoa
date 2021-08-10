@@ -6,26 +6,26 @@
 #include <optional>
 
 #include "fmt/format.h"
-#include "fmt/ranges.h"
 #include "Core/Journal.h"
+#include "Core/Filesystem.h"
 namespace cocoa {
 
 namespace {
 
-int open_real_journal_file(const char *path)
+int OpenRealJournalFile(const char *path)
 {
-    if (access(path, F_OK) == 0)
+    if (vfs::Access(path, {vfs::AccessMode::kExist}) == vfs::AccessResult::kOk)
     {
         std::string newName(std::string(path) + ".old");
-        if (rename(path, newName.c_str()) < 0)
+        if (vfs::Rename(path, newName) < 0)
         {
             fmt::print("Failed to rename old log file {}: {}\n", newName, std::strerror(errno));
             return -1;
         }
     }
 
-    int fd = open(path, O_WRONLY | O_CREAT,
-                  S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH);
+    int fd = vfs::Open(path, {vfs::OpenFlags::kWriteOnly, vfs::OpenFlags::kCreate},
+                       {vfs::Mode::kUsrR, vfs::Mode::kUsrW, vfs::Mode::kGrpR, vfs::Mode::kGrpW, vfs::Mode::kOthR});
     if (fd < 0)
     {
         fmt::print("Failed to open log file {}: {}\n", path, std::strerror(errno));
@@ -440,7 +440,7 @@ Journal::Journal(LogLevel level, OutputDevice output,
         fOutputFd = STDERR_FILENO;
         break;
     case OutputDevice::kFile:
-        fOutputFd = open_real_journal_file(file);
+        fOutputFd = OpenRealJournalFile(file);
         break;
     }
 
@@ -451,7 +451,7 @@ Journal::Journal(LogLevel level, OutputDevice output,
 Journal::~Journal()
 {
     if (fOutputFd != STDOUT_FILENO && fOutputFd == STDERR_FILENO)
-        close(fOutputFd);
+        vfs::Close(fOutputFd);
 }
 
 bool Journal::filter(LogType type)
@@ -501,7 +501,7 @@ void Journal::commit(LogType type, const std::string& str)
     }
 
     std::scoped_lock<std::mutex> lock(fWriteMutex);
-    write(fOutputFd, finalStr.c_str(), finalStr.length() + 1);
+    vfs::Write(fOutputFd, finalStr.c_str(), finalStr.length() + 1);
 }
 
 } // namespace cocoa

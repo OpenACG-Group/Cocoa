@@ -10,6 +10,14 @@
 #include "Core/UniquePersistent.h"
 namespace cocoa {
 
+#define COCOA_MODULE_NAME(name)  "org.OpenACG.Cocoa." #name
+
+#define LOGF(level, fmt, ...) \
+Journal::Ref()(level, "%fg<bl><{}>%reset " fmt, THIS_FILE_MODULE, __VA_ARGS__);
+
+#define LOGW(level, str) \
+Journal::Ref()(level, "%fg<bl><{}>%reset " str, THIS_FILE_MODULE);
+
 enum LogType
 {
     LOG_DEBUG       = 0x0001,

@@ -68,25 +68,34 @@ export namespace Platform {
         return "Unknown error";
     }
 
+    export function errorByTrapsRetValue(desc, ret): Error {
+        return Error(desc + ": " + strerror(getErrno(ret)));
+    }
+
     export function trap(name: string, args: object): number {
         if (name.endsWith("_async"))
             return -ErrorNumber.ErrAsync;
-        return Core.opCall(name, args);
+        return <number>Core.opCall(name, args);
     }
 
     export async function trapAsync(name: string, args: object): Promise<number> {
         if (!name.endsWith("_async"))
             return -ErrorNumber.ErrAsync;
-        return Core.opCall(name, args);
+        return <Promise<number>>Core.opCall(name, args);
     }
 
     export class ResourceBase {
-        protected rid: number;
+        private rid: number;
         private disposed: boolean;
 
-        constructor(rid: number) {
-            this.rid = rid;
+        constructor(rid?: number) {
+            if (rid)
+                this.rid = rid;
             this.disposed = false;
+        }
+
+        protected setDescriptor(rid: number) {
+            this.rid = rid;
         }
 
         getDescriptor(): number {

@@ -24,7 +24,7 @@ def analyze_file(file: str):
         return
 
     print("Analyzing file " + file)
-    fs = connectDisplay(file, "r")
+    fs = open(file, "r")
     for line in fs.readlines():
         Audit.total_lines += 1
         if regex.search(Patterns.single_line_comment, line) is not None:

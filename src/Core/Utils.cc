@@ -1,29 +1,20 @@
 #include <unistd.h>
 
+#include <cxxabi.h>
+
 #include "Core/Utils.h"
 #include "Core/Journal.h"
 #include "Core/MeasuredTable.h"
 #include "Core/Exception.h"
+#include "Core/Filesystem.h"
 namespace cocoa::utils {
 
-void ChangeWorkDirectory(const std::string& dir)
-{
-    int ret = ::chdir(dir.c_str());
-    if (ret < 0)
-    {
-        throw RuntimeException::Builder(__FUNCTION__)
-                .append("Failed to change working directory to \"")
-                .append(dir)
-                .append("\": ")
-                .append(strerror(errno))
-                .make<RuntimeException>();
-    }
-}
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Core)
 
 void DumpRuntimeException(const RuntimeException& except)
 {
-    Journal::Ref()(LOG_EXCEPTION, "{}:", except.what());
-    Journal::Ref()(LOG_EXCEPTION, "Traceback (most recent call last):");
+    LOGF(LOG_EXCEPTION, "{}:", except.what())
+    LOGW(LOG_EXCEPTION, "Traceback (most recent call last):")
 
     MeasuredTable table(1);
     for (const RuntimeException::Frame& f : except.frames())
@@ -39,47 +30,150 @@ void DumpRuntimeException(const RuntimeException& except)
     }
 
     table.flush([](const std::string& str) -> void {
-        Journal::Ref()(LOG_EXCEPTION, "{}", str);
+        LOGF(LOG_EXCEPTION, "{}", str)
     });
+}
+
+namespace {
+
+void dumpPropertiesObjectNode(const std::shared_ptr<PropertyObjectNode>& node, const std::string& name, int depth);
+void dumpPropertiesDataNode(const std::shared_ptr<PropertyDataNode>& node, const std::string& name, int depth);
+void dumpPropertiesArrayNode(const std::shared_ptr<PropertyArrayNode>& node, const std::string& name, int depth);
+
+void dumpPropertiesNode(const std::shared_ptr<PropertyNode>& node, const std::string& name, int depth)
+{
+    switch (node->kind())
+    {
+    case PropertyNode::Kind::kObject:
+        dumpPropertiesObjectNode(prop::Cast<PropertyObjectNode>(node), name, depth);
+        break;
+    case PropertyNode::Kind::kArray:
+        dumpPropertiesArrayNode(prop::Cast<PropertyArrayNode>(node), name, depth);
+        break;
+    case PropertyNode::Kind::kData:
+        dumpPropertiesDataNode(prop::Cast<PropertyDataNode>(node), name, depth);
+        break;
+    }
+}
+
+std::string genOutSpacing(int depth)
+{
+    std::string ret;
+    for (int i = 0; i < depth * 2; i++)
+        ret.push_back(' ');
+    return ret;
+}
+
+std::string genOutHeader(const std::string& name, int depth)
+{
+    std::ostringstream ret;
+    for (int i = 0; i < depth * 2; i++)
+        ret << ' ';
+    ret << "%fg<ye>" << name << "%reset<>: ";
+    return ret.str();
+}
+
+void dumpPropertiesDataNode(const std::shared_ptr<PropertyDataNode>& node, const std::string& name, int depth)
+{
+    auto s = genOutHeader(name, depth);
+#define T_(t)  (node->type() == typeid(t))
+    if (T_(int8_t) || T_(int16_t) || T_(int32_t) || T_(int64_t))
+    {
+        LOGF(LOG_INFO, "{}%fg<ma>{}%reset", s, node->extract<int64_t>())
+    }
+    else if (T_(uint8_t))
+    {
+        LOGF(LOG_INFO, "{}%fg<ma>0x{:02x}%reset", s, node->extract<uint8_t>())
+    }
+    else if (T_(uint16_t) || T_(uint32_t) || T_(uint64_t))
+    {
+        LOGF(LOG_INFO, "{}%fg<ma>{}U%reset", s, node->extract<uint64_t>())
+    }
+    else if (T_(float))
+    {
+        LOGF(LOG_INFO, "{}%fg<ma>{}f%reset", s, node->extract<float>())
+    }
+    else if (T_(double))
+    {
+        LOGF(LOG_INFO, "{}%fg<ma>{}%reset", s, node->extract<double>())
+    }
+    else if (T_(long double))
+    {
+        LOGF(LOG_INFO, "{}%fg<ma>{}%reset", s, node->extract<long double>())
+    }
+    else if (T_(const char*))
+    {
+        /* Disable the syntax log while printing a string to avoid replacements in the string. */
+        LOGF(LOG_INFO, "{}%fg<gr>%disable\"{}\"%enable%reset", s, node->extract<const char*>())
+    }
+    else if (T_(std::string))
+    {
+        LOGF(LOG_INFO, "{}%fg<gr>%disable\"{}\"%enable%reset", s, node->extract<std::string&>())
+    }
+    else
+    {
+        char *demangledType = abi::__cxa_demangle(node->type().name(),
+                                                  nullptr, nullptr, nullptr);
+        if (!demangledType)
+        {
+            LOGF(LOG_INFO, "{}%fg<re><Corrupted typeinfo>%reset", s)
+        }
+        else
+        {
+            LOGF(LOG_INFO, "{}%fg<re><native-type {}>%reset", s, demangledType)
+            std::free(demangledType);
+        }
+    }
+#undef T_
+}
+
+void dumpPropertiesObjectNode(const std::shared_ptr<PropertyObjectNode>& node, const std::string& name, int depth)
+{
+    auto s = genOutHeader(name, depth);
+    LOGF(LOG_INFO, "{}{{", s)
+
+    for (const auto& child : *node)
+        dumpPropertiesNode(child.second, child.first, depth + 1);
+
+    LOGF(LOG_INFO, "{}}}", genOutSpacing(depth))
+}
+
+void dumpPropertiesArrayNode(const std::shared_ptr<PropertyArrayNode>& node, const std::string& name, int depth)
+{
+    auto s = genOutHeader(name, depth);
+    LOGF(LOG_INFO, "{}[", s)
+
+    int32_t idx = 0;
+    for (const auto& subscript : *node)
+        dumpPropertiesNode(subscript, fmt::format("[{}]", idx++), depth + 1);
+
+    LOGF(LOG_INFO, "{}]", genOutSpacing(depth))
+}
+
+} // namespace anonymous
+
+void DumpProperties(const std::shared_ptr<PropertyNode>& root)
+{
+    dumpPropertiesNode(root, "<root>", 0);
 }
 
 std::string GetAbsoluteDirectory(const std::string& dir)
 {
-    char buf[PATH_MAX];
-    realpath(dir.c_str(), buf);
-
-    return buf;
+    return vfs::Realpath(dir);
 }
 
 std::string GetExecutablePath()
 {
-    typedef std::vector<char> char_vector;
-    typedef std::vector<char>::size_type size_type;
-    char_vector buf(1024, 0);
-    size_type size = buf.size();
-    bool havePath = false;
-    bool shouldContinue = true;
-    do
-    {
-        ssize_t result = readlink("/proc/self/exe", &buf[0], size);
-        if (result < 0)
-            shouldContinue = false;
-        else if (static_cast<size_type>(result) < size)
-        {
-            havePath = true;
-            shouldContinue = false;
-            size = result;
-        }
-        else
-        {
-            size *= 2;
-            buf.resize(size);
-            std::fill(std::begin(buf), std::end(buf), 0);
-        }
-    } while (shouldContinue);
-    if (!havePath)
-        throw std::runtime_error("Failed to get executable path");
-    return std::string(&buf[0], size);
+#ifdef __linux__
+    return vfs::ReadLink("/proc/self/exe");
+#else
+#error Unsupported platform
+#endif
+}
+
+size_t GetMemPageSize()
+{
+    return getpagesize();
 }
 
 } // namespace cocoa::utils

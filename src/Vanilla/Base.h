@@ -1,6 +1,7 @@
 #ifndef COCOA_VANILLA_BASE_H
 #define COCOA_VANILLA_BASE_H
 
+#include <cstdint>
 #include <memory>
 #include <ostream>
 #include <source_location>
@@ -18,6 +19,7 @@ VANILLA_NS_BEGIN
 
 /* Other definitions */
 #define va_nodiscard    [[nodiscard]]
+#define va_maybe_unused [[maybe_unused]]
 
 class VanillaException : public RuntimeException
 {
@@ -31,24 +33,33 @@ template<typename T> using Handle = std::shared_ptr<T>;
 template<typename T> using UniqueHandle = std::unique_ptr<T>;
 template<typename T> using WeakHandle = std::weak_ptr<T>;
 
-using VaScalar = double;
-class VaVec2f
+namespace vec
 {
-public:
-    VaVec2f(VaScalar x, VaScalar y) : fX(x), fY(y) {}
-    ~VaVec2f() = default;
-    va_nodiscard inline VaScalar x() const { return fX; }
-    va_nodiscard inline VaScalar y() const { return fY; }
-private:
-    VaScalar fX;
-    VaScalar fY;
-};
+typedef int16_t __attribute__((vector_size(8))) short4;
+typedef int32_t __attribute__((vector_size(8))) int2;
+typedef float __attribute__((vector_size(8))) float2;
+typedef int8_t __attribute__((vector_size(8))) char8;
+typedef uint16_t __attribute__((vector_size(8))) ushort4;
+typedef uint32_t __attribute__((vector_size(8))) uint2;
+typedef uint8_t __attribute__((vector_size(8))) uchar8;
 
-VaVec2f operator+(const VaVec2f& a, const VaVec2f& b);
-VaVec2f operator-(const VaVec2f& a);
-VaVec2f operator-(const VaVec2f& a, const VaVec2f& b);
-VaVec2f operator*(const VaVec2f& a, VaScalar scalar);
-std::ostream& operator<<(std::ostream& os, const VaVec2f& v);
+typedef int16_t __attribute__((vector_size(16))) short8;
+typedef int32_t __attribute__((vector_size(16))) int4;
+typedef float __attribute__((vector_size(16))) float4;
+typedef int8_t __attribute__((vector_size(16))) char16;
+typedef uint16_t __attribute__((vector_size(16))) ushort8;
+typedef uint32_t __attribute__((vector_size(16))) uint4;
+typedef uint8_t __attribute__((vector_size(16))) uchar16;
+
+typedef int16_t __attribute__((vector_size(32))) short16;
+typedef int32_t __attribute__((vector_size(32))) int8;
+typedef int8_t __attribute__((vector_size(32))) char32;
+typedef uint16_t __attribute__((vector_size(32))) ushort16;
+typedef uint32_t __attribute__((vector_size(32))) uint8;
+typedef uint8_t __attribute__((vector_size(32))) uchar32;
+} // namespace vec
+
+using VaScalar = float;
 
 /* Signals */
 #define VA_SIG_SIGNATURE(signature, name) \

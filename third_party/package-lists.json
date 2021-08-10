@@ -93,23 +93,50 @@
             "-DENABLE_EXAMPLES=OFF",
             "-DENABLE_TOOLS=OFF",
             "-DCMAKE_INSTALL_PREFIX=${build_dir}",
+            "-DBUILD_TESTING=OFF",
+            "-DCMAKE_C_COMPILER=clang",
+            "-DCMAKE_CXX_COMPILER=clang++",
             "${source_dir}"
           ]
         },
         {
           "workingDir": "${build_dir}/dbus-cxx-build",
-          "command": [
-            "make",
-            "-j",
-            "${parallel_count}"
-          ]
+          "command": ["make", "-j", "${parallel_count}", "dbus-cxx"]
         },
         {
           "workingDir": "${build_dir}/dbus-cxx-build",
+          "command": ["make", "install"]
+        }
+      ]
+    },
+    {
+      "name": "libyuv",
+      "fetch": {
+        "protocol": "git",
+        "url": "https://chromium.googlesource.com/libyuv/libyuv"
+      },
+      "policy": "compile",
+      "temporaryDirs": [
+        "${build_dir}/libyuv-build"
+      ],
+      "compile": [
+        {
+          "workingDir": "${build_dir}/libyuv-build",
           "command": [
-            "make",
-            "install"
+            "cmake",
+            "-DCMAKE_C_COMPILER=clang",
+            "-DCMAKE_CXX_COMPILER=clang++",
+            "-DCMAKE_INSTALL_PREFIX=${build_dir}",
+            "${source_dir}"
           ]
+        },
+        {
+          "workingDir": "${build_dir}/libyuv-build",
+          "command": ["make", "-j", "${parallel_count}"]
+        },
+        {
+          "workingDir": "${build_dir}/libyuv-build",
+          "command": ["make", "install"]
         }
       ]
     }

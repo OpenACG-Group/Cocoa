@@ -1,0 +1,2 @@
+#[[signature]]
+cocoa::test_system:test-crpkg-package
