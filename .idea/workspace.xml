@@ -58,220 +58,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="625018aa-1ca1-4995-ae3f-94e4e8743e1f" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Core/CrpkgImage.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Core/CrpkgImage.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Core/CrpkgInputStream.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Core/CrpkgInputStream.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Core/Data.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Core/Data.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Core/Filesystem.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Core/FilesystemLinuxImpl.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/GpTimer.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/OpBaseImpl.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/OpRenderingImpl.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/OpTimerImpl.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/ResourceObject.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Audio/AuBuffer.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Audio/PulseConnection.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Audio/PulseConnection.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Codec/AVAudioFrame.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Codec/AVDecoder.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Codec/AVDecoderDecompressor.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Codec/AVDecoderDemuxer.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Codec/AVDecoderPrivate.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Codec/AVFrame.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Codec/AVFramePrivate.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Codec/AVVideoFrame.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Codec/VideoHWDeviceContext.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Codec/VideoHWDeviceContext.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/typescript/render/vg_context.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/typescript/render/vg_rect.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/typescript/timer.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Audio/AuCommon.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Audio/AuEffector.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Audio/PaConnection.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Audio/PaConnection.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/res/koinu.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/build-third-party.py" beforeDir="false" afterPath="$PROJECT_DIR$/script/build-third-party.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/cairo-draw-arc.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/cairo-gradient-rectangle.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/cairo-gradient-rectangle.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/cocoaproject/KTDLInterpreter.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/cpp-code-audit.py" beforeDir="false" afterPath="$PROJECT_DIR$/script/cpp-code-audit.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/main.mjs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/printer.mjs" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/script/static-text-compiler.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/EventLoop.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EventLoop.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Journal.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Journal.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Journal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Journal.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Project.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Project.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Properties.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Properties.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Utils.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utils.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Utils.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utils.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/ASTBaseNode.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/ASTBaseNode.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/ASTCodeBlockNode.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/ASTValue.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/CMakeLists.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/Example.krsl" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/KRSLParser.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/KRSLParser.hh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/KRSLParser.y" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/KRSLParserDriver.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/KRSLParserDriver.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/KRSLScanner.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/KRSLScanner.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/KRSLScanner.l" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/Namespace.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/ShaderContext.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/ShaderModule.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/ShaderModule.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/ShaderProgram.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/ShaderProgram.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Komorebi/location.hh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/ArrayBufferAllocator.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/ArrayBufferAllocator.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/GprObjectWrapper.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/GpObjectWrapper.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/GprTimer.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/GprTimer.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/GpTimer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/Internals.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Internals.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/Internals.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Internals.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/ModuleUrl.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/ModuleUrl.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/ModuleUrl.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/ModuleUrl.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/OpParameterInfo.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/OpParameterInfo.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/Ops.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Ops.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/Ops.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Ops.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/ResourceDescriptorPool.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/ResourceDescriptorPool.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/ResourceDescriptorPool.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/ResourceDescriptorPool.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/ResourceObject.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/ResourceObject.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/Runtime.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Runtime.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/Runtime.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Runtime.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Scripter/ScripterBase.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/KoiBase.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Base.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Base.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Base.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Base.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Audio/AuBuffer.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Audio/PulseConnection.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Audio/PulseConnection.h" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Vanilla/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Context.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Context.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Context.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Context.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaDisplay.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Display.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaDisplay.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Display.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaDrawContext.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/DrawContext.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaDrawContext.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/DrawContext.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaKeySymbols.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/KeySymbols.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaKeySymbols.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/KeySymbols.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaKeyboardProxy.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/KeyboardProxy.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaKeyboardProxy.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/KeyboardProxy.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaVkDrawContext.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/VkDrawContext.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaVkDrawContext.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/VkDrawContext.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaWindow.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Window.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaWindow.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Window.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbAtoms.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbAtoms.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbAtoms.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbAtoms.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbDisplay.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbDisplay.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbDisplay.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbDisplay.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbDisplayXInput.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbDisplayXInput.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbEventQueue.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbEventQueue.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbEventQueue.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbEventQueue.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbKeyboard.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbKeyboard.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbKeyboard.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbKeyboard.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbRasterDrawContext.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbRasterDrawContext.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbRasterDrawContext.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbRasterDrawContext.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbWindow.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbWindow.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/VaXcbWindow.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbWindow.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/vanilla_render_test.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/vanilla_render_test.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/vanilla_xcb_test.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/vanilla_xcb_test.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/virtfs/Base.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/virtfs/CMakeLists.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/virtfs/Operations.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/virtfs/Operations.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/virtfs/Rootfs/RootfsStorageObject.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/virtfs/Rootfs/RootfsStorageObject.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/virtfs/StorageObject.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/.gdb_history" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/CairoImageSurface" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/CairoImageSurface.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/Ciallo.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/CialloPicture.dat" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/IODispatchTest" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/IODispatchTest.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/KaleidoscopeJIT" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/KaleidoscopeJIT.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/KaleidoscopeJIT.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/OpenALTest.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/PocoNDC" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/PocoNDC.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/PocoSharedPtr" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/PocoSharedPtr.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/SharedMemory" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/SharedMemory.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/SlotsTest" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/SlotsTest.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/StaticMember" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/StaticMember.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/bitfield" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/bitfield.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/call" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/call.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/chinese" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/chinese.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/css_example" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/css_example.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/css_parse.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/css_parser" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/dwarf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/dwarf.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/ffi" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/ffi.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/glfw-vulkan" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/glfw-vulkan.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/hello" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/libglfw3.a" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/llvm_jit.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/mangle" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/mangle.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/mangle.so" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/mark_sweep_gc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/mark_sweep_gc.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/normalize_path" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/normalize_path.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/out.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/out.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/peda-session-unwind.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/restrict.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/rtld" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/rtld.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/shaders/draw_triangle.frag" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/shaders/draw_triangle.vert" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/shaders/frag.spv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/shaders/vert.spv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/shared_ptr_polymorphism" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/shared_ptr_polymorphism.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/sksl" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/sksl.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/sksl.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/slot_call.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/state-lex" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/state-lex.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/templateExpand" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/templateExpand.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/unwind" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/unwind.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/v8hello" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/v8hello.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/vk_draw_triangle" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/vk_draw_triangle.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/vulkan-exts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/vulkan-exts.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/xcb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/xcb-poly-line" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/xcb-poly-line.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/xcb.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/xclipboard" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/xclipboard.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/xcr" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/xcr.c" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Codec/AVAudioFrame.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Codec/AVAudioFrame.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Codec/AVFrame.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Codec/AVFrame.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/depot_tools/PRESUBMIT.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/depot_tools/PRESUBMIT.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/depot_tools/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/depot_tools/README.md" afterDir="false" />
@@ -1538,11 +1336,6 @@
       <change beforePath="$PROJECT_DIR$/third_party/v8/tools/update-object-macros-undef.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/update-object-macros-undef.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/inject-compilation-hints.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/inject-compilation-hints.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/wasm-objdump-compilation-hints.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/wasm-objdump-compilation-hints.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/internal:core.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/internal:core.d.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/out/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/out/platform.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/platform.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/platform.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/platform.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -1650,6 +1443,9 @@
         <option name="CLION.EXTERNAL.BUILD" enabled="true" />
       </method>
     </configuration>
+    <configuration name="ring_buffer" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Default" CONFIG_NAME="Default" RUN_PATH="$PROJECT_DIR$/test/ring_buffer">
+      <method v="2" />
+    </configuration>
     <configuration name="AVDecoderTest.OpenFile" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="AVDecoderTest" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="AVDecoderTest" TEST_CLASS="AVDecoderTest" TEST_METHOD="OpenFile" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -1708,7 +1504,7 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="simple_player" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="./res/gochiusa.flv" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="simple_player" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="simple_player">
+    <configuration name="simple_player" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="./res/TestSample/bgm/01_遠く君へ.m4a" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="simple_player" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="simple_player">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -1771,6 +1567,7 @@
       <item itemvalue="CMake Application.CrpkgTest" />
       <item itemvalue="CMake Application.simple_player" />
       <item itemvalue="CMake Application.squash" />
+      <item itemvalue="Custom Build Application.ring_buffer" />
       <item itemvalue="Google Test.CrpkgTest" />
       <item itemvalue="Google Test.CrpkgTest.FileRead" />
       <item itemvalue="Google Test.AVDecoderTest.OpenFile" />
@@ -2054,6 +1851,10 @@
       <workItem from="1628393237031" duration="31116000" />
       <workItem from="1628476214726" duration="25202000" />
       <workItem from="1628567123845" duration="18663000" />
+      <workItem from="1628649232277" duration="20381000" />
+      <workItem from="1628768862715" duration="14250000" />
+      <workItem from="1628826380219" duration="6684000" />
+      <workItem from="1628853422233" duration="8079000" />
     </task>
     <servers />
   </component>
@@ -2178,6 +1979,7 @@
       <path value="$PROJECT_DIR$/res/lab/Vulkan-Loader" />
       <path value="$PROJECT_DIR$/third_party/poco" />
       <path value="$PROJECT_DIR$/cmake-build-debug/_deps/googletest-src" />
+      <path value="$PROJECT_DIR$/third_party/libyuv" />
     </ignored-roots>
   </component>
   <component name="XDebuggerManager">

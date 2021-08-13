@@ -1,9 +1,12 @@
 #ifndef COCOA_AVFRAME_H
 #define COCOA_AVFRAME_H
 
+#include <tuple>
+
 #include "include/core/SkRefCnt.h"
 #include "include/core/SkBitmap.h"
 #include "Vanilla/Base.h"
+#include "Vanilla/Audio/AuCommon.h"
 VANILLA_NS_BEGIN
 
 class AVFrame
@@ -37,6 +40,10 @@ public:
 
     explicit AVAudioFrame(AVFramePrivate *pData);
     ~AVAudioFrame() override = default;
+
+    /* total (aligned) size, valid size, pointer to buffer */
+    std::tuple<size_t, size_t, uint8_t*> resample(const AuSampleSpec& spec);
+    void freeResampleData(uint8_t *data);
 };
 
 class AVVideoFrame : public AVFrame

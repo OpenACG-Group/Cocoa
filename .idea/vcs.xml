@@ -7,6 +7,7 @@
     <mapping directory="$PROJECT_DIR$/third_party/fmt" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/libsquash" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/libuv" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/libyuv" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/skia" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/skia/buildtools" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/skia/third_party/externals/angle2" vcs="Git" />

@@ -34,9 +34,10 @@ add_library(${target_name} STATIC
             Xcb/XcbEventQueue.cc
             Xcb/XcbRasterDrawContext.h
             Xcb/XcbRasterDrawContext.cc
-            Audio/PulseConnection.h
-            Audio/PulseConnection.cc
-            Audio/AuBuffer.h
+            Audio/AuCommon.h
+            Audio/PaConnection.h
+            Audio/PaConnection.cc
+            Audio/AuEffector.h
             Codec/AVDecoder.h
             Codec/AVDecoderPrivate.h
             Codec/AVDecoderDemuxer.cc
@@ -62,6 +63,7 @@ set(CODEC_LIBS
         avutil
         avcodec
         swscale
+        swresample
         yuv)
 
 set(RENDERER_LIBS

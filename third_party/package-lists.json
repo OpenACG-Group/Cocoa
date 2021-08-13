@@ -1,144 +1,144 @@
 {
-  "signature": "cocoa::build_system:package-list",
-  "version": "1.0.0",
-  "packages": [
-    {
-      "name": "libuv",
-      "fetch": {
-        "protocol": "git",
-        "url": "https://github.com/libuv/libuv"
-      },
-      "policy": "fetch-only"
-    },
-    {
-      "name": "fmt",
-      "fetch": {
-        "protocol": "git",
-        "url": "https://github.com/fmtlib/fmt"
-      },
-      "policy": "fetch-only"
-    },
-    {
-      "name": "skia",
-      "fetch": {
-        "protocol": "git",
-        "url": "https://github.com/google/skia"
-      },
-      "policy": "compile",
-      "compile": [
+    "signature": "cocoa::build_system:package-list",
+    "version": "1.0.0",
+    "packages": [
         {
-          "workingDir": "${source_dir}",
-          "command": [
-            "gn",
-            "gen",
-            "out/Shared",
-            "--args=is_component_build=true skia_use_vulkan=true skia_use_gl=false is_official_build=true cc=\"clang\" cxx=\"clang++\""
-          ]
+            "name": "libuv",
+            "fetch": {
+                "protocol": "git",
+                "url": "https://github.com/libuv/libuv"
+            },
+            "policy": "fetch-only"
         },
         {
-          "workingDir": "${source_dir}",
-          "command": [
-            "ninja",
-            "-C",
-            "out/Shared"
-          ]
+            "name": "fmt",
+            "fetch": {
+                "protocol": "git",
+                "url": "https://github.com/fmtlib/fmt"
+            },
+            "policy": "fetch-only"
+        },
+        {
+            "name": "skia",
+            "fetch": {
+                "protocol": "git",
+                "url": "https://github.com/google/skia"
+            },
+            "policy": "compile",
+            "compile": [
+                {
+                    "workingDir": "${source_dir}",
+                    "command": [
+                        "gn",
+                        "gen",
+                        "out/Shared",
+                        "--args=is_component_build=true skia_use_vulkan=true skia_use_gl=false is_official_build=true cc=\"clang\" cxx=\"clang++\""
+                    ]
+                },
+                {
+                    "workingDir": "${source_dir}",
+                    "command": [
+                        "ninja",
+                        "-C",
+                        "out/Shared"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "v8",
+            "fetch": {
+                "protocol": "git",
+                "url": "https://github.com/v8/v8"
+            },
+            "policy": "compile",
+            "compile": [
+                {
+                    "workingDir": "${source_dir}",
+                    "command": [
+                        "gn",
+                        "gen",
+                        "out/x64.release",
+                        "--args=use_custom_libcxx=false"
+                    ]
+                },
+                {
+                    "workingDir": "${source_dir}",
+                    "command": [
+                        "ninja",
+                        "-C",
+                        "out/x64.release"
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "dbus-cxx",
+            "fetch": {
+                "protocol": "git",
+                "url": "https://github.com/dbus-cxx/dbus-cxx"
+            },
+            "policy": "compile",
+            "temporaryDirs": [
+                "${build_dir}/dbus-cxx-build"
+            ],
+            "patch": [
+                "${patch_dir}/dbus-cxx-typeinfo.patch"
+            ],
+            "compile": [
+                {
+                    "workingDir": "${build_dir}/dbus-cxx-build",
+                    "command": [
+                        "cmake",
+                        "-DENABLE_EXAMPLES=OFF",
+                        "-DENABLE_TOOLS=OFF",
+                        "-DCMAKE_INSTALL_PREFIX=${build_dir}",
+                        "-DBUILD_TESTING=OFF",
+                        "-DCMAKE_C_COMPILER=clang",
+                        "-DCMAKE_CXX_COMPILER=clang++",
+                        "${source_dir}"
+                    ]
+                },
+                {
+                    "workingDir": "${build_dir}/dbus-cxx-build",
+                    "command": ["make", "-j", "${parallel_count}", "dbus-cxx"]
+                },
+                {
+                    "workingDir": "${build_dir}/dbus-cxx-build",
+                    "command": ["make", "install"]
+                }
+            ]
+        },
+        {
+            "name": "libyuv",
+            "fetch": {
+                "protocol": "git",
+                "url": "https://chromium.googlesource.com/libyuv/libyuv"
+            },
+            "policy": "compile",
+            "temporaryDirs": [
+                "${build_dir}/libyuv-build"
+            ],
+            "compile": [
+                {
+                    "workingDir": "${build_dir}/libyuv-build",
+                    "command": [
+                        "cmake",
+                        "-DCMAKE_C_COMPILER=clang",
+                        "-DCMAKE_CXX_COMPILER=clang++",
+                        "-DCMAKE_INSTALL_PREFIX=${build_dir}",
+                        "${source_dir}"
+                    ]
+                },
+                {
+                    "workingDir": "${build_dir}/libyuv-build",
+                    "command": ["make", "-j", "${parallel_count}"]
+                },
+                {
+                    "workingDir": "${build_dir}/libyuv-build",
+                    "command": ["make", "install"]
+                }
+            ]
         }
-      ]
-    },
-    {
-      "name": "v8",
-      "fetch": {
-        "protocol": "git",
-        "url": "https://github.com/v8/v8"
-      },
-      "policy": "compile",
-      "compile": [
-        {
-          "workingDir": "${source_dir}",
-          "command": [
-            "gn",
-            "gen",
-            "out/x64.release",
-            "--args=use_custom_libcxx=false"
-          ]
-        },
-        {
-          "workingDir": "${source_dir}",
-          "command": [
-            "ninja",
-            "-C",
-            "out/x64.release"
-          ]
-        }
-      ]
-    },
-    {
-      "name": "dbus-cxx",
-      "fetch": {
-        "protocol": "git",
-        "url": "https://github.com/dbus-cxx/dbus-cxx"
-      },
-      "policy": "compile",
-      "temporaryDirs": [
-        "${build_dir}/dbus-cxx-build"
-      ],
-      "patch": [
-        "${patch_dir}/dbus-cxx-typeinfo.patch"
-      ],
-      "compile": [
-        {
-          "workingDir": "${build_dir}/dbus-cxx-build",
-          "command": [
-            "cmake",
-            "-DENABLE_EXAMPLES=OFF",
-            "-DENABLE_TOOLS=OFF",
-            "-DCMAKE_INSTALL_PREFIX=${build_dir}",
-            "-DBUILD_TESTING=OFF",
-            "-DCMAKE_C_COMPILER=clang",
-            "-DCMAKE_CXX_COMPILER=clang++",
-            "${source_dir}"
-          ]
-        },
-        {
-          "workingDir": "${build_dir}/dbus-cxx-build",
-          "command": ["make", "-j", "${parallel_count}", "dbus-cxx"]
-        },
-        {
-          "workingDir": "${build_dir}/dbus-cxx-build",
-          "command": ["make", "install"]
-        }
-      ]
-    },
-    {
-      "name": "libyuv",
-      "fetch": {
-        "protocol": "git",
-        "url": "https://chromium.googlesource.com/libyuv/libyuv"
-      },
-      "policy": "compile",
-      "temporaryDirs": [
-        "${build_dir}/libyuv-build"
-      ],
-      "compile": [
-        {
-          "workingDir": "${build_dir}/libyuv-build",
-          "command": [
-            "cmake",
-            "-DCMAKE_C_COMPILER=clang",
-            "-DCMAKE_CXX_COMPILER=clang++",
-            "-DCMAKE_INSTALL_PREFIX=${build_dir}",
-            "${source_dir}"
-          ]
-        },
-        {
-          "workingDir": "${build_dir}/libyuv-build",
-          "command": ["make", "-j", "${parallel_count}"]
-        },
-        {
-          "workingDir": "${build_dir}/libyuv-build",
-          "command": ["make", "install"]
-        }
-      ]
-    }
-  ]
+    ]
 }
