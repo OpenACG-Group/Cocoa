@@ -1,6 +1,7 @@
 #include <thread>
 #include <tuple>
 #include <iostream>
+#include <memory>
 
 #include "include/libplatform/libplatform.h"
 #include "include/v8.h"
@@ -11,95 +12,58 @@
 #include "Core/EventLoop.h"
 #include "Koi/KoiBase.h"
 #include "Koi/Runtime.h"
-#include "Koi/Ops.h"
 #include "Koi/ModuleUrl.h"
+
+#include "Koi/binder/Module.h"
+#include "Koi/binder/Class.h"
+#include "Koi/lang/Base.h"
 KOI_NS_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi)
 
-void vmInvokeOpSynchronously(v8::Isolate *isolate, v8::Local<v8::Object> param, const OpEntry *opEntry,
-                             v8::ReturnValue<v8::Value>& returnValue)
-{
-    OpParameterInfo info(isolate, param, OpParameterInfo::StorageType::kLocal);
-    returnValue.Set(opEntry->pfn(info));
-}
-
-void vmInvokeOpAsynchronously(v8::Isolate *isolate, v8::Local<v8::Object> param, const OpEntry *opEntry,
-                              v8::ReturnValue<v8::Value>& returnValue)
-{
-    v8::Local<v8::Promise::Resolver> promiseResolver =
-            v8::Promise::Resolver::New(isolate->GetCurrentContext()).ToLocalChecked();
-    OpParameterInfo info(isolate,
-                         param,
-                         promiseResolver,
-                         OpParameterInfo::StorageType::kLocal);
-
-    opEntry->pfn(info);
-    returnValue.Set(promiseResolver->GetPromise());
-}
-
-void vmInvokeOp(const v8::FunctionCallbackInfo<v8::Value>& info)
-{
-    v8::Isolate *isolate = info.GetIsolate();
-    v8::Local<v8::Context> context = isolate->GetCurrentContext();
-    v8::ReturnValue<v8::Value> retValue = info.GetReturnValue();
-    if (info.Length() != 2)
-    {
-        retValue.Set(-OP_EARGC);
-        return;
-    }
-
-    if (!info[0]->IsString() || !info[1]->IsObject())
-    {
-        retValue.Set(-OP_ETYPE);
-        return;
-    }
-    v8::Local<v8::String> opName = info[0]->ToString(context).ToLocalChecked();
-    v8::Local<v8::Object> parameterObject = info[1]->ToObject(context).ToLocalChecked();
-
-    const OpEntry *opEntry = OpsTableFind(*v8::String::Utf8Value(isolate, opName));
-    if (opEntry == nullptr)
-    {
-        retValue.Set(-OP_EOPNUM);
-        return;
-    }
-    if (opEntry->pfn == nullptr)
-    {
-        retValue.Set(-OP_EINTERNAL);
-        return;
-    }
-
-    const_cast<OpEntry*>(opEntry)->callCount++;
-    try {
-        switch (opEntry->executionType)
-        {
-        case OpEntry::ExecutionType::kSynchronous:
-            vmInvokeOpSynchronously(isolate, parameterObject, opEntry, retValue);
-            break;
-        case OpEntry::ExecutionType::kAsynchronous:
-            vmInvokeOpAsynchronously(isolate, parameterObject, opEntry, retValue);
-            break;
-        }
-    } catch (const RuntimeException& e) {
-        auto rt = reinterpret_cast<Runtime*>(isolate->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR));
-        rt->takeOverNativeException(e);
-    }
-}
-
 void Initialize()
 {
-    OpsTableHeapInitialize();
 }
 
 void Dispose()
 {
-    OpsTableHeapDispose();
 }
 
 Runtime::Options::Options()
     : v8_platform_thread_pool(0)
 {
 }
+
+namespace {
+
+void load_bindings(v8::Isolate *isolate, v8::Local<v8::Context> context,
+                   const Runtime::Options& options)
+{
+    v8::HandleScope scope(isolate);
+    v8::Local<v8::Object> global = context->Global();
+    v8::Local<v8::Object> ccObject = v8::Object::New(isolate);
+
+    lang::ForEachBinding([isolate, &context, &ccObject, options](lang::BaseBindingModule *pBinding) -> bool {
+        assert(pBinding);
+
+        auto itr = std::find(options.bindings_blacklist.begin(), options.bindings_blacklist.end(),
+                             pBinding->name());
+        if (itr != options.bindings_blacklist.end())
+            return true;
+
+        binder::Module mod(isolate);
+        pBinding->getModule(mod);
+        ccObject->Set(context, binder::to_v8(isolate, pBinding->name()), mod.new_instance()).Check();
+
+        LOGF(LOG_DEBUG, R"(Loaded language binding "{}" ({}))",
+             pBinding->name(), pBinding->description())
+        return true;
+    });
+
+    global->Set(context, binder::to_v8(isolate, "Cocoa"), ccObject).Check();
+}
+
+} // namespace anonymous
 
 std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(EventLoop *loop,
                                                    const std::string& snapshotFile,
@@ -114,9 +78,8 @@ std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(EventLoop *loop,
         v8::V8::InitializeICU();
 
     std::unique_ptr<v8::Platform> platform =
-            v8::platform::NewDefaultPlatform(options.v8_platform_thread_pool,
-                                             v8::platform::IdleTaskSupport::kEnabled,
-                                             v8::platform::InProcessStackDumping::kEnabled);
+            v8::platform::NewDefaultPlatform(static_cast<int>(options.v8_platform_thread_pool),
+                                             v8::platform::IdleTaskSupport::kEnabled);
 
     v8::V8::InitializePlatform(platform.get());
     v8::V8::Initialize();
@@ -130,15 +93,15 @@ std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(EventLoop *loop,
     v8::Isolate::Scope isolateScope(isolate);
     v8::HandleScope scope(isolate);
 
-    auto objectTemplate = v8::ObjectTemplate::New(isolate);
-    objectTemplate->Set(isolate, "__cocoa_op_call", v8::FunctionTemplate::New(isolate, vmInvokeOp));
+    v8::Local<v8::Context> context = v8::Context::New(isolate);
+    v8::Context::Scope contextScope(context);
 
-    v8::Global<v8::Context> context(isolate, v8::Context::New(isolate, nullptr, objectTemplate));
+    load_bindings(isolate, context, options);
     return std::make_shared<Runtime>(loop,
                                      std::move(platform),
                                      params.array_buffer_allocator,
                                      isolate,
-                                     std::move(context));
+                                     v8::Global<v8::Context>(isolate, context));
 }
 
 Runtime::Runtime(EventLoop *loop,
@@ -150,8 +113,7 @@ Runtime::Runtime(EventLoop *loop,
       fPlatform(std::move(platform)),
       fArrayBufferAllocator(allocator),
       fIsolate(isolate),
-      fContext(std::move(context)),
-      fResourcePool(new ResourceDescriptorPool())
+      fContext(std::move(context))
 {
     v8::Isolate::Scope isolateScope(fIsolate);
     v8::HandleScope handleScope(fIsolate);
@@ -163,11 +125,10 @@ Runtime::Runtime(EventLoop *loop,
 
 Runtime::~Runtime()
 {
-    delete fResourcePool;
-
     for (auto& module : fModuleCache)
         module.second.Reset();
 
+    binder::Cleanup(fIsolate);
     fContext.Reset();
     fIsolate->Dispose();
     v8::V8::Dispose();
@@ -292,11 +253,11 @@ v8::Local<v8::Value> Runtime::execute(const char *scriptName, const char *str)
     v8::Local<v8::Script> script;
 
     if (!v8::ScriptCompiler::Compile(this->context(), &source).ToLocal(&script))
-        return v8::Local<v8::Value>();
+        return {};
 
     v8::Local<v8::Value> result;
     if (!script->Run(this->context()).ToLocal(&result))
-        return v8::Local<v8::Value>();
+        return {};
     return handleScope.Escape(result);
 }
 

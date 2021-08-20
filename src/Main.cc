@@ -1,6 +1,8 @@
 #include <iostream>
 #include <optional>
 #include <vector>
+#include <cassert>
+#include <string_view>
 
 #include "Core/Project.h"
 #include "Core/Properties.h"
@@ -9,9 +11,9 @@
 #include "Core/Journal.h"
 #include "Core/Exception.h"
 #include "Core/EventLoop.h"
-#include "Core/CrpkgImage.h"
 
 #include "Koi/Runtime.h"
+#include "Koi/BindingsLoader.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Main)
 
@@ -101,13 +103,6 @@ const Template gTemplates[] = {
         {
             .longName = "disable-color-log",
             .desc = "Don't print logs with colors through ANSI escape code"
-        },
-        {
-            .longName = "enable-op-invocation-trace",
-            .hasValue = Template::RequireValue::kOptional,
-            .valueType = ValueType::kString,
-            .desc = "Trace JavaScript Op invocations. Write the trace output to "
-                    "the file rather than to log if specified."
         }
 };
 
@@ -191,6 +186,51 @@ bool interpret_and_set_option_value(ParseResult::Option& opt, const std::string_
     return true;
 }
 
+/* size = 2^7 * 2^7 * sizeof(int) = 2^16 bytes = 64KB */
+int dp[128][128];
+int solve_levenshtein_distance(const std::string_view& a, const std::string_view& b)
+{
+    assert(a.size() < 128 && b.size() < 128);
+
+    size_t m = a.size(), n = b.size();
+
+    for (int i = 0; i <= m; i++)
+        dp[i][0] = i;
+    for (int j = 0; j <= n; j++)
+        dp[0][j] = j;
+
+    for (int i = 1; i <= m; i++)
+    {
+        for (int j = 1; j <= n; j++)
+        {
+            if (a[i - 1] == b[j - 1])
+                dp[i][j] = dp[i - 1][j - 1];
+            else
+                dp[i][j] = std::min({dp[i][j-1] + 1, dp[i-1][j] + 1, dp[i-1][j-1] + 1});
+        }
+    }
+    return dp[m][n];
+}
+
+const char *most_possible_long_option_spell(const std::string_view& opt)
+{
+    int minDis = INT_MAX;
+    const char *minOpt;
+    for (const auto& t : gTemplates)
+    {
+        int dis = solve_levenshtein_distance(opt, t.longName);
+        if (dis < minDis)
+        {
+            minDis = dis;
+            minOpt = t.longName;
+        }
+    }
+
+    if (minDis > 4)
+        return nullptr;
+    return minOpt;
+}
+
 bool interpret_and_set_long_option(ParseResult::Option& opt, const std::string_view& str)
 {
     std::string_view optionView(str);
@@ -215,7 +255,11 @@ bool interpret_and_set_long_option(ParseResult::Option& opt, const std::string_v
     if (!opt.matchedTemplate)
     {
         std::cerr << "Unrecognized long option \""
-                  << std::string(str) << '\"' << std::endl;
+                  << std::string(str) << '\"';
+        const char *possible = most_possible_long_option_spell(optionView);
+        if (possible)
+            std::cerr << ", did you mean \"--" << possible << "\"?";
+        std::cerr << std::endl;
         return false;
     }
 
@@ -358,7 +402,7 @@ void PrintHelp(const char *program)
 R"(Cocoa 2D Rendering Framework, version {}
 Usage {} [<options>...] [--] [<path>]
 
-Available options:
+AVAILABLE OPTIONS:
 )",
     COCOA_VERSION, program);
 
@@ -463,7 +507,7 @@ cmd::ParseState InitializeLogger(cmd::ParseResult& args)
     return cmd::ParseState::kSuccess;
 }
 
-cmd::ParseState InitializeProperties(const char **argv, cmd::ParseResult& args)
+cmd::ParseState InitializeProperties(int argc, const char **argv, cmd::ParseResult& args)
 {
     std::string workingPath = utils::GetAbsoluteDirectory(".");
     if (args.orphans.size() > 1)
@@ -480,7 +524,11 @@ cmd::ParseState InitializeProperties(const char **argv, cmd::ParseResult& args)
         std::string execPath = execFile.substr(0, execFile.find_last_of('/') + 1);
 
         auto runtimeProp = prop::New<PropertyObjectNode>();
-        runtimeProp->setMember("cmdline", prop::New<PropertyDataNode>(std::string(argv[0])));
+        auto cmdlineProp = prop::New<PropertyArrayNode>();
+        for (int32_t i = 0; i < argc; i++)
+            cmdlineProp->append(prop::New<PropertyDataNode>(argv[i]));
+        runtimeProp->setMember("cmdline", cmdlineProp);
+
         runtimeProp->setMember("executable-file", prop::New<PropertyDataNode>(execFile));
         runtimeProp->setMember("executable-path", prop::New<PropertyDataNode>(execPath));
         runtimeProp->setMember("working-path", prop::New<PropertyDataNode>(workingPath));
@@ -491,6 +539,8 @@ cmd::ParseState InitializeProperties(const char **argv, cmd::ParseResult& args)
     {
         auto systemProp = prop::New<PropertyObjectNode>();
         systemProp->setMember("mem-page-size", prop::New<PropertyDataNode>(utils::GetMemPageSize()));
+        systemProp->setMember("cpu-model-name", prop::New<PropertyDataNode>(utils::GetCpuModel()));
+        systemProp->setMember("mem-size", prop::New<PropertyDataNode>(utils::GetMemTotalSize()));
         prop::Get()->setMember("system", systemProp);
     }
 
@@ -524,7 +574,7 @@ cmd::ParseState Initialize(int argc, char const **argv)
         return cmd::ParseState::kError;
 
     /* Initialize necessary properties */
-    state = InitializeProperties(argv, args);
+    state = InitializeProperties(argc, argv, args);
     if (state == cmd::ParseState::kError)
         return cmd::ParseState::kError;
 
@@ -533,6 +583,7 @@ cmd::ParseState Initialize(int argc, char const **argv)
 
     {
         auto persistentNode = prop::New<PropertyObjectNode>();
+        persistentNode->setProtection(PropertyNode::Protection::kPrivate);
         persistentNode->setMember("event-loop", prop::New<PropertyDataNode>(EventLoop::Instance()));
         persistentNode->setMember("journal", prop::New<PropertyDataNode>(Journal::Instance()));
         prop::Get()->setMember("persistent", persistentNode);
@@ -559,6 +610,8 @@ void Execute()
             ->next("runtime")->next("working-path"))->extract<std::string>();
     auto execPath = prop::Cast<PropertyDataNode>(prop::Get()
             ->next("runtime")->next("executable-path"))->extract<std::string>();
+
+    koi::PreloadInternalBindings();
 
     std::string snapshotFile = execPath + "snapshot_blob.bin";
     auto runtime = koi::Runtime::MakeFromSnapshot(EventLoop::Instance(), snapshotFile);

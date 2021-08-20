@@ -12,7 +12,7 @@ struct InternalScript
     const char *script;
 };
 
-#define SCRIPT_TITLE(s) .name = s,
+#define SCRIPT_TITLE(s) .name = (s),
 #define SCRIPT_BODY     .script
 
 const InternalScript internals[] = {

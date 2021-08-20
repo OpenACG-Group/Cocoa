@@ -1,6 +1,8 @@
 #include <unistd.h>
-
 #include <cxxabi.h>
+#include <sys/sysinfo.h>
+
+#include <fstream>
 
 #include "Core/Utils.h"
 #include "Core/Journal.h"
@@ -64,18 +66,35 @@ std::string genOutSpacing(int depth)
     return ret;
 }
 
-std::string genOutHeader(const std::string& name, int depth)
+std::ostream& operator<<(std::ostream& os, PropertyNode::Protection prot)
+{
+    switch (prot)
+    {
+    case PropertyNode::Protection::kPublic:
+        os << "public";
+        break;
+    case PropertyNode::Protection::kProtected:
+        os << "protected";
+        break;
+    case PropertyNode::Protection::kPrivate:
+        os << "private";
+        break;
+    }
+    return os;
+}
+
+std::string genOutHeader(PropertyNode::Protection prot, const std::string& name, int depth)
 {
     std::ostringstream ret;
     for (int i = 0; i < depth * 2; i++)
         ret << ' ';
-    ret << "%fg<ye>" << name << "%reset<>: ";
+    ret << "%fg<re>" << prot << "%reset %fg<ye>" << name << "%reset<>: ";
     return ret.str();
 }
 
 void dumpPropertiesDataNode(const std::shared_ptr<PropertyDataNode>& node, const std::string& name, int depth)
 {
-    auto s = genOutHeader(name, depth);
+    auto s = genOutHeader(node->protection(), name, depth);
 #define T_(t)  (node->type() == typeid(t))
     if (T_(int8_t) || T_(int16_t) || T_(int32_t) || T_(int64_t))
     {
@@ -120,7 +139,7 @@ void dumpPropertiesDataNode(const std::shared_ptr<PropertyDataNode>& node, const
         }
         else
         {
-            LOGF(LOG_INFO, "{}%fg<re><native-type {}>%reset", s, demangledType)
+            LOGF(LOG_INFO, "{}%fg<re><%fg<bl>(ptr)%fg<re> {}>%reset", s, demangledType)
             std::free(demangledType);
         }
     }
@@ -129,7 +148,7 @@ void dumpPropertiesDataNode(const std::shared_ptr<PropertyDataNode>& node, const
 
 void dumpPropertiesObjectNode(const std::shared_ptr<PropertyObjectNode>& node, const std::string& name, int depth)
 {
-    auto s = genOutHeader(name, depth);
+    auto s = genOutHeader(node->protection(), name, depth);
     LOGF(LOG_INFO, "{}{{", s)
 
     for (const auto& child : *node)
@@ -140,7 +159,7 @@ void dumpPropertiesObjectNode(const std::shared_ptr<PropertyObjectNode>& node, c
 
 void dumpPropertiesArrayNode(const std::shared_ptr<PropertyArrayNode>& node, const std::string& name, int depth)
 {
-    auto s = genOutHeader(name, depth);
+    auto s = genOutHeader(node->protection(), name, depth);
     LOGF(LOG_INFO, "{}[", s)
 
     int32_t idx = 0;
@@ -174,6 +193,46 @@ std::string GetExecutablePath()
 size_t GetMemPageSize()
 {
     return getpagesize();
+}
+
+std::string GetCpuModel()
+{
+#ifdef __linux__
+    std::ifstream fs("/proc/cpuinfo");
+    if (!fs.is_open())
+        return "<Unknown>";
+
+    std::string linebuf;
+    linebuf.resize(512);
+    while (fs.getline(linebuf.data(), static_cast<std::streamsize>(linebuf.size())))
+    {
+        if (linebuf.starts_with("model name"))
+        {
+            auto pos = linebuf.find_first_of(':');
+            if (pos == std::string::npos || pos + 2 >= linebuf.length())
+                return "<Unknown>";
+
+            std::string copy = linebuf.substr(pos + 2);
+            copy.resize(std::strlen(copy.data()));
+            return copy;
+        }
+    }
+    return "<Unknown>";
+#else
+#error Unsupported platform
+#endif // __linux__
+}
+
+size_t GetMemTotalSize()
+{
+#ifdef __linux__
+    struct sysinfo info;
+    if (sysinfo(&info) < 0)
+        return 0;
+    return info.totalram;
+#else
+#error Unsupported platform
+#endif
 }
 
 } // namespace cocoa::utils

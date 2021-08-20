@@ -6,25 +6,33 @@
 #                   DEPENDS compiler)
 
 add_library(Koi STATIC
-            KoiBase.h
-            ArrayBufferAllocator.h
-            Runtime.h
-            Runtime.cc
-            Ops.h
-            Ops.cc
-            OpBaseImpl.cc
-            OpTimerImpl.cc
-            OpRenderingImpl.cc
-            OpParameterInfo.cc
-            ModuleUrl.h
-            ModuleUrl.cc
-            Internals.h
-            Internals.cc
-            ResourceDescriptorPool.h
-            ResourceDescriptorPool.cc
-            ResourceObject.h
-            ResourceObject.cc
-        GpTimer.h
-        GpTimer.cc
-        GpObjectWrapper.h)
+        KoiBase.h
+        Runtime.h
+        Runtime.cc
+        ModuleUrl.h
+        ModuleUrl.cc
+        Internals.h
+        Internals.cc
+        BindingsLoader.h
+        BindingsLoader.cc
+
+        binder/PtrTraits.h
+        binder/Utility.h
+        binder/Convert.h
+        binder/Convert.cc
+        binder/CallFromV8.h
+        binder/ThrowExcept.h
+        binder/ThrowExcept.cc
+        binder/Function.h
+        binder/Property.h
+        binder/Factory.h
+        binder/Class.h
+        binder/Class.cc
+        binder/Module.h
+        binder/CallV8.h
+
+        lang/Base.h
+        lang/Base.cc
+        lang/CoreBinding.h
+        lang/CoreBinding.cc)
 target_link_libraries(Koi PRIVATE v8_libplatform v8)

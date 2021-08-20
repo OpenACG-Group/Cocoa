@@ -7,18 +7,16 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { delay } from "./timer";
-import { VGContext, VGWindowBackend } from "./render/vg_context";
-import { Platform } from "./platform";
+try {
+    let value = Cocoa.core.getProperty("persistent.event-loop");
+    Cocoa.core.print(value + "\n");
+}
+catch (e) {
+    Cocoa.core.print(e + "\n");
+}
 (function () {
     return __awaiter(this, void 0, void 0, function* () {
-        let context = new VGContext(VGWindowBackend.kXcb);
-        let display = context.connect(1);
-        let size = display.geometry();
-        Platform.trap("op_print", { str: "width = " + size.width.toString() });
-        Platform.trap("op_print", { str: "height = " + size.height.toString() });
-        yield delay(1000);
-        display.close();
-        context.dispose();
+        yield Cocoa.core.delay(1000);
     });
 })();
+Cocoa.core.print("done\n");

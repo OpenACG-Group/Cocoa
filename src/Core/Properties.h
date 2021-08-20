@@ -14,6 +14,18 @@ namespace cocoa {
 class PropertyNode : public std::enable_shared_from_this<PropertyNode>
 {
 public:
+    enum class Protection
+    {
+        /* Accessible to C++, JavaScript, and command line */
+        kPublic,
+        /* Accessible to C++ and JavaScript */
+        kProtected,
+        /* Accessible to C++ only */
+        kPrivate,
+
+        kDefault = kPublic
+    };
+
     enum class Kind {
         kObject,
         kArray,
@@ -34,9 +46,16 @@ public:
 
     void setParent(const std::shared_ptr<PropertyNode>& node);
 
+    inline void setProtection(Protection prot)
+    { fProtection = prot; }
+
+    co_nodiscard inline Protection protection() const
+    { return fProtection; }
+
 private:
-    std::weak_ptr<PropertyNode>              fParent;
-    Kind                                     fKind;
+    std::weak_ptr<PropertyNode>  fParent;
+    Kind                         fKind;
+    Protection                   fProtection;
 };
 
 class PropertyObjectNode : public PropertyNode
@@ -48,6 +67,7 @@ public:
     std::shared_ptr<PropertyNode> getMember(const std::string& name);
     void setMember(const std::string& name, std::shared_ptr<PropertyNode> member);
     void unsetMember(const std::string& name);
+    bool hasMember(const std::string& name);
 
     co_nodiscard inline auto begin()
     { return fMembers.begin(); }

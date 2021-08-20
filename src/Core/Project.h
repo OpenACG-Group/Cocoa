@@ -1,5 +1,7 @@
-#ifndef __VERSION_H__
-#define __VERSION_H__
+#ifndef __PROJECT_H__
+#define __PROJECT_H__
+
+#include <type_traits>
 
 #ifndef COCOA_PROJECT
 #error Project.h only can be included in Cocoa Project
@@ -22,6 +24,8 @@ T& operator=(const T&) = delete;
 #define COCOA_LICENSE   "General Public License (GPLv3)"
 
 #define co_nodiscard    [[nodiscard]]
+#define co_cdecl_begin  extern "C" {
+#define co_cdecl_end    }
 
 /* Compiler compatibilities */
 #define _SHARP #
@@ -43,4 +47,13 @@ T& operator=(const T&) = delete;
 #endif
 #undef _SHARP
 
-#endif // __VERSION_H__
+namespace cocoa
+{
+template<typename T>
+inline auto enum_underlying_value(T e)
+{
+    return static_cast<typename std::underlying_type<T>::type>(e);
+}
+
+} // namespace cocoa
+#endif // __PROJECT_H__

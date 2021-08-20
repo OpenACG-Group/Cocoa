@@ -9,12 +9,14 @@
 namespace cocoa {
 
 PropertyNode::PropertyNode(Kind kind)
-    : fKind(kind)
+    : fKind(kind),
+      fProtection(Protection::kDefault)
 {
 }
 
 void PropertyNode::setParent(const std::shared_ptr<PropertyNode>& node)
 {
+    fProtection = node->protection();
     fParent = node;
 }
 
@@ -64,6 +66,11 @@ void PropertyObjectNode::setMember(const std::string& name,
 {
     member->setParent(shared_from_this());
     fMembers[name] = std::move(member);
+}
+
+bool PropertyObjectNode::hasMember(const std::string& name)
+{
+    return fMembers.contains(name);
 }
 
 PropertyArrayNode::PropertyArrayNode()

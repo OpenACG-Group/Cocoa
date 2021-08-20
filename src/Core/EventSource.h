@@ -14,7 +14,8 @@ class EventLoop;
 enum class KeepInLoop
 {
     kYes,
-    kNo
+    kNo,
+    kDeleted
 };
 
 template<typename T, typename R>

@@ -9,9 +9,8 @@ Vanilla 是 Cocoa Project 中最重要的库，实现了大部分图形、多媒
 Vanilla 依赖于 Cocoa Project 中的底层 Core 库。Core 为 Vanilla 实现了异步事件循环、
 带有栈帧回溯的异常处理等功能。在此之上，Vanilla 还使用了如下第三方库：
 - `Skia` 库提供了 2D 功能，包括基于 CPU 和 GPU 的光栅化器
-- `libav` 系列库负责音视频解码和后期处理
-- `libyuv` 负责了 YUV 颜色格式到 RGB 颜色格式的转换(1)。
 - `xcb` 等窗口系统相关库
+- `Vulkan` 提供基本的 GPU API
 
 (1) libav 库中的 libswscale 也能够实现同样的功能，但是 Google 的 libyuv
 提供了更好的性能。然而 libyuv 并没有实现针对所有可能的 YUV 格式的转换函数，因而 Vanilla
@@ -60,7 +59,7 @@ Vanilla 中的大部分对象需要共享或在多个对象之间互相引用，
 因此用户在使用信号槽机制时，不应当设计任何依赖于槽函数调用顺序的算法或业务逻辑。
 
 
-## Graphics and Rendering
+## Window-based Rendering
 在上一章节中已经简要介绍了图形上下文以及与之相关的对象，
 在这一章中我们将具体介绍如何基于 Vanilla 进行 2D 渲染。具体的类和方法接口规范请参见 API 文档。
 ```cpp

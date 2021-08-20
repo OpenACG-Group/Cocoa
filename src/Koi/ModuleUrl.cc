@@ -15,7 +15,7 @@ namespace {
 std::optional<std::string_view> ExtractInternal(const std::string& url)
 {
     if (!url.starts_with("internal:"))
-        return std::optional<std::string_view>();
+        return {};
 
     std::string_view view(url);
     view.remove_prefix(std::string("internal:").length());

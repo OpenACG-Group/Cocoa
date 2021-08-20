@@ -3,9 +3,15 @@
         "module": "ES6",
         "target": "ES6",
         "moduleResolution": "Classic",
-        "outDir": "./out"
+        "outDir": "./out",
+        "isolatedModules": false,
+        "typeRoots": [ "@types" ],
     },
 
+    "include": [
+        "core/types.d.ts"
+    ],
+    
     "files": [
         "./index.ts"
     ]

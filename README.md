@@ -33,7 +33,7 @@ Primary maintainer is [Sora](https://github.com/wait1210day).
 Cocoa 的构建系统主要由 CMake 负责。为了管理复杂的外部依赖库，并降低 CMake 规则的复杂度，
 OpenACG Group 同时还规定了一些额外的编译规则：
 
-#### package-lists.json
+### package-lists.json
 在 [`third_party`](./third_party) 目录下有 [`package-lists.json`](./third_party/package-lists.json)
 文件，该文件是脚本 [`build-third-party.py`](./script/build-third-party.py) 的配置文件。该 JSON
 文件指导脚本如何去下载并构建所需的依赖项。关于该文件的详细说明，参见 `docs` 下的文档。

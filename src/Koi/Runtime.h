@@ -3,14 +3,12 @@
 
 #include <memory>
 #include <map>
+#include <vector>
 
 #include "include/v8.h"
-#include "Core/UniquePersistent.h"
 #include "Core/EventSource.h"
 #include "Core/Exception.h"
 #include "Koi/KoiBase.h"
-#include "Koi/Ops.h"
-#include "Koi/ResourceDescriptorPool.h"
 KOI_NS_BEGIN
 
 #define CHECKED(E)  E.ToLocalChecked()
@@ -26,7 +24,9 @@ public:
     struct Options
     {
         Options();
+
         uint32_t    v8_platform_thread_pool;
+        std::vector<std::string> bindings_blacklist;
     };
 
     Runtime(EventLoop *loop,
@@ -50,9 +50,6 @@ public:
     inline v8::Isolate *isolate()
     { return fIsolate; }
 
-    inline ResourceDescriptorPool& resourcePool()
-    { return *fResourcePool; }
-
     v8::Local<v8::Value> execute(const char *str);
     v8::Local<v8::Value> execute(const char *scriptName, const char *str);
 
@@ -71,7 +68,6 @@ private:
     v8::Global<v8::Context>         fContext;
     std::map<std::string, v8::Global<v8::Module>>
                                     fModuleCache;
-    ResourceDescriptorPool         *fResourcePool;
 };
 
 KOI_NS_END

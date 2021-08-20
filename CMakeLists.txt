@@ -46,13 +46,14 @@ add_compile_definitions(COCOA_PROJECT=1 V8_COMPRESS_POINTERS SK_VULKAN)
 add_compile_options(-Wall -mrdrnd)
 
 add_subdirectory(src/Core)
+#add_subdirectory(src/AVCodec)
 add_subdirectory(src/Vanilla)
 add_subdirectory(src/Koi)
 add_executable(Cocoa src/Main.cc)
 
-target_link_libraries(Cocoa PRIVATE
-                      Koi
-                      Vanilla
-                      Core)
+target_link_libraries(Cocoa
+        Koi
+        Vanilla
+        Core)
 
-add_subdirectory(test)
+#add_subdirectory(test)

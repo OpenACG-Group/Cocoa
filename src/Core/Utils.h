@@ -12,7 +12,9 @@ void DumpProperties(const std::shared_ptr<PropertyNode>& root);
 void ChangeWorkDirectory(const std::string& dir);
 std::string GetAbsoluteDirectory(const std::string& dir);
 std::string GetExecutablePath();
+std::string GetCpuModel();
 size_t GetMemPageSize();
+size_t GetMemTotalSize();
 
 } // namespace cocoa
 

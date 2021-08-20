@@ -35,19 +35,8 @@ add_library(${target_name} STATIC
             Xcb/XcbRasterDrawContext.h
             Xcb/XcbRasterDrawContext.cc
             Audio/AuCommon.h
-            Audio/PaConnection.h
-            Audio/PaConnection.cc
-            Audio/AuEffector.h
-            Codec/AVDecoder.h
-            Codec/AVDecoderPrivate.h
-            Codec/AVDecoderDemuxer.cc
-            Codec/AVDecoderDecompressor.cc
-            Codec/AVFrame.h
-            Codec/AVFramePrivate.h
-            Codec/AVVideoFrame.cc
-            Codec/AVAudioFrame.cc
-            Codec/VideoHWDeviceContext.h
-            Codec/VideoHWDeviceContext.cc)
+            Audio/AuPulseaudioConnection.h
+            Audio/AuPulseaudioConnection.cc)
 
 set(XCB_BACKEND_LIBS
         xcb
@@ -57,14 +46,6 @@ set(XCB_BACKEND_LIBS
         xcb-xinput
         xkbcommon
         xkbcommon-x11)
-
-set(CODEC_LIBS
-        avformat
-        avutil
-        avcodec
-        swscale
-        swresample
-        yuv)
 
 set(RENDERER_LIBS
         skia
@@ -77,5 +58,4 @@ target_link_libraries(${target_name}
         PkgConfig::SIGC
         ${RENDERER_LIBS}
         ${XCB_BACKEND_LIBS}
-        ${CODEC_LIBS}
         ${AUDIO_LIBS})
