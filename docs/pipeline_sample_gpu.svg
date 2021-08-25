@@ -34,7 +34,7 @@
 <title>D</title>
 <ellipse fill="none" stroke="red" cx="406.26" cy="-62.87" rx="62.87" ry="26.74"/>
 <text text-anchor="middle" x="406.26" y="-66.67" font-family="Times,serif" font-size="14.00">DrawContext</text>
-<text text-anchor="middle" x="406.26" y="-51.67" font-family="Times,serif" font-size="14.00">(Rasterizer)</text>
+<text text-anchor="middle" x="406.26" y="-51.67" font-family="Times,serif" font-size="14.00">(Vulkan)</text>
 </g>
 <!-- B&#45;&gt;D -->
 <g id="edge3" class="edge">

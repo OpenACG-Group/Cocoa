@@ -4,7 +4,7 @@ digraph G {
     A [label="KMR\nRenderer", color="green"]
     B [label="Overlay"]
     C [label="ImGui\nRenderer", color="green"]
-    D [label="DrawContext\n(Rasterizer)", color="red"]
+    D [label="DrawContext\n(Vulkan)", color="red"]
 
     A -> B [label="SkPicture", fontname="Cantarell", fontsize="12"]
     C -> B [label="SkPicture", fontname="Cantarell", fontsize="12"]
