@@ -139,7 +139,7 @@ void dumpPropertiesDataNode(const std::shared_ptr<PropertyDataNode>& node, const
         }
         else
         {
-            LOGF(LOG_INFO, "{}%fg<re><%fg<bl>(ptr)%fg<re> {}>%reset", s, demangledType)
+            LOGF(LOG_INFO, "{}%fg<re><%fg<bl>(nonprimitive)%fg<re> {}>%reset", s, demangledType)
             std::free(demangledType);
         }
     }
@@ -233,6 +233,26 @@ size_t GetMemTotalSize()
 #else
 #error Unsupported platform
 #endif
+}
+
+std::vector<std::string_view> SplitString(const std::string& str, std::string::value_type delimiter)
+{
+    std::vector<std::string_view> result;
+    size_t p = 0;
+    int64_t last_p = -1;
+    while ((p = str.find(delimiter, p + 1)) != std::string::npos)
+    {
+        std::string_view view(str);
+        view.remove_prefix(last_p + 1);
+        view.remove_suffix(str.size() - p);
+        result.emplace_back(view);
+        last_p = static_cast<int64_t>(p);
+    }
+    std::string_view view(str);
+    view.remove_prefix(last_p + 1);
+    result.emplace_back(view);
+
+    return result;
 }
 
 } // namespace cocoa::utils

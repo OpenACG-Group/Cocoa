@@ -103,6 +103,44 @@ const Template gTemplates[] = {
         {
             .longName = "disable-color-log",
             .desc = "Don't print logs with colors through ANSI escape code"
+        },
+        {
+            .longName = "vm-thread-pool-size",
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kInteger,
+            .desc = "Specify the number of worker threads to allocate for background jobs for V8."
+                    " If a value of zero is passed, a suitable default based on the current"
+                    " number of processors online will be chosen."
+        },
+        {
+            .longName = "vm-options",
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kString,
+            .desc = "Pass the comma separated arguments to V8"
+        },
+        {
+            .longName = "lbp-blacklist",
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kString,
+            .desc = "Specify a comma separated blacklist of language bindings"
+        },
+        {
+            .longName = "lbp-preload",
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kString,
+            .desc = "Specify a path of a dynamic library to load it as language bindings"
+        },
+        {
+            .longName = "hw-accelerated-video-decoding",
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kBoolean,
+            .desc = "Enable or disable hardware accelerated video decoding"
+        },
+        {
+            .longName = "hw-accelerated-rendering",
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kBoolean,
+            .desc = "Enable or disable hardware accelerated rendering"
         }
 };
 
@@ -547,7 +585,7 @@ cmd::ParseState InitializeProperties(int argc, const char **argv, cmd::ParseResu
     return cmd::ParseState::kSuccess;
 }
 
-cmd::ParseState Initialize(int argc, char const **argv)
+cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& koiOptions)
 {
     cmd::ParseResult args;
     cmd::ParseState state = cmd::Parse(argc, argv, args);
@@ -581,9 +619,41 @@ cmd::ParseState Initialize(int argc, char const **argv)
     EventLoop::New();
     koi::Initialize();
 
+    auto lbpPreloads = prop::New<PropertyArrayNode>();
+    auto lbpBlacklist = prop::New<PropertyArrayNode>();
+    for (const auto& arg : args.options)
     {
+        if arg_longopt_match("vm-thread-pool-size")
+        {
+            if (arg.value->v_int < 0)
+            {
+                std::cerr << "vm-thread-pool-size should ba a positive integer" << std::endl;
+                return cmd::ParseState::kError;
+            }
+            koiOptions.v8_platform_thread_pool = arg.value->v_int;
+        }
+        else if arg_longopt_match("lbp-blacklist")
+        {
+            std::vector<std::string_view> list = utils::SplitString(arg.value->v_str, ',');
+            for (const auto& p : list)
+            {
+                koiOptions.bindings_blacklist.emplace_back(p);
+                lbpBlacklist->append(prop::New<PropertyDataNode>(std::string(p)));
+            }
+        }
+        else if arg_longopt_match("lbp-preload")
+        {
+            lbpPreloads->append(prop::New<PropertyDataNode>(arg.value->v_str));
+        }
+    }
+
+    {
+        auto scriptNode = prop::New<PropertyObjectNode>();
+        scriptNode->setMember("lbp-preloads", lbpPreloads);
+        scriptNode->setMember("lbp-blacklist", lbpBlacklist);
+        prop::Cast<PropertyObjectNode>(prop::Get()->next("runtime"))->setMember("script", scriptNode);
+
         auto persistentNode = prop::New<PropertyObjectNode>();
-        persistentNode->setProtection(PropertyNode::Protection::kPrivate);
         persistentNode->setMember("event-loop", prop::New<PropertyDataNode>(EventLoop::Instance()));
         persistentNode->setMember("journal", prop::New<PropertyDataNode>(Journal::Instance()));
         prop::Get()->setMember("persistent", persistentNode);
@@ -601,7 +671,7 @@ void Finalize()
     Journal::Delete();
 }
 
-void Execute()
+void Execute(const koi::Runtime::Options& options)
 {
     LOGW(LOG_INFO, "Current Properties Tree:")
     utils::DumpProperties(prop::Get());
@@ -611,10 +681,23 @@ void Execute()
     auto execPath = prop::Cast<PropertyDataNode>(prop::Get()
             ->next("runtime")->next("executable-path"))->extract<std::string>();
 
-    koi::PreloadInternalBindings();
+    auto preloads = prop::Get()->next("runtime")->next("script")->next("lbp-preloads");
+    for (const auto& p : *prop::Cast<PropertyArrayNode>(preloads))
+    {
+        std::string& val = prop::Cast<PropertyDataNode>(p)->extract<std::string>();
+        if (!koi::LoadBindingsFromDynamicLibrary(val))
+            throw RuntimeException(__func__, "Failed in loading dynamic language bindings");
+    }
+
+    koi::PreloadBindings();
 
     std::string snapshotFile = execPath + "snapshot_blob.bin";
-    auto runtime = koi::Runtime::MakeFromSnapshot(EventLoop::Instance(), snapshotFile);
+    auto runtime = koi::Runtime::MakeFromSnapshot(EventLoop::Instance(),
+                                                  snapshotFile,
+                                                  std::string(),
+                                                  options);
+    assert(runtime != nullptr);
+
     v8::Isolate::Scope isolateScope(runtime->isolate());
     v8::HandleScope handleScope(runtime->isolate());
     v8::Context::Scope contextScope(runtime->context());
@@ -631,8 +714,9 @@ int Main(int argc, char const **argv)
         Finalize();
     });
 
+    koi::Runtime::Options koiOptions;
     try {
-        switch (Initialize(argc, argv))
+        switch (Initialize(argc, argv, koiOptions))
         {
         case cmd::ParseState::kError:
             return EXIT_FAILURE;
@@ -645,7 +729,7 @@ int Main(int argc, char const **argv)
         }
 
         cmd::PrintGreeting();
-        Execute();
+        Execute(koiOptions);
     } catch (const RuntimeException& e) {
         utils::DumpRuntimeException(e);
         return EXIT_FAILURE;

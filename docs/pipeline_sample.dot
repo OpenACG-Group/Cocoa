@@ -1,0 +1,12 @@
+digraph G {
+    rankdir=LR
+
+    A [label="KMR\nRenderer", color="green"]
+    B [label="Overlay"]
+    C [label="ImGui\nRenderer", color="green"]
+    D [label="DrawContext\n(Rasterizer)", color="red"]
+
+    A -> B [label="SkPicture", fontname="Cantarell", fontsize="12"]
+    C -> B [label="SkPicture", fontname="Cantarell", fontsize="12"]
+    B -> D [label="SkPicture", fontname="Cantarell", fontsize="12"]
+}

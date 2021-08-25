@@ -2,9 +2,16 @@
 #define COCOA_COREBINDING_H
 
 #include "Koi/lang/Base.h"
+
 KOI_LANG_NS_BEGIN
 
-KOI_DECL_BINDING_PRELOAD_HOOK(core);
+class CoreBindingModule : public BaseBindingModule
+{
+public:
+    CoreBindingModule();
+    ~CoreBindingModule() override = default;
+    void getModule(binder::Module& self) override;
+};
 
 KOI_LANG_NS_END
 #endif //COCOA_COREBINDING_H

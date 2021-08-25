@@ -1,8 +1,11 @@
-try {
-    let value: string = Cocoa.core.getProperty("persistent.event-loop");
-    Cocoa.core.print(value + "\n");
-} catch (e) {
-    Cocoa.core.print(e + "\n");
+let i = 0;
+while (true)
+{
+	let prop: string = "runtime.script.lbp-preloads.#" + i;
+	if (!Cocoa.core.hasProperty(prop))
+		break;
+	Cocoa.core.print(Cocoa.core.getProperty(prop) + "\n");
+	i++;
 }
 
 (async function() {

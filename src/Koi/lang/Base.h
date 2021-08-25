@@ -16,10 +16,9 @@ public:
         : fName(std::move(name)),
           fDescription(std::move(desc)),
           fNext(nullptr) {}
-    virtual ~BaseBindingModule()
-    {
-        delete fNext;
-    }
+    virtual ~BaseBindingModule() = default;
+
+    void dispose();
 
     koi_nodiscard inline const std::string& name() const
     { return fName; }
@@ -43,9 +42,29 @@ void RegisterBinding(BaseBindingModule *pModule);
 BaseBindingModule *FindBindingByName(const std::string& name);
 void ForEachBinding(const std::function<bool(BaseBindingModule*)>& cb,
                     BaseBindingModule *header = nullptr);
+void Dispose();
 
-#define KOI_BINDING_PRELOAD_HOOK(name) _binding_##name##_preload_hook
-#define KOI_DECL_BINDING_PRELOAD_HOOK(name) void KOI_BINDING_PRELOAD_HOOK(name)()
+struct LbpBlock
+{
+    using LbpHook = void(*)(const LbpBlock*);
+    static constexpr size_t MAX_HOOKS = 128;
+
+    LbpHook     lbp_hooks[MAX_HOOKS];
+    void       *lbp_dynlib_handles[MAX_HOOKS];
+    size_t      n_hooks;
+};
+
+class LbpHookAppender
+{
+public:
+    koi_nodiscard static const LbpBlock *GetLbpBlock();
+    static void Append(LbpBlock::LbpHook hook, void *dynlib);
+};
+
+#define _LANG_STRINGIFY(x)                #x
+#define LANG_STRINGIFY(s)           _LANG_STRINGIFY(s)
+#define LANG_BINDING_HOOK_SYM       _lbp_hook
+#define LANG_BINDING_HOOK_SYM_STR   LANG_STRINGIFY(LANG_BINDING_HOOK_SYM)
 
 KOI_LANG_NS_END
 #endif //COCOA_LANG_BASE_H

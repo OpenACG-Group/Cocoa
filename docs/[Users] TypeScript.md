@@ -83,6 +83,8 @@ v8::Local<v8::Object> jsObj = mod.new_instance();
 为了维护不同的语言绑定，我们设计了一系列机制来统一语言绑定的接口，
 所有关于语言绑定的类和函数等都位于 `cocoa::koi::lang` 命名空间下。
 
+### Language Binding Chain (LBC)
+
 `lang::BaseBindingModule` 类表示了一个独立的语言绑定，
 任何语言绑定都至少应该继承该类，并在子类中实现方法 `void getModule(binder::Module&)`，
 在基类构造函数中填写语言绑定的名称字段 `name` 以及描述字段 `desc`，
@@ -102,6 +104,18 @@ v8::Local<v8::Object> jsObj = mod.new_instance();
 
 `lang::RegisterBinding` 函数可以将一个 `BaseBindingModule`
 指针添加到 LBC 尾部。
+
+### Language Binding Preloader (LBP)
+语言绑定并不会自发地去调用 `RegisterBinding` 函数注册自身到 LBC，
+这主要是因为 Cocoa （在加载语言绑定之前）并不知道具体有哪些语言绑定，
+因而无法调用这些语言绑定的初始化函数。
+
+
+因而，一个语言绑定的普遍加载流程如下：
+- 初始化阶段构造 hooks 函数表
+- preload 阶段由 preloader 依次调用 hooks
+- hook 函数将自己的 BaseBindingModule 子类注册到 LBC
+- 
 
 ## Development Environment
 在 `typescript` 目录下有 Cocoa 项目使用到的所有 TypeScript 文件，包括标准库。

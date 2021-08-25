@@ -27,26 +27,6 @@ T& operator=(const T&) = delete;
 #define co_cdecl_begin  extern "C" {
 #define co_cdecl_end    }
 
-/* Compiler compatibilities */
-#define _SHARP #
-#if defined(__clang__)
-#define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_PUSH \
-    clang diagnostic push
-#define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_POP \
-    clang diagnostic pop
-#define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_IGNORE(ignore) \
-    clang diagnostic ignore #ignore
-#elif defined(__GNUC__) || defined(__GNUG__)
-  #define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_PUSH #pragma GCC diagnostic push
-  #define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_POP  #pragma GCC diagnostic pop
-  #define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_IGNORE(ignore) #pragma GCC diagnostic ignore #ignore
-#else
-  #define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_PUSH
-  #define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_POP
-  #define COCOA_COMPILER_PRAGMA_DIAGNOSTIC_IGNORE(ignore)
-#endif
-#undef _SHARP
-
 namespace cocoa
 {
 template<typename T>

@@ -20,6 +20,13 @@ add_library(${target_name} STATIC
             KeySymbols.cc
             KeyboardProxy.h
             KeyboardProxy.cc
+            ImGuiWindow.h
+            ImGuiWindow.cc
+            ../../third_party/imgui/imgui.h
+            ../../third_party/imgui/imgui.cpp
+            ../../third_party/imgui/imgui_draw.cpp
+            ../../third_party/imgui/imgui_tables.cpp
+            ../../third_party/imgui/imgui_widgets.cpp
             Xcb/EventHandlerMacros.h
             Xcb/XcbDisplay.h
             Xcb/XcbDisplay.cc
@@ -34,6 +41,12 @@ add_library(${target_name} STATIC
             Xcb/XcbEventQueue.cc
             Xcb/XcbRasterDrawContext.h
             Xcb/XcbRasterDrawContext.cc
+
+            Pipeline/GpPipeline.h
+            Pipeline/GpPipeline.cc
+            Pipeline/GpLinkage.h
+            Pipeline/GpElement.h
+            Pipeline/GpElement.cc
             Audio/AuCommon.h
             Audio/AuPulseaudioConnection.h
             Audio/AuPulseaudioConnection.cc)

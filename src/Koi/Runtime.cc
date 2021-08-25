@@ -27,6 +27,7 @@ void Initialize()
 
 void Dispose()
 {
+    lang::Dispose();
 }
 
 Runtime::Options::Options()

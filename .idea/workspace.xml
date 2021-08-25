@@ -40,6 +40,7 @@
       <config projectName="Cocoa" targetName="ExperimentalMemCheck" />
       <config projectName="Cocoa" targetName="NightlyMemCheck" />
       <config projectName="Cocoa" targetName="ContinuousUpdate" />
+      <config projectName="Cocoa" targetName="simple_player" />
       <config projectName="Cocoa" targetName="Koi" />
       <config projectName="Cocoa" targetName="squash" />
     </generated>
@@ -51,78 +52,35 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="625018aa-1ca1-4995-ae3f-94e4e8743e1f" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/src/Koi/BindingsLoader.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/BindingsLoader.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/CallFromV8.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/CallV8.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/Class.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/Class.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/Convert.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/Convert.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/Factory.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/Function.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/Module.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/Property.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/PtrTraits.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/ThrowExcept.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/ThrowExcept.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/binder/Utility.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/lang/Base.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/lang/Base.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Audio/AuBufferSrcEffector.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Audio/AuEffectorsDAG.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/Audio/AuEffectorsDAG.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/ImGuiWindow.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/ImGuiWindow.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Pipeline/GpElement.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Pipeline/GpElement.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Pipeline/GpLinkage.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Pipeline/GpPipeline.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Pipeline/GpPipeline.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vscode/c_cpp_properties.json" beforeDir="false" afterPath="$PROJECT_DIR$/.vscode/c_cpp_properties.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/[Developer] Vanilla.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/[Developer] Vanilla.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/EventSource.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EventSource.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/[Users] TypeScript.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/[Users] TypeScript.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Core/Project.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Project.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Properties.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Properties.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Properties.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Properties.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/RandomDevice.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/RandomDevice.h" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Core/Utils.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utils.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Core/Utils.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utils.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/ArrayBufferAllocator.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/BindingsLoader.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/BindingsLoader.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/BindingsLoader.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/BindingsLoader.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/GpObjectWrapper.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/GpTimer.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/GpTimer.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/Internals.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Internals.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/KoiBase.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/KoiBase.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/ModuleUrl.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/ModuleUrl.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/OpBaseImpl.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/OpParameterInfo.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/OpRenderingImpl.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/OpTimerImpl.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/Ops.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/Ops.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/ResourceDescriptorPool.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/ResourceDescriptorPool.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/ResourceObject.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/ResourceObject.h" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/Runtime.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Runtime.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/Runtime.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Runtime.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/lang/Base.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/Base.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/lang/Base.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/Base.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Main.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Audio/AuEffector.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Audio/AuEffector.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Audio/PaConnection.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Audio/AuPulseaudioConnection.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Audio/PaConnection.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Audio/AuPulseaudioConnection.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Vanilla/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Codec/AVAudioFrame.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Codec/AVDecoder.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Codec/AVDecoderDecompressor.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Codec/AVDecoderDemuxer.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Codec/AVDecoderPrivate.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Codec/AVFrame.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Codec/AVFramePrivate.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Codec/AVVideoFrame.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Codec/VideoHWDeviceContext.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Codec/VideoHWDeviceContext.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/DBus/VaDBusConnection.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/DBus/VaDBusConnection.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/DBus/VaDBusConnectionPrivate.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Window.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Window.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/depot_tools/PRESUBMIT.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/depot_tools/PRESUBMIT.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/depot_tools/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/depot_tools/README.md" afterDir="false" />
@@ -225,64 +183,11 @@
       <change beforePath="$PROJECT_DIR$/third_party/libuv/docs/src/guide/processes.rst" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libuv/docs/src/guide/processes.rst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/libuv/docs/src/loop.rst" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libuv/docs/src/loop.rst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/libuv/docs/src/tty.rst" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libuv/docs/src/tty.rst" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/PRESUBMIT.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/PRESUBMIT.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/bin/compare" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/bin/compare" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/bin/fetch-clang-format" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/bin/fetch-clang-format" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/bin/fetch-gn" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/bin/fetch-gn" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/bin/fetch-sk" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/bin/fetch-sk" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/bin/list-skia-bots" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/bin/list-skia-bots" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/bin/sysopen" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/bin/sysopen" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/build/fuchsia/fidl_gen_cpp" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/build/fuchsia/fidl_gen_cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/build/fuchsia/skqp/append_assets_to_manifest" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/build/fuchsia/skqp/append_assets_to_manifest" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/buildtools/checkdeps/cpp_checker.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/buildtools/checkdeps/cpp_checker.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/buildtools/checkdeps/graphdeps.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/buildtools/checkdeps/graphdeps.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/buildtools/checkdeps/java_checker.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/buildtools/checkdeps/java_checker.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/buildtools/checkdeps/proto_checker.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/buildtools/checkdeps/proto_checker.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/buildtools/checkdeps/results.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/buildtools/checkdeps/results.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/experimental/tools/get_examples.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/experimental/tools/get_examples.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/experimental/tools/mskp_parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/experimental/tools/mskp_parser.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/experimental/tools/pdf-comparison.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/experimental/tools/pdf-comparison.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/gn/copy_git_directory.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/gn/copy_git_directory.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/gn/gn_meta_sln.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/gn/gn_meta_sln.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/gn/make_gm_gni.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/gn/make_gm_gni.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/include/core/SkCanvas.h" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/include/core/SkCanvas.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/include/core/SkData.h" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/include/core/SkData.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/include/core/SkPaint.h" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/include/core/SkPaint.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/include/core/SkPath.h" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/include/core/SkPath.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/include/core/SkStream.h" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/include/core/SkStream.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/infra/bots/buildstats/buildstats_cpp.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/infra/bots/buildstats/buildstats_cpp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/infra/bots/buildstats/buildstats_flutter.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/infra/bots/buildstats/buildstats_flutter.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/infra/bots/buildstats/buildstats_wasm.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/infra/bots/buildstats/buildstats_wasm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/infra/bots/buildstats/buildstats_web.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/infra/bots/buildstats/buildstats_web.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/infra/bots/recipe_modules/builder_name_schema/builder_name_schema.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/infra/bots/recipe_modules/builder_name_schema/builder_name_schema.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/infra/bots/recipe_modules/doxygen/resources/generate_and_upload_doxygen.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/infra/bots/recipe_modules/doxygen/resources/generate_and_upload_doxygen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/infra/bots/recipes/perf_skottietrace.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/infra/bots/recipes/perf_skottietrace.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/infra/bots/recipes/perf_skottiewasm_lottieweb.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/infra/bots/recipes/perf_skottiewasm_lottieweb.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/infra/bots/recipes/test.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/infra/bots/recipes/test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/infra/lottiecap/gold/lottie-web-aggregator.go" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/infra/lottiecap/gold/lottie-web-aggregator.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/infra/wasm-common/gold/wasm_gold_aggregator.go" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/infra/wasm-common/gold/wasm_gold_aggregator.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/infra/wasm-common/perf/wasm_perf_aggregator.go" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/infra/wasm-common/perf/wasm_perf_aggregator.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/modules/canvaskit/future_apis/ImageDecoder.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/modules/canvaskit/future_apis/ImageDecoder.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/modules/canvaskit/npm_build/CODE_OF_CONDUCT.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/modules/canvaskit/npm_build/CODE_OF_CONDUCT.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/modules/pathkit/npm-asmjs/CODE_OF_CONDUCT.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/modules/pathkit/npm-asmjs/CODE_OF_CONDUCT.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/modules/pathkit/npm-wasm/CODE_OF_CONDUCT.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/modules/pathkit/npm-wasm/CODE_OF_CONDUCT.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/platform_tools/android/apps/skottie/src/main/java/org/skia/skottie/SkottieActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/platform_tools/android/apps/skottie/src/main/java/org/skia/skottie/SkottieActivity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/platform_tools/android/apps/viewer/src/main/java/org/skia/viewer/ViewerActivity.java" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/platform_tools/android/apps/viewer/src/main/java/org/skia/viewer/ViewerActivity.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/platform_tools/android/skp_gen/android_skp_capture.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/platform_tools/android/skp_gen/android_skp_capture.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/_index.html" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/_index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/about/_index.html" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/about/_index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/docs/_index.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/docs/_index.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/docs/dev/chrome/blink.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/docs/dev/chrome/blink.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/docs/dev/contrib/_index.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/docs/dev/contrib/_index.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/docs/dev/contrib/cqkeywords.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/docs/dev/contrib/cqkeywords.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/docs/dev/gardening/_index.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/docs/dev/gardening/_index.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/docs/dev/gardening/android.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/docs/dev/gardening/android.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/docs/dev/testing/skiagold.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/docs/dev/testing/skiagold.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/docs/dev/testing/testing.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/docs/dev/testing/testing.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/docs/dev/tools/debugger.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/docs/dev/tools/debugger.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/docs/roles.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/docs/roles.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/docs/user/api/SkPath_Overview.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/docs/user/api/SkPath_Overview.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/site/docs/user/tips.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/site/docs/user/tips.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/angle2/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/angle2/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/angle2/android/compress_symbols.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/angle2/android/compress_symbols.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/angle2/doc/CompilingTranslatorWithEmscripten.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/angle2/doc/CompilingTranslatorWithEmscripten.md" afterDir="false" />
@@ -454,7 +359,6 @@
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/harfbuzz/test/subset/subset_test_suite.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/harfbuzz/test/subset/subset_test_suite.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/icu/readme.html" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/icu/readme.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/icu/scripts/asm_to_inline_asm.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/icu/scripts/asm_to_inline_asm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/icu/scripts/make_data_assembly.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/icu/scripts/make_data_assembly.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/icu/source/Doxyfile.in" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/icu/source/Doxyfile.in" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/icu/source/common/rbbirpt.txt" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/icu/source/common/rbbirpt.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/icu/source/data/translit/Hebr_Latn.txt" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/icu/source/data/translit/Hebr_Latn.txt" afterDir="false" />
@@ -681,12 +585,8 @@
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/tools/sva/tools/process_grammar.rb" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/tools/sva/tools/process_grammar.rb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/check_copyright.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/check_copyright.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/fixup_fuzz_result.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/fixup_fuzz_result.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/generate_grammar_tables.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/generate_grammar_tables.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/generate_language_headers.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/generate_language_headers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/generate_registry_tables.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/generate_registry_tables.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/generate_vim_syntax.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/generate_vim_syntax.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/git-sync-deps" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/git-sync-deps" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/update_build_version.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/update_build_version.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/vscode/src/lsp/protocol/tsprotocol.go" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/vscode/src/lsp/protocol/tsprotocol.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/vscode/src/tools/gen-grammar.go" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/spirv-tools/utils/vscode/src/tools/gen-grammar.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/swiftshader/.dir-locals.el" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/swiftshader/.dir-locals.el" afterDir="false" />
@@ -751,33 +651,6 @@
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/wuffs/lib/rac/writer.go" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/wuffs/lib/rac/writer.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/wuffs/std/cbor/decode_cbor.wuffs" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/wuffs/std/cbor/decode_cbor.wuffs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/externals/zlib/contrib/minizip/ChangeLogUnzip" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/externals/zlib/contrib/minizip/ChangeLogUnzip" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/harfbuzz/BUILD.gn" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/harfbuzz/BUILD.gn" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/third_party/icu/make_data_cpp.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/third_party/icu/make_data_cpp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/android/upload_to_android.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/android/upload_to_android.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/build_workaround_header.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/build_workaround_header.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/calmbench/ab.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/calmbench/ab.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/copyright/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/copyright/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/doxygen/Doxyfile" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/doxygen/Doxyfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/doxygen/mainpage/mainpage.dox" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/doxygen/mainpage/mainpage.dox" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/fiddle/make_all_examples_cpp.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/fiddle/make_all_examples_cpp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/git-sync-deps" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/git-sync-deps" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/jsondiff.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/jsondiff.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/mdbviz/resources.qrc" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/mdbviz/resources.qrc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/milestone.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/milestone.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/misc_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/misc_utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/parse_llvm_coverage.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/parse_llvm_coverage.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/rebaseline/toggle_legacy_flag.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/rebaseline/toggle_legacy_flag.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/skiaserve/tester/tester.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/skiaserve/tester/tester.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/skp/generate_page_set.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/skp/generate_page_set.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/skpbench/sheet.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/skpbench/sheet.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/skpbench/skiaperf.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/skpbench/skiaperf.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/skpbench/skpbench.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/skpbench/skpbench.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/skqp/create_apk.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/skqp/create_apk.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/skqp/cut_release.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/skqp/cut_release.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/skqp/download_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/skqp/download_model.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/skqp/find_commit_with_best_gold_results.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/skqp/find_commit_with_best_gold_results.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/skqp/make_apk_list.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/skqp/make_apk_list.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/skia/tools/svg/svg_downloader.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/skia/tools/svg/svg_downloader.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/DEPS" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/DEPS" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/PRESUBMIT.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/PRESUBMIT.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/README.md" afterDir="false" />
@@ -1389,17 +1262,7 @@
       <change beforePath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/inject-compilation-hints.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/inject-compilation-hints.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/wasm-objdump-compilation-hints.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/wasm-objdump-compilation-hints.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/typescript/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/internal:core.d.ts" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/typescript/out/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/out/platform.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/out/render/vg_context.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/out/render/vg_rect.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/out/test.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/out/timer.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/platform.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/render/vg_context.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/render/vg_rect.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/timer.ts" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/typescript/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/tsconfig.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -1472,7 +1335,7 @@
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="nodejs_package_manager_path" value="npm" />
-    <property name="settings.editor.selected.configurable" value="CMakeSettings" />
+    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
     <property name="settings.editor.splitter.proportion" value="0.24799196" />
     <property name="ts.external.directory.path" value="$APPLICATION_HOME_DIR$/plugins/JavaScriptLanguage/jsLanguageServicesImpl/external" />
   </component>
@@ -1497,23 +1360,26 @@
       <command value="konsole" />
     </option>
   </component>
-  <component name="RunManager" selected="CMake Application.Cocoa">
+  <component name="RunManager" selected="CMake Application.simple_player">
     <configuration default="true" type="GradleAppRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
+    <configuration name="skia_viewer" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/third_party/skia" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Default" CONFIG_NAME="Default" RUN_PATH="$PROJECT_DIR$/third_party/skia/out/Dev/viewer">
+      <method v="2" />
     </configuration>
-    <configuration name="Cocoa" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/cmake-build-debug" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Cocoa" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="Cocoa">
+    <configuration name="Cocoa" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="-L debug ../typescript/out" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/cmake-build-debug" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Cocoa" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="Cocoa">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration name="Koi" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Koi" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="simple_player" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="simple_player" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="simple_player">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -1563,6 +1429,8 @@
     <list>
       <item itemvalue="CMake Application.Cocoa" />
       <item itemvalue="CMake Application.Koi" />
+      <item itemvalue="CMake Application.simple_player" />
+      <item itemvalue="Custom Build Application.skia_viewer" />
       <item itemvalue="Python.build-third-party" />
       <item itemvalue="Python.BUILD" />
     </list>
@@ -1854,7 +1722,13 @@
       <workItem from="1629363921013" duration="11015000" />
       <workItem from="1629377800403" duration="3033000" />
       <workItem from="1629381186026" duration="7545000" />
-      <workItem from="1629431348950" duration="16797000" />
+      <workItem from="1629431348950" duration="16889000" />
+      <workItem from="1629514988182" duration="16377000" />
+      <workItem from="1629606975126" duration="25808000" />
+      <workItem from="1629688226992" duration="12197000" />
+      <workItem from="1629704968113" duration="19998000" />
+      <workItem from="1629804752533" duration="9324000" />
+      <workItem from="1629861093358" duration="18162000" />
     </task>
     <servers />
   </component>
@@ -1987,21 +1861,14 @@
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/src/Komorebi/KTDLParser.cc</url>
-          <line>168</line>
-          <option name="timeStamp" value="4" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/third_party/v8/src/d8/d8.cc</url>
-          <line>1136</line>
-          <option name="timeStamp" value="9" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/third_party/skia/src/core/SkPathRef.cpp</url>
-          <line>648</line>
-          <option name="timeStamp" value="19" />
+          <url>file://$PROJECT_DIR$/third_party/skia/tools/viewer/ImGuiLayer.cpp</url>
+          <line>149</line>
+          <option name="timeStamp" value="20" />
         </line-breakpoint>
       </breakpoints>
+      <default-breakpoints>
+        <breakpoint enabled="true" type="CidrExceptionBreakpoint" />
+      </default-breakpoints>
     </breakpoint-manager>
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">

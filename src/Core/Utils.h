@@ -2,6 +2,8 @@
 #define COCOA_UTILS_H
 
 #include <functional>
+#include <vector>
+#include <string_view>
 
 #include "Core/Exception.h"
 #include "Core/Properties.h"
@@ -15,6 +17,7 @@ std::string GetExecutablePath();
 std::string GetCpuModel();
 size_t GetMemPageSize();
 size_t GetMemTotalSize();
+std::vector<std::string_view> SplitString(const std::string& str, std::string::value_type delimiter);
 
 } // namespace cocoa
 

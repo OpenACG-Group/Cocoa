@@ -13,8 +13,6 @@ set(core_sources
         EventSource.h
         EventLoop.h
         EventLoop.cc
-        RandomDevice.h
-        RandomDevice.cc
         Filesystem.h
         FilesystemLinuxImpl.cc
         CrpkgImage.h

@@ -26,11 +26,12 @@ include_directories(
         third_party/v8/include
         third_party/fmt/include
         third_party/libsquash/include
+        third_party/imgui
         third_party/build/include
         third_party/build/include/dbus-cxx-2.0
         ${SIGC_INCLUDE_DIRS})
 
-link_directories(third_party/skia/out/Shared
+link_directories(third_party/skia/out/SharedDev
                  third_party/poco/out/lib
                  third_party/v8/out/x64.release
                  third_party/build/lib
@@ -43,7 +44,7 @@ endif()
 
 ## Compile options and targets
 add_compile_definitions(COCOA_PROJECT=1 V8_COMPRESS_POINTERS SK_VULKAN)
-add_compile_options(-Wall -mrdrnd)
+add_compile_options(-Wall)
 
 add_subdirectory(src/Core)
 #add_subdirectory(src/AVCodec)
@@ -56,4 +57,4 @@ target_link_libraries(Cocoa
         Vanilla
         Core)
 
-#add_subdirectory(test)
+add_subdirectory(test)

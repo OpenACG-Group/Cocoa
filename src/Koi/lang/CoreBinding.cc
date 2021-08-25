@@ -11,6 +11,7 @@
 #include "Koi/binder/Class.h"
 #include "Koi/binder/Module.h"
 #include "Koi/binder/CallV8.h"
+#include "Koi/lang/Base.h"
 #include "Koi/lang/CoreBinding.h"
 KOI_LANG_NS_BEGIN
 
@@ -228,7 +229,7 @@ bool jni_core_hasProperty(const std::string& spec)
     if (thrown)
         return {};
 
-    return (!node || node->protection() == PropertyNode::Protection::kPrivate);
+    return (node && node->protection() != PropertyNode::Protection::kPrivate);
 }
 
 /* ----------------- Native Classes ----------------- */
@@ -297,28 +298,18 @@ private:
 
 } // namespace anonymous
 
-class CoreBindingModule : public BaseBindingModule
-{
-public:
-    CoreBindingModule()
+CoreBindingModule::CoreBindingModule()
         : BaseBindingModule("core",
                             "Basic language features for Cocoa JavaScript") {}
-    ~CoreBindingModule() override = default;
 
-    void getModule(binder::Module& self) override
-    {
-        auto jni_core_Timer_class = jni_core_Timer::GetClass();
-        self.set("print", jni_core_print)
-            .set("delay", jni_core_delay)
-            .set("getProperty", jni_core_getProperty)
-            .set("hasProperty", jni_core_hasProperty)
-            .set("Timer", jni_core_Timer_class);
-    }
-};
-
-KOI_DECL_BINDING_PRELOAD_HOOK(core)
+void CoreBindingModule::getModule(binder::Module& self)
 {
-    RegisterBinding(new CoreBindingModule());
+    auto jni_core_Timer_class = jni_core_Timer::GetClass();
+    self.set("print", jni_core_print)
+        .set("delay", jni_core_delay)
+        .set("getProperty", jni_core_getProperty)
+        .set("hasProperty", jni_core_hasProperty)
+        .set("Timer", jni_core_Timer_class);
 }
 
 KOI_LANG_NS_END

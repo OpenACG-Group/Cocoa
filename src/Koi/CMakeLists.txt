@@ -30,7 +30,6 @@ add_library(Koi STATIC
         binder/Class.cc
         binder/Module.h
         binder/CallV8.h
-
         lang/Base.h
         lang/Base.cc
         lang/CoreBinding.h

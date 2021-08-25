@@ -13,5 +13,6 @@
 #define KOI_LANG_NS_END     }
 
 #define koi_nodiscard [[nodiscard]]
+#define koi_maybe_unsed [[maybe_unused]]
 
 #endif //COCOA_KOIBASE_H

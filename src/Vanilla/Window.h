@@ -37,6 +37,9 @@ public:
     { return fDisplay.lock(); }
     Handle<Context> getContext();
 
+    virtual float scaleFactor()
+    { return 1.0f; }
+
     VA_SIG_GETTER(Map)
     VA_SIG_GETTER(Unmap)
     VA_SIG_GETTER(Repaint)
