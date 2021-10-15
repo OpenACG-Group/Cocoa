@@ -1,0 +1,8 @@
+//
+// Created by sora on 2021/9/30.
+//
+
+#ifndef COCOA_CONTENTAGGREGATOR_H
+#define COCOA_CONTENTAGGREGATOR_H
+
+#endif //COCOA_CONTENTAGGREGATOR_H
