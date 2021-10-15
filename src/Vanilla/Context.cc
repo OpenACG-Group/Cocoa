@@ -22,7 +22,7 @@ Context::~Context()
     {
         if (pair.second)
         {
-            assert(pair.second.unique());
+            assert(pair.second.use_count() == 1);
             pair.second->dispose();
         }
     }

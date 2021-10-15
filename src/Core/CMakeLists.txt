@@ -20,7 +20,9 @@ set(core_sources
         CrpkgInputStream.h
         CrpkgInputStream.cc
         Data.h
-        Data.cc)
+        Data.cc
+        CpuInfo.h
+        CpuInfo.cc)
 
 add_library(${core_target} STATIC ${core_sources})
 
@@ -32,6 +34,7 @@ target_link_libraries(${core_target}
         unwind
         uv_a
         fmt::fmt
+        cpu_features
         ${SQUASH_LIBS})
 
 ## For symbol analyzing in RuntimeException

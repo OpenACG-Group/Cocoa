@@ -16,6 +16,7 @@ class Bitfield
 {
 public:
     using T = typename std::underlying_type<E>::type;
+    explicit Bitfield(T value) : fValue(value) {}
     Bitfield() : fValue(0) {}
     explicit Bitfield(E value) : fValue(static_cast<T>(value)) {}
 

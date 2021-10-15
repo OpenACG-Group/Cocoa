@@ -139,6 +139,14 @@
                     "command": ["make", "install"]
                 }
             ]
+        },
+        {
+            "name": "cpu_features",
+            "fetch": {
+                "protocol": "git",
+                "url": "https://github.com/google/cpu_features"
+            },
+            "policy": "fetch-only"
         }
     ]
 }

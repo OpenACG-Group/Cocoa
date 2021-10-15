@@ -28,9 +28,18 @@ public:
         fHandle = reinterpret_cast<uv_handle_t*>(std::malloc(sizeof(R)));
     }
     virtual ~EventSource() {
+        if (fHandle)
+        {
+            close();
+        }
+    }
+
+    void close()
+    {
         uv_close(fHandle, [](uv_handle_t *handle) -> void {
             std::free(handle);
         });
+        fHandle = nullptr;
     }
 
     inline EventLoop *eventLoop() {

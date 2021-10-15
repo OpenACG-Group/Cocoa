@@ -3,7 +3,32 @@
  * Members in namespace Cocoa.core are implemented by `core`
  * language binding.
  */
+
 declare namespace Cocoa.core  {
+    /* Constants: Virtual File Descriptor (Randomized by FDLR) */
+    const VFD_STDIN: number;
+    const VFS_STDOUT: number;
+    const VFD_STDERR: number;
+
+    /* Constants: File creation modes */
+    const MODE_NONE: number;
+    const MODE_USR_W: number;
+    const MODE_USR_R: number;
+    const MODE_USR_X: number;
+    const MODE_OTH_W: number;
+    const MODE_OTH_R: number;
+    const MODE_OTH_X: number;
+    const MODE_GRP_R: number;
+    const MODE_GRP_W: number;
+    const MODE_GRP_X: number;
+    const MODE_DIR: number;
+    const MODE_LINK: number;
+    const MODE_REGULAR: number;
+    const MODE_CHAR: number;
+    const MODE_BLOCK: number;
+    const MODE_FIFO: number;
+    const MODE_SOCKET: number;
+
     /**
      * A reusable and high-resolution (microsecond) timer.
      */
@@ -60,24 +85,11 @@ declare namespace Cocoa.core  {
      * exists and is accessible.
      */
     function hasProperty(specifier: string): boolean;
-}
 
-interface Readable {
-    read(p: Uint8Array): Promise<number|null>;
-}
+    function dump(what: string): void;
 
-interface ReadableSync {
-    read(p: Uint8Array): number|null;
-}
+    function open(path: string, flags?: string, mode?: number): number;
+    function close(vfd: number);
 
-interface Writable {
-    write(p: Uint8Array): Promise<number|null>;
-}
-
-interface WritableSync {
-    write(p: Uint8Array): number|null;
-}
-
-interface Closable {
-    close(): void;
+    function exit(): void;
 }

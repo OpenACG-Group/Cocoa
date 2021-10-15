@@ -26,11 +26,18 @@ public:
 
     void initialize(const SurfaceCreatorPfn& surfaceCreator);
 
+    va_nodiscard inline GrDirectContext *getDirectContext() const {
+        return fDirectContext.get();
+    }
+
+    sk_sp<SkSurface> createBackendSurface(const SkImageInfo &info, SkBudgeted budgeted) override;
+
 private:
     sk_sp<SkSurface> onBeginFrame(const SkRect& region) override;
     void onEndFrame(const SkRect& region) override;
     void onResize(int32_t width, int32_t height) override;
 
+    int getMaxSampleCount();
     void createGpuInstance();
     void createGpuDevice(const SurfaceCreatorPfn& surfaceCreator);
     void createDirectContext();

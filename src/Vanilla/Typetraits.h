@@ -14,30 +14,34 @@ public:
     using T = typename std::underlying_type<E>::type;
     Bitfield() : fValue(0) {}
     explicit Bitfield(E value) : fValue(static_cast<T>(value)) {}
-
     explicit Bitfield(const std::vector<E>& values) : fValue(0) {
         for (E v : values)
             fValue |= static_cast<T>(v);
     }
+    explicit Bitfield(T dv) : fValue(dv) {}
 
     Bitfield(const std::initializer_list<E>& values) : fValue(0) {
         for (E v : values)
             fValue |= static_cast<T>(v);
     }
 
-    Bitfield& operator|=(const E bit) {
+    inline Bitfield& operator|=(const E bit) {
         fValue |= static_cast<T>(bit);
         return *this;
     }
 
-    Bitfield operator|(const E bit) {
+    va_nodiscard inline Bitfield operator|(const E bit) {
         Bitfield result = *this;
         result.fValue |= static_cast<T>(bit);
         return result;
     }
 
-    bool operator&(const E bit) {
+    va_nodiscard inline bool operator&(const E bit) {
         return (fValue & static_cast<T>(bit)) == static_cast<T>(bit);
+    }
+
+    va_nodiscard inline T value() {
+        return fValue;
     }
 
 private:

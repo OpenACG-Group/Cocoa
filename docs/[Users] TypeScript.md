@@ -115,7 +115,10 @@ v8::Local<v8::Object> jsObj = mod.new_instance();
 - 初始化阶段构造 hooks 函数表
 - preload 阶段由 preloader 依次调用 hooks
 - hook 函数将自己的 BaseBindingModule 子类注册到 LBC
-- 
+- TODO.
+
+### Privilege Escalation using `--lbp-allow-override`
+TODO.
 
 ## Development Environment
 在 `typescript` 目录下有 Cocoa 项目使用到的所有 TypeScript 文件，包括标准库。

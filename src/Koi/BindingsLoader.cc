@@ -2,17 +2,30 @@
 #include "Core/Journal.h"
 
 #include "Koi/KoiBase.h"
+#include "Koi/BindingsLoader.h"
 #include "Koi/lang/Base.h"
 #include "Koi/lang/CoreBinding.h"
+#include "Koi/lang/VanillaBinding.h"
 
 #include <dlfcn.h>
 KOI_NS_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi)
 
-void PreloadBindings()
+namespace {
+const Runtime::Options *gRTOptions = nullptr;
+} // namespace anonymous
+
+const Runtime::Options& GetGlobalRuntimeOptions()
 {
+    return *gRTOptions;
+}
+
+void PreloadBindings(const Runtime::Options& options)
+{
+    gRTOptions = &options;
     lang::RegisterBinding(new lang::CoreBindingModule());
+    lang::RegisterBinding(new lang::VanillaBindingModule());
 
     const lang::LbpBlock *block = lang::LbpHookAppender::GetLbpBlock();
     for (size_t i = 0; i < block->n_hooks; i++)
@@ -26,6 +39,7 @@ void PreloadBindings()
              fmt::ptr(block->lbp_hooks[i]), fmt::ptr(block))
         block->lbp_hooks[i](block);
     }
+    gRTOptions = nullptr;
 }
 
 bool LoadBindingsFromDynamicLibrary(const std::string& file)

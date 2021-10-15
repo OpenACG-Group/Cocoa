@@ -1,15 +1,8 @@
-let i = 0;
-while (true)
-{
-	let prop: string = "runtime.script.lbp-preloads.#" + i;
-	if (!Cocoa.core.hasProperty(prop))
-		break;
-	Cocoa.core.print(Cocoa.core.getProperty(prop) + "\n");
-	i++;
-}
+Cocoa.core.print("Script started\n");
+let timer = new Cocoa.core.Timer();
+timer.setTimeout(3000, () => {
+	Cocoa.core.print("Timer reached\n");
+});
 
-(async function() {
-    await Cocoa.core.delay(1000);
-})();
-
-Cocoa.core.print("done\n");
+Cocoa.core.exit();
+Cocoa.core.print("Script end\n");

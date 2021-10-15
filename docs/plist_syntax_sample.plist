@@ -1,0 +1,8 @@
+# Property List Language (plist) Sample
+
+relocate new<protected, object> summerpockets;
+new<object> "license";
+set (new<data> license.key), string "THIS_IS_SUMMER_POCKETS_LICENSE";
+set (new<data> license.group), string "OpenACG Group";
+set (new<data> license.type), int 1;
+set (new<data> license.valid), boolean true;

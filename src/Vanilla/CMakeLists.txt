@@ -20,13 +20,27 @@ add_library(${target_name} STATIC
             KeySymbols.cc
             KeyboardProxy.h
             KeyboardProxy.cc
-            ImGuiWindow.h
-            ImGuiWindow.cc
-            ../../third_party/imgui/imgui.h
-            ../../third_party/imgui/imgui.cpp
-            ../../third_party/imgui/imgui_draw.cpp
-            ../../third_party/imgui/imgui_tables.cpp
-            ../../third_party/imgui/imgui_widgets.cpp
+            RenderKit/InputEventListener.h
+            RenderKit/InputEventListener.cc
+            RenderKit/LayerPropertiesGroup.h
+            RenderKit/Layer.h
+            RenderKit/Layer.cc
+            RenderKit/ContentAggregator.h
+            RenderKit/ContentAggregator.cc
+            RenderKit/LayerFactories.h
+            RenderKit/LayerFactories.cc
+            RenderKit/PictureLayer.h
+            RenderKit/PictureLayer.cc
+            RenderKit/ImageLayer.h
+            RenderKit/ImageLayer.cc
+            RenderKit/ImageAdaptationMethod.h
+            RenderKit/Renderer.h
+            RenderKit/Renderer.cc
+            RenderKit/RenderMicroTask.h
+            RenderKit/RenderMicroTask.cc
+            RenderKit/ImGuiLayer.h
+            RenderKit/ImGuiSwrastLayer.h
+            RenderKit/ImGuiSkrastLayer.h
             Xcb/EventHandlerMacros.h
             Xcb/XcbDisplay.h
             Xcb/XcbDisplay.cc
@@ -40,16 +54,7 @@ add_library(${target_name} STATIC
             Xcb/XcbEventQueue.h
             Xcb/XcbEventQueue.cc
             Xcb/XcbRasterDrawContext.h
-            Xcb/XcbRasterDrawContext.cc
-
-            Pipeline/GpPipeline.h
-            Pipeline/GpPipeline.cc
-            Pipeline/GpLinkage.h
-            Pipeline/GpElement.h
-            Pipeline/GpElement.cc
-            Audio/AuCommon.h
-            Audio/AuPulseaudioConnection.h
-            Audio/AuPulseaudioConnection.cc)
+            Xcb/XcbRasterDrawContext.cc)
 
 set(XCB_BACKEND_LIBS
         xcb

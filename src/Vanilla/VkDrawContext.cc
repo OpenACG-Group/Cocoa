@@ -868,4 +868,37 @@ void VkDrawContext::onEndFrame(const SkRect& region)
     fCurrentRT = (fCurrentRT + 1) % fRenderTargets.size();
 }
 
+int VkDrawContext::getMaxSampleCount()
+{
+    VkPhysicalDeviceProperties prop{};
+    vkGetPhysicalDeviceProperties(fPhysicalDevice, &prop);
+
+    VkSampleCountFlags c = std::min(prop.limits.framebufferColorSampleCounts,
+                                    prop.limits.framebufferDepthSampleCounts);
+    if (c & VK_SAMPLE_COUNT_64_BIT)
+        return 64;
+    else if (c & VK_SAMPLE_COUNT_32_BIT)
+        return 32;
+    else if (c & VK_SAMPLE_COUNT_16_BIT)
+        return 16;
+    else if (c & VK_SAMPLE_COUNT_8_BIT)
+        return 8;
+    else if (c & VK_SAMPLE_COUNT_4_BIT)
+        return 4;
+    else if (c & VK_SAMPLE_COUNT_2_BIT)
+        return 2;
+    return 1;
+}
+
+sk_sp<SkSurface> VkDrawContext::createBackendSurface(const SkImageInfo& info, SkBudgeted budgeted)
+{
+    sk_sp<SkSurface> surface = SkSurface::MakeRenderTarget(fDirectContext.get(),
+                                                           budgeted,
+                                                           info,
+                                                           getMaxSampleCount(),
+                                                           GrSurfaceOrigin::kTopLeft_GrSurfaceOrigin,
+                                                           nullptr);
+    return surface;
+}
+
 VANILLA_NS_END

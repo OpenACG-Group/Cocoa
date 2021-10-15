@@ -1,6 +1,11 @@
 #include <dlfcn.h>
+#include "Core/Journal.h"
+#include "Core/Exception.h"
+#include "Koi/BindingsLoader.h"
 #include "Koi/lang/Base.h"
 KOI_LANG_NS_BEGIN
+
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi.lang)
 
 void BaseBindingModule::dispose()
 {
@@ -44,10 +49,38 @@ const LbpBlock *LbpHookAppender::GetLbpBlock()
 
 void RegisterBinding(BaseBindingModule *pModule)
 {
-    BaseBindingModule *pCurrent = &gChain;
-    while (pCurrent->next())
+    if (pModule->name().empty())
+    {
+        delete pModule;
+        throw RuntimeException(__func__, "Invalid language binding name");
+    }
+
+    std::string name = pModule->name();
+    BaseBindingModule *pCurrent = gChain.next();
+    BaseBindingModule *pPrev = &gChain;
+    while (pCurrent)
+    {
+        /* Name conflicts with existing modules */
+        if (pCurrent->name() == name)
+        {
+            if (!GetGlobalRuntimeOptions().lbp_allow_override)
+            {
+                delete pModule;
+                LOGF(LOG_WARNING,
+                     "%bg<re>%fg<hl>(Vulnerability)%reset Language binding name conflict ({}), use --lbp-allow-override to ignore this",
+                     name)
+                throw RuntimeException(__func__, "Language binding name conflict");
+            }
+            pPrev->setNext(pModule);
+            pModule->setNext(pCurrent->next());
+            delete pCurrent;
+            return;
+        }
+
+        pPrev = pCurrent;
         pCurrent = pCurrent->next();
-    pCurrent->setNext(pModule);
+    }
+    pPrev->setNext(pModule);
 }
 
 BaseBindingModule *FindBindingByName(const std::string& name)

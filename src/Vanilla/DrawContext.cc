@@ -7,17 +7,31 @@
 
 VANILLA_NS_BEGIN
 
-DrawContext::ScopedFrame::ScopedFrame(Handle<DrawContext> ctx, const SkRect& region)
+DrawContext::PresentationScope::PresentationScope(Handle<DrawContext> ctx, const SkRect& region)
     : fContext(std::move(ctx)),
       fSurface(nullptr)
 {
+    assert(fContext);
     fSurface = fContext->beginFrame(region);
 }
 
-DrawContext::ScopedFrame::~ScopedFrame()
+DrawContext::PresentationScope::~PresentationScope()
 {
     if (fSurface)
         fContext->endFrame();
+}
+
+DrawContext::DrawScope::DrawScope(Handle<DrawContext> ctx)
+    : fContext(std::move(ctx))
+{
+    assert(fContext);
+    fContext->lockContext();
+}
+
+DrawContext::DrawScope::~DrawScope()
+{
+    if (fContext)
+        fContext->unlockContext();
 }
 
 Handle<DrawContext> DrawContext::MakeRaster(Handle<Window> window)
@@ -26,6 +40,8 @@ Handle<DrawContext> DrawContext::MakeRaster(Handle<Window> window)
     {
     case DisplayBackend::kDisplay_Xcb:
         return std::make_shared<XcbRasterDrawContext>(std::move(window));
+    case DisplayBackend::kDisplay_Wayland:
+        return nullptr;
     }
 }
 
@@ -43,6 +59,11 @@ DrawContext::DrawContext(Handle<Window> window, RasterizerType type)
 DrawContext::~DrawContext()
 {
     va_slot_disconnect(Window, Configure);
+}
+
+SkColorType DrawContext::getColorType() const
+{
+    return fWindow->format();
 }
 
 void DrawContext::onWindowConfigure(const Handle<Window>& window, const SkRect& rect)
@@ -72,6 +93,21 @@ void DrawContext::endFrame()
     this->onEndFrame(fRegion);
     fRegion = SkRect::MakeEmpty();
     fInFrame = false;
+}
+
+void DrawContext::lockContext()
+{
+    fRasterMutex.lock();
+}
+
+void DrawContext::unlockContext()
+{
+    fRasterMutex.unlock();
+}
+
+bool DrawContext::tryLockContext()
+{
+    return fRasterMutex.try_lock();
 }
 
 VANILLA_NS_END

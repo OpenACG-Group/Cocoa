@@ -33,5 +33,7 @@ add_library(Koi STATIC
         lang/Base.h
         lang/Base.cc
         lang/CoreBinding.h
-        lang/CoreBinding.cc)
+        lang/CoreBinding.cc
+        lang/VanillaBinding.h
+        lang/VanillaBinding.cc)
 target_link_libraries(Koi PRIVATE v8_libplatform v8)

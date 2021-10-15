@@ -50,7 +50,10 @@ void load_bindings(v8::Isolate *isolate, v8::Local<v8::Context> context,
         auto itr = std::find(options.bindings_blacklist.begin(), options.bindings_blacklist.end(),
                              pBinding->name());
         if (itr != options.bindings_blacklist.end())
+        {
+            LOGF(LOG_INFO, "Skipped loading language binding \"{}\" because of blacklist", pBinding->name())
             return true;
+        }
 
         binder::Module mod(isolate);
         pBinding->getModule(mod);

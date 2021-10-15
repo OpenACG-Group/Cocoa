@@ -27,6 +27,8 @@ public:
 
         uint32_t    v8_platform_thread_pool;
         std::vector<std::string> bindings_blacklist;
+        bool        lbp_allow_override = false;
+        std::vector<std::string> script_args;
     };
 
     Runtime(EventLoop *loop,

@@ -14,7 +14,8 @@ class Window;
 
 enum class DisplayBackend
 {
-    kDisplay_Xcb
+    kDisplay_Xcb,
+    kDisplay_Wayland
 };
 
 class Display

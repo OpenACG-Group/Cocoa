@@ -4,6 +4,7 @@
 #include <functional>
 
 #include <uv.h>
+
 #include "Core/UniquePersistent.h"
 
 namespace cocoa
@@ -21,6 +22,8 @@ public:
     void walk(std::function<void(uv_handle_t*)> function);
     inline uv_loop_t *handle()
     { return fLoop; }
+
+    void dispose();
 
 private:
     uv_loop_t   *fLoop;

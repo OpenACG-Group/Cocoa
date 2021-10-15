@@ -271,7 +271,7 @@ Translator translators[] = {
             0,
             [](TranslationContext *ctx) -> TranslationResult {
                 ctx->enabled = false;
-                return TranslationResult();
+                return {};
             }
         },
         {
@@ -279,7 +279,7 @@ Translator translators[] = {
             0,
             [](TranslationContext *ctx) -> TranslationResult {
                 ctx->enabled = true;
-                return TranslationResult();
+                return {};
             }
         },
         {
@@ -288,7 +288,7 @@ Translator translators[] = {
             [](TranslationContext *ctx) -> TranslationResult {
                 using namespace std::chrono;
                 if (!ctx->enabled)
-                    return TranslationResult();
+                    return {};
                 auto duration = duration_cast<microseconds>(steady_clock::now() - ctx->startTime);
                 double dt = static_cast<double>(duration.count()) *
                             microseconds::period::num / microseconds::period::den;
@@ -300,7 +300,7 @@ Translator translators[] = {
             0,
             [](TranslationContext *ctx) -> TranslationResult {
                 if (!ctx->enabled || !ctx->enableColor)
-                    return TranslationResult();
+                    return {};
                 return TranslationResult("\033[0m");
             }
         },
@@ -309,7 +309,7 @@ Translator translators[] = {
             -1,
             [](TranslationContext *ctx) -> TranslationResult {
                 if (!ctx->enabled || !ctx->enableColor)
-                    return TranslationResult();
+                    return {};
                 std::string buf;
                 for (const auto& item : ctx->decorator->args)
                 {
@@ -338,11 +338,42 @@ Translator translators[] = {
             }
         },
         {
+            "bg",
+            -1,
+            [](TranslationContext *ctx) -> TranslationResult {
+                if (!ctx->enabled || !ctx->enableColor)
+                    return {};
+                std::string buf;
+                for (const auto& item : ctx->decorator->args)
+                {
+                    if (match_list(item, {"bk", "black"}))
+                        buf.append("\033[40m");
+                    else if (match_list(item, {"re", "red"}))
+                        buf.append("\033[41m");
+                    else if (match_list(item, {"gr", "green"}))
+                        buf.append("\033[42m");
+                    else if (match_list(item, {"ye", "yellow"}))
+                        buf.append("\033[43m");
+                    else if (match_list(item, {"bl", "blue"}))
+                        buf.append("\033[44m");
+                    else if (match_list(item, {"ma", "magenta"}))
+                        buf.append("\033[45m");
+                    else if (match_list(item, {"cy", "cyan"}))
+                        buf.append("\033[46m");
+                    else if (match_list(item, {"wh", "white"}))
+                        buf.append("\033[47m");
+                    else
+                        throw std::runtime_error(fmt::format("Unknown color code \"{}\"", item));
+                }
+                return TranslationResult(buf);
+            }
+        },
+        {
             "pid",
             0,
             [](TranslationContext *ctx) -> TranslationResult {
                 if (!ctx->enabled)
-                    return TranslationResult();
+                    return {};
                 return TranslationResult(fmt::format("{}", getpid()));
             }
         },
@@ -351,7 +382,7 @@ Translator translators[] = {
             0,
             [](TranslationContext *ctx) -> TranslationResult {
                 if (!ctx->enabled)
-                    return TranslationResult();
+                    return {};
                 return TranslationResult(fmt::format("{}", gettid()));
             }
         }
@@ -501,7 +532,7 @@ void Journal::commit(LogType type, const std::string& str)
     }
 
     std::scoped_lock<std::mutex> lock(fWriteMutex);
-    vfs::Write(fOutputFd, finalStr.c_str(), finalStr.length() + 1);
+    vfs::Write(fOutputFd, finalStr.c_str(), finalStr.length());
 }
 
 } // namespace cocoa

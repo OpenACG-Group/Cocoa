@@ -15,14 +15,27 @@ EventLoop::EventLoop()
 
 EventLoop::~EventLoop()
 {
-    // FIXME: uv_loop_close returns EBUSY
-    uv_loop_close(fLoop);
-    delete fLoop;
+    this->dispose();
 }
 
 int EventLoop::run()
 {
+    if (!fLoop)
+    {
+        return -1;
+    }
     return uv_run(fLoop, UV_RUN_DEFAULT);
+}
+
+void EventLoop::dispose()
+{
+    // FIXME: uv_loop_close returns EBUSY
+    if (fLoop)
+    {
+        uv_loop_close(fLoop);
+        delete fLoop;
+        fLoop = nullptr;
+    }
 }
 
 void EventLoop::walk(std::function<void(uv_handle_t *)> function)

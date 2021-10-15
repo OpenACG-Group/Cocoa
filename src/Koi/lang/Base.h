@@ -9,6 +9,21 @@
 
 KOI_LANG_NS_BEGIN
 
+#define CHECK_AND_JS_THROW(cond, msg) \
+    do {                                  \
+        if ((cond)) {                     \
+            binder::throw_(v8::Isolate::GetCurrent(), msg);  \
+        } \
+    } while (false)
+
+#define CHECK_AND_JS_THROW_WITH_RET(cond, msg, ret) \
+    do {                                  \
+        if ((cond)) {                     \
+            binder::throw_(v8::Isolate::GetCurrent(), msg); \
+            return ret; \
+        } \
+    } while (false)
+
 class BaseBindingModule
 {
 public:
@@ -17,6 +32,10 @@ public:
           fDescription(std::move(desc)),
           fNext(nullptr) {}
     virtual ~BaseBindingModule() = default;
+
+    static void DefaultDeleter(BaseBindingModule *ptr) {
+        delete ptr;
+    }
 
     void dispose();
 

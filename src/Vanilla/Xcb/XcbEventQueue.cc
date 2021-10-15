@@ -1,3 +1,4 @@
+#include <iostream>
 #include <thread>
 #include <mutex>
 #include <queue>
@@ -10,6 +11,7 @@
 #include "Vanilla/Xcb/XcbDisplay.h"
 #include "Vanilla/Xcb/XcbEventQueue.h"
 #include "Vanilla/Context.h"
+
 VANILLA_NS_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Vanilla)
@@ -83,6 +85,8 @@ void XcbEventQueue::disposeFromMainThread()
 
     if (fThread.joinable())
         fThread.join();
+    AsyncSource::close();
+    fDisposed = true;
 }
 
 bool XcbEventQueue::isDisposeEvent(xcb_generic_event_t *pEvent)

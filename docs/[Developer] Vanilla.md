@@ -123,9 +123,10 @@ int main(int argc, const char **argv)
     // Repaint 信号通知我们窗口应当被重绘
     window->signalRepaint().connect([&dc](const Handle<Window>& win, const SkRect& region) -> void {
         // DrawContext 需要我们通知一帧绘制何时开始，何时结束
-        // ScopedFrame 可以基于 RAII 完成此事
-        DrawContext::ScopedFrame scope(dc, region);
-        SkCanvas *pCanvas = scope.surface()->getCanvas();
+        // PresentationScope 可以基于 RAII 完成此事
+        DrawContext::DrawScope drawScope(dc);
+        DrawContext::PresentationScope present(dc, region);
+        SkCanvas *pCanvas = present.surface()->getCanvas();
         // 在 pCanvas 上绘图。关于如何在 SkCanvas 对象上进行 2D 绘图，参阅 Skia 文档
     });
 

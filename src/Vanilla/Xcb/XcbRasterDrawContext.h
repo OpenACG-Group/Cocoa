@@ -17,6 +17,7 @@ public:
 private:
     void createSurface(int32_t width, int32_t height);
 
+    sk_sp<SkSurface> createBackendSurface(const SkImageInfo &info, SkBudgeted budgeted) override;
     sk_sp<SkSurface> onBeginFrame(const SkRect& region) override;
     void onEndFrame(const SkRect& region) override;
     void onResize(int32_t width, int32_t height) override;

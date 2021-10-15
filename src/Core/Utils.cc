@@ -98,36 +98,36 @@ void dumpPropertiesDataNode(const std::shared_ptr<PropertyDataNode>& node, const
 #define T_(t)  (node->type() == typeid(t))
     if (T_(int8_t) || T_(int16_t) || T_(int32_t) || T_(int64_t))
     {
-        LOGF(LOG_INFO, "{}%fg<ma>{}%reset", s, node->extract<int64_t>())
+        LOGF(LOG_DEBUG, "{}%fg<ma>{}%reset", s, node->extract<int64_t>())
     }
     else if (T_(uint8_t))
     {
-        LOGF(LOG_INFO, "{}%fg<ma>0x{:02x}%reset", s, node->extract<uint8_t>())
+        LOGF(LOG_DEBUG, "{}%fg<ma>0x{:02x}%reset", s, node->extract<uint8_t>())
     }
     else if (T_(uint16_t) || T_(uint32_t) || T_(uint64_t))
     {
-        LOGF(LOG_INFO, "{}%fg<ma>{}U%reset", s, node->extract<uint64_t>())
+        LOGF(LOG_DEBUG, "{}%fg<ma>{}U%reset", s, node->extract<uint64_t>())
     }
     else if (T_(float))
     {
-        LOGF(LOG_INFO, "{}%fg<ma>{}f%reset", s, node->extract<float>())
+        LOGF(LOG_DEBUG, "{}%fg<ma>{}f%reset", s, node->extract<float>())
     }
     else if (T_(double))
     {
-        LOGF(LOG_INFO, "{}%fg<ma>{}%reset", s, node->extract<double>())
+        LOGF(LOG_DEBUG, "{}%fg<ma>{}%reset", s, node->extract<double>())
     }
     else if (T_(long double))
     {
-        LOGF(LOG_INFO, "{}%fg<ma>{}%reset", s, node->extract<long double>())
+        LOGF(LOG_DEBUG, "{}%fg<ma>{}%reset", s, node->extract<long double>())
     }
     else if (T_(const char*))
     {
         /* Disable the syntax log while printing a string to avoid replacements in the string. */
-        LOGF(LOG_INFO, "{}%fg<gr>%disable\"{}\"%enable%reset", s, node->extract<const char*>())
+        LOGF(LOG_DEBUG, "{}%fg<gr>%disable\"{}\"%enable%reset", s, node->extract<const char*>())
     }
     else if (T_(std::string))
     {
-        LOGF(LOG_INFO, "{}%fg<gr>%disable\"{}\"%enable%reset", s, node->extract<std::string&>())
+        LOGF(LOG_DEBUG, "{}%fg<gr>%disable\"{}\"%enable%reset", s, node->extract<std::string&>())
     }
     else
     {
@@ -135,11 +135,11 @@ void dumpPropertiesDataNode(const std::shared_ptr<PropertyDataNode>& node, const
                                                   nullptr, nullptr, nullptr);
         if (!demangledType)
         {
-            LOGF(LOG_INFO, "{}%fg<re><Corrupted typeinfo>%reset", s)
+            LOGF(LOG_DEBUG, "{}%fg<re><Corrupted typeinfo>%reset", s)
         }
         else
         {
-            LOGF(LOG_INFO, "{}%fg<re><%fg<bl>(nonprimitive)%fg<re> {}>%reset", s, demangledType)
+            LOGF(LOG_DEBUG, "{}%fg<re><%fg<bl>(nonprimitive)%fg<re> {}>%reset", s, demangledType)
             std::free(demangledType);
         }
     }
@@ -149,24 +149,24 @@ void dumpPropertiesDataNode(const std::shared_ptr<PropertyDataNode>& node, const
 void dumpPropertiesObjectNode(const std::shared_ptr<PropertyObjectNode>& node, const std::string& name, int depth)
 {
     auto s = genOutHeader(node->protection(), name, depth);
-    LOGF(LOG_INFO, "{}{{", s)
+    LOGF(LOG_DEBUG, "{}{{", s)
 
     for (const auto& child : *node)
         dumpPropertiesNode(child.second, child.first, depth + 1);
 
-    LOGF(LOG_INFO, "{}}}", genOutSpacing(depth))
+    LOGF(LOG_DEBUG, "{}}}", genOutSpacing(depth))
 }
 
 void dumpPropertiesArrayNode(const std::shared_ptr<PropertyArrayNode>& node, const std::string& name, int depth)
 {
     auto s = genOutHeader(node->protection(), name, depth);
-    LOGF(LOG_INFO, "{}[", s)
+    LOGF(LOG_DEBUG, "{}[", s)
 
     int32_t idx = 0;
     for (const auto& subscript : *node)
         dumpPropertiesNode(subscript, fmt::format("[{}]", idx++), depth + 1);
 
-    LOGF(LOG_INFO, "{}]", genOutSpacing(depth))
+    LOGF(LOG_DEBUG, "{}]", genOutSpacing(depth))
 }
 
 } // namespace anonymous

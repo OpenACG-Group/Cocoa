@@ -9,6 +9,7 @@
 #include "Core/Utils.h"
 #include "Core/MeasuredTable.h"
 #include "Core/Journal.h"
+#include "Core/CpuInfo.h"
 #include "Core/Exception.h"
 #include "Core/EventLoop.h"
 
@@ -131,16 +132,15 @@ const Template gTemplates[] = {
             .desc = "Specify a path of a dynamic library to load it as language bindings"
         },
         {
-            .longName = "hw-accelerated-video-decoding",
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kBoolean,
-            .desc = "Enable or disable hardware accelerated video decoding"
+            .longName = "lbp-allow-override",
+            .hasValue = Template::RequireValue::kEmpty,
+            .desc = "Language bindings with the same name can override each other"
         },
         {
-            .longName = "hw-accelerated-rendering",
+            .longName = "script-args",
             .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kBoolean,
-            .desc = "Enable or disable hardware accelerated rendering"
+            .valueType = ValueType::kString,
+            .desc = "Specify a comma separated list that will be passed to JavaScript."
         }
 };
 
@@ -645,6 +645,16 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
         {
             lbpPreloads->append(prop::New<PropertyDataNode>(arg.value->v_str));
         }
+        else if arg_longopt_match("lbp-allow-override")
+        {
+            koiOptions.lbp_allow_override = true;
+            LOGW(LOG_WARNING, "%bg<re>%fg<hl>(Vulnerability)%reset Option %fg<hl>\"--lbp-allow-override\"%reset"
+                              " is only for debugging/experiment. Never switch it on for release version.")
+        }
+        else if arg_longopt_match("script-args")
+        {
+            // TODO: Parse comma separated list
+        }
     }
 
     {
@@ -669,11 +679,12 @@ void Finalize()
     koi::Dispose();
     EventLoop::Delete();
     Journal::Delete();
+    CpuInfo::Delete();
 }
 
 void Execute(const koi::Runtime::Options& options)
 {
-    LOGW(LOG_INFO, "Current Properties Tree:")
+    LOGW(LOG_DEBUG, "Current Properties Tree:")
     utils::DumpProperties(prop::Get());
 
     auto workingPath = prop::Cast<PropertyDataNode>(prop::Get()
@@ -684,12 +695,12 @@ void Execute(const koi::Runtime::Options& options)
     auto preloads = prop::Get()->next("runtime")->next("script")->next("lbp-preloads");
     for (const auto& p : *prop::Cast<PropertyArrayNode>(preloads))
     {
-        std::string& val = prop::Cast<PropertyDataNode>(p)->extract<std::string>();
+        auto& val = prop::Cast<PropertyDataNode>(p)->extract<std::string>();
         if (!koi::LoadBindingsFromDynamicLibrary(val))
             throw RuntimeException(__func__, "Failed in loading dynamic language bindings");
     }
 
-    koi::PreloadBindings();
+    koi::PreloadBindings(options);
 
     std::string snapshotFile = execPath + "snapshot_blob.bin";
     auto runtime = koi::Runtime::MakeFromSnapshot(EventLoop::Instance(),
@@ -710,9 +721,8 @@ void Execute(const koi::Runtime::Options& options)
 
 int Main(int argc, char const **argv)
 {
-    ScopeEpilogue epilogue([]() -> void {
-        Finalize();
-    });
+    CpuInfo::New();
+    ScopeEpilogue epilogue([]() -> void { Finalize(); });
 
     koi::Runtime::Options koiOptions;
     try {

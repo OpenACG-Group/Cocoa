@@ -86,4 +86,9 @@ void XcbRasterDrawContext::onEndFrame(const SkRect& region)
     xcb_flush(fConnection);
 }
 
+sk_sp<SkSurface> XcbRasterDrawContext::createBackendSurface(const SkImageInfo& info, SkBudgeted budgeted)
+{
+    return SkSurface::MakeRaster(info);
+}
+
 VANILLA_NS_END

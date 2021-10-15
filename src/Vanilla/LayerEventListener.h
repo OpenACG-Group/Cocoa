@@ -1,8 +1,0 @@
-//
-// Created by sora on 2021/8/31.
-//
-
-#ifndef COCOA_LAYEREVENTLISTENER_H
-#define COCOA_LAYEREVENTLISTENER_H
-
-#endif //COCOA_LAYEREVENTLISTENER_H
