@@ -5,12 +5,13 @@
 #include "Koi/lang/Base.h"
 KOI_LANG_NS_BEGIN
 
-class VanillaBindingModule : public BaseBindingModule
+class VanillaBindingModule : public BindingBase
 {
 public:
     VanillaBindingModule();
     ~VanillaBindingModule() override = default;
     void getModule(binder::Module& mod) override;
+    const char **getExports() override {}
 };
 
 KOI_LANG_NS_END

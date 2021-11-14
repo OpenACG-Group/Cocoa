@@ -1,0 +1,49 @@
+%header_begin
+#include "Koi/lang/CoreBinding.h"
+#include "Koi/lang/CoreFDLR.h"
+#include "Core/Filesystem.h"
+%header_end
+%namespace cocoa::koi::lang
+%class CoreBinding
+
+%insert_begin
+    auto timerClass = jni_core_Timer::GetClass();
+    int32_t vfdStdin = FDLRNewRandomizedDescriptor(STDIN_FILENO, FDLRTable::kSystem, nullptr);
+    int32_t vfdStdout = FDLRNewRandomizedDescriptor(STDOUT_FILENO, FDLRTable::kSystem, nullptr);
+    int32_t vfdStderr = FDLRNewRandomizedDescriptor(STDERR_FILENO, FDLRTable::kSystem, nullptr);
+%insert_end
+
+%export VFD_STDIN vfdStdin
+%export VFD_STDOUT vfdStdout
+%export VFD_STDERR vfdStderr
+
+%export print jni_core_print
+%export delay jni_core_delay
+%export getProperty jni_core_getProperty
+%export hasProperty jni_core_hasProperty
+%export enumeratePropertyNode jni_core_enumeratePropertyNode
+%export Timer timerClass
+%export open jni_core_open
+%export close jni_core_close
+%export dump jni_core_dump
+%export exit jni_core_exit
+
+%export_decl args
+
+%export_const MODE_NONE static_cast<uint16_t>(vfs::Mode::kNone)
+%export_const MODE_USR_W static_cast<uint16_t>(vfs::Mode::kUsrW)
+%export_const MODE_USR_R static_cast<uint16_t>(vfs::Mode::kUsrR)
+%export_const MODE_USR_X static_cast<uint16_t>(vfs::Mode::kUsrX)
+%export_const MODE_OTH_W static_cast<uint16_t>(vfs::Mode::kOthW)
+%export_const MODE_OTH_R static_cast<uint16_t>(vfs::Mode::kOthR)
+%export_const MODE_OTH_X static_cast<uint16_t>(vfs::Mode::kOthX)
+%export_const MODE_GRP_R static_cast<uint16_t>(vfs::Mode::kGrpR)
+%export_const MODE_GRP_W static_cast<uint16_t>(vfs::Mode::kGrpW)
+%export_const MODE_GRP_X static_cast<uint16_t>(vfs::Mode::kGrpX)
+%export_const MODE_DIR static_cast<uint16_t>(vfs::Mode::kDir)
+%export_const MODE_LINK static_cast<uint16_t>(vfs::Mode::kLink)
+%export_const MODE_REGULAR static_cast<uint16_t>(vfs::Mode::kRegular)
+%export_const MODE_CHAR static_cast<uint16_t>(vfs::Mode::kChar)
+%export_const MODE_BLOCK static_cast<uint16_t>(vfs::Mode::kBlock)
+%export_const MODE_FIFO static_cast<uint16_t>(vfs::Mode::kFifo)
+%export_const MODE_SOCKET static_cast<uint16_t>(vfs::Mode::kSocket)

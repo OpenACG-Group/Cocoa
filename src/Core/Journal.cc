@@ -369,6 +369,15 @@ Translator translators[] = {
             }
         },
         {
+            "italic",
+            0,
+            [](TranslationContext *ctx) -> TranslationResult {
+                if (!ctx->enabled)
+                    return {};
+                return TranslationResult("\033[3m");
+            }
+        },
+        {
             "pid",
             0,
             [](TranslationContext *ctx) -> TranslationResult {

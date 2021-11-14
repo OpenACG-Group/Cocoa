@@ -13,6 +13,7 @@
 #include "Koi/KoiBase.h"
 #include "Koi/Runtime.h"
 #include "Koi/ModuleUrl.h"
+#include "Koi/BindingManager.h"
 
 #include "Koi/binder/Module.h"
 #include "Koi/binder/Class.h"
@@ -21,14 +22,7 @@ KOI_NS_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi)
 
-void Initialize()
-{
-}
-
-void Dispose()
-{
-    lang::Dispose();
-}
+#define CASTJS(v) binder::to_v8(isolate, v)
 
 Runtime::Options::Options()
     : v8_platform_thread_pool(0)
@@ -37,34 +31,57 @@ Runtime::Options::Options()
 
 namespace {
 
-void load_bindings(v8::Isolate *isolate, v8::Local<v8::Context> context,
-                   const Runtime::Options& options)
+v8::MaybeLocal<v8::Value> create_synthetic_module_eval_step(v8::Local<v8::Context> context,
+                                                            v8::Local<v8::Module> module)
 {
-    v8::HandleScope scope(isolate);
-    v8::Local<v8::Object> global = context->Global();
-    v8::Local<v8::Object> ccObject = v8::Object::New(isolate);
+    v8::Isolate *isolate = context->GetIsolate();
+    v8::EscapableHandleScope scope(isolate);
+    auto *pRT = reinterpret_cast<Runtime*>(isolate->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR));
 
-    lang::ForEachBinding([isolate, &context, &ccObject, options](lang::BaseBindingModule *pBinding) -> bool {
-        assert(pBinding);
+    lang::BindingBase *binding = pRT->getSyntheticModuleBinding(module);
+    assert(binding);
 
-        auto itr = std::find(options.bindings_blacklist.begin(), options.bindings_blacklist.end(),
-                             pBinding->name());
-        if (itr != options.bindings_blacklist.end())
-        {
-            LOGF(LOG_INFO, "Skipped loading language binding \"{}\" because of blacklist", pBinding->name())
-            return true;
-        }
+    binder::Module binderModule(isolate);
+    binding->getModule(binderModule);
+    v8::Local<v8::Object> exportObject = binderModule.new_instance();
+    exportObject->Set(context, CASTJS("__name__"), CASTJS(binding->name())).Check();
+    exportObject->Set(context, CASTJS("__desc__"), CASTJS(binding->description())).Check();
+    exportObject->Set(context, CASTJS("__unique_id__"), CASTJS(binding->getUniqueId())).Check();
+    binding->setInstanceProperties(exportObject);
 
-        binder::Module mod(isolate);
-        pBinding->getModule(mod);
-        ccObject->Set(context, binder::to_v8(isolate, pBinding->name()), mod.new_instance()).Check();
+    v8::Local<v8::Array> properties = exportObject->GetPropertyNames(context).ToLocalChecked();
+    for (uint32_t i = 0; i < properties->Length(); i++)
+    {
+        v8::Local<v8::String> name = v8::Local<v8::String>::Cast(properties->Get(context, i).ToLocalChecked());
+        if (name.IsEmpty())
+            continue;
+        v8::Local<v8::Value> value = exportObject->Get(context, name).ToLocalChecked();
+        module->SetSyntheticModuleExport(isolate, name, value).Check();
+    }
+    return scope.EscapeMaybe(v8::MaybeLocal<v8::Value>(v8::True(isolate)));
+}
 
-        LOGF(LOG_DEBUG, R"(Loaded language binding "{}" ({}))",
-             pBinding->name(), pBinding->description())
-        return true;
-    });
+v8::Local<v8::Module> create_synthetic_module(v8::Isolate *isolate,
+                                              v8::Local<v8::Context> context,
+                                              lang::BindingBase *binding)
+{
+    v8::EscapableHandleScope scope(isolate);
+    std::vector<v8::Local<v8::String>> exports{CASTJS("__name__"),
+                                               CASTJS("__desc__"),
+                                               CASTJS("__unique_id__")};
+    for (const char **p = binding->getExports(); *p; p++)
+        exports.emplace_back(CASTJS(*p));
 
-    global->Set(context, binder::to_v8(isolate, "Cocoa"), ccObject).Check();
+    v8::Local<v8::Module> module = v8::Module::CreateSyntheticModule(isolate,
+                                                                     CASTJS(binding->name()),
+                                                                     exports,
+                                                                     create_synthetic_module_eval_step);
+    if (module.IsEmpty())
+    {
+        throw RuntimeException(__func__,
+                               fmt::format("Failed to create synthetic module \"{}\"", binding->name()));
+    }
+    return scope.Escape(module);
 }
 
 } // namespace anonymous
@@ -100,7 +117,7 @@ std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(EventLoop *loop,
     v8::Local<v8::Context> context = v8::Context::New(isolate);
     v8::Context::Scope contextScope(context);
 
-    load_bindings(isolate, context, options);
+    // load_bindings(isolate, context, options);
     return std::make_shared<Runtime>(loop,
                                      std::move(platform),
                                      params.array_buffer_allocator,
@@ -129,8 +146,12 @@ Runtime::Runtime(EventLoop *loop,
 
 Runtime::~Runtime()
 {
+    LOGW(LOG_DEBUG, "Imported modules (URL):")
     for (auto& module : fModuleCache)
-        module.second.Reset();
+    {
+        LOGF(LOG_DEBUG, "  %fg<cyan,hl>{}%reset", module.first)
+        module.second.module.Reset();
+    }
 
     binder::Cleanup(fIsolate);
     fContext.Reset();
@@ -139,6 +160,21 @@ Runtime::~Runtime()
     v8::V8::ShutdownPlatform();
     delete fArrayBufferAllocator;
     fPlatform.reset();
+}
+
+lang::BindingBase *Runtime::getSyntheticModuleBinding(v8::Local<v8::Module> module)
+{
+    for (auto& pair : fModuleCache)
+    {
+        if (pair.second.module == module)
+            return pair.second.binding;
+    }
+    return nullptr;
+}
+
+Runtime::ModuleCache& Runtime::getModuleCache()
+{
+    return fModuleCache;
 }
 
 v8::Local<v8::Module> Runtime::compileModule(const std::string& url)
@@ -152,14 +188,31 @@ v8::Local<v8::Module> Runtime::compileModule(const std::string& refererUrl, cons
     v8::EscapableHandleScope handleScope(fIsolate);
     v8::Context::Scope contextScope(this->context());
 
+    std::string maybeSyntheticUrl = "synthetic://" + url;
+    if (fModuleCache.contains(maybeSyntheticUrl))
+        return handleScope.Escape(fModuleCache[maybeSyntheticUrl].module.Get(fIsolate));
+
+    /* Synthetic module don't need to be compiled, so we have a fastpath */
+    lang::BindingBase *pSyntheticBinding = BindingManager::Ref().search(url);
+    if (pSyntheticBinding)
+    {
+        v8::Local<v8::Context> context = this->context();
+        v8::Local<v8::Module> module = create_synthetic_module(fIsolate, context, pSyntheticBinding);
+        fModuleCache[maybeSyntheticUrl] = {
+                v8::Global<v8::Module>(fIsolate, module),
+                pSyntheticBinding
+        };
+        return handleScope.Escape(module);
+    }
+
     auto [moduleSourceMaybe, moduleUrl] = ResolveModuleImportUrl(fIsolate, refererUrl, url);
     if (moduleSourceMaybe.IsEmpty())
-        throw RuntimeException(__func__, "Failed to resolve ES6 module path " + url);
+        throw RuntimeException(__func__, "Failed to resolve ES6 module path \"" + url + "\"");
 
     auto moduleSource = moduleSourceMaybe.ToLocalChecked();
 
     if (fModuleCache.contains(moduleUrl))
-        return handleScope.Escape(fModuleCache[moduleUrl].Get(fIsolate));
+        return handleScope.Escape(fModuleCache[moduleUrl].module.Get(fIsolate));
 
     v8::ScriptOrigin scriptOrigin(v8::String::NewFromUtf8(fIsolate, moduleUrl.c_str()).ToLocalChecked(),
                                   0,
@@ -181,12 +234,40 @@ v8::Local<v8::Module> Runtime::compileModule(const std::string& refererUrl, cons
             std::string message(*v8::String::Utf8Value(fIsolate, tryCatch.Message()->Get()));
             LOGF(LOG_ERROR, "Failed to compile ES6 module {}: {}", moduleUrl, message)
         }
-        throw RuntimeException(__func__, "Failed to compile ES6 module " + moduleUrl);
+        throw RuntimeException(__func__, "Failed to compile ES6 module \"" + moduleUrl + "\"");
     }
 
-    fModuleCache[moduleUrl] = v8::Global<v8::Module>(fIsolate, module);
+    fModuleCache[moduleUrl] = {
+            v8::Global<v8::Module>(fIsolate, module),
+            nullptr
+    };
     return handleScope.Escape(module);
 }
+
+namespace {
+
+v8::MaybeLocal<v8::Module> instantiate_module_callback(v8::Local<v8::Context> context,
+                                                       v8::Local<v8::String> specifier,
+                                                       koi_maybe_unsed v8::Local<v8::FixedArray> assertions,
+                                                       v8::Local<v8::Module> referer)
+{
+    auto *pRT = reinterpret_cast<Runtime*>(context->GetIsolate()->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR));
+    std::string refererUrl;
+    for (auto& cache : pRT->getModuleCache())
+    {
+        if (cache.second.module == referer)
+        {
+            refererUrl = cache.first;
+            break;
+        }
+    }
+    assert(!refererUrl.empty());
+    std::string url(*v8::String::Utf8Value(pRT->isolate(), specifier));
+    v8::MaybeLocal<v8::Module> maybeModule = pRT->compileModule(refererUrl, url);
+    LOGF(LOG_DEBUG, "Resolved ES module {} (from {})", url, refererUrl)
+    return maybeModule;
+}
+} // namespace anonymous
 
 v8::MaybeLocal<v8::Value> Runtime::evaluateModule(const std::string& url)
 {
@@ -196,35 +277,7 @@ v8::MaybeLocal<v8::Value> Runtime::evaluateModule(const std::string& url)
     {
         return module->Evaluate(this->context());
     }
-    v8::Maybe<bool> instantiate =
-            module->InstantiateModule(this->context(), [](v8::Local<v8::Context> context,
-                                                          v8::Local<v8::String> specifier,
-                                                          v8::Local<v8::FixedArray> assertions,
-                                                          v8::Local<v8::Module> referer) {
-                auto *pRT = reinterpret_cast<Runtime*>(context->GetIsolate()->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR));
-                std::string refererUrl;
-                for (auto& cache : pRT->fModuleCache)
-                {
-                    if (cache.second == referer)
-                    {
-                        refererUrl = cache.first;
-                        break;
-                    }
-                }
-                if (refererUrl.empty())
-                    return v8::MaybeLocal<v8::Module>();
-
-                std::string url(*v8::String::Utf8Value(pRT->fIsolate, specifier));
-                v8::MaybeLocal<v8::Module> maybeModule;
-                try {
-                    maybeModule = pRT->compileModule(refererUrl, url);
-                } catch (const RuntimeException& e) {
-                    LOGF(LOG_DEBUG, "Failed in resolving module {}", url)
-                }
-
-                LOGF(LOG_DEBUG, "Resolved ES module {} (from {})", url, refererUrl)
-                return maybeModule;
-            });
+    v8::Maybe<bool> instantiate = module->InstantiateModule(this->context(), instantiate_module_callback);
 
     if (instantiate.IsNothing())
         throw RuntimeException(__func__, "Could not instantiate ES6 module " + url);

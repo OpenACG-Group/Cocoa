@@ -438,8 +438,8 @@ void jni_nvg_Window::onKeyRelease(vg::KeySymbol key, vg::Bitfield<vg::KeyModifie
 //
 
 VanillaBindingModule::VanillaBindingModule()
-    : BaseBindingModule("nvg",
-                        "Vanilla engine for Cocoa JavaScript")
+    : BindingBase("nvg",
+                  "Vanilla engine for Cocoa JavaScript")
 {
 }
 

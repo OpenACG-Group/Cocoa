@@ -61,4 +61,3 @@ target_link_libraries(Cocoa
         Vanilla
         Core)
 
-add_subdirectory(test)

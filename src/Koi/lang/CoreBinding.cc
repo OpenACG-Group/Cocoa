@@ -1,11 +1,7 @@
 #include <iostream>
 #include <optional>
-#include <sstream>
-#include <random>
-
 #include "include/v8.h"
 
-#include "Core/CpuInfo.h"
 #include "Core/Properties.h"
 #include "Core/EventLoop.h"
 #include "Core/EventSource.h"
@@ -16,11 +12,11 @@
 #include "Koi/binder/Class.h"
 #include "Koi/binder/Module.h"
 #include "Koi/binder/CallV8.h"
+#include "Koi/binder/Property.h"
 #include "Koi/lang/Base.h"
 #include "Koi/lang/CoreBinding.h"
+#include "Koi/lang/CoreFDLR.h"
 KOI_LANG_NS_BEGIN
-
-#define FDLR_MAP_INITIAL_SIZE   128
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi.lang)
 
@@ -148,19 +144,19 @@ void jni_core_print(const std::string& str)
 // Cocoa.core.delay()
 //
 
-class jni_core_DelayTimer : public TimerSource
+class DelayTimer : public TimerSource
 {
 public:
-    jni_core_DelayTimer(uint64_t timeout,
-                        v8::Isolate *isolate,
-                        v8::Local<v8::Promise::Resolver> resolver)
+    DelayTimer(uint64_t timeout,
+               v8::Isolate *isolate,
+               v8::Local<v8::Promise::Resolver> resolver)
         : TimerSource(EventLoop::Instance()),
           fIsolate(isolate),
           fResolve(fIsolate, resolver)
     {
         startTimer(timeout);
     }
-    ~jni_core_DelayTimer() override
+    ~DelayTimer() override
     {
         fResolve.Reset();
     }
@@ -184,18 +180,28 @@ v8::Local<v8::Value> jni_core_delay(uint64_t timeout)
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     auto resolver = v8::Promise::Resolver::New(isolate->GetCurrentContext()).ToLocalChecked();
 
-    /* The object will be deleted in jni_core_DelayTimer::timerDispatch(). */
-    new jni_core_DelayTimer(timeout, isolate, resolver);
+    /* The object will be deleted in DelayTimer::timerDispatch(). */
+    new DelayTimer(timeout, isolate, resolver);
     return resolver->GetPromise();
 }
 
 /////////////////////////////////////////////////////////
 // Cocoa.core.getProperty(), Cocoa.core.hasProperty()
 //
+namespace
+{
+std::map<PropertyNode::Kind, const char*> gNodeKindNameMap = {
+        {PropertyNode::Kind::kData, "data"},
+        {PropertyNode::Kind::kObject, "object"},
+        {PropertyNode::Kind::kArray, "array"}
+};
+} // namespace anonymous
 
 v8::Local<v8::Value> jni_core_getProperty(const std::string& spec)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::EscapableHandleScope scope(isolate);
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
     bool thrown = false;
     std::shared_ptr<PropertyNode> maybeNode = parse_property_spec(spec, thrown, isolate);
     if (thrown)
@@ -203,40 +209,101 @@ v8::Local<v8::Value> jni_core_getProperty(const std::string& spec)
 
     if (!maybeNode || maybeNode->protection() == PropertyNode::Protection::kPrivate)
     {
-        binder::throw_(isolate, "No such property or property is inaccessible to JavaScript");
+        binder::throw_(isolate, "No such property or inaccessible to JavaScript");
         return {};
     }
+    auto node = prop::Cast<PropertyDataNode>(maybeNode);
+
+    v8::Local<v8::Object> result = v8::Object::New(isolate);
+    result->Set(context, binder::to_v8(isolate, "type"),
+                binder::to_v8(isolate, gNodeKindNameMap[node->kind()])).Check();
 
     if (maybeNode->kind() != PropertyNode::Kind::kData)
-    {
-        binder::throw_(isolate, "Property is an array or object");
-        return {};
-    }
+        return scope.Escape(result);
 
-    auto node = prop::Cast<PropertyDataNode>(maybeNode);
+    v8::Local<v8::Primitive> value;
 #define T_(t)  (node->type() == typeid(t))
     if (T_(int8_t) || T_(int16_t) || T_(int32_t))
-        return v8::Integer::New(isolate, node->extract<int32_t>());
+        value = v8::Integer::New(isolate, node->extract<int32_t>());
     else if (T_(uint8_t) || T_(uint16_t) || T_(uint32_t))
-        return v8::Integer::NewFromUnsigned(isolate, node->extract<uint32_t>());
+        value = v8::Integer::NewFromUnsigned(isolate, node->extract<uint32_t>());
     else if (T_(int64_t))
-        return v8::BigInt::New(isolate, node->extract<int64_t>());
+        value = v8::BigInt::New(isolate, node->extract<int64_t>());
     else if (T_(uint64_t))
-        return v8::BigInt::NewFromUnsigned(isolate, node->extract<uint64_t>());
+        value = v8::BigInt::NewFromUnsigned(isolate, node->extract<uint64_t>());
     else if (T_(bool))
-        return v8::Boolean::New(isolate, node->extract<bool>());
+        value = v8::Boolean::New(isolate, node->extract<bool>());
     else if (T_(float))
-        return v8::Number::New(isolate, node->extract<float>());
+        value = v8::Number::New(isolate, node->extract<float>());
     else if (T_(double))
-        return v8::Number::New(isolate, node->extract<double>());
+        value = v8::Number::New(isolate, node->extract<double>());
     else if (T_(const char*))
-        return v8::String::NewFromUtf8(isolate, node->extract<const char*>()).ToLocalChecked();
+        value = v8::String::NewFromUtf8(isolate, node->extract<const char*>()).ToLocalChecked();
     else if (T_(std::string))
-        return v8::String::NewFromUtf8(isolate, node->extract<std::string>().c_str()).ToLocalChecked();
+        value = v8::String::NewFromUtf8(isolate, node->extract<std::string>().c_str()).ToLocalChecked();
 #undef T_
+    if (!value.IsEmpty())
+        result->Set(context, binder::to_v8(isolate, "value"), value).Check();
+    return scope.Escape(result);
+}
 
-    binder::throw_(isolate, "Property is not of primitive type");
-    return {};
+v8::Local<v8::Value> jni_core_enumeratePropertyNode(const std::string& spec)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::EscapableHandleScope handleScope(isolate);
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+
+    bool thrown = false;
+    std::shared_ptr<PropertyNode> node = parse_property_spec(spec, thrown, isolate);
+    if (thrown)
+        return {};
+
+    if (!node || node->protection() == PropertyNode::Protection::kPrivate)
+    {
+        binder::throw_(isolate, "No such property or inaccessible to JavaScript");
+        return {};
+    }
+    if (node->kind() == PropertyNode::Kind::kData)
+        return v8::Null(isolate);
+
+    v8::Local<v8::Array> resultArray = v8::Array::New(isolate);
+    if (node->kind() == PropertyNode::Kind::kObject)
+    {
+        auto objectNode = prop::Cast<PropertyObjectNode>(node);
+        int count = 0;
+        for (const auto& child : *objectNode)
+        {
+            v8::Local<v8::Object> result = v8::Object::New(isolate);
+            auto childNode = child.second;
+            result->Set(context,
+                        binder::to_v8(isolate, "name"),
+                        binder::to_v8(isolate, child.first)).Check();
+            result->Set(context,
+                        binder::to_v8(isolate, "type"),
+                        binder::to_v8(isolate, gNodeKindNameMap[childNode->kind()])).Check();
+            resultArray->Set(context, count++, result).Check();
+        }
+    }
+    else if (node->kind() == PropertyNode::Kind::kArray)
+    {
+        auto arrayNode = prop::Cast<PropertyArrayNode>(node);
+        int count = 0;
+        for (const auto& element : *arrayNode)
+        {
+            v8::Local<v8::Object> result = v8::Object::New(isolate);
+            result->Set(context,
+                        binder::to_v8(isolate, "name"),
+                        binder::to_v8(isolate, fmt::format("#{}", count))).Check();
+            result->Set(context,
+                        binder::to_v8(isolate, "type"),
+                        binder::to_v8(isolate, gNodeKindNameMap[element->kind()])).Check();
+            result->Set(context,
+                        binder::to_v8(isolate, "index"),
+                        binder::to_v8(isolate, count)).Check();
+            resultArray->Set(context, count++, result).Check();
+        }
+    }
+    return handleScope.Escape(resultArray);
 }
 
 bool jni_core_hasProperty(const std::string& spec)
@@ -252,31 +319,19 @@ bool jni_core_hasProperty(const std::string& spec)
 /////////////////////////////////////////////////////////
 // jni_core_Timer (Cocoa.core.Timer)
 //
-
-class jni_core_Timer : public TimerSource
+jni_core_Timer::jni_core_Timer()
+    : TimerSource(EventLoop::Instance())
 {
-public:
-    jni_core_Timer()
-        : TimerSource(EventLoop::Instance()) {}
-    ~jni_core_Timer() override = default;
+}
 
-    static binder::Class<jni_core_Timer> GetClass() {
-        return binder::Class<jni_core_Timer>(v8::Isolate::GetCurrent())
-                .constructor<>()
-                .set("setInterval", &jni_core_Timer::setInterval)
-                .set("setTimeout", &jni_core_Timer::setTimeout)
-                .set("stop", &jni_core_Timer::stop);
-    }
-
-    void setInterval(uint64_t timeout, int64_t repeat, v8::Local<v8::Value> cbValue);
-    void setTimeout(uint64_t timeout, v8::Local<v8::Value> cbValue);
-    void stop();
-
-private:
-    KeepInLoop timerDispatch() override;
-
-    v8::Global<v8::Function> fCallback;
-};
+binder::Class<jni_core_Timer> jni_core_Timer::GetClass()
+{
+    return binder::Class<jni_core_Timer>(v8::Isolate::GetCurrent())
+        .constructor<>()
+        .set("setInterval", &jni_core_Timer::setInterval)
+        .set("setTimeout", &jni_core_Timer::setTimeout)
+        .set("stop", &jni_core_Timer::stop);
+}
 
 void jni_core_Timer::setInterval(uint64_t timeout, int64_t repeat, v8::Local<v8::Value> cbValue)
 {
@@ -319,170 +374,6 @@ KeepInLoop jni_core_Timer::timerDispatch()
         return ret ? KeepInLoop::kYes : KeepInLoop::kNo;
     }
     return KeepInLoop::kYes;
-}
-
-/////////////////////////////////////////////////////////
-// Cocoa.core.open, Cocoa.core.close, Cocoa.core.read, etc.
-//
-
-/**
- * FDLR (File Descriptor Layout Randomization):
- * JavaScript can NOT access system's file descriptor (real file descriptor)
- * for safety.
- */
-
-struct FDLRTable
-{
-    enum OwnerType
-    {
-        kSystem,
-        kUser,
-        kUnknown
-    };
-
-    struct Target
-    {
-        int32_t fd;
-        OwnerType owner;
-        void(*closer)(int32_t);
-        bool used : 1;
-    } *pMap;
-    size_t allocatedCount;
-} gFDLRTable;
-
-#define FDLR_MAP_SIZE   sizeof(FDLRTable::Target)
-
-int32_t FDLRNewRandomizedDescriptor(int32_t realFd, FDLRTable::OwnerType owner, void (*closer)(int32_t))
-{
-    std::vector<std::array<size_t, 2>> unusedRegions;
-    for (size_t i = 0; i < gFDLRTable.allocatedCount; i++)
-    {
-        if (gFDLRTable.pMap[i].used)
-            continue;
-        size_t l = i, r = i;
-        while (!gFDLRTable.pMap[r].used && r < gFDLRTable.allocatedCount)
-            r++;
-        unusedRegions.push_back({l, r - 1});
-        i = r - 1;
-    }
-
-    if (unusedRegions.empty())
-    {
-        gFDLRTable.allocatedCount *= 2;
-        gFDLRTable.pMap = static_cast<FDLRTable::Target*>(std::realloc(gFDLRTable.pMap,
-                                                                       gFDLRTable.allocatedCount * FDLR_MAP_SIZE));
-        assert(gFDLRTable.pMap);
-        for (size_t i = gFDLRTable.allocatedCount / 2; i < gFDLRTable.allocatedCount; i++)
-        {
-            gFDLRTable.pMap[i].used = false;
-            gFDLRTable.pMap[i].closer = nullptr;
-        }
-        LOGF(LOG_DEBUG, "Expanding FDLR allocation map memory to {} bytes", gFDLRTable.allocatedCount)
-        unusedRegions.push_back({gFDLRTable.allocatedCount / 2, gFDLRTable.allocatedCount - 1});
-    }
-
-    unsigned long long seed;
-    if (CpuInfo::Ref().getX86Info().features.rdrnd)
-    {
-        __builtin_ia32_rdrand64_step(&seed);
-    }
-    else
-    {
-        seed = 2233;
-    }
-    std::mt19937 twisterEngine(seed);
-    std::uniform_int_distribution<size_t> generator(0, unusedRegions.size() - 1);
-    std::array<size_t, 2> targetRange{};
-    {
-        size_t idx = generator(twisterEngine);
-        targetRange = unusedRegions[idx];
-    }
-
-    generator = std::uniform_int_distribution<size_t>(targetRange[0], targetRange[1]);
-    auto finalFd = static_cast<int32_t>(generator(twisterEngine));
-    gFDLRTable.pMap[finalFd].used = true;
-    gFDLRTable.pMap[finalFd].fd = realFd;
-    gFDLRTable.pMap[finalFd].owner = owner;
-    gFDLRTable.pMap[finalFd].closer = closer;
-    return finalFd;
-}
-
-void FDLRMarkUnused(int32_t rfd)
-{
-    if (rfd >= gFDLRTable.allocatedCount)
-        return;
-    gFDLRTable.pMap[rfd].used = false;
-    gFDLRTable.pMap[rfd].closer = nullptr;
-}
-
-FDLRTable::Target *FDLRGetUnderlyingDescriptor(int32_t rfd)
-{
-    if (rfd >= gFDLRTable.allocatedCount || !gFDLRTable.pMap[rfd].used)
-    {
-        return nullptr;
-    }
-    return &gFDLRTable.pMap[rfd];
-}
-
-void FDLRInitialize()
-{
-    gFDLRTable.pMap = static_cast<FDLRTable::Target*>(std::malloc(FDLR_MAP_SIZE * FDLR_MAP_INITIAL_SIZE));
-    gFDLRTable.allocatedCount = FDLR_MAP_INITIAL_SIZE;
-    for (size_t i = 0; i < gFDLRTable.allocatedCount; i++)
-    {
-        gFDLRTable.pMap[i].used = false;
-        gFDLRTable.pMap[i].closer = nullptr;
-    }
-}
-
-void FDLRCollectAndSweep()
-{
-    for (size_t i = 0; i < gFDLRTable.allocatedCount; i++)
-    {
-        if (gFDLRTable.pMap[i].used && gFDLRTable.pMap[i].closer)
-        {
-            LOGF(LOG_WARNING, "Unclosed (randomized) file descriptor #{}", i)
-            gFDLRTable.pMap[i].closer(gFDLRTable.pMap[i].fd);
-        }
-    }
-    std::free(gFDLRTable.pMap);
-}
-
-void FDLRDumpMappingInfo()
-{
-    size_t usedCount = 0;
-    for (size_t i = 0; i < gFDLRTable.allocatedCount; i++)
-    {
-        if (gFDLRTable.pMap[i].used)
-            usedCount++;
-    }
-    LOGF(LOG_DEBUG, "%fg<hl>FDLR subsystem statistics: {} entries, {} used%reset", gFDLRTable.allocatedCount, usedCount)
-
-    size_t p = 0;
-    for (size_t i = 0; i < gFDLRTable.allocatedCount; i++)
-    {
-        if (gFDLRTable.pMap[i].used)
-        {
-            std::ostringstream os;
-            if (gFDLRTable.pMap[i].owner == FDLRTable::kSystem)
-                os << "%fg<re,hl>system%reset<>,";
-            else if (gFDLRTable.pMap[i].closer)
-                os << "%fg<gr,hl>closable%reset<>,";
-
-            if (gFDLRTable.pMap[i].fd == STDIN_FILENO)
-                os << "%fg<bl,hl>stdin%reset<>,";
-            else if (gFDLRTable.pMap[i].fd == STDOUT_FILENO)
-                os << "%fg<bl,hl>stdout%reset<>,";
-            else if (gFDLRTable.pMap[i].fd == STDERR_FILENO)
-                os << "%fg<bl,hl>stderr%reset<>,";
-
-            std::string_view str = os.view();
-            if (str.length() > 0)
-                str.remove_suffix(1);
-            LOGF(LOG_DEBUG, "  Entry#{} %fg<ma,hl>{:03d}%reset -> %fg<cy,hl>{:03d}%reset [{}]",
-                 p++, i, gFDLRTable.pMap[i].fd, str)
-        }
-    }
 }
 
 /**
@@ -552,7 +443,7 @@ void jni_core_close(int32_t fd)
 
 void jni_core_dump(const std::string& what)
 {
-    if (what == "fdlr-info")
+    if (what == "descriptors-info")
     {
         FDLRDumpMappingInfo();
     }
@@ -570,59 +461,40 @@ void jni_core_exit()
     LOGW(LOG_DEBUG, "Program will be terminated directly by JavaScript")
 }
 
-CoreBindingModule::CoreBindingModule()
-        : BaseBindingModule("core",
-                            "Basic language features for Cocoa JavaScript")
+v8::Local<v8::Array> GetEscapableArgs()
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::EscapableHandleScope scope(isolate);
+    v8::Local<v8::Array> array = v8::Array::New(isolate);
+
+    auto args = prop::Cast<PropertyArrayNode>(prop::Get()->next("runtime")->next("script")->next("args"));
+    uint32_t index = 0;
+    for (const std::shared_ptr<PropertyNode>& node : *args)
+    {
+        const std::string& str = prop::Cast<PropertyDataNode>(node)->extract<std::string>();
+        array->Set(isolate->GetCurrentContext(), index, binder::to_v8(isolate, str)).Check();
+        index++;
+    }
+    return scope.Escape(array);
+}
+
+CoreBinding::CoreBinding()
+        : BindingBase("core",
+                      "Basic language features for Cocoa JavaScript")
 {
     FDLRInitialize();
 }
 
-CoreBindingModule::~CoreBindingModule()
+CoreBinding::~CoreBinding()
 {
     FDLRCollectAndSweep();
 }
 
-#define SET_CONST_ENUM(name, val)   self.set_const(name, static_cast<uint32_t>(val))
-
-void CoreBindingModule::getModule(binder::Module& self)
+void CoreBinding::setInstanceProperties(v8::Local<v8::Object> instance)
 {
-    auto jni_core_Timer_class = jni_core_Timer::GetClass();
-
-    int32_t vfdStdin = FDLRNewRandomizedDescriptor(STDIN_FILENO, FDLRTable::kSystem, nullptr);
-    int32_t vfdStdout = FDLRNewRandomizedDescriptor(STDOUT_FILENO, FDLRTable::kSystem, nullptr);
-    int32_t vfdStderr = FDLRNewRandomizedDescriptor(STDERR_FILENO, FDLRTable::kSystem, nullptr);
-
-    self.set("VFD_STDIN", vfdStdin)
-        .set("VFD_STDOUT", vfdStdout)
-        .set("VFD_STDERR", vfdStderr);
-
-    SET_CONST_ENUM("MODE_NONE", vfs::Mode::kNone);
-    SET_CONST_ENUM("MODE_USR_W", vfs::Mode::kUsrW);
-    SET_CONST_ENUM("MODE_USR_R", vfs::Mode::kUsrR);
-    SET_CONST_ENUM("MODE_USR_X", vfs::Mode::kUsrX);
-    SET_CONST_ENUM("MODE_OTH_W", vfs::Mode::kOthW);
-    SET_CONST_ENUM("MODE_OTH_R", vfs::Mode::kOthR);
-    SET_CONST_ENUM("MODE_OTH_X", vfs::Mode::kOthX);
-    SET_CONST_ENUM("MODE_GRP_R", vfs::Mode::kGrpR);
-    SET_CONST_ENUM("MODE_GRP_W", vfs::Mode::kGrpW);
-    SET_CONST_ENUM("MODE_GRP_X", vfs::Mode::kGrpX);
-    SET_CONST_ENUM("MODE_DIR", vfs::Mode::kDir);
-    SET_CONST_ENUM("MODE_LINK", vfs::Mode::kLink);
-    SET_CONST_ENUM("MODE_REGULAR", vfs::Mode::kRegular);
-    SET_CONST_ENUM("MODE_CHAR", vfs::Mode::kChar);
-    SET_CONST_ENUM("MODE_BLOCK", vfs::Mode::kBlock);
-    SET_CONST_ENUM("MODE_FIFO", vfs::Mode::kFifo);
-    SET_CONST_ENUM("MODE_SOCKET", vfs::Mode::kSocket);
-
-    self.set("print", jni_core_print)
-        .set("delay", jni_core_delay)
-        .set("getProperty", jni_core_getProperty)
-        .set("hasProperty", jni_core_hasProperty)
-        .set("Timer", jni_core_Timer_class)
-        .set("open", jni_core_open)
-        .set("close", jni_core_close)
-        .set("dump", jni_core_dump)
-        .set("exit", jni_core_exit);
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    instance->Set(context, binder::to_v8(isolate, "args"), GetEscapableArgs()).Check();
 }
 
 KOI_LANG_NS_END

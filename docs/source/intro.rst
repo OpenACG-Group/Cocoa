@@ -1,0 +1,25 @@
+Introduction
+==============
+
+Cocoa is an open-source 2D engine which is relesed under GPLv3 license for graphical
+applications such as visual novels on Linux (or other POSIX compatible) platform.
+
+Cocoa is developed by **OpenACG Group**, a nonprofit organization that is devoted to
+spreading ACGN subculture in China. We need writers (for scenario),
+illustrators (for CG creating), programmers and CVs.
+Welcome to `join us <https://github.com/OpenACG-Group>`_.
+
+On the one hand, when other platforms like Windows and Android support many amazing games,
+the users of Linux are still suffering a lack of engines of visual novel. On the other hand,
+most VN engines are not open-source and very difficult to use. Cocoa is always a open-source,
+simple but powerful VN engine to help writers, illustrators and musicians to create interesting
+and fascinating VNs. Compared to other existing VN engines, Cocoa is still a young project
+which haven't prepared for business use. Contributing PRs and telling us issues on our
+`GitHub page <https://github.com/OpenACG-Group/Cocoa>`_ are welcome.
+
+It is TypeScript that Cocoa is used for the official programming language (but Cocoa itself is
+written in C++). More details like Cocoa's architecture and implementation will be introduced
+in :ref:`devs_doc`.
+
+This documentation is about how to create your own VN by Cocoa and an introduction to Cocoa's
+TypeScript API.

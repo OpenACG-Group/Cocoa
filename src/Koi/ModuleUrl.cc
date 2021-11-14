@@ -5,6 +5,7 @@
 
 #include "Core/Properties.h"
 #include "Core/Utils.h"
+#include "Core/Filesystem.h"
 #include "Koi/KoiBase.h"
 #include "Koi/ModuleUrl.h"
 #include "Koi/Internals.h"
@@ -51,23 +52,29 @@ std::tuple<v8::MaybeLocal<v8::String>, std::string> ResolveLocalFileModule(v8::I
     }
 
     std::string path = NormalizeFilePath(result);
-    std::ifstream fs(path);
-    if (!fs.is_open())
+    try
     {
-        if (path.ends_with(".js"))
-            return {v8::MaybeLocal<v8::String>(), std::string()};
-        else
+        std::ifstream fs(path);
+        if (!fs.is_open())
         {
-            path.append(".js");
-            fs = std::ifstream(path);
-            if (!fs.is_open())
+            if (path.ends_with(".js"))
                 return {v8::MaybeLocal<v8::String>(), std::string()};
+            else
+            {
+                path.append(".js");
+                fs = std::ifstream(path);
+                if (!fs.is_open())
+                    return {v8::MaybeLocal<v8::String>(), std::string()};
+            }
         }
+        std::string content((std::istreambuf_iterator<char>(fs)),
+                            std::istreambuf_iterator<char>());
+        return {v8::String::NewFromUtf8(isolate, content.c_str()), path};
     }
-
-    std::string content((std::istreambuf_iterator<char>(fs)),
-                        std::istreambuf_iterator<char>());
-    return {v8::String::NewFromUtf8(isolate, content.c_str()), path};
+    catch (const std::runtime_error& e)
+    {
+        return {{}, std::string()};
+    }
 }
 
 } // namespace anonymous
@@ -77,8 +84,8 @@ std::tuple<v8::MaybeLocal<v8::String>, std::string>
                                const std::string& refererUrl,
                                const std::string& specifier)
 {
-    /* Internal modules is not allowed to import other modules */
-    if (ExtractInternal(refererUrl))
+    /* Synthetic modules is not allowed to import other modules */
+    if (refererUrl.starts_with("synthetic://"))
         return {v8::MaybeLocal<v8::String>(), std::string()};
 
     /* A special case if specifier refers to an internal module */

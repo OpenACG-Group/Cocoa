@@ -43,9 +43,7 @@
       <config projectName="Cocoa" targetName="Nightly" />
       <config projectName="Cocoa" targetName="ExperimentalMemCheck" />
       <config projectName="Cocoa" targetName="NightlyMemCheck" />
-      <config projectName="Cocoa" targetName="LbpDynamicTest" />
       <config projectName="Cocoa" targetName="ContinuousUpdate" />
-      <config projectName="Cocoa" targetName="simple_player" />
       <config projectName="Cocoa" targetName="Koi" />
       <config projectName="Cocoa" targetName="squash" />
     </generated>
@@ -57,87 +55,49 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="625018aa-1ca1-4995-ae3f-94e4e8743e1f" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/jsLibraryMappings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docs/plist_syntax_sample.plist" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Core/CpuInfo.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Core/CpuInfo.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Core/plist-lang/PListASTNode.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/lang/VanillaBinding.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/lang/VanillaBinding.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/ContentAggregator.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/ContentAggregator.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/ImGuiLayer.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/ImGuiSkrastLayer.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/ImGuiSwrastLayer.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/ImageAdaptationMethod.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/ImageLayer.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/ImageLayer.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/InputEventListener.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/InputEventListener.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/Layer.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/Layer.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/LayerFactories.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/LayerFactories.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/LayerPropertiesGroup.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/PictureLayer.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/PictureLayer.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/RenderMicroTask.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/RenderMicroTask.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/Renderer.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Vanilla/RenderKit/Renderer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/LICENSE" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/script/generate-binding-exports-getter.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Koi/BindingManager.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Koi/BindingManager.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Koi/UUID.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.mds" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Koi/lang/CoreFDLR.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Koi/lang/CoreFDLR.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/typescript/core/assert.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/typescript/core/format.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/typescript/core/property_tree.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/typescript/synthetics/core.d.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.jshintrc" beforeDir="false" afterPath="$PROJECT_DIR$/.jshintrc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vscode/settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/.vscode/settings.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/[Developer] Vanilla.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/[Developer] Vanilla.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/[Users] TypeScript.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/[Users] TypeScript.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/EventLoop.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EventLoop.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/EventLoop.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EventLoop.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/EventSource.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EventSource.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Filesystem.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Filesystem.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/Cocoa User Specification.docx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/[Developer] Vanilla.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/[Note] Command Specification.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/[Users] TypeScript.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/pipeline_sample_cpu.dot" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/pipeline_sample_cpu.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/pipeline_sample_gpu.dot" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/pipeline_sample_gpu.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/plist_syntax_sample.plist" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Core/Journal.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Journal.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Utils.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utils.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/BindingsLoader.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/BindingsLoader.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/BindingsLoader.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/BindingsLoader.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/BindingsLoader.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/BindingsLoader.h" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/KoiBase.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/KoiBase.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/ModuleUrl.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/ModuleUrl.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/Runtime.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Runtime.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/Runtime.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Runtime.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/lang/Base.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/Base.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/lang/Base.cc" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/lang/Base.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/Base.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/lang/VanillaBinding.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/VanillaBinding.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/lang/VanillaBinding.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/VanillaBinding.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Main.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Audio/AuBufferSrcEffector.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Audio/AuCommon.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Audio/AuEffector.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Audio/AuEffectorsDAG.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Audio/AuEffectorsDAG.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Audio/AuPulseaudioConnection.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Audio/AuPulseaudioConnection.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Context.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Context.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Display.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Display.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/DrawContext.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/DrawContext.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/DrawContext.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/DrawContext.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Pipeline/GpElement.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Pipeline/GpElement.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Pipeline/GpLinkage.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Pipeline/GpPipeline.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Pipeline/GpPipeline.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Shader/ShaderExecutor.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Shader/ShaderExecutor.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Shader/ShaderLibrary.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Shader/ShaderLibrary.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Typetraits.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Typetraits.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VaSeat.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VkDrawContext.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/VkDrawContext.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/VkDrawContext.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/VkDrawContext.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbEventQueue.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbEventQueue.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbRasterDrawContext.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbRasterDrawContext.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbRasterDrawContext.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbRasterDrawContext.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/libsquash/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libsquash/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/package-lists.json" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/package-lists.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/DEPS" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/DEPS" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/PRESUBMIT.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/PRESUBMIT.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/README.md" afterDir="false" />
@@ -221,9 +181,12 @@
       <change beforePath="$PROJECT_DIR$/third_party/v8/tools/update-object-macros-undef.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/update-object-macros-undef.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/inject-compilation-hints.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/inject-compilation-hints.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/wasm-objdump-compilation-hints.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/wasm-objdump-compilation-hints.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/core/types.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/core/types.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/core/buffer.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/core/types.d.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/core/utils.ts" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/typescript/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/index.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/typescript/out/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/tsconfig.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -234,13 +197,16 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
+  <component name="FileColors">
+    <fileColor scope="Open Files" color="Green" />
+  </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
+        <option value="CMakeLists.txt" />
+        <option value="JavaScript File" />
         <option value="TypeScript File" />
         <option value="Python Script" />
-        <option value="JavaScript File" />
-        <option value="CMakeLists.txt" />
       </list>
     </option>
   </component>
@@ -272,6 +238,9 @@
   <component name="MacroExpansionManager">
     <option name="directoryName" value="oa3zlz9r" />
   </component>
+  <component name="OCResolveContextSettings">
+    <option name="configuration" value="0-Debug-Koi" />
+  </component>
   <component name="ProjectId" id="1nQNEoyPdrzgqwWQElfzYOVS8Nt" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
@@ -290,6 +259,7 @@
     <property name="cidr.known.project.marker" value="true" />
     <property name="cmake.loaded.for.project" value="true" />
     <property name="com.intellij.ide.scratch.LRUPopupBuilder$1/New Scratch File" value="ObjectiveC&#10;ASM" />
+    <property name="com.intellij.ide.scratch.ScratchImplUtil$2/New Scratch File" value="TEXT" />
     <property name="full.screen.before.presentation.mode" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="node.js.detected.package.eslint" value="true" />
@@ -299,7 +269,7 @@
     <property name="node.js.selected.package.eslint" value="(autodetect)" />
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="nodejs_package_manager_path" value="npm" />
-    <property name="settings.editor.selected.configurable" value="project.propVCSSupport.Mappings" />
+    <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
     <property name="settings.editor.splitter.proportion" value="0.24799196" />
     <property name="ts.external.directory.path" value="$APPLICATION_HOME_DIR$/plugins/JavaScriptLanguage/jsLanguageServicesImpl/external" />
   </component>
@@ -311,11 +281,11 @@
       <recent name="$PROJECT_DIR$/src/NaGui" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/script" />
+      <recent name="$PROJECT_DIR$/typescript/synthetics" />
       <recent name="$PROJECT_DIR$/src/Vanilla" />
       <recent name="$PROJECT_DIR$/deprecated" />
       <recent name="$PROJECT_DIR$/test" />
-      <recent name="$PROJECT_DIR$/src" />
-      <recent name="$PROJECT_DIR$/src/Scripter/StaticTextCompiler" />
     </key>
   </component>
   <component name="RunAnythingCache">
@@ -330,20 +300,20 @@
         <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="skia_viewer" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/third_party/skia" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Default" CONFIG_NAME="Default" RUN_PATH="$PROJECT_DIR$/third_party/skia/out/Dev/viewer">
       <method v="2" />
     </configuration>
-    <configuration name="Cocoa" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="-L debug ../typescript/out" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/cmake-build-debug" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Cocoa" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="Cocoa">
+    <configuration name="Cocoa" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="-L debug ../typescript/out --lbp-blacklist=core" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/cmake-build-debug" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Cocoa" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="Cocoa">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration name="Koi" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Koi" CONFIG_NAME="Debug">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="LbpDynamicTest" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="LbpDynamicTest" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -354,11 +324,6 @@
       </method>
     </configuration>
     <configuration name="list_cpu_features" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="list_cpu_features" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="list_cpu_features">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="simple_player" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="simple_player" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="simple_player">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -418,8 +383,6 @@
     <list>
       <item itemvalue="CMake Application.Cocoa" />
       <item itemvalue="CMake Application.Koi" />
-      <item itemvalue="CMake Application.LbpDynamicTest" />
-      <item itemvalue="CMake Application.simple_player" />
       <item itemvalue="CMake Application.cpu_features" />
       <item itemvalue="CMake Application.list_cpu_features" />
       <item itemvalue="CMake Application.unix_based_hardware_detection" />
@@ -755,7 +718,37 @@
       <workItem from="1634048282838" duration="1656000" />
       <workItem from="1634134776058" duration="2806000" />
       <workItem from="1634220582993" duration="4846000" />
-      <workItem from="1634288276773" duration="15594000" />
+      <workItem from="1634288276773" duration="16302000" />
+      <workItem from="1634358011136" duration="3487000" />
+      <workItem from="1634384689465" duration="1274000" />
+      <workItem from="1634479480142" duration="4595000" />
+      <workItem from="1634569208762" duration="1430000" />
+      <workItem from="1634654166162" duration="2216000" />
+      <workItem from="1634739969218" duration="4298000" />
+      <workItem from="1634828089077" duration="1929000" />
+      <workItem from="1634968493231" duration="11129000" />
+      <workItem from="1635059805920" duration="5776000" />
+      <workItem from="1635171032300" duration="2766000" />
+      <workItem from="1635258587050" duration="4334000" />
+      <workItem from="1635263018624" duration="171000" />
+      <workItem from="1635573745606" duration="17497000" />
+      <workItem from="1635647423257" duration="6290000" />
+      <workItem from="1635673095431" duration="4191000" />
+      <workItem from="1635691462051" duration="1683000" />
+      <workItem from="1635848998451" duration="11995000" />
+      <workItem from="1635938271368" duration="5846000" />
+      <workItem from="1636037480565" duration="1264000" />
+      <workItem from="1636124315875" duration="2429000" />
+      <workItem from="1636207503016" duration="5449000" />
+      <workItem from="1636295660519" duration="2096000" />
+      <workItem from="1636297782131" duration="1462000" />
+      <workItem from="1636380698995" duration="3371000" />
+      <workItem from="1636466835987" duration="4480000" />
+      <workItem from="1636555077162" duration="5433000" />
+      <workItem from="1636640001919" duration="8337000" />
+      <workItem from="1636725690343" duration="5607000" />
+      <workItem from="1636777916597" duration="25358000" />
+      <workItem from="1636865968582" duration="7585000" />
     </task>
     <servers />
   </component>

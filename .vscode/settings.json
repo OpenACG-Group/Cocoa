@@ -122,5 +122,7 @@
         "regex": "cpp",
         "rope": "cpp",
         "bool_set": "cpp"
-    }
+    },
+    "python.pythonPath": "/bin/python",
+    "restructuredtext.confPath": "${workspaceFolder}/docs/source"
 }

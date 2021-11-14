@@ -14,7 +14,7 @@
 #include "Core/EventLoop.h"
 
 #include "Koi/Runtime.h"
-#include "Koi/BindingsLoader.h"
+#include "Koi/BindingManager.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Main)
 
@@ -137,10 +137,18 @@ const Template gTemplates[] = {
             .desc = "Language bindings with the same name can override each other"
         },
         {
-            .longName = "script-args",
+            .longName = "escapable-args",
+            .shortName = 'A',
             .hasValue = Template::RequireValue::kNecessary,
             .valueType = ValueType::kString,
-            .desc = "Specify a comma separated list that will be passed to JavaScript."
+            .desc = "Specify a delimiter separated list passed to JavaScript"
+        },
+        {
+            .longName = "escapable-args-delimiter",
+            .shortName = 'D',
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kString,
+            .desc = "Specify a character as delimiter. Default is ','"
         }
 };
 
@@ -617,10 +625,11 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
         return cmd::ParseState::kError;
 
     EventLoop::New();
-    koi::Initialize();
 
     auto lbpPreloads = prop::New<PropertyArrayNode>();
     auto lbpBlacklist = prop::New<PropertyArrayNode>();
+    auto scriptArgs = prop::New<PropertyArrayNode>();
+    char delimiter = ',';
     for (const auto& arg : args.options)
     {
         if arg_longopt_match("vm-thread-pool-size")
@@ -651,9 +660,22 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
             LOGW(LOG_WARNING, "%bg<re>%fg<hl>(Vulnerability)%reset Option %fg<hl>\"--lbp-allow-override\"%reset"
                               " is only for debugging/experiment. Never switch it on for release version.")
         }
-        else if arg_longopt_match("script-args")
+        else if arg_longopt_match("escapable-args")
         {
-            // TODO: Parse comma separated list
+            std::vector<std::string_view> argsView = utils::SplitString(arg.value->v_str, delimiter);
+            for (const auto& view : argsView)
+            {
+                scriptArgs->append(prop::New<PropertyDataNode>(std::string(view)));
+            }
+        }
+        else if arg_longopt_match("escapable-args-delimiter")
+        {
+            if (arg.value->v_str.size() > 1)
+            {
+                std::cerr << "Delimiter is considered to be a single character" << std::endl;
+                return cmd::ParseState::kError;
+            }
+            delimiter = arg.value->v_str[0];
         }
     }
 
@@ -661,6 +683,7 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
         auto scriptNode = prop::New<PropertyObjectNode>();
         scriptNode->setMember("lbp-preloads", lbpPreloads);
         scriptNode->setMember("lbp-blacklist", lbpBlacklist);
+        scriptNode->setMember("args", scriptArgs);
         prop::Cast<PropertyObjectNode>(prop::Get()->next("runtime"))->setMember("script", scriptNode);
 
         auto persistentNode = prop::New<PropertyObjectNode>();
@@ -676,7 +699,7 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
 
 void Finalize()
 {
-    koi::Dispose();
+    koi::BindingManager::Delete();
     EventLoop::Delete();
     Journal::Delete();
     CpuInfo::Delete();
@@ -692,15 +715,14 @@ void Execute(const koi::Runtime::Options& options)
     auto execPath = prop::Cast<PropertyDataNode>(prop::Get()
             ->next("runtime")->next("executable-path"))->extract<std::string>();
 
+    koi::BindingManager::New(options);
+
     auto preloads = prop::Get()->next("runtime")->next("script")->next("lbp-preloads");
     for (const auto& p : *prop::Cast<PropertyArrayNode>(preloads))
     {
         auto& val = prop::Cast<PropertyDataNode>(p)->extract<std::string>();
-        if (!koi::LoadBindingsFromDynamicLibrary(val))
-            throw RuntimeException(__func__, "Failed in loading dynamic language bindings");
+        koi::BindingManager::Ref().loadDynamicObject(val);
     }
-
-    koi::PreloadBindings(options);
 
     std::string snapshotFile = execPath + "snapshot_blob.bin";
     auto runtime = koi::Runtime::MakeFromSnapshot(EventLoop::Instance(),

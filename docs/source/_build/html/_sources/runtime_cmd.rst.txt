@@ -1,0 +1,65 @@
+Runtime and Command Line
+========================
+
+Cocoa contains a JavaScript engine based on Google's V8. So it can be treated as a JavaScript
+runtime environment which provides 2D rendering ability.
+
+Cocoa is a standable executable file named `Cocoa`, and it is linked to a series of shared
+libraries. As these libraries are built and relesed with Cocoa project you should **NOT**
+replace or change them.
+
+To start Cocoa, just open a terminal, enter the directory of Cocoa and type:
+``./Cocoa <working directory>``
+
+Here're some optional arguments you pass into Cocoa, which will change Cocoa's behaviour.
+
+--help
+    Print available options and then exit with 0.
+--version
+    Print version and copyright information, then exit.
+--log-file
+    Specify a file to write logs. Requires a string as value.
+    Using `-o` for short is acceptable.
+--log-stderr
+    Write logs to standard error instead of default stdout.
+
+    .. note::
+        If ``--log-file`` and ``--log-stderr`` are provided at the same time, the latest one
+        in the arguments list will work.
+
+--log-level
+    Specify log level. Requires a string as value.
+
+    +-----------+------------------------------+
+    | Level     |  Allowed message types       |
+    +===========+==============================+
+    | debug     | debug, info, warning, error, |
+    |           | fatal                        |
+    +-----------+------------------------------+
+    | normal    | info, warning, error, fatal  |
+    +-----------+------------------------------+
+    | quiet     | warning, error, fatal        |
+    +-----------+------------------------------+
+    | silent    | error, fatal                 |
+    +-----------+------------------------------+
+    | disabled  | none                         |
+    +-----------+------------------------------+
+
+--disable-color-log
+    Don't generate colored logs through ANSI escape code.
+
+--vm-thread-pool-size
+    Specify the number of worker threads for V8. Requires an integer as value.
+    If it's zero or not set, a suitable default based on the current number of processors
+    will be choosen.
+
+--lbp-blacklist
+    Specify a comma seperated list of language bindings. Those language bindings will not
+    be loaded and available in JavaScript.
+
+--lbp-preload
+    Load an external shared library as a language binding.
+    Requires a string as path.
+
+--lbp-allow-override
+    

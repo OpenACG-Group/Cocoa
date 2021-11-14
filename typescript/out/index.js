@@ -1,7 +1,3 @@
-Cocoa.core.print("Script started\n");
-let timer = new Cocoa.core.Timer();
-timer.setTimeout(3000, () => {
-    Cocoa.core.print("Timer reached\n");
-});
-Cocoa.core.exit();
-Cocoa.core.print("Script end\n");
+import * as core from 'core';
+import { printf } from './core/format';
+printf("unique id of core binding: {}\n", core.__unique_id__);

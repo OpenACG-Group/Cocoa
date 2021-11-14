@@ -15,8 +15,7 @@ KOI_NS_BEGIN
 
 #define ISOLATE_DATA_SLOT_RUNTIME_PTR       0
 
-void Initialize();
-void Dispose();
+namespace lang { class BindingBase; }
 
 class Runtime : public LoopPrologueSource
 {
@@ -28,8 +27,15 @@ public:
         uint32_t    v8_platform_thread_pool;
         std::vector<std::string> bindings_blacklist;
         bool        lbp_allow_override = false;
-        std::vector<std::string> script_args;
     };
+
+    struct ESModule
+    {
+        v8::Global<v8::Module> module;
+        lang::BindingBase *binding;
+    };
+
+    using ModuleCache = std::map<std::string, ESModule>;
 
     Runtime(EventLoop *loop,
             std::unique_ptr<v8::Platform> platform,
@@ -60,6 +66,9 @@ public:
     v8::MaybeLocal<v8::Value> evaluateModule(const std::string& url);
 
     void takeOverNativeException(const RuntimeException& exception);
+    lang::BindingBase *getSyntheticModuleBinding(v8::Local<v8::Module> module);
+
+    ModuleCache& getModuleCache();
 
 private:
     KeepInLoop loopPrologueDispatch() override;
@@ -68,8 +77,13 @@ private:
     v8::ArrayBuffer::Allocator     *fArrayBufferAllocator;
     v8::Isolate                    *fIsolate;
     v8::Global<v8::Context>         fContext;
-    std::map<std::string, v8::Global<v8::Module>>
-                                    fModuleCache;
+
+    /**
+     * A map from module URL to module object.
+     * Synthetic (native) modules has URL like "synthetic://...",
+     * while text source modules' URL is just the absolute file path.
+     */
+    ModuleCache                     fModuleCache;
 };
 
 KOI_NS_END

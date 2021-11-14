@@ -15,4 +15,7 @@
 #define koi_nodiscard [[nodiscard]]
 #define koi_maybe_unsed [[maybe_unused]]
 
+template<typename T>
+using KoSp = std::shared_ptr<T>;
+
 #endif //COCOA_KOIBASE_H
