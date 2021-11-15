@@ -55,47 +55,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="625018aa-1ca1-4995-ae3f-94e4e8743e1f" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/LICENSE" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/script/generate-binding-exports-getter.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/BindingManager.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/BindingManager.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/UUID.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.mds" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/lang/CoreFDLR.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/lang/CoreFDLR.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/typescript/core/assert.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/typescript/core/format.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/typescript/core/property_tree.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/typescript/synthetics/core.d.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.jshintrc" beforeDir="false" afterPath="$PROJECT_DIR$/.jshintrc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vscode/settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/.vscode/settings.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/Cocoa User Specification.docx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/[Developer] Vanilla.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/[Note] Command Specification.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/[Users] TypeScript.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/pipeline_sample_cpu.dot" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/pipeline_sample_cpu.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/pipeline_sample_gpu.dot" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/pipeline_sample_gpu.svg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/docs/plist_syntax_sample.plist" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/Journal.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Journal.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/BindingsLoader.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/BindingsLoader.h" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/KoiBase.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/KoiBase.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/ModuleUrl.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/ModuleUrl.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/Runtime.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Runtime.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/Runtime.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Runtime.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/lang/Base.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/lang/Base.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/Base.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/CoreBinding.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/lang/VanillaBinding.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/VanillaBinding.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/lang/VanillaBinding.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/lang/VanillaBinding.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Main.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/libsquash/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libsquash/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/DEPS" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/DEPS" afterDir="false" />
@@ -181,12 +142,6 @@
       <change beforePath="$PROJECT_DIR$/third_party/v8/tools/update-object-macros-undef.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/update-object-macros-undef.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/inject-compilation-hints.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/inject-compilation-hints.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/wasm-objdump-compilation-hints.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/wasm-objdump-compilation-hints.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/core/buffer.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/core/types.d.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/core/utils.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/out/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/tsconfig.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -298,11 +253,6 @@
     <configuration default="true" type="GradleAppRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
       </method>
     </configuration>
     <configuration name="skia_viewer" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/third_party/skia" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Default" CONFIG_NAME="Default" RUN_PATH="$PROJECT_DIR$/third_party/skia/out/Dev/viewer">
@@ -749,6 +699,8 @@
       <workItem from="1636725690343" duration="5607000" />
       <workItem from="1636777916597" duration="25358000" />
       <workItem from="1636865968582" duration="7585000" />
+      <workItem from="1636902535082" duration="1387000" />
+      <workItem from="1636984921467" duration="4061000" />
     </task>
     <servers />
   </component>
