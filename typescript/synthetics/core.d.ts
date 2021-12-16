@@ -26,6 +26,12 @@ export declare const MODE_BLOCK: number;
 export declare const MODE_FIFO: number;
 export declare const MODE_SOCKET: number;
 
+export declare const SEEK_SET: number;
+export declare const SEEK_CURRENT: number;
+export declare const SEEK_END: number;
+
+export declare const AT_FDCWD: number;
+
 /**
  * An argument list (Escapable Arguments) specified by `--escapable-args`
  * and `--escapable-args-delimiter`.
@@ -83,26 +89,15 @@ export declare function hasProperty(specifier: string): boolean;
 type DumpableLiteral = "descriptors-info" | "event-loop" | "properties";
 export declare function dump(what: DumpableLiteral): void;
 
-/**
- * Open a file specified by `path` with `flags`. If the file doesn't
- * exist and "create" flag is specified, creates the file with
- * `mode`.
- * @param path  File path
- * @param flags A combination string of "r" (readonly), "w" (write-only),
- *              "+" (create), "a" (append), "t" (truncate)
- * @param mode  Specify file type and permission (MODE_* | MODE_* | ...)
- * @return An integer of randomized virtual file descriptor (VFD), which is unique
- *         for each opened files. Negative value if an error occurs.
- */
-export declare function open(path: string, flags?: string, mode?: number): number;
-
-/**
- * Close the virtual file descriptor specified by `vfd`.
- * @param vfd Virtual file descriptor
- * @throws `Error` if `vfd` isn't a valid file descriptor or the file descriptor
- *         is not closable.
- */
+export declare function open(path: string, flags: string, mode: number): number;
+export declare function openat(dirfd: number, path: string, flags: string, mode: number): number;
 export declare function close(vfd: number): void;
+export declare function seek(vfd: number, whence: number, offset: number): number;
+export declare function rename(oldpath: string, newpath: string): void;
+export declare function truncate(pathname: string, length: number): void;
+export declare function ftruncate(vfd: number, length: number): void;
+export declare function mknod(pathname: string, mode: number, dev: number): void;
+export declare function mknodat(dirfd: number, path: string, mode: number, dev: number): void;
 
 /**
  * Exit immediately without waiting for the event loop.
@@ -114,7 +109,7 @@ export declare function exit(): void;
 /**
  * A reusable and high-resolution (microsecond) timer.
  */
-export declare class Timer {
+export declare class TimerProxy {
     /**
      * Waits for `timeout` ms, then call `callback` every `interval` ms.
      * Throws an exception if `timeout` or `interval` is negative.
@@ -132,6 +127,16 @@ export declare class Timer {
      * Interrupt a pending call and reset the timer.
      */
     stop(): void;
+}
+
+type BufferEncoding = 'ascii' | 'latin1' | 'utf8' | 'ucs2';
+export declare class Buffer {
+    readonly length: number;
+
+    constructor(str: string, encoding: BufferEncoding);
+    constructor(length: number);
+
+    dump(): void;
 }
 
 export declare const __name__: string;

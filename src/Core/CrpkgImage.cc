@@ -1,4 +1,5 @@
 #include <atomic>
+#include <utility>
 
 #ifdef __linux__
 #include <sys/stat.h>
@@ -8,10 +9,13 @@ extern "C" {
 #include "squash.h"
 }
 
+#include "Core/Exception.h"
 #include "Core/Project.h"
 #include "Core/CrpkgImage.h"
 #include "Core/Journal.h"
 #include "Core/Filesystem.h"
+#include "Core/Errors.h"
+#include "Core/Data.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Core)
 
@@ -25,12 +29,12 @@ std::atomic<bool> gInitializedSquash(false);
 
 struct CrpkgImage::CrpkgImagePrivate
 {
-    uint8_t     *imageMapped;
     size_t       imageSize;
     sqfs        *squash;
+    std::shared_ptr<Data> data;
 };
 
-std::shared_ptr<CrpkgImage> CrpkgImage::Make(const std::string& file)
+std::shared_ptr<CrpkgImage> CrpkgImage::MakeFromData(const std::shared_ptr<Data>& data)
 {
     if (!gInitializedSquash)
     {
@@ -38,69 +42,47 @@ std::shared_ptr<CrpkgImage> CrpkgImage::Make(const std::string& file)
         gInitializedSquash = true;
     }
 
-    if (vfs::Access(file, {vfs::AccessMode::kReadable}) == vfs::AccessResult::kFailed)
-        return nullptr;
-
-    int fd = vfs::Open(file, {vfs::OpenFlags::kReadonly});
-    if (fd < 0)
-    {
-        LOGF(LOG_ERROR, "Failed in loading crpkg image {}: {}", file, strerror(errno))
-        return nullptr;
-    }
+    if (!data->hasAccessibleBuffer())
+        throw RuntimeException(__func__, "Data doesn't have an accessible buffer");
 
     auto *pData = new CrpkgImagePrivate;
+    pData->data = data;
     pData->squash = reinterpret_cast<struct sqfs*>(std::malloc(sizeof(struct sqfs)));
-    pData->imageSize = vfs::FileSize(fd);
-    /**
-     * The image file may be huge, which is expensive to read it into a allocated buffer.
-     * Mapping it directly is very fast and will not allocate from heap.
-     * However, that maybe makes performance problem while we're reading data.
-     */
-    pData->imageMapped = reinterpret_cast<uint8_t*>(vfs::MemMap(fd,
-                                                                nullptr,
-                                                                {vfs::MapProtection::kRead},
-                                                                {vfs::MapFlags::kPrivate},
-                                                                pData->imageSize,
-                                                                0));
+    pData->imageSize = data->size();
 
-    if (pData->imageMapped == nullptr)
-    {
-        LOGF(LOG_ERROR, "Failed in mapping crpkg image {}: {}", file, strerror(errno));
-        return nullptr;
-    }
+    auto bufptr = reinterpret_cast<const uint8_t*>(data->getAccessibleBuffer());
+    CHECK(bufptr);
 
-    sqfs_err ret = sqfs_init(pData->squash, pData->imageMapped, 0);
+    sqfs_err ret = sqfs_init(pData->squash, const_cast<uint8_t*>(bufptr), 0);
     switch (ret)
     {
     case SQFS_OK:
         break;
     case SQFS_BADFORMAT:
-        LOGF(LOG_ERROR, "{} is not a valid crpkg image", file)
+        QLOG(LOG_ERROR, "Not a valid SquashFS image");
         break;
     case SQFS_BADVERSION:
     {
         int major, minor;
         sqfs_version(pData->squash, &major, &minor);
-        LOGF(LOG_ERROR, "crpkg (SquashFS) version {}.{} detected in {}, which is not supported",
-             major, minor, file);
+        QLOG(LOG_ERROR, "SquashFS version {}.{} detected, which is not supported", major, minor);
         break;
     }
     case SQFS_BADCOMP:
-        LOGF(LOG_ERROR, "{} uses unknown compression algorithm", file)
+        QLOG(LOG_ERROR, "Unknown compression algorithm");
         break;
     default:
-        LOGF(LOG_ERROR, "Couldn't load crpkg image {}", file)
+        QLOG(LOG_ERROR, "Couldn't load crpkg image");
         break;
     }
     if (ret != SQFS_OK)
         return nullptr;
 
-    return std::make_shared<CrpkgImage>(file, pData);
+    return std::make_shared<CrpkgImage>(pData);
 }
 
-CrpkgImage::CrpkgImage(std::string imageFile, CrpkgImagePrivate *data)
-    : fImageFile(imageFile),
-      fData(data)
+CrpkgImage::CrpkgImage(CrpkgImagePrivate *data)
+    : fData(data)
 {
 }
 
@@ -111,8 +93,6 @@ CrpkgImage::~CrpkgImage()
         sqfs_destroy(fData->squash);
         std::free(fData->squash);
     }
-    if (fData->imageMapped)
-        vfs::MemUnmap(fData->imageMapped, fData->imageSize);
     delete fData;
 }
 
@@ -130,7 +110,7 @@ thread_local char gTlsPathBuffer[PATH_MAX];
 std::optional<std::string> CrpkgImage::readlink(const std::string& path)
 {
     if (squash_readlink(fData->squash, path.c_str(), gTlsPathBuffer, PATH_MAX) < 0)
-        return std::optional<std::string>();
+        return {};
     return std::make_optional<std::string>(gTlsPathBuffer);
 }
 
@@ -150,14 +130,14 @@ ssize_t CrpkgFile::read(void *buffer, ssize_t size) const
     return squash_read(fFile, buffer, size);
 }
 
-std::optional<vfs::Stat> CrpkgFile::stat()
+std::optional<vfs::Stat> CrpkgFile::stat() const
 {
 #ifdef __linux__
     struct stat stbuf;  // NOLINT
     if (squash_fstat(fFile, &stbuf) < 0)
-        return std::optional<vfs::Stat>();
+        return {};
 
-    vfs::Bitfield<vfs::Mode> mode;
+    Bitfield<vfs::Mode> mode;
     mode |= (stbuf.st_mode & S_IRUSR) ? vfs::Mode::kUsrR : vfs::Mode::kNone;
     mode |= (stbuf.st_mode & S_IWUSR) ? vfs::Mode::kUsrW : vfs::Mode::kNone;
     mode |= (stbuf.st_mode & S_IXUSR) ? vfs::Mode::kUsrX : vfs::Mode::kNone;

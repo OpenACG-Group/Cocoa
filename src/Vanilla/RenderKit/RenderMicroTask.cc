@@ -1,4 +1,4 @@
-#include <cassert>
+#include "Core/Errors.h"
 
 #include "fmt/format.h"
 #include "Vanilla/RenderKit/RenderMicroTask.h"
@@ -7,7 +7,7 @@ VANILLA_NS_BEGIN
 RenderMicroTask::RenderMicroTask(uint32_t poolSize)
     : fDisposed(false)
 {
-    assert(poolSize > 0);
+    CHECK(poolSize > 0);
     for (uint32_t i = 0; i < poolSize; i++)
     {
         fThreads.emplace_back(&RenderMicroTask::routine, this, i);

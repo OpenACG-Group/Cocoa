@@ -1,15 +1,15 @@
 #include <random>
 #include <map>
-#include <cassert>
+#include "Core/Errors.h"
 #include <sstream>
 
 #include "Core/Journal.h"
 #include "Core/CpuInfo.h"
-#include "Koi/lang/CoreFDLR.h"
+#include "Koi/bindings/core/FdRandomize.h"
 
-#define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi.lang)
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi.binding)
 
-KOI_LANG_NS_BEGIN
+KOI_BINDINGS_NS_BEGIN
 
 struct FDLRTable gFDLRTable;
 
@@ -32,13 +32,13 @@ int32_t FDLRNewRandomizedDescriptor(int32_t realFd, FDLRTable::OwnerType owner, 
         gFDLRTable.allocatedCount *= 2;
         gFDLRTable.pMap = static_cast<FDLRTable::Target*>(std::realloc(gFDLRTable.pMap,
                                                                        gFDLRTable.allocatedCount * FDLR_MAP_SIZE));
-        assert(gFDLRTable.pMap);
+        CHECK(gFDLRTable.pMap);
         for (size_t i = gFDLRTable.allocatedCount / 2; i < gFDLRTable.allocatedCount; i++)
         {
             gFDLRTable.pMap[i].used = false;
             gFDLRTable.pMap[i].closer = nullptr;
         }
-        LOGF(LOG_DEBUG, "Expanding FDLR allocation map memory to {} bytes", gFDLRTable.allocatedCount)
+        QLOG(LOG_DEBUG, "Expanding FDLR map memory to {} bytes", gFDLRTable.allocatedCount);
         unusedRegions.push_back({gFDLRTable.allocatedCount / 2, gFDLRTable.allocatedCount - 1});
     }
 
@@ -102,7 +102,7 @@ void FDLRCollectAndSweep()
     {
         if (gFDLRTable.pMap[i].used && gFDLRTable.pMap[i].closer)
         {
-            LOGF(LOG_WARNING, "Unclosed (randomized) file descriptor #{}", i)
+            QLOG(LOG_WARNING, "Unclosed (randomized) file descriptor #{}", i);
             gFDLRTable.pMap[i].closer(gFDLRTable.pMap[i].fd);
         }
     }
@@ -117,7 +117,7 @@ void FDLRDumpMappingInfo()
         if (gFDLRTable.pMap[i].used)
             usedCount++;
     }
-    LOGF(LOG_DEBUG, "%fg<hl>FDLR subsystem statistics: {} entries, {} used%reset", gFDLRTable.allocatedCount, usedCount)
+    QLOG(LOG_DEBUG, "%fg<hl>FDLR subsystem statistics: {} entries, {} used%reset", gFDLRTable.allocatedCount, usedCount);
 
     size_t p = 0;
     for (size_t i = 0; i < gFDLRTable.allocatedCount; i++)
@@ -140,12 +140,10 @@ void FDLRDumpMappingInfo()
             std::string_view str = os.view();
             if (str.length() > 0)
                 str.remove_suffix(1);
-            LOGF(LOG_DEBUG, "  Entry#{} %fg<ma,hl>{:03d}%reset -> %fg<cy,hl>{:03d}%reset [{}]",
-                 p++, i, gFDLRTable.pMap[i].fd, str)
+            QLOG(LOG_DEBUG, "  Entry#{} %fg<ma,hl>{:03d}%reset -> %fg<cy,hl>{:03d}%reset [{}]",
+                 p++, i, gFDLRTable.pMap[i].fd, str);
         }
     }
 }
 
-
-KOI_LANG_NS_END
-
+KOI_BINDINGS_NS_END

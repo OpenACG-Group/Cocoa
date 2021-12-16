@@ -150,7 +150,12 @@ private:
 };
 } // namespace detail
 
-/// Interface to access C++ classes bound to V8
+/**
+ * Interface to access C++ classes bound to V8.
+ * @note JavaScript exceptions shouldn't be thrown in constructor.
+ *       Instead, throwing C++ native exceptions is allowed, which can
+ *       be caught and translated into JavaScript exceptions automatically.
+ */
 template<typename T, typename Traits = raw_ptr_traits>
 class Class
 {

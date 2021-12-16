@@ -1,8 +1,8 @@
-#ifndef COCOA_COREFDLR_H
-#define COCOA_COREFDLR_H
+#ifndef COCOA_FDRANDOMIZE_H
+#define COCOA_FDRANDOMIZE_H
 
 #include "Koi/KoiBase.h"
-KOI_LANG_NS_BEGIN
+KOI_BINDINGS_NS_BEGIN
 
 /**
  * FDLR (File Descriptor Layout Randomization):
@@ -40,5 +40,5 @@ void FDLRCollectAndSweep();
 void FDLRDumpMappingInfo();
 
 
-KOI_LANG_NS_END
-#endif //COCOA_COREFDLR_H
+KOI_BINDINGS_NS_END
+#endif //COCOA_FDRANDOMIZE_H

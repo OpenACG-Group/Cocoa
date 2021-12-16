@@ -1,4 +1,4 @@
-#include <cassert>
+#include "Core/Errors.h"
 #include <xcb/xcb.h>
 
 #include "Core/Journal.h"
@@ -58,28 +58,28 @@ Handle<Display> Display::OpenXcb(const Handle<Context>& ctx, const char *display
 
     if (xcb_connection_has_error(connection))
     {
-        LOGW(LOG_ERROR, "Failed to connect to X11 server")
+        QLOG(LOG_ERROR, "Failed to connect to X11 server");
         return nullptr;
     }
 
     const xcb_setup_t *setup = xcb_get_setup(connection);
-    LOGF(LOG_INFO, "Connected to X server ({}, protocol {}.{})",
+    QLOG(LOG_INFO, "Connected to X server ({}, protocol {}.{})",
                    xcb_setup_vendor(setup), setup->protocol_major_version,
-                   setup->protocol_minor_version)
+                   setup->protocol_minor_version);
 
     xcb_screen_t *screen = match_proper_screen(screenNumber, setup);
     if (!screen)
     {
-        LOGW(LOG_ERROR, "Failed to query a proper X11 screen")
+        QLOG(LOG_ERROR, "Failed to query a proper X11 screen");
         return nullptr;
     }
-    LOGF(LOG_INFO, "Found proper screen {}x{} with depth {}",
-                   screen->width_in_pixels, screen->height_in_pixels, screen->root_depth)
+    QLOG(LOG_INFO, "Found proper screen {}x{} with depth {}",
+                   screen->width_in_pixels, screen->height_in_pixels, screen->root_depth);
 
     xcb_visualtype_t *visual = match_proper_visual(screen);
     if (!visual)
     {
-        LOGW(LOG_ERROR, "Failed to query a proper X11 visual type");
+        QLOG(LOG_ERROR, "Failed to query a proper X11 visual type");;
         return nullptr;
     }
 
@@ -87,7 +87,7 @@ Handle<Display> Display::OpenXcb(const Handle<Context>& ctx, const char *display
         visual->red_mask != 0xff0000 || visual->green_mask != 0xff00 ||
         visual->blue_mask != 0xff)
     {
-        LOGW(LOG_ERROR, "Unsupported color format. Only supports BGRA or BGRx now")
+        QLOG(LOG_ERROR, "Unsupported color format. Only supports BGRA or BGRx now");
         return nullptr;
     }
 
@@ -381,19 +381,19 @@ void handle_xcb_error(const xcb_generic_error_t *ptr)
 {
     uint16_t clamped_err = std::min<uint16_t>(ptr->error_code, xcb_errors_size - 1);
     uint16_t clamped_major = std::min<uint16_t>(ptr->major_code, xcb_requests_size - 1);
-    LOGF(LOG_ERROR, "XCB Error: {} ({}), request {}:{} ({}), sequence {}, resource {}",
+    QLOG(LOG_ERROR, "XCB Error: {} ({}), request {}:{} ({}), sequence {}, resource {}",
                    ptr->error_code, xcb_errors[clamped_err],
                    ptr->major_code, ptr->minor_code,
                    xcb_requests[clamped_major],
                    ptr->sequence,
-                   ptr->resource_id)
+                   ptr->resource_id);
 }
 
 } // namespace anonymous
 
 void XcbDisplay::handleEvent(const xcb_generic_event_t *event)
 {
-    assert(event != nullptr);
+    CHECK(event != nullptr);
 
     uint32_t type = event->response_type & ~0x80;
     bool handled = true;
@@ -414,8 +414,8 @@ void XcbDisplay::handleEvent(const xcb_generic_event_t *event)
     case XCB_REPARENT_NOTIFY:
     {
         event_cast(reparent_notify)
-        LOGF(LOG_INFO, "Window 0x{:08x} re-parenting, new parent is 0x{:08x}",
-                reparent_notify->window, reparent_notify->parent)
+        QLOG(LOG_INFO, "Window 0x{:08x} re-parenting, new parent is 0x{:08x}",
+                reparent_notify->window, reparent_notify->parent);
         break;
     }
 
@@ -437,8 +437,8 @@ void XcbDisplay::handleEvent(const xcb_generic_event_t *event)
     if (type == fKeyboard.xkbResponseType())
         fKeyboard.handleXkbEvent(event);
     else
-        LOGF(LOG_WARNING, "Unknown event from X server: response_type = 0x{:04x}",
-                event->response_type)
+        QLOG(LOG_WARNING, "Unknown event from X server: response_type = 0x{:04x}",
+                event->response_type);
 
     xcb_flush(fConnection);
 }

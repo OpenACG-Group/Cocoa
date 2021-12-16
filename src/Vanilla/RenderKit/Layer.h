@@ -2,7 +2,7 @@
 #define COCOA_LAYER_H
 
 #include <list>
-#include <cassert>
+#include "Core/Errors.h"
 
 #include "include/core/SkImage.h"
 
@@ -32,7 +32,7 @@ public:
     }
 
     va_nodiscard inline Handle<ContentAggregator> getContentAggregator() {
-        assert(!fAggregator.expired());
+        CHECK(!fAggregator.expired());
         return fAggregator.lock();
     }
 

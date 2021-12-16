@@ -1,5 +1,5 @@
 #include <sigc++/sigc++.h>
-#include <cassert>
+#include "Core/Errors.h"
 
 #include "Core/Journal.h"
 #include "Vanilla/Context.h"
@@ -12,8 +12,8 @@ Context::Context(EventLoop *loop, Backend backend)
     : fEventLoop(loop),
       fBackend(backend)
 {
-    LOGF(LOG_INFO, "Cocoa/Vanilla 2D rendering engine, version {}.{}",
-                   VANILLA_MAJOR_VERSION, VANILLA_MINOR_VERSION)
+    QLOG(LOG_INFO, "Cocoa/Vanilla 2D rendering engine, version {}.{}",
+                   VANILLA_MAJOR_VERSION, VANILLA_MINOR_VERSION);
 }
 
 Context::~Context()
@@ -22,11 +22,11 @@ Context::~Context()
     {
         if (pair.second)
         {
-            assert(pair.second.use_count() == 1);
+            CHECK(pair.second.use_count() == 1);
             pair.second->dispose();
         }
     }
-    LOGW(LOG_INFO, "Destroying Cocoa/Vanilla 2D rendering engine")
+    QLOG(LOG_INFO, "Destroying Cocoa/Vanilla 2D rendering engine");
 }
 
 void Context::detachDisplay(int32_t id)
@@ -48,7 +48,7 @@ void Context::connectTo(const char *displayName, int32_t id)
 {
     if (fDisplays.contains(id))
     {
-        LOGF(LOG_ERROR, "Display ID {} is unavailable", id)
+        QLOG(LOG_ERROR, "Display ID {} is unavailable", id);
         throw VanillaException(__func__, "Invalid display ID");
     }
     switch (fBackend)
@@ -64,7 +64,7 @@ Handle<Display> Context::display(int32_t id)
 {
     if (!fDisplays.contains(id))
     {
-        LOGF(LOG_ERROR, "Display (ID:{}) haven't been opened yet", id)
+        QLOG(LOG_ERROR, "Display (ID:{}) haven't been opened yet", id);
         throw VanillaException(__func__, "Invalid Display ID");
     }
     return fDisplays[id];

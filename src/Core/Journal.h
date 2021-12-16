@@ -12,11 +12,11 @@ namespace cocoa {
 
 #define COCOA_MODULE_NAME(name)  "org.OpenACG.Cocoa." #name
 
-#define LOGF(level, fmt, ...) \
-Journal::Ref()(level, "%fg<bl><{}>%reset " fmt, THIS_FILE_MODULE, __VA_ARGS__);
-
-#define LOGW(level, str) \
-Journal::Ref()(level, "%fg<bl><{}>%reset " str, THIS_FILE_MODULE);
+#define QLOG(level, fmt, ...)                                                       \
+    do {                                                                            \
+        Journal::Ref()(level, "%fg<bl><{}>%reset " fmt,                             \
+                       THIS_FILE_MODULE __VA_OPT__(,) __VA_ARGS__);                 \
+    } while (false)
 
 enum LogType
 {

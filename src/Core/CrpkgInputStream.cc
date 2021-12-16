@@ -1,4 +1,4 @@
-#include <cassert>
+#include "Core/Errors.h"
 
 #include "Core/Journal.h"
 #include "Core/CrpkgImage.h"
@@ -10,8 +10,8 @@ CrpkgStreamBuffer::CrpkgStreamBuffer(std::shared_ptr<CrpkgFile> file, size_t buf
       fBufferSize(bufSize),
       fBuffer(nullptr)
 {
-    assert(fFile != nullptr);
-    assert(fBufferSize > 0);
+    CHECK(fFile != nullptr);
+    CHECK(fBufferSize > 0);
     fBuffer = new char_type[fBufferSize];
     std::streambuf::setg(fBuffer, fBuffer, fBuffer);
 }

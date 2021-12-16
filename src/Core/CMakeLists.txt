@@ -22,7 +22,10 @@ set(core_sources
         Data.h
         Data.cc
         CpuInfo.h
-        CpuInfo.cc)
+        CpuInfo.cc
+        Errors.h
+        Errors.cc
+        EnumClassBitfield.h)
 
 add_library(${core_target} STATIC ${core_sources})
 

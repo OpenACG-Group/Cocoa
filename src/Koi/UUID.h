@@ -3,7 +3,7 @@
 
 #include <string>
 #include <cstring>
-#include <cassert>
+#include "Core/Errors.h"
 
 #include "Koi/KoiBase.h"
 KOI_NS_BEGIN
@@ -35,7 +35,7 @@ public:
     ~UUID();
 
     inline bool operator==(const UUID& other) {
-        assert(fBuffer && other.fBuffer);
+        CHECK(fBuffer && other.fBuffer);
         return std::memcmp(fBuffer, other.fBuffer, UUID_BYTES);
     }
 

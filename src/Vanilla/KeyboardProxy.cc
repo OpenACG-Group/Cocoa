@@ -1,4 +1,4 @@
-#include <cassert>
+#include "Core/Errors.h"
 #include <xkbcommon/xkbcommon.h>
 
 #include "Core/Journal.h"
@@ -47,7 +47,7 @@ void xkb_journal_forwarder(xkb_context *pCtx, enum xkb_log_level level, const ch
         leave.abolish();
 
     std::vsnprintf(buffer, bufferSize, fmt, args);
-    LOGF(jLevel, "XKB@proxy:{}: {}", fmt::ptr(xkb_context_get_user_data(pCtx)), buffer)
+    QLOG(jLevel, "XKB@proxy:{}: {}", fmt::ptr(xkb_context_get_user_data(pCtx)), buffer);
 }
 
 } // namespace anonymous

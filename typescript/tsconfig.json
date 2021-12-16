@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         "module": "ES6",
-        "target": "ES6",
+        "target": "ES2021",
         "moduleResolution": "Classic",
         "outDir": "./out",
         "isolatedModules": false,
@@ -11,8 +11,11 @@
             "*": [ "synthetics/*" ]
         }
     },
-    
+    "include": [
+        "./global/introspect.d.ts"
+    ],
     "files": [
+        "./core/assert.ts",
         "./core/format.ts",
         "./core/property_tree.ts",
         "./index.ts"

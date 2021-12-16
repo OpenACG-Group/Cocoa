@@ -9,22 +9,24 @@
 #include "Koi/binder/Module.h"
 #include "Koi/binder/Factory.h"
 
-KOI_LANG_NS_BEGIN
+KOI_BINDINGS_NS_BEGIN
 
-#define CHECK_AND_JS_THROW(cond, msg) \
-    do {                                  \
-        if ((cond)) {                     \
-            binder::throw_(v8::Isolate::GetCurrent(), msg);  \
-        } \
+#define JS_THROW_IF(cond, msg, ...)                                                     \
+    do {                                                                                \
+        if ((cond)) {                                                                   \
+            binder::throw_(v8::Isolate::GetCurrent(), msg __VA_OPT__(,) __VA_ARGS__);   \
+            return;                                                                     \
+        }                                                                               \
     } while (false)
 
-#define CHECK_AND_JS_THROW_WITH_RET(cond, msg, ret) \
-    do {                                  \
-        if ((cond)) {                     \
-            binder::throw_(v8::Isolate::GetCurrent(), msg); \
-            return ret; \
-        } \
+#define JS_THROW_RET_IF(cond, msg, ret, ...)                                            \
+    do {                                                                                \
+        if ((cond)) {                                                                   \
+            binder::throw_(v8::Isolate::GetCurrent(), msg __VA_OPT__(,) __VA_ARGS__);   \
+            return ret;                                                                 \
+        }                                                                               \
     } while (false)
+
 
 class BindingBase
 {
@@ -60,5 +62,5 @@ private:
     std::string   fDescription;
 };
 
-KOI_LANG_NS_END
+KOI_BINDINGS_NS_END
 #endif //COCOA_LANG_BASE_H

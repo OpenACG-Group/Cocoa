@@ -1,4 +1,4 @@
-#include <cassert>
+#include "Core/Errors.h"
 
 #include "Core/Journal.h"
 #include "Vanilla/Base.h"
@@ -16,8 +16,7 @@ xcb_atom_t intern_atom(xcb_connection_t *connection, const std::string& name, bo
     UniqueHandle<xcb_intern_atom_reply_t> reply(xcb_intern_atom_reply(connection, cookie, &err));
     if (err != nullptr)
     {
-        LOGF(LOG_ERROR, "Failed to intern X11 atom {}, error code = XCB:{}",
-                       name, err->error_code)
+        QLOG(LOG_ERROR, "Failed to intern X11 atom {}, error code = XCB:{}", name, err->error_code);
         throw VanillaException(__func__, "Failed to intern X11 atom");
     }
 
@@ -39,7 +38,7 @@ XcbAtoms::XcbAtoms(xcb_connection_t *conn)
 
 xcb_atom_t XcbAtoms::get(AtomType type)
 {
-    assert(type < AtomType::LAST_ATOM);
+    CHECK(type < AtomType::LAST_ATOM);
     return fAtoms[type];
 }
 

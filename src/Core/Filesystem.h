@@ -6,48 +6,12 @@
 #include <vector>
 #include <string>
 
+#include "EnumClassBitfield.h"
+
 #define VFS_NS_BEGIN    namespace cocoa::vfs {
 #define VFS_NS_END      }
 
 VFS_NS_BEGIN
-
-template<typename E, typename = typename std::enable_if<std::is_enum_v<E>>::type>
-class Bitfield
-{
-public:
-    using T = typename std::underlying_type<E>::type;
-    explicit Bitfield(T value) : fValue(value) {}
-    Bitfield() : fValue(0) {}
-    explicit Bitfield(E value) : fValue(static_cast<T>(value)) {}
-
-    explicit Bitfield(const std::vector<E>& values) : fValue(0) {
-        for (E v : values)
-            fValue |= static_cast<T>(v);
-    }
-
-    Bitfield(const std::initializer_list<E>& values) : fValue(0) {
-        for (E v : values)
-            fValue |= static_cast<T>(v);
-    }
-
-    Bitfield& operator|=(const E bit) {
-        fValue |= static_cast<T>(bit);
-        return *this;
-    }
-
-    Bitfield operator|(const E bit) {
-        Bitfield result = *this;
-        result.fValue |= static_cast<T>(bit);
-        return result;
-    }
-
-    bool operator&(const E bit) {
-        return (fValue & static_cast<T>(bit)) == static_cast<T>(bit);
-    }
-
-private:
-    T   fValue;
-};
 
 enum class OpenFlags : uint8_t
 {
@@ -95,11 +59,12 @@ enum class MapFlags : uint8_t
     kPrivate    = (1 << 2)
 };
 
-enum class SeekWhence
+enum class SeekWhence : uint8_t
 {
     kSet,
     kCurrent,
-    kEnd
+    kEnd,
+    kLastWhence = kEnd
 };
 
 enum class AccessMode : uint8_t
@@ -107,7 +72,8 @@ enum class AccessMode : uint8_t
     kReadable   = (1 << 0),
     kWritable   = (1 << 1),
     kExecutable = (1 << 2),
-    kExist      = (1 << 3)
+    kExist      = (1 << 3),
+    kRegular    = (1 << 4)
 };
 
 enum class AccessResult
@@ -128,8 +94,12 @@ struct Stat
     struct timespec ctime;
 };
 
+#define VFS_AT_FDCWD  (-1)
+
 int32_t Open(const std::string& path, Bitfield<OpenFlags> flags,
              Bitfield<Mode> mode = Bitfield<Mode>());
+int32_t OpenAt(int32_t dirfd, const std::string& path, Bitfield<OpenFlags> flags,
+               Bitfield<Mode> mode = Bitfield<Mode>());
 int32_t Close(int32_t fd);
 
 int32_t Chdir(const std::string& path);
@@ -147,6 +117,12 @@ off_t Seek(int32_t fd, off_t offset, SeekWhence whence);
 void *MemMap(int32_t fd, void *address, Bitfield<MapProtection> protection,
              Bitfield<MapFlags> flags, size_t size, off64_t offset);
 int32_t MemUnmap(void *address, size_t size);
+
+int32_t Truncate(const std::string& path, off_t length);
+int32_t FTruncate(int32_t fd, off_t length);
+
+int32_t Mknod(const std::string& path, Bitfield<Mode> mode, int32_t dev);
+int32_t MknodAt(int32_t dirfd, const std::string& path, Bitfield<Mode> mode, int32_t dev);
 
 VFS_NS_END
 

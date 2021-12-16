@@ -2,7 +2,7 @@
 #include <fcntl.h>
 #include <vector>
 #include <sstream>
-#include <cassert>
+#include "Core/Errors.h"
 #include <optional>
 
 #include "fmt/format.h"
@@ -74,7 +74,7 @@ bool is_ident(char ch)
 
 void match_and_transit(char ch, const std::vector<char>& match, const std::vector<int>& transition, int& st)
 {
-    assert(match.size() == transition.size());
+    CHECK(match.size() == transition.size());
 
     for (int i = 0; i < match.size(); i++)
     {
@@ -372,7 +372,7 @@ Translator translators[] = {
             "italic",
             0,
             [](TranslationContext *ctx) -> TranslationResult {
-                if (!ctx->enabled)
+                if (!ctx->enabled || !ctx->enableColor)
                     return {};
                 return TranslationResult("\033[3m");
             }
@@ -433,7 +433,7 @@ std::string translate_decorators(const std::string_view& origin,
             TranslationResult result = translator->pfn(&ctx);
             if (result.op == TranslationResult::Operation::kReplace)
             {
-                assert(result.replacement.has_value());
+                CHECK(result.replacement.has_value());
                 finalString << result.replacement.value();
             }
         }

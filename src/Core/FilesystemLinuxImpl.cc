@@ -23,6 +23,12 @@ int32_t ModeFlagsToNative(Bitfield<Mode> mode)
     p |= (mode & Mode::kGrpR) ? S_IRGRP : 0;
     p |= (mode & Mode::kGrpW) ? S_IWGRP : 0;
     p |= (mode & Mode::kGrpX) ? S_IXGRP : 0;
+    p |= (mode & Mode::kLink) ? S_IFLNK : 0;
+    p |= (mode & Mode::kRegular) ? S_IFREG : 0;
+    p |= (mode & Mode::kChar) ? S_IFCHR : 0;
+    p |= (mode & Mode::kBlock) ? S_IFBLK : 0;
+    p |= (mode & Mode::kFifo) ? S_IFIFO : 0;
+    p |= (mode & Mode::kSocket) ? S_IFSOCK : 0;
     return p;
 }
 
@@ -38,6 +44,21 @@ int32_t Open(const std::string& path, Bitfield<OpenFlags> flags, Bitfield<Mode> 
     iFlags |= (flags & OpenFlags::kAppend) ? O_APPEND : 0;
     iMode = ModeFlagsToNative(mode);
     return open(path.c_str(), iFlags, iMode);
+}
+
+int32_t OpenAt(int32_t dirfd, const std::string& path, Bitfield<OpenFlags> flags,
+               Bitfield<Mode> mode)
+{
+    if (dirfd == VFS_AT_FDCWD)
+        dirfd = AT_FDCWD;
+    int32_t iFlags = 0, iMode = 0;
+    iFlags |= (flags & OpenFlags::kWriteOnly) ? O_WRONLY : 0;
+    iFlags |= (flags & OpenFlags::kReadWrite) ? O_RDWR : 0;
+    iFlags |= (flags & OpenFlags::kCreate) ? O_CREAT : 0;
+    iFlags |= (flags & OpenFlags::kTrunc) ? O_TRUNC : 0;
+    iFlags |= (flags & OpenFlags::kAppend) ? O_APPEND : 0;
+    iMode = ModeFlagsToNative(mode);
+    return openat(dirfd, path.c_str(), iFlags, iMode);
 }
 
 int32_t Close(int32_t fd)
@@ -77,7 +98,7 @@ std::string ReadLink(const std::string& path)
     if (!havePath)
         return "";
 
-    return std::string(&buf[0], size);
+    return {&buf[0], size};
 }
 
 namespace {
@@ -86,7 +107,7 @@ thread_local char gRealpathBuffer[PATH_MAX];
 std::string Realpath(const std::string& path)
 {
     realpath(path.c_str(), gRealpathBuffer);
-    return std::string(gRealpathBuffer);
+    return gRealpathBuffer;
 }
 
 AccessResult Access(const std::string& path, Bitfield<AccessMode> mode)
@@ -95,8 +116,19 @@ AccessResult Access(const std::string& path, Bitfield<AccessMode> mode)
     iMode |= (mode & AccessMode::kReadable) ? R_OK : 0;
     iMode |= (mode & AccessMode::kWritable) ? W_OK : 0;
     iMode |= (mode & AccessMode::kExecutable) ? X_OK : 0;
+#if F_OK != 0
+    iMode |= (mode & AccessMode::kExist) ? F_OK : 0;
+#endif
 
-    return (!access(path.c_str(), iMode)) ? AccessResult::kOk : AccessResult::kFailed;
+    bool ok = access(path.c_str(), iMode) >= 0;
+    if (mode & AccessMode::kRegular && ok)
+    {
+        struct stat stbuf{};
+        stat(path.c_str(), &stbuf);
+        ok = ok && stbuf.st_mode & S_IFREG;
+    }
+
+    return ok ? AccessResult::kOk : AccessResult::kFailed;
 }
 
 int32_t Rename(const std::string& old, const std::string& _new)
@@ -167,6 +199,26 @@ void *MemMap(int32_t fd, void *address, Bitfield<MapProtection> protection,
 int32_t MemUnmap(void *address, size_t size)
 {
     return munmap(address, size);
+}
+
+int32_t Truncate(const std::string& path, off_t length)
+{
+    return ::truncate(path.c_str(), length);
+}
+
+int32_t FTruncate(int32_t fd, off_t length)
+{
+    return ::ftruncate(fd, length);
+}
+
+int32_t Mknod(const std::string& path, Bitfield<Mode> mode, int32_t dev)
+{
+    return ::mknod(path.c_str(), ModeFlagsToNative(mode), dev);
+}
+
+int32_t MknodAt(int32_t dirfd, const std::string& path, Bitfield<Mode> mode, int32_t dev)
+{
+    return ::mknodat(dirfd, path.c_str(), ModeFlagsToNative(mode), dev);
 }
 
 VFS_NS_END

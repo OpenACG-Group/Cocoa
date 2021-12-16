@@ -22,12 +22,33 @@ set(BUILD_TESTING OFF)
 add_subdirectory(third_party/cpu_features)
 unset(BUILD_TESTING)
 
+cmake_policy(SET CMP0077 NEW)
+cmake_policy(SET CMP0024 OLD)
+set(LWS_WITH_SSL OFF)
+set(LWS_ROLE_RAW_FILE OFF)
+set(LWS_WITH_FILE_OPS OFF)
+set(LWS_WITH_HTTP2 OFF)
+set(LWS_WITH_LIBUV ON)
+set(LWS_WITH_LEJP OFF)
+set(LWS_WITH_JSONRPC OFF)
+set(LWS_WITH_SHARED OFF)
+set(LWS_WITH_SECURE_STREAMS OFF)
+set(LWS_WITHOUT_CLIENT ON)
+set(LWS_WITHOUT_TESTAPPS ON)
+set(LWS_WITHOUT_TEST_SERVER ON)
+set(LWS_WITHOUT_TEST_SERVER_EXTPOLL ON)
+set(LWS_WITHOUT_TEST_PING ON)
+set(LWS_WITHOUT_TEST_CLIENT ON)
+add_subdirectory(third_party/libwebsockets)
+
 ## Link options and include directories
 include_directories(
         src
         third_party/skia
         third_party/v8
         third_party/v8/include
+        third_party/libwebsockets/include
+        third_party/libwebsockets
         third_party/cpu_features
         third_party/fmt/include
         third_party/libsquash/include

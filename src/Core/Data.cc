@@ -1,4 +1,4 @@
-#include <cassert>
+#include "Core/Errors.h"
 #include <cstring>
 
 #include "Core/CrpkgImage.h"
@@ -10,10 +10,10 @@ namespace cocoa {
 class FileData : public Data
 {
 public:
-    FileData(int32_t fd, vfs::Bitfield<vfs::OpenFlags> flags)
+    FileData(int32_t fd, Bitfield<vfs::OpenFlags> flags)
         : fFd(fd), fFlags(flags)
     {
-        assert(fd >= 0);
+        CHECK(fd >= 0);
     }
 
     ~FileData() override
@@ -46,7 +46,7 @@ public:
 
 private:
     int32_t                         fFd;
-    vfs::Bitfield<vfs::OpenFlags>   fFlags;
+    Bitfield<vfs::OpenFlags>   fFlags;
 };
 
 class PackageData : public Data
@@ -55,7 +55,7 @@ public:
     explicit PackageData(std::shared_ptr<CrpkgFile> file)
         : fFile(std::move(file))
     {
-        assert(fFile != nullptr);
+        CHECK(fFile != nullptr);
     }
     ~PackageData() override = default;
 
@@ -86,18 +86,19 @@ private:
 class MemoryData : public Data
 {
 public:
-    MemoryData(void *ptr, size_t size, bool release)
-        : fAddress(reinterpret_cast<uint8_t*>(ptr)),
-          fCurPtr(fAddress),
-          fSize(size),
-          fRelease(release)
+    MemoryData(void *ptr, size_t size, bool release, std::function<void(void*)> deleter)
+        : fAddress(reinterpret_cast<uint8_t*>(ptr))
+        , fCurPtr(fAddress)
+        , fSize(size)
+        , fRelease(release)
+        , fDeleter(std::move(deleter))
     {
     }
 
     ~MemoryData() override
     {
         if (fRelease)
-            std::free(fAddress);
+            fDeleter(fAddress);
     }
 
     size_t size() override
@@ -151,16 +152,59 @@ public:
         return static_cast<ssize_t>(finalSize);
     }
 
+    bool hasAccessibleBuffer() override
+    {
+        return true;
+    }
+
+    const void *getAccessibleBuffer() override
+    {
+        return fAddress;
+    }
+
 private:
     uint8_t     *fAddress;
     uint8_t     *fCurPtr;
     size_t       fSize;
     bool         fRelease;
+    std::function<void(void*)> fDeleter;
 };
 
+std::shared_ptr<Data> Data::MakeFromFileMapped(const std::string& path,
+                                               Bitfield<vfs::OpenFlags> flags)
+{
+    if (vfs::Access(path, {vfs::AccessMode::kReadable}) != vfs::AccessResult::kOk)
+        return nullptr;
+    int32_t fd = vfs::Open(path, flags);
+    if (fd < 0)
+        return nullptr;
+    size_t size = vfs::FileSize(fd);
+    ScopeEpilogue scope([fd] { vfs::Close(fd); });
+
+    Bitfield<vfs::MapProtection> mapprot;
+    if (flags & vfs::OpenFlags::kReadonly)
+        mapprot |= vfs::MapProtection::kRead;
+    if (flags & vfs::OpenFlags::kWriteOnly)
+        mapprot |= vfs::MapProtection::kWrite;
+    if (flags & vfs::OpenFlags::kReadWrite)
+    {
+        mapprot |= vfs::MapProtection::kRead;
+        mapprot |= vfs::MapProtection::kWrite;
+    }
+
+    void *ptr = vfs::MemMap(fd, nullptr, mapprot, {vfs::MapFlags::kPrivate}, size, 0);
+    if (!ptr)
+        return nullptr;
+
+    return std::make_shared<MemoryData>(ptr, size, true, [size](void *ptr){
+        CHECK(ptr);
+        vfs::MemUnmap(ptr, size);
+    });
+}
+
 std::shared_ptr<Data> Data::MakeFromFile(const std::string& path,
-                                         vfs::Bitfield<vfs::OpenFlags> flags,
-                                         vfs::Bitfield<vfs::Mode> mode)
+                                         Bitfield<vfs::OpenFlags> flags,
+                                         Bitfield<vfs::Mode> mode)
 {
     int32_t fd = vfs::Open(path, flags, mode);
     if (fd < 0)
@@ -168,7 +212,7 @@ std::shared_ptr<Data> Data::MakeFromFile(const std::string& path,
     return std::make_shared<FileData>(fd, flags);
 }
 
-std::shared_ptr<Data> Data::MakeFromFile(int32_t fd, vfs::Bitfield<vfs::OpenFlags> flags)
+std::shared_ptr<Data> Data::MakeFromFile(int32_t fd, Bitfield<vfs::OpenFlags> flags)
 {
     if (fd < 0)
         return nullptr;
@@ -188,14 +232,18 @@ std::shared_ptr<Data> Data::MakeFromPtr(void *ptr, size_t size)
     if (!ptrdup)
         return nullptr;
     std::memcpy(ptrdup, ptr, size);
-    return std::make_shared<MemoryData>(ptrdup, size, true);
+    return std::make_shared<MemoryData>(ptrdup, size, true, [](void *ptr) {
+        std::free(ptr);
+    });
 }
 
 std::shared_ptr<Data> Data::MakeFromPtrWithoutCopy(void *ptr, size_t size, bool release)
 {
     if (!ptr)
         return nullptr;
-    return std::make_shared<MemoryData>(ptr, size, release);
+    return std::make_shared<MemoryData>(ptr, size, release, [](void *ptr) {
+        std::free(ptr);
+    });
 }
 
 } // namespace cocoa

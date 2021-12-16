@@ -6,42 +6,56 @@
 #include <vector>
 
 #include "include/v8.h"
+
 #include "Core/EventSource.h"
 #include "Core/Exception.h"
 #include "Koi/KoiBase.h"
+#include "Koi/ModuleImportURL.h"
+#include "Koi/GlobalIsolateGuard.h"
+#include "Koi/VMIntrospect.h"
 KOI_NS_BEGIN
 
 #define CHECKED(E)  E.ToLocalChecked()
 
 #define ISOLATE_DATA_SLOT_RUNTIME_PTR       0
 
-namespace lang { class BindingBase; }
+namespace bindings { class BindingBase; }
 
-class Runtime : public LoopPrologueSource
+class Runtime : public LoopPrologueSource,
+                public AsyncSource
 {
 public:
     struct Options
     {
         Options();
 
+        std::string startup = "index.js";
         uint32_t    v8_platform_thread_pool;
         std::vector<std::string> bindings_blacklist;
-        bool        lbp_allow_override = false;
+        bool        rt_allow_override = false;
+        bool        introspect_allow_loading_shared_object = false;
+        bool        introspect_allow_write_journal = false;
+        bool        rt_expose_introspect = true;
+        bool        start_with_inspector = false;
+        int32_t     inspector_port = 9005;
+        std::string inspector_address = "127.0.0.1";
     };
 
     struct ESModule
     {
         v8::Global<v8::Module> module;
-        lang::BindingBase *binding;
+        bindings::BindingBase *binding;
     };
 
+    using ModuleCacheMap = std::map<ModuleImportURL::UniquePtr, ESModule>;
     using ModuleCache = std::map<std::string, ESModule>;
 
     Runtime(EventLoop *loop,
             std::unique_ptr<v8::Platform> platform,
             v8::ArrayBuffer::Allocator *allocator,
             v8::Isolate *isolate,
-            v8::Global<v8::Context> context);
+            v8::Global<v8::Context> context,
+            Options opts);
     Runtime(const Runtime&) = delete;
     Runtime& operator=(const Runtime&) = delete;
     ~Runtime() override;
@@ -51,6 +65,10 @@ public:
                                                      const std::string& icuDataFile = std::string(),
                                                      const Options& options = Options());
 
+    static Runtime *GetBareFromIsolate(v8::Isolate *isolate);
+
+    koi_nodiscard inline const Options& getOptions() const
+    { return fOptions; }
 
     inline v8::Local<v8::Context> context()
     { return fContext.Get(fIsolate); }
@@ -58,32 +76,43 @@ public:
     inline v8::Isolate *isolate()
     { return fIsolate; }
 
-    v8::Local<v8::Value> execute(const char *str);
-    v8::Local<v8::Value> execute(const char *scriptName, const char *str);
+    v8::MaybeLocal<v8::Value> execute(const char *scriptName, const char *str);
 
-    v8::Local<v8::Module> compileModule(const std::string& url);
-    v8::Local<v8::Module> compileModule(const std::string& refererUrl, const std::string& url);
+    v8::Local<v8::Module> compileModule(const ModuleImportURL::UniquePtr& referer,
+                                        const std::string& url,
+                                        bool isImport);
     v8::MaybeLocal<v8::Value> evaluateModule(const std::string& url);
 
-    void takeOverNativeException(const RuntimeException& exception);
-    lang::BindingBase *getSyntheticModuleBinding(v8::Local<v8::Module> module);
+    bindings::BindingBase *getSyntheticModuleBinding(v8::Local<v8::Module> module);
 
-    ModuleCache& getModuleCache();
+    ModuleCacheMap& getModuleCache();
+
+    koi_nodiscard inline const std::unique_ptr<VMIntrospect>& getIntrospect() const {
+        return fIntrospect;
+    }
 
 private:
+    inline void setGlobalIsolateGuard(std::unique_ptr<GlobalIsolateGuard> ptr) {
+        fIsolateGuard = std::move(ptr);
+    }
     KeepInLoop loopPrologueDispatch() override;
+    void asyncDispatch() override;
 
+    Options                         fOptions;
     std::unique_ptr<v8::Platform>   fPlatform;
     v8::ArrayBuffer::Allocator     *fArrayBufferAllocator;
     v8::Isolate                    *fIsolate;
+    std::unique_ptr<GlobalIsolateGuard>
+                                    fIsolateGuard;
     v8::Global<v8::Context>         fContext;
+    std::unique_ptr<VMIntrospect>   fIntrospect;
 
     /**
      * A map from module URL to module object.
      * Synthetic (native) modules has URL like "synthetic://...",
      * while text source modules' URL is just the absolute file path.
      */
-    ModuleCache                     fModuleCache;
+    ModuleCacheMap                  fModuleCache;
 };
 
 KOI_NS_END

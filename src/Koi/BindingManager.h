@@ -8,7 +8,7 @@
 #include "Koi/Runtime.h"
 KOI_NS_BEGIN
 
-namespace lang { class BindingBase; }
+namespace bindings { class BindingBase; }
 
 class BindingManager : public UniquePersistent<BindingManager>
 {
@@ -21,14 +21,14 @@ public:
     }
 
     void loadDynamicObject(const std::string& path);
-    lang::BindingBase *search(const std::string& name);
+    bindings::BindingBase *search(const std::string& name);
 
 private:
-    bool appendBinding(lang::BindingBase *ptr);
+    bool appendBinding(bindings::BindingBase *ptr);
 
     bool                            fAllowOverride;
     std::vector<std::string>        fBlacklist;
-    std::vector<lang::BindingBase*> fBindings;
+    std::vector<bindings::BindingBase*> fBindings;
     std::vector<void*>              fLibHandles;
 };
 

@@ -131,10 +131,10 @@ bool vk_has_required_layer()
         }
         if (!found)
         {
-            LOGF(LOG_WARNING, "Vulkan layer {} is required but not available", layerName)
+            QLOG(LOG_WARNING, "Vulkan layer {} is required but not available", layerName);
             return false;
         }
-        LOGF(LOG_INFO, "Found Vulkan layer {}", layerName)
+        QLOG(LOG_INFO, "Found Vulkan layer {}", layerName);
     }
     return true;
 }
@@ -146,7 +146,7 @@ bool vk_has_required_instance_extensions(const std::vector<const char*>& require
     std::vector<VkExtensionProperties> extensions(count);
     vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data());
 
-    LOGF(LOG_INFO, "Vulkan instance has {} available extension(s)", count)
+    QLOG(LOG_INFO, "Vulkan instance has {} available extension(s)", count);
 
     for (const auto& req : require)
     {
@@ -156,7 +156,7 @@ bool vk_has_required_instance_extensions(const std::vector<const char*>& require
                 found = true;
         if (!found)
         {
-            LOGF(LOG_ERROR, "Vulkan extension {} not available", req)
+            QLOG(LOG_ERROR, "Vulkan extension {} not available", req);
             return false;
         }
     }
@@ -189,7 +189,7 @@ messenger_user_callback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
         break;
     }
 
-    LOGF(LOG_DEBUG, "%fg<hl>Vulkan%reset-{}: {}", psSeverity, pData->pMessage)
+    QLOG(LOG_DEBUG, "%fg<hl>Vulkan%reset-{}: {}", psSeverity, pData->pMessage);
     return VK_FALSE;
 }
 
@@ -255,10 +255,10 @@ void VkDrawContext::initialize(const SurfaceCreatorPfn& surfaceCreator)
 {
     uint32_t apiVersion;
     vkEnumerateInstanceVersion(&apiVersion);
-    LOGF(LOG_INFO, "Vulkan Instance Version {}.{}.{}",
+    QLOG(LOG_INFO, "Vulkan Instance Version {}.{}.{}",
                    VK_VERSION_MAJOR(apiVersion),
                    VK_VERSION_MINOR(apiVersion),
-                   VK_VERSION_PATCH(apiVersion))
+                   VK_VERSION_PATCH(apiVersion));
 
     createGpuInstance();
     createGpuDevice(surfaceCreator);
@@ -273,7 +273,7 @@ void VkDrawContext::createGpuInstance()
     /* Check the supporting of validation layer */
     if (fEnableDebug && !vk_has_required_layer())
     {
-        LOGW(LOG_ERROR, "Vulkan debug is unavailable as validation layer can't be found")
+        QLOG(LOG_ERROR, "Vulkan debug is unavailable as validation layer can't be found");
         fEnableDebug = false;
         throw VanillaException(__func__, "Required layers unavailable");
     }
@@ -312,7 +312,7 @@ void VkDrawContext::createGpuInstance()
     VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &fInstance);
     if (result != VK_SUCCESS)
     {
-        LOGF(LOG_ERROR, "Failed to create Vulkan instance: {}", vk_strerror(result))
+        QLOG(LOG_ERROR, "Failed to create Vulkan instance: {}", vk_strerror(result));
         throw VanillaException(__func__, "Failed to create Vulkan instance");
     }
 
@@ -322,7 +322,7 @@ void VkDrawContext::createGpuInstance()
                                                           nullptr, &fDebugMessenger);
         if (result != VK_SUCCESS)
         {
-            LOGF(LOG_ERROR, "Failed to create Vulkan messenger: {}", vk_strerror(result))
+            QLOG(LOG_ERROR, "Failed to create Vulkan messenger: {}", vk_strerror(result));
             throw VanillaException(__func__, "Failed to create Vulkan messenger");
         }
     }
@@ -425,7 +425,7 @@ VkPhysicalDevice vk_find_phy_device(VkInstance instance,
     vkEnumeratePhysicalDevices(instance, &count, nullptr);
     if (count == 0)
     {
-        LOGW(LOG_ERROR, "None of physical devices are available")
+        QLOG(LOG_ERROR, "None of physical devices are available");
         return VK_NULL_HANDLE;
     }
 
@@ -433,20 +433,20 @@ VkPhysicalDevice vk_find_phy_device(VkInstance instance,
     VkResult result = vkEnumeratePhysicalDevices(instance, &count, phys.data());
     if (result != VK_SUCCESS)
     {
-        LOGF(LOG_ERROR, "Failed to enumerate physical devices: {}", vk_strerror(result))
+        QLOG(LOG_ERROR, "Failed to enumerate physical devices: {}", vk_strerror(result));
         return VK_NULL_HANDLE;
     }
 
-    LOGW(LOG_INFO, "Found available physical devices:");
+    QLOG(LOG_INFO, "Found available physical devices:");;
     int32_t chosen = -1;
     for (int32_t i = 0; i < count; i++)
     {
         VkPhysicalDeviceProperties properties;
         vkGetPhysicalDeviceProperties(phys[i], &properties);
-        LOGF(LOG_INFO, "  [{}] {} [API Version {}.{}.{}]", i, properties.deviceName,
+        QLOG(LOG_INFO, "  [{}] {} [API Version {}.{}.{}]", i, properties.deviceName,
                        VK_VERSION_MAJOR(properties.apiVersion),
                        VK_VERSION_MINOR(properties.apiVersion),
-                       VK_VERSION_PATCH(properties.apiVersion))
+                       VK_VERSION_PATCH(properties.apiVersion));
         auto queueDetails = vk_phy_check_queue_families(phys[i], surface);
         if (!std::get<0>(queueDetails))
             continue;
@@ -464,7 +464,7 @@ VkPhysicalDevice vk_find_phy_device(VkInstance instance,
     }
     if (chosen >= 0)
     {
-        LOGF(LOG_INFO, "  Device #{} is chosen", chosen)
+        QLOG(LOG_INFO, "  Device #{} is chosen", chosen);
         return phys[chosen];
     }
     return VK_NULL_HANDLE;
@@ -477,8 +477,8 @@ void VkDrawContext::createGpuDevice(const SurfaceCreatorPfn& surfaceCreator)
     auto creatorResult = surfaceCreator(fInstance);
     if (std::get<0>(creatorResult) != VK_SUCCESS)
     {
-        LOGF(LOG_ERROR, "Failed to create Vulkan surface: {}",
-                vk_strerror(std::get<0>(creatorResult)))
+        QLOG(LOG_ERROR, "Failed to create Vulkan surface: {}",
+                vk_strerror(std::get<0>(creatorResult)));
         throw VanillaException(__func__, "Failed to create Vulkan surface");
     }
     fSurface = std::get<1>(creatorResult);
@@ -526,8 +526,8 @@ void VkDrawContext::createGpuDevice(const SurfaceCreatorPfn& surfaceCreator)
     VkResult result = vkCreateDevice(fPhysicalDevice, &deviceCreateInfo, nullptr, &fDevice);
     if (result != VK_SUCCESS)
     {
-        LOGF(LOG_ERROR, "Failed to create a Vulkan logical device: {}",
-                vk_strerror(result))
+        QLOG(LOG_ERROR, "Failed to create a Vulkan logical device: {}",
+                vk_strerror(result));
         throw VanillaException(__func__, "Failed to create a Vulkan logical device");
     }
 
@@ -645,7 +645,7 @@ void VkDrawContext::checkSwapChain(int32_t width, int32_t height)
                                                                 details);
     if (surfaceFormat.format == VK_FORMAT_UNDEFINED)
     {
-        LOGW(LOG_ERROR, "Failed to match a proper image format for Vulkan swapchain")
+        QLOG(LOG_ERROR, "Failed to match a proper image format for Vulkan swapchain");
         throw VanillaException(__func__, "Failed to match a proper image format");
     }
 
@@ -691,7 +691,7 @@ void VkDrawContext::checkSwapChain(int32_t width, int32_t height)
     VkResult result = vkCreateSwapchainKHR(fDevice, &createInfo, nullptr, &fSwapChain);
     if (result != VK_SUCCESS)
     {
-        LOGF(LOG_ERROR, "Failed to create swapchain: {}", vk_strerror(result))
+        QLOG(LOG_ERROR, "Failed to create swapchain: {}", vk_strerror(result));
         throw VanillaException(__func__, "Failed to create swapchain");
     }
 }
@@ -734,7 +734,7 @@ void VkDrawContext::createRenderTargets()
         VkResult result = vkCreateSemaphore(fDevice, &createInfo, nullptr, &semaphore);
         if (result != VK_SUCCESS)
         {
-            LOGF(LOG_ERROR, "Failed to create Vulkan semaphore: {}", vk_strerror(result))
+            QLOG(LOG_ERROR, "Failed to create Vulkan semaphore: {}", vk_strerror(result));
             throw VanillaException(__func__, "Failed to create Vulkan semaphore");
         }
         fRenderTargets[i] = std::make_shared<VaVkRenderTarget>(fDevice, semaphore);
@@ -814,8 +814,7 @@ sk_sp<SkSurface> VkDrawContext::onBeginFrame(const SkRect& region)
                  * return nullptr to skip this frame. */
                 return nullptr;
             }
-            LOGF(LOG_ERROR, "Failed to acquire next Vulkan frame: {}",
-                           vk_strerror(result))
+            QLOG(LOG_ERROR, "Failed to acquire next Vulkan frame: {}", vk_strerror(result));
             throw VanillaException(__func__, "Failed to acquire next Vulkan frame");
         }
 
@@ -849,7 +848,7 @@ void VkDrawContext::onEndFrame(const SkRect& region)
                                        fGraphicsQueueIndex);
     if (surface->flush(flushInfo, &state) != GrSemaphoresSubmitted::kYes)
     {
-        LOGW(LOG_ERROR, "Failed in submitting commands to GPU")
+        QLOG(LOG_ERROR, "Failed in submitting commands to GPU");
         return;
     }
     fDirectContext->submit();

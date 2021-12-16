@@ -14,18 +14,28 @@ macro(add_binding_exports_getter generated mdspath)
     )
 endmacro()
 
+add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/InternalsSfsBytes.cc
+        COMMAND ${CMAKE_HOME_DIRECTORY}/script/compress-internal-scripts.py
+                ${CMAKE_CURRENT_SOURCE_DIR}/internals > ${CMAKE_CURRENT_BINARY_DIR}/InternalsSfsBytes.cc
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/internals/**
+)
+
 add_library(Koi STATIC
         KoiBase.h
         Runtime.h
         Runtime.cc
-        ModuleUrl.h
-        ModuleUrl.cc
+        ModuleImportURL.h
+        ModuleImportURL.cc
         Internals.h
         Internals.cc
         BindingManager.h
         BindingManager.cc
-        UUID.h
-
+        StackAllocatorBase.h
+        GlobalIsolateGuard.h
+        GlobalIsolateGuard.cc
+        VMIntrospect.h
+        VMIntrospect.cc
         binder/PtrTraits.h
         binder/Utility.h
         binder/Convert.h
@@ -40,15 +50,19 @@ add_library(Koi STATIC
         binder/Class.cc
         binder/Module.h
         binder/CallV8.h
-        lang/Base.h
-
-        lang/CoreFDLR.h
-        lang/CoreFDLR.cc
-        lang/CoreBinding.h
-        lang/CoreBinding.cc
+        bindings/Base.h
+        bindings/core/Exports.h
+        bindings/core/CoreBinding.cc
+        bindings/core/Property.cc
+        bindings/core/Timer.cc
+        bindings/core/FdRandomize.h
+        bindings/core/FdRandomize.cc
+        bindings/core/Filesystem.cc
+        bindings/core/Buffer.cc
+        bindings/core/Process.cc
         ${CMAKE_CURRENT_BINARY_DIR}/CoreBindingGen.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/InternalsSfsBytes.cc)
 
-        lang/VanillaBinding.h
-        lang/VanillaBinding.cc)
-target_link_libraries(Koi PRIVATE v8_libplatform v8)
-add_binding_exports_getter(CoreBindingGen.cc lang/CoreBinding.mds)
+target_link_libraries(Koi PRIVATE v8_libplatform v8 tinyxml2)
+
+add_binding_exports_getter(CoreBindingGen.cc bindings/core/exports.mds)

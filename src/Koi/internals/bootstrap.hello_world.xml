@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<internal>
+    <directive>
+        <scope>
+            <user-executable value="true"/>
+            <user-importable value="informal"/>
+        </scope>
+        <author value="OpenACG Group (Cocoa Project)"/>
+        <dependencies>
+            <module name="core" restrict="synthetic"/>
+        </dependencies>
+    </directive>
+    <content>
+        import {print} from 'core';
+        print("Hello, World!\n");
+    </content>
+</internal>

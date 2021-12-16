@@ -2,7 +2,7 @@
 #include <thread>
 #include <mutex>
 #include <queue>
-#include <cassert>
+#include "Core/Errors.h"
 
 #include <xcb/xcb.h>
 
@@ -52,7 +52,7 @@ void XcbEventQueue::disposeFromMainThread()
 {
     if (fDisposed)
         return;
-    assert(std::this_thread::get_id() == fMainThreadId);
+    CHECK(std::this_thread::get_id() == fMainThreadId);
 
     AsyncSource::disableAsync();
 
@@ -115,7 +115,7 @@ void XcbEventQueue::entrance()
 #if defined(__linux__)
     pthread_setname_np(pthread_self(), "XcbEventQueue");
 #endif
-    LOGW(LOG_INFO, "X11 event queue thread has been started")
+    QLOG(LOG_INFO, "X11 event queue thread has been started");
 
     xcb_connection_t *connection = fDisplay->connection();
     xcb_generic_event_t *event;
@@ -130,9 +130,9 @@ void XcbEventQueue::entrance()
     }
 
     if (shouldExit)
-        LOGW(LOG_INFO, "X11 event queue thread exited normally")
+        QLOG(LOG_INFO, "X11 event queue thread exited normally");
     else
-        LOGW(LOG_WARNING, "X11 event queue thread exited because of an error")
+        QLOG(LOG_WARNING, "X11 event queue thread exited because of an error");
 }
 
 VANILLA_NS_END

@@ -16,9 +16,9 @@
 
 namespace vg = cocoa::vanilla;
 
-KOI_LANG_NS_BEGIN
+KOI_BINDINGS_NS_BEGIN
 
-#define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi.lang)
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi.binding)
 
 
 template<typename T>
@@ -455,4 +455,4 @@ void VanillaBindingModule::getModule(binder::Module& mod)
        .set("Window", LVALUE_GET(2));
 }
 
-KOI_LANG_NS_END
+KOI_BINDINGS_NS_END

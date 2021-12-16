@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <utility>
 #include <vector>
-#include <cassert>
+#include "Core/Errors.h"
 #include <memory>
 
 namespace cocoa
@@ -28,7 +28,7 @@ public:
 
     co_nodiscard inline std::shared_ptr<PListASTNode> child(int idx)
     {
-        assert(idx < fChildren.size());
+        CHECK(idx < fChildren.size());
         return fChildren[idx];
     }
 
@@ -37,13 +37,13 @@ public:
 
     inline void setChild(int idx, const std::shared_ptr<PListASTNode>& child)
     {
-        assert(idx < fChildren.size() && child);
+        CHECK(idx < fChildren.size() && child);
         fChildren[idx] = child;
     }
 
     inline void appendChild(const std::shared_ptr<PListASTNode>& child)
     {
-        assert(child);
+        CHECK(child);
         fChildren.push_back(child);
     }
 
@@ -56,7 +56,7 @@ public:
 
     inline void removeChild(int idx)
     {
-        assert(idx > fChildren.size());
+        CHECK(idx > fChildren.size());
         fChildren.erase(idx);
     }
 

@@ -41,12 +41,12 @@ XcbKeyboard::XcbKeyboard(XcbDisplay *display)
                                 XKB_X11_SETUP_XKB_EXTENSION_NO_FLAGS,
                                 &major, &minor,
                                 nullptr, nullptr);
-    LOGF(LOG_INFO, "XKB extension for X11 has been detected, version {}.{}", major, minor)
+    QLOG(LOG_INFO, "XKB extension for X11 has been detected, version {}.{}", major, minor);
 
     int32_t deviceId = xkb_x11_get_core_keyboard_device_id(connection);
     if (deviceId == -1)
         throw VanillaException(__func__, "Failed to get core keyboard device ID");
-    LOGF(LOG_INFO, "Using XInput keyboard device #{}", deviceId)
+    QLOG(LOG_INFO, "Using XInput keyboard device #{}", deviceId);
 
     fXkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     fXkbKeymap = xkb_x11_keymap_new_from_device(fXkbContext, connection, deviceId,
@@ -134,11 +134,11 @@ void XcbKeyboard::handleXkbEvent(const xcb_generic_event_t *event)
         break;
 
     case XCB_XKB_MAP_NOTIFY:
-        LOGW(LOG_DEBUG, "XKB map notify")
+        QLOG(LOG_DEBUG, "XKB map notify");
         break;
 
     case XCB_XKB_NEW_KEYBOARD_NOTIFY:
-        LOGW(LOG_DEBUG, "XKB new keyboard notify")
+        QLOG(LOG_DEBUG, "XKB new keyboard notify");
         break;
     }
 }

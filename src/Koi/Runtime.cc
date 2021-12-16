@@ -2,6 +2,7 @@
 #include <tuple>
 #include <iostream>
 #include <memory>
+#include <utility>
 
 #include "include/libplatform/libplatform.h"
 #include "include/v8.h"
@@ -12,12 +13,12 @@
 #include "Core/EventLoop.h"
 #include "Koi/KoiBase.h"
 #include "Koi/Runtime.h"
-#include "Koi/ModuleUrl.h"
+#include "Koi/ModuleImportURL.h"
 #include "Koi/BindingManager.h"
 
 #include "Koi/binder/Module.h"
 #include "Koi/binder/Class.h"
-#include "Koi/lang/Base.h"
+#include "Koi/bindings/Base.h"
 KOI_NS_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi)
@@ -31,15 +32,15 @@ Runtime::Options::Options()
 
 namespace {
 
-v8::MaybeLocal<v8::Value> create_synthetic_module_eval_step(v8::Local<v8::Context> context,
-                                                            v8::Local<v8::Module> module)
+v8::MaybeLocal<v8::Value> createSyntheticModuleEvalStep(v8::Local<v8::Context> context,
+                                                        v8::Local<v8::Module> module)
 {
     v8::Isolate *isolate = context->GetIsolate();
     v8::EscapableHandleScope scope(isolate);
     auto *pRT = reinterpret_cast<Runtime*>(isolate->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR));
 
-    lang::BindingBase *binding = pRT->getSyntheticModuleBinding(module);
-    assert(binding);
+    bindings::BindingBase *binding = pRT->getSyntheticModuleBinding(module);
+    CHECK(binding);
 
     binder::Module binderModule(isolate);
     binding->getModule(binderModule);
@@ -61,9 +62,8 @@ v8::MaybeLocal<v8::Value> create_synthetic_module_eval_step(v8::Local<v8::Contex
     return scope.EscapeMaybe(v8::MaybeLocal<v8::Value>(v8::True(isolate)));
 }
 
-v8::Local<v8::Module> create_synthetic_module(v8::Isolate *isolate,
-                                              v8::Local<v8::Context> context,
-                                              lang::BindingBase *binding)
+v8::Local<v8::Module> createSyntheticModule(v8::Isolate *isolate,
+                                            bindings::BindingBase *binding)
 {
     v8::EscapableHandleScope scope(isolate);
     std::vector<v8::Local<v8::String>> exports{CASTJS("__name__"),
@@ -75,7 +75,7 @@ v8::Local<v8::Module> create_synthetic_module(v8::Isolate *isolate,
     v8::Local<v8::Module> module = v8::Module::CreateSyntheticModule(isolate,
                                                                      CASTJS(binding->name()),
                                                                      exports,
-                                                                     create_synthetic_module_eval_step);
+                                                                     createSyntheticModuleEvalStep);
     if (module.IsEmpty())
     {
         throw RuntimeException(__func__,
@@ -106,7 +106,7 @@ std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(EventLoop *loop,
     v8::V8::Initialize();
 
     v8::Isolate::CreateParams params;
-    // params.array_buffer_allocator = new ArrayBufferAllocator();
+    // TODO: Implement a more efficient allocator
     params.array_buffer_allocator = v8::ArrayBuffer::Allocator::NewDefaultAllocator();
 
     auto *isolate = v8::Isolate::New(params);
@@ -117,24 +117,38 @@ std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(EventLoop *loop,
     v8::Local<v8::Context> context = v8::Context::New(isolate);
     v8::Context::Scope contextScope(context);
 
-    // load_bindings(isolate, context, options);
-    return std::make_shared<Runtime>(loop,
-                                     std::move(platform),
-                                     params.array_buffer_allocator,
-                                     isolate,
-                                     v8::Global<v8::Context>(isolate, context));
+    auto runtime = std::make_shared<Runtime>(loop,
+                                             std::move(platform),
+                                             params.array_buffer_allocator,
+                                             isolate,
+                                             v8::Global<v8::Context>(isolate, context),
+                                             options);
+    auto isolateGuard = std::make_unique<GlobalIsolateGuard>(runtime);
+    runtime->setGlobalIsolateGuard(std::move(isolateGuard));
+
+    return runtime;
+}
+
+Runtime *Runtime::GetBareFromIsolate(v8::Isolate *isolate)
+{
+    auto *bare = reinterpret_cast<Runtime*>(isolate->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR));
+    CHECK(bare != nullptr);
+    return bare;
 }
 
 Runtime::Runtime(EventLoop *loop,
                  std::unique_ptr<v8::Platform> platform,
                  v8::ArrayBuffer::Allocator *allocator,
                  v8::Isolate *isolate,
-                 v8::Global<v8::Context> context)
-    : LoopPrologueSource(loop),
-      fPlatform(std::move(platform)),
-      fArrayBufferAllocator(allocator),
-      fIsolate(isolate),
-      fContext(std::move(context))
+                 v8::Global<v8::Context> context,
+                 Options opts)
+    : LoopPrologueSource(loop)
+    , AsyncSource(loop)
+    , fOptions(std::move(opts))
+    , fPlatform(std::move(platform))
+    , fArrayBufferAllocator(allocator)
+    , fIsolate(isolate)
+    , fContext(std::move(context))
 {
     v8::Isolate::Scope isolateScope(fIsolate);
     v8::HandleScope handleScope(fIsolate);
@@ -142,19 +156,23 @@ Runtime::Runtime(EventLoop *loop,
 
     LoopPrologueSource::startLoopPrologue();
     fIsolate->SetData(ISOLATE_DATA_SLOT_RUNTIME_PTR, this);
+    if (fOptions.rt_expose_introspect)
+        fIntrospect = VMIntrospect::InstallGlobal(fIsolate);
 }
 
 Runtime::~Runtime()
 {
-    LOGW(LOG_DEBUG, "Imported modules (URL):")
+    QLOG(LOG_DEBUG, "Imported modules (URL):");
     for (auto& module : fModuleCache)
     {
-        LOGF(LOG_DEBUG, "  %fg<cyan,hl>{}%reset", module.first)
+        QLOG(LOG_DEBUG, "  %fg<cyan,hl>{}%reset", module.first->toString());
         module.second.module.Reset();
     }
 
     binder::Cleanup(fIsolate);
+    fIntrospect.reset();
     fContext.Reset();
+    fIsolateGuard.reset();
     fIsolate->Dispose();
     v8::V8::Dispose();
     v8::V8::ShutdownPlatform();
@@ -162,7 +180,7 @@ Runtime::~Runtime()
     fPlatform.reset();
 }
 
-lang::BindingBase *Runtime::getSyntheticModuleBinding(v8::Local<v8::Module> module)
+bindings::BindingBase *Runtime::getSyntheticModuleBinding(v8::Local<v8::Module> module)
 {
     for (auto& pair : fModuleCache)
     {
@@ -172,49 +190,42 @@ lang::BindingBase *Runtime::getSyntheticModuleBinding(v8::Local<v8::Module> modu
     return nullptr;
 }
 
-Runtime::ModuleCache& Runtime::getModuleCache()
+Runtime::ModuleCacheMap& Runtime::getModuleCache()
 {
     return fModuleCache;
 }
 
-v8::Local<v8::Module> Runtime::compileModule(const std::string& url)
-{
-    return Runtime::compileModule(".", url);
-}
-
-v8::Local<v8::Module> Runtime::compileModule(const std::string& refererUrl, const std::string& url)
+v8::Local<v8::Module> Runtime::compileModule(const ModuleImportURL::UniquePtr& referer, const std::string& url,
+                                             bool isImport)
 {
     v8::Isolate::Scope isolateScope(fIsolate);
     v8::EscapableHandleScope handleScope(fIsolate);
     v8::Context::Scope contextScope(this->context());
 
-    std::string maybeSyntheticUrl = "synthetic://" + url;
-    if (fModuleCache.contains(maybeSyntheticUrl))
-        return handleScope.Escape(fModuleCache[maybeSyntheticUrl].module.Get(fIsolate));
-
-    /* Synthetic module don't need to be compiled, so we have a fastpath */
-    lang::BindingBase *pSyntheticBinding = BindingManager::Ref().search(url);
-    if (pSyntheticBinding)
+    ModuleImportURL::ResolvedAs resolvedAs = isImport ? ModuleImportURL::ResolvedAs::kImport
+                                             : ModuleImportURL::ResolvedAs::kUserExecute;
+    ModuleImportURL::UniquePtr resolved = ModuleImportURL::Resolve(referer, url, resolvedAs);
+    if (!resolved)
+        throw RuntimeException(__func__, "Failed to resolve module path \"" + url + "\"");
+    for (auto& cache : fModuleCache)
     {
-        v8::Local<v8::Context> context = this->context();
-        v8::Local<v8::Module> module = create_synthetic_module(fIsolate, context, pSyntheticBinding);
-        fModuleCache[maybeSyntheticUrl] = {
-                v8::Global<v8::Module>(fIsolate, module),
-                pSyntheticBinding
+        if (*cache.first == *resolved)
+            return handleScope.Escape(cache.second.module.Get(fIsolate));
+    }
+
+    // Synthetic modules don't need to be compiled
+    if (resolved->getProtocol() == ModuleImportURL::Protocol::kSynthetic)
+    {
+        bindings::BindingBase *binding = resolved->getSyntheticBinding();
+        v8::Local<v8::Module> module = createSyntheticModule(fIsolate, binding);
+        fModuleCache[std::move(resolved)] = {
+            v8::Global<v8::Module>(fIsolate, module),
+            binding
         };
         return handleScope.Escape(module);
     }
 
-    auto [moduleSourceMaybe, moduleUrl] = ResolveModuleImportUrl(fIsolate, refererUrl, url);
-    if (moduleSourceMaybe.IsEmpty())
-        throw RuntimeException(__func__, "Failed to resolve ES6 module path \"" + url + "\"");
-
-    auto moduleSource = moduleSourceMaybe.ToLocalChecked();
-
-    if (fModuleCache.contains(moduleUrl))
-        return handleScope.Escape(fModuleCache[moduleUrl].module.Get(fIsolate));
-
-    v8::ScriptOrigin scriptOrigin(v8::String::NewFromUtf8(fIsolate, moduleUrl.c_str()).ToLocalChecked(),
+    v8::ScriptOrigin scriptOrigin(binder::to_v8(fIsolate, resolved->toString()),
                                   0,
                                   0,
                                   false,
@@ -224,20 +235,21 @@ v8::Local<v8::Module> Runtime::compileModule(const std::string& refererUrl, cons
                                   false,
                                   true);
 
-    v8::ScriptCompiler::Source source(moduleSource, scriptOrigin);
+    v8::ScriptCompiler::Source source(binder::to_v8(fIsolate, *resolved->loadResourceText()),
+                                      scriptOrigin);
     v8::Local<v8::Module> module;
     v8::TryCatch tryCatch(fIsolate);
     if (!v8::ScriptCompiler::CompileModule(fIsolate, &source).ToLocal(&module))
     {
         if (tryCatch.HasCaught())
         {
-            std::string message(*v8::String::Utf8Value(fIsolate, tryCatch.Message()->Get()));
-            LOGF(LOG_ERROR, "Failed to compile ES6 module {}: {}", moduleUrl, message)
+            auto message = binder::from_v8<std::string>(fIsolate, tryCatch.Message()->Get());
+            QLOG(LOG_ERROR, "Failed to compile ES6 module {}: {}", resolved->toString(), message);
         }
-        throw RuntimeException(__func__, "Failed to compile ES6 module \"" + moduleUrl + "\"");
+        throw RuntimeException(__func__, "Failed to compile ES6 module \"" + resolved->toString() + "\"");
     }
 
-    fModuleCache[moduleUrl] = {
+    fModuleCache[std::move(resolved)] = {
             v8::Global<v8::Module>(fIsolate, module),
             nullptr
     };
@@ -246,50 +258,41 @@ v8::Local<v8::Module> Runtime::compileModule(const std::string& refererUrl, cons
 
 namespace {
 
-v8::MaybeLocal<v8::Module> instantiate_module_callback(v8::Local<v8::Context> context,
-                                                       v8::Local<v8::String> specifier,
-                                                       koi_maybe_unsed v8::Local<v8::FixedArray> assertions,
-                                                       v8::Local<v8::Module> referer)
+v8::MaybeLocal<v8::Module> instantiateModuleCallback(v8::Local<v8::Context> context,
+                                                     v8::Local<v8::String> specifier,
+                                                     koi_maybe_unsed v8::Local<v8::FixedArray> assertions,
+                                                     v8::Local<v8::Module> referer)
 {
     auto *pRT = reinterpret_cast<Runtime*>(context->GetIsolate()->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR));
-    std::string refererUrl;
     for (auto& cache : pRT->getModuleCache())
     {
-        if (cache.second.module == referer)
-        {
-            refererUrl = cache.first;
-            break;
-        }
+        if (cache.second.module != referer)
+            continue;
+        auto url = binder::from_v8<std::string>(pRT->isolate(), specifier);
+        v8::MaybeLocal<v8::Module> maybeModule = pRT->compileModule(cache.first, url, true);
+        QLOG(LOG_DEBUG, "Resolved ES module {} (from {})", url, cache.first->toString());
+        return maybeModule;
     }
-    assert(!refererUrl.empty());
-    std::string url(*v8::String::Utf8Value(pRT->isolate(), specifier));
-    v8::MaybeLocal<v8::Module> maybeModule = pRT->compileModule(refererUrl, url);
-    LOGF(LOG_DEBUG, "Resolved ES module {} (from {})", url, refererUrl)
-    return maybeModule;
+    return {};
 }
 } // namespace anonymous
 
 v8::MaybeLocal<v8::Value> Runtime::evaluateModule(const std::string& url)
 {
-    v8::Local<v8::Module> module = this->compileModule(url);
+    v8::Local<v8::Module> module = this->compileModule(nullptr, url, false);
     if (module->GetStatus() == v8::Module::Status::kInstantiated
         || module->GetStatus() == v8::Module::Status::kEvaluated)
     {
         return module->Evaluate(this->context());
     }
-    v8::Maybe<bool> instantiate = module->InstantiateModule(this->context(), instantiate_module_callback);
+    v8::Maybe<bool> instantiate = module->InstantiateModule(this->context(), instantiateModuleCallback);
 
     if (instantiate.IsNothing())
         throw RuntimeException(__func__, "Could not instantiate ES6 module " + url);
     return module->Evaluate(this->context());
 }
 
-v8::Local<v8::Value> Runtime::execute(const char *str)
-{
-    return this->execute("<anonymous>", str);
-}
-
-v8::Local<v8::Value> Runtime::execute(const char *scriptName, const char *str)
+v8::MaybeLocal<v8::Value> Runtime::execute(const char *scriptName, const char *str)
 {
     v8::Isolate::Scope isolateScope(fIsolate);
     v8::EscapableHandleScope handleScope(fIsolate);
@@ -311,11 +314,7 @@ v8::Local<v8::Value> Runtime::execute(const char *scriptName, const char *str)
 
     if (!v8::ScriptCompiler::Compile(this->context(), &source).ToLocal(&script))
         return {};
-
-    v8::Local<v8::Value> result;
-    if (!script->Run(this->context()).ToLocal(&result))
-        return {};
-    return handleScope.Escape(result);
+    return handleScope.EscapeMaybe(script->Run(this->context()));
 }
 
 KeepInLoop Runtime::loopPrologueDispatch()
@@ -327,24 +326,25 @@ KeepInLoop Runtime::loopPrologueDispatch()
         // Do nothing, just waiting
     }
     fIsolate->PerformMicrotaskCheckpoint();
+    fIntrospect->performScheduledTasksCheckpoint();
 
     int handlesCount = 0;
-    EventSource::eventLoop()->walk([&handlesCount](uv_handle_t *handle) -> void {
+    LoopPrologueSource::eventLoop()->walk([&handlesCount](uv_handle_t *handle) -> void {
         if (uv_is_active(handle))
             handlesCount++;
     });
 
-    if (handlesCount <= 1)
-        stopLoopPrologue();
+    if (handlesCount <= 2)
+    {
+        LoopPrologueSource::stopLoopPrologue();
+        AsyncSource::close();
+    }
     return KeepInLoop::kYes;
 }
 
-void Runtime::takeOverNativeException(const RuntimeException& exception)
+void Runtime::asyncDispatch()
 {
-    utils::DumpRuntimeException(exception);
-    auto str = fmt::format("Native[method:{}]: {}", exception.who(), exception.what());
-    auto message = v8::String::NewFromUtf8(fIsolate, str.c_str()).ToLocalChecked();
-    fIsolate->ThrowException(v8::Exception::Error(message));
+    // TODO: Implement inspector
 }
 
 KOI_NS_END

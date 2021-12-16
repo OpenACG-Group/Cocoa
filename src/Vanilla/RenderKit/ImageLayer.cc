@@ -24,7 +24,7 @@ ImageLayer::ImageLayer(ImageAdaptationMethod adapt,
     {
         /* For GPU backend, acquires its GrDirectContext pointer */
         auto vkDC = std::dynamic_pointer_cast<VkDrawContext>(dc);
-        assert(vkDC);
+        CHECK(vkDC);
         fDirectContext = vkDC->getDirectContext();
     }
 }
@@ -112,7 +112,7 @@ void ImageLayer::upload(const Handle<Data>& data)
 {
     size_t dataSize = data->size();
     auto pDataBuffer = new uint8_t[dataSize];
-    assert(pDataBuffer);
+    CHECK(pDataBuffer);
     ScopeEpilogue epilogue([pDataBuffer]() -> void {
         delete[] pDataBuffer;
     });

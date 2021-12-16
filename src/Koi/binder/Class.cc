@@ -120,7 +120,7 @@ template<typename Traits>
 void ObjectRegistry<Traits>::remove_object(object_id const& obj)
 {
     auto it = objects_.find(Traits::key(obj));
-    assert(it != objects_.end() && "no object");
+    CHECK(it != objects_.end() && "no object");
     if (it != objects_.end())
     {
         v8::HandleScope scope(isolate_);

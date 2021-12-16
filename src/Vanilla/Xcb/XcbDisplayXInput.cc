@@ -62,8 +62,7 @@ void XcbDisplay::handleXInputEvent(const xcb_ge_event_t *event)
     invoke_window_handler_case(XCB_INPUT_TOUCH_END, input_touch_end, event)
 
     default:
-        LOGF(LOG_WARNING, "Unknown X11 event from XInput: event_type = {:04x}",
-                       event->event_type)
+        QLOG(LOG_WARNING, "Unknown X11 event from XInput: event_type = {:04x}", event->event_type);
     }
 }
 

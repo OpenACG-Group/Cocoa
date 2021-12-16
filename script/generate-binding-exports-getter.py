@@ -28,7 +28,7 @@ class_name = ''
 insert_lines = []
 export_symbols = []
 
-expr_pattern = re.compile("^%export(_const)?[ ]+[a-zA-Z_][a-zA-Z0-9_]+[ ]+(.*)$")
+expr_pattern = re.compile("^%export(_const|_static)?[ ]+[a-zA-Z_][a-zA-Z0-9_]+[ ]+(.*)$")
 
 mds_fp = open(sys.argv[1], 'r')
 
@@ -80,12 +80,13 @@ for line in mds_fp.readlines():
     elif verb == '%header_end':
         print_err('%header_end only can be used with %header_begin')
         exit(1)
-    elif verb == '%export' or verb == '%export_const':
+    elif verb == '%export' or verb == '%export_const' or verb == '%export_static':
         if len(split_arr) < 3:
             report_syntax_error(verb, verb + ' <name> <cpp inline expr>')
         export_symbols.append({'name': split_arr[1],
                                'expr': expr_pattern.match(line)[2],
-                               'const': verb == '%export_const'})
+                               'const': verb == '%export_const',
+                               'static': verb == '%export_static'})
     elif verb == '%export_decl':
         if len(split_arr) != 2:
             report_syntax_error('%export_decl', '%report_decl <name>')
@@ -120,6 +121,8 @@ def produce_exports_impl():
         setter = 'set'
         if export['const'] == True:
             setter = 'set_const'
+        elif export['static'] == True:
+            setter = 'set_static'
         name = export['name']
         expr = export['expr']
         print(f'    __mod.{setter}("{name}", {expr});')

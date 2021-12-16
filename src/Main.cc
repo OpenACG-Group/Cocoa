@@ -1,7 +1,7 @@
 #include <iostream>
 #include <optional>
 #include <vector>
-#include <cassert>
+#include "Core/Errors.h"
 #include <string_view>
 
 #include "Core/Project.h"
@@ -102,7 +102,7 @@ const Template gTemplates[] = {
             .desc = "Specify log level. Valid arguments: debug|normal|quiet|silent|disabled"
         },
         {
-            .longName = "disable-color-log",
+            .longName = "disable-log-decoration",
             .desc = "Don't print logs with colors through ANSI escape code"
         },
         {
@@ -120,21 +120,33 @@ const Template gTemplates[] = {
             .desc = "Pass the comma separated arguments to V8"
         },
         {
-            .longName = "lbp-blacklist",
+            .longName = "rt-blacklist",
             .hasValue = Template::RequireValue::kNecessary,
             .valueType = ValueType::kString,
             .desc = "Specify a comma separated blacklist of language bindings"
         },
         {
-            .longName = "lbp-preload",
+            .longName = "rt-preload",
             .hasValue = Template::RequireValue::kNecessary,
             .valueType = ValueType::kString,
             .desc = "Specify a path of a dynamic library to load it as language bindings"
         },
         {
-            .longName = "lbp-allow-override",
+            .longName = "rt-allow-override",
             .hasValue = Template::RequireValue::kEmpty,
             .desc = "Language bindings with the same name can override each other"
+        },
+        {
+            .longName = "rt-expose-introspect",
+            .hasValue = Template::RequireValue::kOptional,
+            .valueType = ValueType::kBoolean,
+            .desc = "Specify whether VM expose 'introspect' global object to JavaScript land"
+        },
+        {
+            .longName = "introspect-policy",
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kString,
+            .desc = "Enable/disable functions in 'introspect' global object"
         },
         {
             .longName = "escapable-args",
@@ -149,6 +161,13 @@ const Template gTemplates[] = {
             .hasValue = Template::RequireValue::kNecessary,
             .valueType = ValueType::kString,
             .desc = "Specify a character as delimiter. Default is ','"
+        },
+        {
+            .longName = "startup",
+            .shortName = 's',
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kString,
+            .desc = "Specify a JavaScript file to run. (index.js for default)"
         }
 };
 
@@ -236,7 +255,7 @@ bool interpret_and_set_option_value(ParseResult::Option& opt, const std::string_
 int dp[128][128];
 int solve_levenshtein_distance(const std::string_view& a, const std::string_view& b)
 {
-    assert(a.size() < 128 && b.size() < 128);
+    CHECK(a.size() < 128 && b.size() < 128);
 
     size_t m = a.size(), n = b.size();
 
@@ -500,13 +519,11 @@ void PrintVersion()
     fmt::print("Copyright (C) 2021 OpenACG Group | GPLv3 License\n");
 }
 
-void PrintGreeting()
+void PrintGreeting(const koi::Runtime::Options& opts)
 {
-    LOGF(LOG_INFO, "%fg<hl>Cocoa 2D Rendering Framework, version {}%reset", COCOA_VERSION)
-    LOGW(LOG_INFO, "%fg<hl>Copyright (C) 2021 OpenACG Group | GPLv3 License%reset")
-    auto dir = prop::Cast<PropertyDataNode>(prop::Get()->next("runtime")->next("working-path"))
-                ->extract<std::string>();
-    LOGF(LOG_INFO, "Startup script %fg<ye,hl>{}/index.js%reset", dir)
+    QLOG(LOG_INFO, "%fg<hl>Cocoa 2D Rendering Framework, version {}%reset", COCOA_VERSION);
+    QLOG(LOG_INFO, "%fg<hl>Copyright (C) 2021 OpenACG Group | GPLv3 License%reset");
+    QLOG(LOG_INFO, "Startup script %fg<ye,hl>{}%reset", opts.startup);
 }
 
 } // namespace cmd
@@ -543,7 +560,7 @@ cmd::ParseState InitializeLogger(cmd::ParseResult& args)
                 return cmd::ParseState::kError;
             }
         }
-        else if arg_longopt_match("disable-color-log")
+        else if arg_longopt_match("disable-log-decoration")
             color = false;
     }
     if (output == Journal::OutputDevice::kFile)
@@ -591,6 +608,12 @@ cmd::ParseState InitializeProperties(int argc, const char **argv, cmd::ParseResu
     }
 
     return cmd::ParseState::kSuccess;
+}
+
+void report_vulnerability_option(const std::string& opt)
+{
+    QLOG(LOG_WARNING, "%bg<re>%fg<hl>(Vulnerability)%reset Option %fg<hl>\"{}\"%reset"
+                      " may cause fatal security problems", opt);
 }
 
 cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& koiOptions)
@@ -641,7 +664,7 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
             }
             koiOptions.v8_platform_thread_pool = arg.value->v_int;
         }
-        else if arg_longopt_match("lbp-blacklist")
+        else if arg_longopt_match("rt-blacklist")
         {
             std::vector<std::string_view> list = utils::SplitString(arg.value->v_str, ',');
             for (const auto& p : list)
@@ -650,15 +673,14 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
                 lbpBlacklist->append(prop::New<PropertyDataNode>(std::string(p)));
             }
         }
-        else if arg_longopt_match("lbp-preload")
+        else if arg_longopt_match("rt-preload")
         {
             lbpPreloads->append(prop::New<PropertyDataNode>(arg.value->v_str));
         }
-        else if arg_longopt_match("lbp-allow-override")
+        else if arg_longopt_match("rt-allow-override")
         {
-            koiOptions.lbp_allow_override = true;
-            LOGW(LOG_WARNING, "%bg<re>%fg<hl>(Vulnerability)%reset Option %fg<hl>\"--lbp-allow-override\"%reset"
-                              " is only for debugging/experiment. Never switch it on for release version.")
+            koiOptions.rt_allow_override = true;
+            report_vulnerability_option("--rt-allow-override");
         }
         else if arg_longopt_match("escapable-args")
         {
@@ -676,6 +698,31 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
                 return cmd::ParseState::kError;
             }
             delimiter = arg.value->v_str[0];
+        }
+        else if arg_longopt_match("rt-expose-introspect")
+        {
+            koiOptions.rt_expose_introspect = !arg.value || arg.value->v_bool;
+        }
+        else if arg_longopt_match("introspect-policy")
+        {
+            auto splited = utils::SplitString(arg.value->v_str, ',');
+            for (auto& policy : splited)
+            {
+                if (policy == "AllowLoadingSharedObject")
+                    koiOptions.introspect_allow_loading_shared_object = true;
+                else if (policy == "AllowWritingToJournal")
+                    koiOptions.introspect_allow_write_journal = true;
+                else if (policy == "ForbidLoadingSharedObject")
+                    koiOptions.introspect_allow_loading_shared_object = false;
+                else if (policy == "ForbidWritingToJournal")
+                    koiOptions.introspect_allow_write_journal = false;
+                else
+                    throw std::runtime_error("Unrecognized introspect policy: " + std::string(policy));
+            }
+        }
+        else if arg_longopt_match("startup")
+        {
+            koiOptions.startup = arg.value->v_str;
         }
     }
 
@@ -707,7 +754,7 @@ void Finalize()
 
 void Execute(const koi::Runtime::Options& options)
 {
-    LOGW(LOG_DEBUG, "Current Properties Tree:")
+    QLOG(LOG_DEBUG, "Current Properties Tree:");
     utils::DumpProperties(prop::Get());
 
     auto workingPath = prop::Cast<PropertyDataNode>(prop::Get()
@@ -729,14 +776,14 @@ void Execute(const koi::Runtime::Options& options)
                                                   snapshotFile,
                                                   std::string(),
                                                   options);
-    assert(runtime != nullptr);
+    CHECK(runtime != nullptr);
 
     v8::Isolate::Scope isolateScope(runtime->isolate());
     v8::HandleScope handleScope(runtime->isolate());
     v8::Context::Scope contextScope(runtime->context());
 
     v8::Local<v8::Value> result;
-    if (!runtime->evaluateModule("index.js").ToLocal(&result))
+    if (!runtime->evaluateModule(options.startup).ToLocal(&result))
         return;
     EventLoop::Ref().run();
 }
@@ -760,7 +807,7 @@ int Main(int argc, char const **argv)
             break;
         }
 
-        cmd::PrintGreeting();
+        cmd::PrintGreeting(koiOptions);
         Execute(koiOptions);
     } catch (const RuntimeException& e) {
         utils::DumpRuntimeException(e);

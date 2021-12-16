@@ -2,7 +2,7 @@
 #define COCOA_LAYERPROPERTIESGROUP_H
 
 #include <tuple>
-#include <cassert>
+#include "Core/Errors.h"
 
 #include "include/core/SkRect.h"
 #include "include/core/SkRRect.h"

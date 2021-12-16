@@ -1,4 +1,4 @@
-#include <cassert>
+#include "Core/Errors.h"
 
 #include "Vanilla/DrawContext.h"
 #include "Vanilla/Window.h"
@@ -11,7 +11,7 @@ DrawContext::PresentationScope::PresentationScope(Handle<DrawContext> ctx, const
     : fContext(std::move(ctx)),
       fSurface(nullptr)
 {
-    assert(fContext);
+    CHECK(fContext);
     fSurface = fContext->beginFrame(region);
 }
 
@@ -24,7 +24,7 @@ DrawContext::PresentationScope::~PresentationScope()
 DrawContext::DrawScope::DrawScope(Handle<DrawContext> ctx)
     : fContext(std::move(ctx))
 {
-    assert(fContext);
+    CHECK(fContext);
     fContext->lockContext();
 }
 
@@ -78,7 +78,7 @@ void DrawContext::onWindowConfigure(const Handle<Window>& window, const SkRect& 
 
 sk_sp<SkSurface> DrawContext::beginFrame(const SkRect& region)
 {
-    assert(!fInFrame);
+    CHECK(!fInFrame);
     fRegion = region;
     fInFrame = true;
     sk_sp<SkSurface> ret = this->onBeginFrame(region);
@@ -89,7 +89,7 @@ sk_sp<SkSurface> DrawContext::beginFrame(const SkRect& region)
 
 void DrawContext::endFrame()
 {
-    assert(fInFrame);
+    CHECK(fInFrame);
     this->onEndFrame(fRegion);
     fRegion = SkRect::MakeEmpty();
     fInFrame = false;

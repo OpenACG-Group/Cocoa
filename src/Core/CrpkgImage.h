@@ -12,6 +12,7 @@ namespace cocoa {
 
 class CrpkgFile;
 class CrpkgDirectory;
+class Data;
 
 // TODO: Support directory operations.
 
@@ -25,22 +26,18 @@ class CrpkgImage : public std::enable_shared_from_this<CrpkgImage>
 public:
     struct CrpkgImagePrivate;
 
-    CrpkgImage(std::string imageFile, CrpkgImagePrivate *data);
+    explicit CrpkgImage(CrpkgImagePrivate *data);
     CrpkgImage(const CrpkgImage&) = delete;
     CrpkgImage& operator=(const CrpkgImage&) = delete;
     ~CrpkgImage();
 
-    static std::shared_ptr<CrpkgImage> Make(const std::string& file);
-
-    co_nodiscard inline std::string imageFile() const
-    { return fImageFile; }
+    static std::shared_ptr<CrpkgImage> MakeFromData(const std::shared_ptr<Data>& data);
 
     std::shared_ptr<CrpkgFile> openFile(const std::string& path);
     std::shared_ptr<CrpkgDirectory> openDir(const std::string& path);
     std::optional<std::string> readlink(const std::string& path);
 
 private:
-    std::string              fImageFile;
     CrpkgImagePrivate       *fData;
 };
 
@@ -55,7 +52,7 @@ public:
 
     ssize_t read(void *buffer, ssize_t size) const;
     off_t seek(vfs::SeekWhence whence, off_t offset);
-    std::optional<vfs::Stat> stat();
+    co_nodiscard std::optional<vfs::Stat> stat() const;
 
 private:
     int32_t                     fFile;

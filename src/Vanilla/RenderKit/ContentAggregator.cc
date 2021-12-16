@@ -1,4 +1,4 @@
-#include <cassert>
+#include "Core/Errors.h"
 
 #include "include/core/SkCanvas.h"
 
@@ -15,7 +15,7 @@ VANILLA_NS_BEGIN
 
 Handle<ContentAggregator> ContentAggregator::Make(const Handle<DrawContext>& ctx)
 {
-    assert(ctx);
+    CHECK(ctx);
     return std::make_shared<ContentAggregator>(ctx);
 }
 
@@ -31,7 +31,7 @@ ContentAggregator::ContentAggregator(Handle<DrawContext> ctx)
 
 ContentAggregator::~ContentAggregator()
 {
-    assert(fDisposed && "ContentAggregator should be disposed before destructing");
+    CHECK(fDisposed && "ContentAggregator should be disposed before destructing");
 }
 
 SkColorType ContentAggregator::getScreenColorType()
@@ -155,7 +155,7 @@ void ContentAggregator::update(const SkRect& region)
         sk_sp<SkImage> image = layer->onGetImage(SkIRect::MakeWH(static_cast<int32_t>(w), static_cast<int32_t>(h)));
         if (!image)
         {
-            LOGF(LOG_ERROR, "Layer #{} can not produce any image to ContentAggregator", layer->getLayerId())
+            QLOG(LOG_ERROR, "Layer #{} can not produce any image to ContentAggregator", layer->getLayerId());
             continue;
         }
 
@@ -199,11 +199,11 @@ void ContentAggregator::dispose()
     {
         for (const auto& pair : fLayerOwnedSurfacesMap)
         {
-            LOGF(LOG_WARNING, "Resource leaking: SkSurface@{} (owned by layer #{}), after: destructing ContentAggregator@{}",
-                 fmt::ptr(pair.first.get()), pair.second, fmt::ptr(this))
+            QLOG(LOG_WARNING, "Resource leaking: SkSurface@{} (owned by layer #{}), after: destructing ContentAggregator@{}",
+                 fmt::ptr(pair.first.get()), pair.second, fmt::ptr(this));
         }
 
-        LOGW(LOG_EXCEPTION, "Resource leaking (SkSurface, by ContentAggregator)")
+        QLOG(LOG_EXCEPTION, "Resource leaking (SkSurface, by ContentAggregator)");
         std::abort();
     }
 }

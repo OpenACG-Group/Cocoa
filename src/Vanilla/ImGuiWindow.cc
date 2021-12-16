@@ -249,7 +249,7 @@ void ImGuiWindow::onRepaint(const Handle<Window>& win, const SkRect& rect)
             else
             {
                 auto paint = static_cast<SkPaint*>(drawCmd->TextureId);
-                assert(paint);
+                CHECK(paint);
 
                 canvas->clipRect(SkRect::MakeLTRB(drawCmd->ClipRect.x, drawCmd->ClipRect.y,
                                                   drawCmd->ClipRect.z, drawCmd->ClipRect.w));

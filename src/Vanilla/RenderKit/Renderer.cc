@@ -1,4 +1,4 @@
-#include <cassert>
+#include "Core/Errors.h"
 
 #include "Vanilla/RenderKit/Renderer.h"
 #include "Vanilla/RenderKit/ContentAggregator.h"
@@ -32,7 +32,7 @@ Renderer::Renderer(const Handle<DrawContext>& drawContext)
     , fSchedStatus(SchedulerStatus::kNotRunning)
     , fMicroTasks(4)
 {
-    assert(fAggregator);
+    CHECK(fAggregator);
 
     fRendererThread = std::thread(&Renderer::renderThread, this);
     fSchedulerThread = std::thread(&Renderer::schedulerThread, this);
@@ -83,7 +83,7 @@ void Renderer::renderThread()
         switch (cmd.verb)
         {
         default:
-            LOGW(LOG_WARNING, "Invalid command verb")
+            QLOG(LOG_WARNING, "Invalid command verb");
             cmd.promise.set_value(Command::Result(Command::Result::Status::kRefused));
             break;
 
@@ -148,7 +148,7 @@ void Renderer::schedulerHandleCommand(Command& cmd, std::queue<Command>& deferre
     switch (cmd.verb)
     {
     case Command::Verb::kUnknown:
-        LOGW(LOG_WARNING, "Invalid command verb (kUnknown)")
+        QLOG(LOG_WARNING, "Invalid command verb (kUnknown)");
         break;
 
     case Command::Verb::kActivatePictureLayer:
@@ -288,7 +288,7 @@ uint32_t Renderer::pushLayer(const LayerFactory& factory)
 {
     SchedulerDeferringScope scope(*this);
     Handle<Layer> layer = fAggregator->pushLayer(factory);
-    assert(layer);
+    CHECK(layer);
     return layer->getLayerId();
 }
 
@@ -296,7 +296,7 @@ uint32_t Renderer::insertLayer(uint32_t before, const LayerFactory& factory)
 {
     SchedulerDeferringScope scope(*this);
     Handle<Layer> layer = fAggregator->insertLayerBefore(before, factory);
-    assert(layer);
+    CHECK(layer);
     return layer->getLayerId();
 }
 

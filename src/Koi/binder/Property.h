@@ -1,7 +1,7 @@
 #ifndef COCOA_PROPERTY_H
 #define COCOA_PROPERTY_H
 
-#include <cassert>
+#include "Core/Errors.h"
 
 #include "Koi/binder/Convert.h"
 #include "Koi/binder/Function.h"
@@ -125,10 +125,10 @@ struct r_property_impl<Get, Set, true>
     try
     {
         auto obj = Class<class_type, Traits>::unwrap_object(info.GetIsolate(), info.This());
-        assert(obj);
+        CHECK(obj);
 
         property_type const& prop = detail::external_data::get<property_type>(info.Data());
-        assert(prop.getter);
+        CHECK(prop.getter);
 
         if (obj && prop.getter)
         {
@@ -144,7 +144,7 @@ struct r_property_impl<Get, Set, true>
     static void set(v8::Local<v8::String> name, v8::Local<v8::Value>,
                     v8::PropertyCallbackInfo<void> const& info)
     {
-        assert(false && "read-only property");
+        CHECK(false && "read-only property");
         info.GetReturnValue().Set(throw_(info.GetIsolate(),
                                            "read-only property " + from_v8<std::string>(info.GetIsolate(), name)));
     }
@@ -180,7 +180,7 @@ struct r_property_impl<Get, Set, false>
     try
     {
         property_type const& prop = detail::external_data::get<property_type>(info.Data());
-        assert(prop.getter);
+        CHECK(prop.getter);
 
         if (prop.getter)
         {
@@ -195,7 +195,7 @@ struct r_property_impl<Get, Set, false>
     static void set(v8::Local<v8::String> name, v8::Local<v8::Value>,
                     v8::PropertyCallbackInfo<void> const& info)
     {
-        assert(false && "read-only property");
+        CHECK(false && "read-only property");
         info.GetReturnValue().Set(throw_(info.GetIsolate(),
                                          "read-only property " + from_v8<std::string>(info.GetIsolate(), name)));
     }
@@ -243,10 +243,10 @@ struct rw_property_impl<Get, Set, true>
     try
     {
         auto obj = Class<class_type, Traits>::unwrap_object(info.GetIsolate(), info.This());
-        assert(obj);
+        CHECK(obj);
 
         property_type const& prop = detail::external_data::get<property_type>(info.Data());
-        assert(prop.setter);
+        CHECK(prop.setter);
 
         if (obj && prop.setter)
         {
@@ -297,7 +297,7 @@ struct rw_property_impl<Get, Set, false>
     try
     {
         property_type const& prop = detail::external_data::get<property_type>(info.Data());
-        assert(prop.setter);
+        CHECK(prop.setter);
 
         if (prop.setter)
         {
