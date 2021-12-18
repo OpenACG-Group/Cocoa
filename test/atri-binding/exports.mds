@@ -1,0 +1,8 @@
+%header_begin
+#include "atri.h"
+%header_end
+%namespace cocoa::koi::bindings
+%class AtriBinding
+
+%export fma atriRoboko
+
