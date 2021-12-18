@@ -8,6 +8,7 @@
 
 #include <string>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "Core/Exception.h"
@@ -47,32 +48,16 @@ void ScopeEpilogue::abolish()
     fFunction = []() -> void {};
 }
 
-RuntimeException::Builder::Builder(const std::string& who)
-    : fWho(who)
+RuntimeException::Builder::Builder(std::string who)
+    : fWho(std::move(who))
 {
-}
-
-RuntimeException::FrameIterable::FrameIterable(Frames::const_iterator begin,
-                                               Frames::const_iterator end)
-    : fBegin(std::move(begin)),
-      fEnd(std::move(end))
-{
-}
-
-RuntimeException::Frames::const_iterator RuntimeException::FrameIterable::begin() const noexcept
-{
-    return fBegin;
-}
-
-RuntimeException::Frames::const_iterator RuntimeException::FrameIterable::end() const noexcept
-{
-    return fEnd;
 }
 
 // ---------------------------------------------------------------------------------
 
-RuntimeException::RuntimeException(const std::string& who, const std::string& what)
-    : fWho(who), fWhat(what)
+RuntimeException::RuntimeException(std::string who, std::string what)
+    : fWho(std::move(who))
+    , fWhat(std::move(what))
 {
     recordFrames();
 }
@@ -96,7 +81,7 @@ const char *RuntimeException::what() const noexcept
 
 RuntimeException::FrameIterable RuntimeException::frames() const noexcept
 {
-    return FrameIterable(fFrames->cbegin(), fFrames->cend());
+    return FrameIterable(fFrames);
 }
 
 void RuntimeException::recordFrames()
@@ -107,9 +92,6 @@ void RuntimeException::recordFrames()
     unw_context_t   context;
     unw_getcontext(&context);
     unw_init_local(&cursor, &context);
-
-    for (int i = 0; i < 2 && unw_step(&cursor) > 0; i++)
-        ;
 
     while (unw_step(&cursor) > 0)
     {
@@ -143,8 +125,8 @@ void RuntimeException::recordFrames()
         frame.file = dynLinkerInfo.dli_fname;
         frame.symbol = demangle_cpp_symbol(dynLinkerInfo.dli_sname);
         frame.procAddress = dynLinkerInfo.dli_saddr;
-        frame.offset = reinterpret_cast<uint64_t>(frame.pc) - reinterpret_cast<uint64_t>(frame.procAddress);
-
+        frame.offset = static_cast<off64_t>(reinterpret_cast<uint64_t>(frame.pc)
+                        - reinterpret_cast<uint64_t>(frame.procAddress));
         fFrames->push_back(frame);
     }
 }

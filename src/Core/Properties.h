@@ -6,8 +6,10 @@
 #include <memory>
 #include <map>
 #include <any>
+#include <functional>
 
 #include "Core/Project.h"
+#include "Core/Journal.h"
 
 namespace cocoa {
 
@@ -32,6 +34,8 @@ public:
         kData
     };
 
+    using ForEachChildCb = std::function<void(const std::shared_ptr<PropertyNode>&, bool last)>;
+
     explicit PropertyNode(Kind kind);
     virtual ~PropertyNode() = default;
 
@@ -51,6 +55,10 @@ public:
 
     co_nodiscard inline Protection protection() const
     { return fProtection; }
+    co_nodiscard std::string getName();
+
+    virtual std::string toQLogString() = 0;
+    virtual void forEachChild(ForEachChildCb cb) = 0;
 
 private:
     std::weak_ptr<PropertyNode>  fParent;
@@ -75,6 +83,13 @@ public:
     co_nodiscard inline auto end()
     { return fMembers.end(); }
 
+    std::string toQLogString() override;
+    void forEachChild(ForEachChildCb cb) override {
+        int32_t idx = 0;
+        for (const auto& p : fMembers)
+            cb(p.second, idx++ == fMembers.size() - 1);
+    }
+
 private:
     std::map<std::string, std::shared_ptr<PropertyNode>> fMembers;
 };
@@ -98,6 +113,13 @@ public:
     co_nodiscard inline size_t size() const
     { return fSubscripts.size(); }
 
+    std::string toQLogString() override;
+    void forEachChild(ForEachChildCb cb) override {
+        int32_t idx = 0;
+        for (const auto& p : fSubscripts)
+            cb(p, idx++ == fSubscripts.size() - 1);
+    }
+
 private:
     std::vector<std::shared_ptr<PropertyNode>> fSubscripts;
 };
@@ -115,6 +137,9 @@ public:
 
     const std::type_info& type();
     void reset(std::any&& value);
+
+    std::string toQLogString() override;
+    void forEachChild(ForEachChildCb cb) override {}
 
 private:
     std::any    fData;
@@ -134,6 +159,7 @@ inline std::shared_ptr<T> New(ArgsT&&...args) {
 }
 
 std::shared_ptr<PropertyObjectNode> Get();
+void SerializeToJournal(const std::shared_ptr<PropertyObjectNode>& root);
 
 } // namespace properties
 } // namespace cocoa

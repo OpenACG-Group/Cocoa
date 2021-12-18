@@ -37,9 +37,10 @@ public:
 
     enum class ResolvedAs
     {
-        kImport,
         kUserExecute,
-        kEngineExecute
+        kUserImport,
+        kSysExecute,
+        kSysImport
     };
 
     ModuleImportURL(Protocol protocol, std::string path,
@@ -54,6 +55,8 @@ public:
     static std::unique_ptr<ModuleImportURL> Resolve(const std::unique_ptr<ModuleImportURL>& referer,
                                                     const std::string& import,
                                                     ResolvedAs resolvedAs);
+
+    static void FreeInternalCaches();
 
     koi_nodiscard inline Protocol getProtocol() const {
         CHECK(fProtocol != Protocol::kInvalid);

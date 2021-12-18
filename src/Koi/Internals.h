@@ -10,11 +10,20 @@ KOI_NS_BEGIN
 
 struct InternalScript
 {
-    enum class Scope : uint8_t
+    enum ScopeAttr
     {
-        kUserExecutable  = 0x01,
-        kUserImportable  = 0x02,
-        kPrivate         = 0x04
+        kUserExecute    = 0,
+        kUserImport     = 1,
+        kSysExecute     = 2,
+        kSysImport      = 3,
+        kLastScopeAttr  = kSysImport
+    };
+
+    enum class ScopeAttrValue
+    {
+        kAllowed,
+        kForbidden,
+        kInformal
     };
 
     enum class Error
@@ -25,12 +34,14 @@ struct InternalScript
     };
 
     std::string name;
-    Bitfield<Scope> scope;
-    const char *content;
+    std::string author;
+    std::string content;
+    ScopeAttrValue scope[kLastScopeAttr + 1];
 
     using ConstPtr = const InternalScript*;
 
-    static std::tuple<ConstPtr, Error> Get(const std::string& name, Scope scope);
+    static std::tuple<ConstPtr, Error> Get(const std::string& name, ScopeAttr scope);
+    static void GlobalCollect();
 };
 
 KOI_NS_END

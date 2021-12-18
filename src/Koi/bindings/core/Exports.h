@@ -71,9 +71,6 @@ public:
 
     size_t length();
     uint8_t byteAt(int64_t idx);
-    uint16_t wordAt(int64_t idx);
-    uint32_t dwordAt(int64_t idx);
-    uint64_t qwordAt(int64_t idx);
     void dump();
 
 private:

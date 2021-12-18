@@ -169,6 +169,7 @@ Runtime::~Runtime()
         module.second.module.Reset();
     }
 
+    ModuleImportURL::FreeInternalCaches();
     binder::Cleanup(fIsolate);
     fIntrospect.reset();
     fContext.Reset();
@@ -202,7 +203,7 @@ v8::Local<v8::Module> Runtime::compileModule(const ModuleImportURL::UniquePtr& r
     v8::EscapableHandleScope handleScope(fIsolate);
     v8::Context::Scope contextScope(this->context());
 
-    ModuleImportURL::ResolvedAs resolvedAs = isImport ? ModuleImportURL::ResolvedAs::kImport
+    ModuleImportURL::ResolvedAs resolvedAs = isImport ? ModuleImportURL::ResolvedAs::kUserImport
                                              : ModuleImportURL::ResolvedAs::kUserExecute;
     ModuleImportURL::UniquePtr resolved = ModuleImportURL::Resolve(referer, url, resolvedAs);
     if (!resolved)

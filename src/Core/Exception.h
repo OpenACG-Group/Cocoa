@@ -9,6 +9,8 @@
 #include <sstream>
 #include <functional>
 
+#include "Core/Project.h"
+
 namespace cocoa {
 
 class ScopeEpilogue
@@ -39,7 +41,7 @@ public:
     class Builder
     {
     public:
-        explicit Builder(const std::string& who);
+        explicit Builder(std::string  who);
 
         Builder(const Builder&) = delete;
         Builder(Builder&&) = delete;
@@ -67,22 +69,26 @@ public:
     class FrameIterable
     {
     public:
-        FrameIterable(Frames::const_iterator begin, Frames::const_iterator end);
+        explicit FrameIterable(std::shared_ptr<Frames> frames) : frames_(std::move(frames)) {}
+        ~FrameIterable() = default;
 
-        Frames::const_iterator begin() const noexcept;
-        Frames::const_iterator end() const noexcept;
+        co_nodiscard inline Frames::const_iterator begin() const noexcept {
+            return frames_->cbegin();
+        }
+        co_nodiscard inline Frames::const_iterator end() const noexcept {
+            return frames_->cend();
+        }
 
     private:
-        Frames::const_iterator   fBegin;
-        Frames::const_iterator   fEnd;
+        std::shared_ptr<Frames> frames_;
     };
 
-    RuntimeException(const std::string& who, const std::string& what);
+    RuntimeException(std::string who, std::string what);
     RuntimeException(const RuntimeException& other);
 
-    const char *what() const noexcept override;
-    const char *who() const noexcept;
-    FrameIterable frames() const noexcept;
+    co_nodiscard const char *what() const noexcept override;
+    co_nodiscard const char *who() const noexcept;
+    co_nodiscard FrameIterable frames() const noexcept;
 
 private:
     void recordFrames();
@@ -92,16 +98,6 @@ private:
     std::string                 fWho;
     std::string                 fWhat;
 };
-
-#define RUNTIME_EXCEPTION_ASSERT(expr)                  \
-    if (!(expr))                                        \
-    {                                                   \
-        throw RuntimeException::Builder(__FUNCTION__)   \
-                .append("Expression ")                  \
-                .append(#expr)                          \
-                .append(" should be true")              \
-                .make<RuntimeException>();              \
-    }                                                   \
 
 } // namespace cocoa
 

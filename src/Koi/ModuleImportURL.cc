@@ -21,8 +21,8 @@ std::string normalize(std::string url)
     {
         auto cwd = prop::Cast<PropertyDataNode>(
                 prop::Get()
-                ->next("runtime")
-                ->next("working-path")
+                ->next("Runtime")
+                ->next("CurrentPath")
         )->extract<std::string>();
         cwd.push_back('/');
         cwd.append(url);
@@ -57,17 +57,20 @@ const char *possible_file_ext_[] = {"", ".js", ".mjs"};
 
 const char *resolveInternalScript(const std::string& name, ModuleImportURL::ResolvedAs as)
 {
-    InternalScript::Scope scope;
+    InternalScript::ScopeAttr scope;
     switch (as)
     {
-    case ModuleImportURL::ResolvedAs::kImport:
-        scope = InternalScript::Scope::kUserImportable;
-        break;
     case ModuleImportURL::ResolvedAs::kUserExecute:
-        scope = InternalScript::Scope::kUserExecutable;
+        scope = InternalScript::kUserExecute;
         break;
-    case ModuleImportURL::ResolvedAs::kEngineExecute:
-        scope = InternalScript::Scope::kPrivate;
+    case ModuleImportURL::ResolvedAs::kUserImport:
+        scope = InternalScript::kUserImport;
+        break;
+    case ModuleImportURL::ResolvedAs::kSysExecute:
+        scope = InternalScript::kSysExecute;
+        break;
+    case ModuleImportURL::ResolvedAs::kSysImport:
+        scope = InternalScript::kSysImport;
         break;
     }
     auto [ptr, error] = InternalScript::Get(name, scope);
@@ -81,9 +84,9 @@ const char *resolveInternalScript(const std::string& name, ModuleImportURL::Reso
         throw RuntimeException(__func__,
                                fmt::format("Internal script {} not found", name));
     default:
-        return ptr->content;
+        return ptr->content.c_str();
     }
-    UNREACHABLE();
+    MARK_UNREACHABLE();
 }
 
 } // namespace anonymous
@@ -172,6 +175,11 @@ std::string ModuleImportURL::onLoadResourceText() const
     }
     // Never executed. Just suppressing compiler's warning:
     return {};
+}
+
+void ModuleImportURL::FreeInternalCaches()
+{
+    InternalScript::GlobalCollect();
 }
 
 KOI_NS_END

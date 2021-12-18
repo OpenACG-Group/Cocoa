@@ -39,7 +39,7 @@ size_t stringByteLength(v8::Isolate *isolate, v8::Local<v8::String> str,
         return str->Length() * sizeof(uint16_t);
     }
 
-    UNREACHABLE();
+    MARK_UNREACHABLE();
 }
 
 size_t encodeStringUcs2(v8::Isolate* isolate, char *buf, size_t buflen,

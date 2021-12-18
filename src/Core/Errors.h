@@ -36,7 +36,7 @@ struct AssertionInfo
         }                                       \
     } while (false)
 
-#define UNREACHABLE(...) \
+#define MARK_UNREACHABLE(...) \
     CHECK_FAILED("Unreachable code reached" __VA_OPT__(": ") __VA_ARGS__)
 
 } // namespace cocoa

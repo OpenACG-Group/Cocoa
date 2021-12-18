@@ -11,8 +11,7 @@
 #include "Core/Errors.h"
 namespace cocoa::utils {
 
-void DumpRuntimeException(const RuntimeException& except);
-void DumpProperties(const std::shared_ptr<PropertyNode>& root);
+void SerializeException(const RuntimeException& except);
 void ChangeWorkDirectory(const std::string& dir);
 std::string GetAbsoluteDirectory(const std::string& dir);
 std::string GetExecutablePath();

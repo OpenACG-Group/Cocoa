@@ -3,10 +3,28 @@
 #include <vector>
 #include <map>
 #include <any>
+#include <stack>
 
 #include "Core/Exception.h"
 #include "Core/Properties.h"
+#include "Core/Errors.h"
 namespace cocoa {
+
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Core.Property)
+
+std::string protection_to_string(PropertyNode::Protection prot)
+{
+    switch (prot)
+    {
+    case PropertyNode::Protection::kPublic:
+        return "Public";
+    case PropertyNode::Protection::kProtected:
+        return "Protected";
+    case PropertyNode::Protection::kPrivate:
+        return "Private";
+    }
+    MARK_UNREACHABLE();
+}
 
 PropertyNode::PropertyNode(Kind kind)
     : fKind(kind),
@@ -42,9 +60,44 @@ std::shared_ptr<PropertyNode> PropertyNode::next(const std::string& member)
     return ptr;
 }
 
+std::string PropertyNode::getName()
+{
+    if (fParent.expired() || !fParent.lock())
+        return "<unnamed>";
+    auto parent = this->parent();
+    CHECK(parent->kind() != Kind::kData);
+    if (parent->kind() == Kind::kArray)
+    {
+        int32_t idx = 0;
+        for (const auto& p : *prop::Cast<PropertyArrayNode>(parent))
+        {
+            if (p.get() == this)
+                return fmt::format("[{}]", idx);
+            idx++;
+        }
+        return "<unnamed>";
+    }
+    else if (parent->kind() == Kind::kObject)
+    {
+        for (const auto& p : *prop::Cast<PropertyObjectNode>(parent))
+        {
+            if (p.second.get() == this)
+                return p.first;
+        }
+        return "<unnamed>";
+    }
+    MARK_UNREACHABLE();
+}
+
 PropertyObjectNode::PropertyObjectNode()
     : PropertyNode(Kind::kObject)
 {
+}
+
+std::string PropertyObjectNode::toQLogString()
+{
+    return fmt::format("%fg<gr,hl>ObjectNode%reset %fg<ye>{}%reset %italic%fg<re><{}>%reset %fg<gr,hl>{}%reset",
+                       fmt::ptr(this), protection_to_string(protection()), getName());
 }
 
 std::shared_ptr<PropertyNode> PropertyObjectNode::getMember(const std::string& name)
@@ -98,6 +151,13 @@ void PropertyArrayNode::erase(uint32_t i0)
     fSubscripts.erase(fSubscripts.begin() + i0);
 }
 
+std::string PropertyArrayNode::toQLogString()
+{
+    return fmt::format(
+            "%fg<ma,hl>ArrayNode%reset %fg<ye>{}%reset %italic%fg<re><{}, size={}>%reset %fg<gr,hl>{}%reset",
+            fmt::ptr(this), protection_to_string(protection()), fSubscripts.size(), getName());
+}
+
 PropertyDataNode::PropertyDataNode(std::any&& value)
     : PropertyNode(Kind::kData),
       fData(value)
@@ -114,6 +174,12 @@ const std::type_info& PropertyDataNode::type()
     return fData.type();
 }
 
+std::string PropertyDataNode::toQLogString()
+{
+    return fmt::format("%fg<cy,hl>DataNode%reset %fg<ye>{}%reset %italic%fg<re><{}>%reset %fg<gr,hl>{}%reset",
+                       fmt::ptr(this), protection_to_string(protection()), getName());
+}
+
 namespace {
 std::shared_ptr<PropertyNode> gPropRoot;
 
@@ -127,6 +193,21 @@ std::shared_ptr<PropertyNode> gPropRoot;
     gPropRoot = nullptr;
 }
 
+void serializeNode(const std::shared_ptr<PropertyNode>& node, std::string prefix)
+{
+    QLOG(LOG_DEBUG, "{}{}", prefix, node->toQLogString());
+    if (!prefix.empty())
+    {
+        prefix[prefix.size() - 1] = ' ';
+        if (prefix[prefix.size() - 2] == '`')
+            prefix[prefix.size() - 2] = ' ';
+    }
+    std::string np = prefix + "|-";
+    std::string np2 = prefix + "`-";
+    node->forEachChild([&np, &np2](const std::shared_ptr<PropertyNode>& child, bool last) {
+        serializeNode(child, last ? np2 : np);
+    });
+}
 
 } // namespace anonymous
 
@@ -136,6 +217,12 @@ namespace prop
 std::shared_ptr<PropertyObjectNode> Get()
 {
     return Cast<PropertyObjectNode>(gPropRoot);
+}
+
+void SerializeToJournal(const std::shared_ptr<PropertyObjectNode>& root)
+{
+    QLOG(LOG_DEBUG, "Current properties tree:");
+    serializeNode(root, "");
 }
 
 } // namespace properties

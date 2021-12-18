@@ -41,7 +41,7 @@ v8::Local<v8::Array> GetEscapableArgs()
     v8::EscapableHandleScope scope(isolate);
     v8::Local<v8::Array> array = v8::Array::New(isolate);
 
-    auto args = prop::Cast<PropertyArrayNode>(prop::Get()->next("runtime")->next("script")->next("args"));
+    auto args = prop::Cast<PropertyArrayNode>(prop::Get()->next("Runtime")->next("Script")->next("Args"));
     uint32_t index = 0;
     for (const std::shared_ptr<PropertyNode>& node : *args)
     {

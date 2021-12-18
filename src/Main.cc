@@ -590,21 +590,21 @@ cmd::ParseState InitializeProperties(int argc, const char **argv, cmd::ParseResu
         auto cmdlineProp = prop::New<PropertyArrayNode>();
         for (int32_t i = 0; i < argc; i++)
             cmdlineProp->append(prop::New<PropertyDataNode>(argv[i]));
-        runtimeProp->setMember("cmdline", cmdlineProp);
+        runtimeProp->setMember("Cmdline", cmdlineProp);
 
-        runtimeProp->setMember("executable-file", prop::New<PropertyDataNode>(execFile));
-        runtimeProp->setMember("executable-path", prop::New<PropertyDataNode>(execPath));
-        runtimeProp->setMember("working-path", prop::New<PropertyDataNode>(workingPath));
-        prop::Get()->setMember("runtime", runtimeProp);
+        runtimeProp->setMember("ExecutableFile", prop::New<PropertyDataNode>(execFile));
+        runtimeProp->setMember("ExecutablePath", prop::New<PropertyDataNode>(execPath));
+        runtimeProp->setMember("CurrentPath", prop::New<PropertyDataNode>(workingPath));
+        prop::Get()->setMember("Runtime", runtimeProp);
     }
 
     /* Set `system` property object */
     {
         auto systemProp = prop::New<PropertyObjectNode>();
-        systemProp->setMember("mem-page-size", prop::New<PropertyDataNode>(utils::GetMemPageSize()));
-        systemProp->setMember("cpu-model-name", prop::New<PropertyDataNode>(utils::GetCpuModel()));
-        systemProp->setMember("mem-size", prop::New<PropertyDataNode>(utils::GetMemTotalSize()));
-        prop::Get()->setMember("system", systemProp);
+        systemProp->setMember("VirtualMemPageSize", prop::New<PropertyDataNode>(utils::GetMemPageSize()));
+        systemProp->setMember("CpuModelName", prop::New<PropertyDataNode>(utils::GetCpuModel()));
+        systemProp->setMember("VirtualMemSize", prop::New<PropertyDataNode>(utils::GetMemTotalSize()));
+        prop::Get()->setMember("System", systemProp);
     }
 
     return cmd::ParseState::kSuccess;
@@ -728,15 +728,15 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
 
     {
         auto scriptNode = prop::New<PropertyObjectNode>();
-        scriptNode->setMember("lbp-preloads", lbpPreloads);
-        scriptNode->setMember("lbp-blacklist", lbpBlacklist);
-        scriptNode->setMember("args", scriptArgs);
-        prop::Cast<PropertyObjectNode>(prop::Get()->next("runtime"))->setMember("script", scriptNode);
+        scriptNode->setMember("LoaderPreloads", lbpPreloads);
+        scriptNode->setMember("LoaderBlacklist", lbpBlacklist);
+        scriptNode->setMember("Args", scriptArgs);
+        prop::Cast<PropertyObjectNode>(prop::Get()->next("Runtime"))->setMember("Script", scriptNode);
 
         auto persistentNode = prop::New<PropertyObjectNode>();
-        persistentNode->setMember("event-loop", prop::New<PropertyDataNode>(EventLoop::Instance()));
-        persistentNode->setMember("journal", prop::New<PropertyDataNode>(Journal::Instance()));
-        prop::Get()->setMember("persistent", persistentNode);
+        persistentNode->setMember("EventLoop", prop::New<PropertyDataNode>(EventLoop::Instance()));
+        persistentNode->setMember("Journal", prop::New<PropertyDataNode>(Journal::Instance()));
+        prop::Get()->setMember("Persistent", persistentNode);
     }
 
     return cmd::ParseState::kSuccess;
@@ -754,17 +754,18 @@ void Finalize()
 
 void Execute(const koi::Runtime::Options& options)
 {
-    QLOG(LOG_DEBUG, "Current Properties Tree:");
-    utils::DumpProperties(prop::Get());
-
+    prop::SerializeToJournal(prop::Get());
     auto workingPath = prop::Cast<PropertyDataNode>(prop::Get()
-            ->next("runtime")->next("working-path"))->extract<std::string>();
+            ->next("Runtime")->next("CurrentPath"))->extract<std::string>();
     auto execPath = prop::Cast<PropertyDataNode>(prop::Get()
-            ->next("runtime")->next("executable-path"))->extract<std::string>();
+            ->next("Runtime")->next("ExecutablePath"))->extract<std::string>();
 
     koi::BindingManager::New(options);
 
-    auto preloads = prop::Get()->next("runtime")->next("script")->next("lbp-preloads");
+    auto preloads = prop::Get()
+            ->next("Runtime")
+            ->next("Script")
+            ->next("LoaderPreloads");
     for (const auto& p : *prop::Cast<PropertyArrayNode>(preloads))
     {
         auto& val = prop::Cast<PropertyDataNode>(p)->extract<std::string>();
@@ -810,7 +811,7 @@ int Main(int argc, char const **argv)
         cmd::PrintGreeting(koiOptions);
         Execute(koiOptions);
     } catch (const RuntimeException& e) {
-        utils::DumpRuntimeException(e);
+        utils::SerializeException(e);
         return EXIT_FAILURE;
     } catch (const std::exception& e) {
         std::cout << "Error: " << e.what() << std::endl;
