@@ -1,18 +1,68 @@
+#include "Core/MeasuredTable.h"
 #include "Core/Journal.h"
 #include "Koi/GlobalIsolateGuard.h"
 #include "Koi/Runtime.h"
 #include "Koi/binder/Convert.h"
+#include "Koi/UnixPathTools.h"
 KOI_NS_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi)
 
 namespace {
 
+void uncaughtException(v8::Local<v8::Message> message, v8::Local<v8::Value> except)
+{
+    v8::Isolate *isolate = message->GetIsolate();
+    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+    Runtime *rt = Runtime::GetBareFromIsolate(isolate);
+    CHECK(rt);
+
+    v8::Local<v8::String> string = except->ToString(ctx).ToLocalChecked();
+    QLOG(LOG_ERROR, "%fg<re>Uncaught exception: {}%reset", binder::from_v8<std::string>(isolate, string));
+
+    QLOG(LOG_ERROR, "%fg<re>Stack traceback (most recent call last):%reset");
+    v8::Local<v8::StackTrace> trace = message->GetStackTrace();
+    MeasuredTable mt(/* minSpace */ 1);
+    for (int32_t i = 0; i < trace->GetFrameCount(); i++)
+    {
+        v8::Local<v8::StackFrame> frame = trace->GetFrame(isolate, i);
+        std::string funcName = "<unknown>", scriptName = "<unknown>";
+        std::string funcNamePrefix;
+
+        if (frame->IsConstructor())
+            funcNamePrefix = "new ";
+
+        if (!frame->GetScriptName().IsEmpty())
+        {
+            scriptName = binder::from_v8<std::string>(isolate, frame->GetScriptName());
+            if (scriptName.starts_with("file://"))
+            {
+                scriptName = "file://" + unixpath::SolveShortestPathRepresentation(scriptName.substr(7));
+            }
+        }
+        if (!frame->GetFunctionName().IsEmpty())
+            funcName = binder::from_v8<std::string>(isolate, frame->GetFunctionName());
+
+        if (frame->GetLineNumber() != v8::Message::kNoLineNumberInfo)
+            scriptName.append(fmt::format(":{}", frame->GetLineNumber()));
+        if (frame->GetColumn() != v8::Message::kNoColumnInfo)
+            scriptName.append(fmt::format(":{}", frame->GetColumn()));
+
+        mt.append(fmt::format("%fg<bl>#{}%reset %italic%fg<ye>{}{}%reset", i, funcNamePrefix, funcName),
+                  fmt::format("%fg<cy>(from {})%reset", scriptName));
+    }
+    mt.flush([](const std::string& line) {
+        QLOG(LOG_ERROR, "{}", line);
+    });
+
+    if (rt->getIntrospect())
+        rt->getIntrospect()->notifyUncaughtException(except);
+}
+
 void perIsolateMessageListener(v8::Local<v8::Message> message,
                                v8::Local<v8::Value> except)
 {
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+    v8::Isolate *isolate = message->GetIsolate();
     Runtime *rt = Runtime::GetBareFromIsolate(isolate);
     CHECK(rt);
 
@@ -28,15 +78,16 @@ void perIsolateMessageListener(v8::Local<v8::Message> message,
         break;
     }
     case v8::Isolate::MessageErrorLevel::kMessageError:
-    {
-        v8::Local<v8::String> string = except->ToString(ctx).ToLocalChecked();
-        QLOG(LOG_ERROR, "An uncaught exception was raised from JavaScript land:");
-        QLOG(LOG_ERROR, "  Exception: {}", binder::from_v8<std::string>(isolate, string));
-        if (rt->getIntrospect())
-            rt->getIntrospect()->notifyUncaughtException(except);
+        uncaughtException(message, except);
         break;
     }
-    }
+}
+
+void perIsolateOutOfMemoryHandler(const char *location, bool isHeapOOM)
+{
+    QLOG(LOG_EXCEPTION, "%fg<re,hl>JavaScriptVM: Out of memory: {}%reset", location);
+    __fatal_oom_error();
+    MARK_UNREACHABLE();
 }
 
 } // namespace anonymous
@@ -45,13 +96,18 @@ GlobalIsolateGuard::GlobalIsolateGuard(const std::shared_ptr<Runtime>& rt)
     : fRuntime(rt)
     , fIsolate(rt->isolate())
 {
+    fIsolate->SetCaptureStackTraceForUncaughtExceptions(true);
     fIsolate->AddMessageListenerWithErrorLevel(perIsolateMessageListener,
                                                v8::Isolate::MessageErrorLevel::kMessageError |
                                                v8::Isolate::MessageErrorLevel::kMessageWarning);
+    fIsolate->SetOOMErrorHandler(perIsolateOutOfMemoryHandler);
 }
 
 GlobalIsolateGuard::~GlobalIsolateGuard()
 {
+    fIsolate->SetOOMErrorHandler(nullptr);
+    fIsolate->RemoveMessageListeners(perIsolateMessageListener);
+    fIsolate->SetCaptureStackTraceForUncaughtExceptions(false);
 }
 
 KOI_NS_END

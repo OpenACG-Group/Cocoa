@@ -71,10 +71,18 @@ public:
 
     size_t length();
     uint8_t byteAt(int64_t idx);
-    void dump();
+    v8::Local<v8::Value> copy(const v8::FunctionCallbackInfo<v8::Value>& args);
+    v8::Local<v8::Value> toDataView(const v8::FunctionCallbackInfo<v8::Value>& args);
 
 private:
+    uint8_t *getWriteableDataPointerByte();
+
     v8::Global<v8::Uint8Array>  fArray;
+    std::shared_ptr<v8::BackingStore> fBackingStore;
+};
+
+class FileHandle
+{
 };
 
 KOI_BINDINGS_NS_END

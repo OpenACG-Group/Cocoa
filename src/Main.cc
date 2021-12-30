@@ -12,6 +12,7 @@
 #include "Core/CpuInfo.h"
 #include "Core/Exception.h"
 #include "Core/EventLoop.h"
+#include "Core/Filesystem.h"
 
 #include "Koi/Runtime.h"
 #include "Koi/BindingManager.h"
@@ -572,14 +573,20 @@ cmd::ParseState InitializeLogger(cmd::ParseResult& args)
 
 cmd::ParseState InitializeProperties(int argc, const char **argv, cmd::ParseResult& args)
 {
-    std::string workingPath = utils::GetAbsoluteDirectory(".");
     if (args.orphans.size() > 1)
     {
         std::cerr << "Too many arguments" << std::endl;
         return cmd::ParseState::kError;
     }
     else if (!args.orphans.empty())
-        workingPath = utils::GetAbsoluteDirectory(args.orphans[0]);
+    {
+        if (vfs::Chdir(args.orphans[0]) < 0)
+        {
+            std::cerr << "Failed to chdir to \'" << args.orphans[0]
+                      << "\': " << ::strerror(errno) << std::endl;
+            return cmd::ParseState::kError;
+        }
+    }
 
     /* Set `runtime` property object */
     {
@@ -592,6 +599,7 @@ cmd::ParseState InitializeProperties(int argc, const char **argv, cmd::ParseResu
             cmdlineProp->append(prop::New<PropertyDataNode>(argv[i]));
         runtimeProp->setMember("Cmdline", cmdlineProp);
 
+        std::string workingPath = utils::GetAbsoluteDirectory(".");
         runtimeProp->setMember("ExecutableFile", prop::New<PropertyDataNode>(execFile));
         runtimeProp->setMember("ExecutablePath", prop::New<PropertyDataNode>(execPath));
         runtimeProp->setMember("CurrentPath", prop::New<PropertyDataNode>(workingPath));
@@ -663,6 +671,12 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
                 return cmd::ParseState::kError;
             }
             koiOptions.v8_platform_thread_pool = arg.value->v_int;
+        }
+        else if arg_longopt_match("vm-options")
+        {
+            auto list = utils::SplitString(arg.value->v_str, ',');
+            for (const auto& view : list)
+                koiOptions.v8_options.emplace_back(view);
         }
         else if arg_longopt_match("rt-blacklist")
         {

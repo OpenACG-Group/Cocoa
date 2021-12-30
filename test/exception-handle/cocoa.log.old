@@ -1,0 +1,34 @@
+[    0.015397] [info:5129] <org.OpenACG.Cocoa.Main> Cocoa 2D Rendering Framework, version 1.0.0-develop
+[    0.015464] [info:5129] <org.OpenACG.Cocoa.Main> Copyright (C) 2021 OpenACG Group | GPLv3 License
+[    0.015495] [info:5129] <org.OpenACG.Cocoa.Main> Startup script introspect-throw.js
+[    0.015520] [debug:5129] <org.OpenACG.Cocoa.Core.Property> Current properties tree:
+[    0.015560] [debug:5129] <org.OpenACG.Cocoa.Core.Property> ObjectNode 0x55a7b4beb210 <Public> <unnamed>
+[    0.015604] [debug:5129] <org.OpenACG.Cocoa.Core.Property> |-ObjectNode 0x55a7b4bed000 <Public> Persistent
+[    0.015648] [debug:5129] <org.OpenACG.Cocoa.Core.Property> | |-DataNode 0x55a7b4bed080 <Public> EventLoop
+[    0.015696] [debug:5129] <org.OpenACG.Cocoa.Core.Property> | `-DataNode 0x55a7b4bed140 <Public> Journal
+[    0.015739] [debug:5129] <org.OpenACG.Cocoa.Core.Property> |-ObjectNode 0x55a7b4bebb10 <Public> Runtime
+[    0.015784] [debug:5129] <org.OpenACG.Cocoa.Core.Property> | |-ArrayNode 0x55a7b4bebb90 <Public, size=5> Cmdline
+[    0.015827] [debug:5129] <org.OpenACG.Cocoa.Core.Property> | | |-DataNode 0x55a7b4bebbf0 <Public> [0]
+[    0.015870] [debug:5129] <org.OpenACG.Cocoa.Core.Property> | | |-DataNode 0x55a7b4bebc50 <Public> [1]
+[    0.015913] [debug:5129] <org.OpenACG.Cocoa.Core.Property> | | |-DataNode 0x55a7b4bebcb0 <Public> [2]
+[    0.015957] [debug:5129] <org.OpenACG.Cocoa.Core.Property> | | |-DataNode 0x55a7b4bebd60 <Public> [3]
+[    0.016000] [debug:5129] <org.OpenACG.Cocoa.Core.Property> | | `-DataNode 0x55a7b4bebdc0 <Public> [4]
+[    0.016042] [debug:5129] <org.OpenACG.Cocoa.Core.Property> | |-DataNode 0x55a7b4bec1c0 <Public> CurrentPath
+[    0.016085] [debug:5129] <org.OpenACG.Cocoa.Core.Property> | |-DataNode 0x55a7b4bebf50 <Public> ExecutableFile
+[    0.016128] [debug:5129] <org.OpenACG.Cocoa.Core.Property> | |-DataNode 0x55a7b4bec090 <Public> ExecutablePath
+[    0.016171] [debug:5129] <org.OpenACG.Cocoa.Core.Property> | `-ObjectNode 0x55a7b4bece00 <Public> Script
+[    0.016214] [debug:5129] <org.OpenACG.Cocoa.Core.Property> |   |-ArrayNode 0x55a7b4becda0 <Public, size=0> Args
+[    0.016257] [debug:5129] <org.OpenACG.Cocoa.Core.Property> |   |-ArrayNode 0x55a7b4becd40 <Public, size=0> LoaderBlacklist
+[    0.016305] [debug:5129] <org.OpenACG.Cocoa.Core.Property> |   `-ArrayNode 0x55a7b4becce0 <Public, size=0> LoaderPreloads
+[    0.016350] [debug:5129] <org.OpenACG.Cocoa.Core.Property> `-ObjectNode 0x55a7b4bec350 <Public> System
+[    0.016392] [debug:5129] <org.OpenACG.Cocoa.Core.Property>   |-DataNode 0x55a7b4bec690 <Public> CpuModelName
+[    0.016435] [debug:5129] <org.OpenACG.Cocoa.Core.Property>   |-DataNode 0x55a7b4bec3d0 <Public> VirtualMemPageSize
+[    0.016478] [debug:5129] <org.OpenACG.Cocoa.Core.Property>   `-DataNode 0x55a7b4bec780 <Public> VirtualMemSize
+[    0.016523] [debug:5129] <org.OpenACG.Cocoa.Koi> Binding 13924951e8dfb9b5 is registered (import 'core')
+[    0.032122] [error:5129] <org.OpenACG.Cocoa.Koi> Uncaught exception: Error: Throw from exception handler
+[    0.032177] [error:5129] <org.OpenACG.Cocoa.Koi>   Stack traceback (most recent call last):
+[    0.032254] [error:5129] <org.OpenACG.Cocoa.Koi>     #0 <unknown> (from file://introspect-throw.js:3:11)
+[    0.032307] [debug:5129] <org.OpenACG.Cocoa.Koi> Imported modules (URL):
+[    0.032342] [debug:5129] <org.OpenACG.Cocoa.Koi>   file:///home/sora/Project/C++/Cocoa/test/exception-handle/introspect-throw.js
+[    0.032374] [debug:5129] <org.OpenACG.Cocoa.Koi>   file:///home/sora/Project/C++/Cocoa/test/exception-handle/throw.js
+[    0.032923] [debug:5129] <org.OpenACG.Cocoa.Koi> Unloading binding core:13924951e8dfb9b5

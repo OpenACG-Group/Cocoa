@@ -102,6 +102,46 @@ void introspect_has_synthetic_module(const v8::FunctionCallbackInfo<v8::Value>& 
 }
 
 // NOLINTNEXTLINE
+std::map<std::string, std::function<bool(const Runtime::Options&)>> policy_checker_map = {
+        {
+            "AllowLoadingSharedObject",
+            [](const Runtime::Options& opts) -> bool {
+                return opts.introspect_allow_loading_shared_object;
+            }
+        },
+        {
+            "ForbidLoadingSharedObject",
+            [](const Runtime::Options& opts) -> bool {
+                return !opts.introspect_allow_loading_shared_object;
+            }
+        },
+        {
+            "AllowWritingToJournal",
+            [](const Runtime::Options& opts) -> bool {
+                return opts.introspect_allow_write_journal;
+            }
+        },
+        {
+            "ForbidWritingToJournal",
+            [](const Runtime::Options& opts) -> bool {
+                return !opts.introspect_allow_write_journal;
+            }
+        }
+};
+
+void introspect_has_security_policy(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+    JS_THROW_IF(args.Length() != 1, "Invalid number of arguments", v8::Exception::Error);
+    JS_THROW_IF(!args[0]->IsString(), "Security policy name is not a string", v8::Exception::TypeError);
+    v8::Isolate *isolate = get_bare_introspect_ptr(args)->getIsolate();
+    auto policy = binder::from_v8<std::string>(isolate, args[0]);
+    JS_THROW_IF(!policy_checker_map.contains(policy), "Invalid policy name", v8::Exception::Error);
+    Runtime *rt = Runtime::GetBareFromIsolate(isolate);
+    CHECK(rt != nullptr);
+    args.GetReturnValue().Set(policy_checker_map[policy](rt->getOptions()));
+}
+
+// NOLINTNEXTLINE
 std::map<std::string, LogType> log_level_name_map = {
         { "debug", LOG_DEBUG },
         { "info", LOG_INFO },
@@ -125,6 +165,58 @@ void introspect_write_journal(const v8::FunctionCallbackInfo<v8::Value>& args)
     JS_THROW_IF(!log_level_name_map.contains(level), "Unrecognized journal level string", v8::Exception::Error);
     auto content = binder::from_v8<std::string>(isolate, args[1]);
     QLOG(log_level_name_map[level], "{}", content);
+}
+
+void introspect_stacktrace(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+    // TODO: Complete this.
+    v8::Isolate *isolate = get_bare_introspect_ptr(args)->getIsolate();
+    v8::HandleScope scope(isolate);
+    JS_THROW_IF(args.Length() > 1, "Too many arguments", v8::Exception::Error);
+    int frameLimit = Runtime::GetBareFromIsolate(isolate)->getOptions().introspect_stacktrace_frame_limit;
+    if (args.Length() == 1)
+    {
+        JS_THROW_IF(!args[0]->IsNumber(), "Frame limitation is not a number", v8::Exception::TypeError);
+        frameLimit = binder::from_v8<int>(isolate, args[0]);
+        JS_THROW_IF(frameLimit < 0, "Invalid frame limitation", v8::Exception::RangeError);
+    }
+
+    v8::Local<v8::StackTrace> trace = v8::StackTrace::CurrentStackTrace(isolate, frameLimit);
+    JS_THROW_IF(trace.IsEmpty(), "Failed to capture stack state", v8::Exception::Error);
+
+    v8::Local<v8::Array> result = v8::Array::New(isolate, trace->GetFrameCount());
+    v8::Local<v8::Context> context = Runtime::GetBareFromIsolate(isolate)->context();
+
+    constexpr auto kNL = v8::Message::kNoLineNumberInfo;
+    constexpr auto kNC = v8::Message::kNoColumnInfo;
+
+    for (int32_t i = 0; i < trace->GetFrameCount(); i++)
+    {
+        v8::Local<v8::StackFrame> frame = trace->GetFrame(isolate, i);
+        v8::Local<v8::Object> cur = v8::Object::New(isolate);
+        int32_t line = frame->GetLineNumber() != kNL ? frame->GetLineNumber() : -1;
+        int32_t column = frame->GetColumn() != kNC ? frame->GetColumn() : -1;
+        cur->Set(context, binder::to_v8(isolate, "line"), binder::to_v8(isolate, line)).Check();
+        cur->Set(context, binder::to_v8(isolate, "column"), binder::to_v8(isolate, column)).Check();
+        v8::Local<v8::Value> scriptName = v8::Undefined(isolate);
+        v8::Local<v8::Value> funcName = v8::Undefined(isolate);
+        if (!frame->GetScriptName().IsEmpty())
+            scriptName = frame->GetScriptName();
+        if (!frame->GetFunctionName().IsEmpty())
+            funcName = frame->GetFunctionName();
+        cur->Set(context, binder::to_v8(isolate, "scriptName"), scriptName).Check();
+        cur->Set(context, binder::to_v8(isolate, "functionName"), funcName).Check();
+        cur->Set(context, binder::to_v8(isolate, "isEval"),
+                 binder::to_v8(isolate, frame->IsEval())).Check();
+        cur->Set(context, binder::to_v8(isolate, "isConstructor"),
+                 binder::to_v8(isolate, frame->IsConstructor())).Check();
+        cur->Set(context, binder::to_v8(isolate, "isWasm"),
+                 binder::to_v8(isolate, frame->IsWasm())).Check();
+        cur->Set(context, binder::to_v8(isolate, "isUserJavaScript"),
+                 binder::to_v8(isolate, frame->IsUserJavaScript())).Check();
+        result->Set(context, i, cur).Check();
+    }
+    args.GetReturnValue().Set(result);
 }
 
 } // namespace anonymous
@@ -163,7 +255,10 @@ std::unique_ptr<VMIntrospect> VMIntrospect::InstallGlobal(v8::Isolate *isolate)
                 v8::FunctionTemplate::New(isolate, introspect_has_synthetic_module));
     object->Set(isolate,
                 "hasSecurityPolicy",
-                v8::FunctionTemplate::New(isolate, nullptr)); // TODO: Complete this
+                v8::FunctionTemplate::New(isolate, introspect_has_security_policy));
+    object->Set(isolate,
+                "inspectStackTrace",
+                v8::FunctionTemplate::New(isolate, introspect_stacktrace));
 
     auto introspect = std::make_unique<VMIntrospect>(isolate);
     CHECK(introspect);
@@ -228,12 +323,12 @@ bool VMIntrospect::notifyUncaughtException(v8::Local<v8::Value> except)
     return introspect_invoke_callback<CallbackSlot::kUncaughtException>(this, except);
 }
 
-bool VMIntrospect::notifyBeforeExit(v8::Local<v8::Value> exitCode)
+bool VMIntrospect::notifyBeforeExit()
 {
-    return introspect_invoke_callback<CallbackSlot::kBeforeExit>(this, exitCode);
+    return introspect_invoke_callback<CallbackSlot::kBeforeExit>(this);
 }
 
-void VMIntrospect::performScheduledTasksCheckpoint()
+VMIntrospect::PerformCheckpointResult VMIntrospect::performScheduledTasksCheckpoint()
 {
     Runtime *rt = Runtime::GetBareFromIsolate(fIsolate);
     v8::HandleScope scope(fIsolate);
@@ -245,27 +340,52 @@ void VMIntrospect::performScheduledTasksCheckpoint()
         CHECK(task.type != ScheduledTask::Type::kInvalid);
 
         v8::Local<v8::Value> value;
-        v8::TryCatch tryCatch(fIsolate);
-        if (task.type == ScheduledTask::Type::kEvalScript)
+        bool hasCaught;
+        v8::Local<v8::Value> exception;
         {
-            if (!rt->execute("<anonymous@scheduled>", task.param.c_str()).ToLocal(&value))
+            v8::TryCatch tryCatch(fIsolate);
+            if (task.type == ScheduledTask::Type::kEvalScript)
             {
-                QLOG(LOG_DEBUG, "Introspect.ScheduleEval: An exception was thrown when executing script");
+                value = rt->execute("<anonymous@scheduled>", task.param.c_str())
+                        .FromMaybe(v8::Local<v8::Value>());
             }
-        }
-        else if (task.type == ScheduledTask::Type::kEvalModuleUrl)
-        {
-            if (!rt->evaluateModule(task.param).ToLocal(&value))
+            else if (task.type == ScheduledTask::Type::kEvalModuleUrl)
             {
-                QLOG(LOG_DEBUG, "Introspect.ScheduleEval: An exception was thrown when evaluating module");
+                try {
+                    value = rt->evaluateModule(task.param).FromMaybe(v8::Local<v8::Value>());
+                } catch (const std::exception& e) {
+                    binder::throw_(fIsolate, e.what(), v8::Exception::Error);
+                }
             }
+            hasCaught = tryCatch.HasCaught();
+            exception = tryCatch.Exception();
         }
 
-        if (tryCatch.HasCaught() && !task.reject.IsEmpty())
-            binder::call_v8(fIsolate, task.reject.Get(fIsolate), recv, tryCatch.Exception());
-        else if (!tryCatch.HasCaught() && !task.callback.IsEmpty())
+        v8::TryCatch tryCatch(fIsolate);
+        tryCatch.SetVerbose(true);
+        if (hasCaught)
+        {
+            if (!task.reject.IsEmpty())
+                binder::call_v8(fIsolate, task.reject.Get(fIsolate), recv, exception);
+            else
+            {
+                v8::Local<v8::String> str = exception->ToString(fIsolate->GetCurrentContext())
+                                            .FromMaybe(v8::Local<v8::String>());
+                std::string str_native = "<unknown>";
+                if (!str.IsEmpty())
+                    str_native = binder::from_v8<decltype(str_native)>(fIsolate, str);
+                QLOG(LOG_ERROR, "%fg<re>Uncaught exception from scheduled evaluation: {}%reset", str_native);
+                return PerformCheckpointResult::kThrow;
+            }
+        }
+        else if (!task.callback.IsEmpty())
+        {
             binder::call_v8(fIsolate, task.callback.Get(fIsolate), recv, value);
+        }
+        if (tryCatch.HasCaught())
+            return PerformCheckpointResult::kThrow;
     }
+    return PerformCheckpointResult::kOk;
 }
 
 KOI_NS_END

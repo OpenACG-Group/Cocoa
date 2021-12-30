@@ -1,4 +1,5 @@
 import { printf } from 'core/format';
+import * as core from 'core';
 /*
 let source = 'function foo(a, b) { return (a + b) * (a - b); }; foo;';
 
@@ -14,6 +15,14 @@ introspect.scheduleScriptEvaluate(source, (value) => {
 });
 printf('Control follow end\n');
 */
-printf('has core module: {}\n', introspect.hasSyntheticModule('core'));
-introspect.writeToJournal('info', '%italic<>Hello, my first journal log!!!%reset');
-introspect.loadSharedObject('/tmp/scratch/test.so');
+let buffer = new core.Buffer('惑わす心 苛々彼女', 'utf8');
+let view = buffer.toDataView();
+let dwordSize = Math.floor(view.byteLength / 4);
+for (let i = 0; i < dwordSize; i++) {
+    printf('{08x} ', view.getUint32(i * 4, true));
+}
+printf('\n');
+for (let i = 0; i < view.byteLength; i++) {
+    printf('{02x} ', view.getUint8(i));
+}
+printf('\n');

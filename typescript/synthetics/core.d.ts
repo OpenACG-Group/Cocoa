@@ -1,36 +1,5 @@
-/**
- * Standard Virtual File Descriptor.
- * Following three file descriptors always change every run, which is not
- * predictable.
- */
-export declare const VFD_STDIN: number;
-export declare const VFD_STDOUT: number;
-export declare const VFD_STDERR: number;
-
-/* File creation modes */
-export declare const MODE_NONE: number;
-export declare const MODE_USR_W: number;
-export declare const MODE_USR_R: number;
-export declare const MODE_USR_X: number;
-export declare const MODE_OTH_W: number;
-export declare const MODE_OTH_R: number;
-export declare const MODE_OTH_X: number;
-export declare const MODE_GRP_R: number;
-export declare const MODE_GRP_W: number;
-export declare const MODE_GRP_X: number;
-export declare const MODE_DIR: number;
-export declare const MODE_LINK: number;
-export declare const MODE_REGULAR: number;
-export declare const MODE_CHAR: number;
-export declare const MODE_BLOCK: number;
-export declare const MODE_FIFO: number;
-export declare const MODE_SOCKET: number;
-
-export declare const SEEK_SET: number;
-export declare const SEEK_CURRENT: number;
-export declare const SEEK_END: number;
-
-export declare const AT_FDCWD: number;
+type SizeT = number;
+type OffsetT = number;
 
 /**
  * An argument list (Escapable Arguments) specified by `--escapable-args`
@@ -50,25 +19,11 @@ export declare function print(str: string): void;
  */
 export declare function delay(timeout: number): Promise<void>;
 
-/**
- * Gets the value of a system property.
- * Returns a string, number or boolean (they are called primitive types).
- * Throws an exception if `specifier` refers to an invalid or inaccessible
- * property.
- *
- * Properties are always access-restricted. A property can be public,
- * protected or private. Public properties are accessible to anyone
- * (command line and JavaScript), but protected properties only can be
- * accessed by JavaScript. Private properties are inaccessible to
- * JavaScript. They are only exposed to Cocoa internally.
- *
- * About syntax of property specifier, see Cocoa documents.
- */
-export interface PropertyPrimitive {
+export interface PropertyPair {
     readonly type: "data" | "object" | "array";
     readonly value?: number | boolean | string | bigint;
 }
-export declare function getProperty(specifier: string): PropertyPrimitive;
+export declare function getProperty(specifier: string): PropertyPair;
 
 export interface PropertyChild {
     readonly type: "data" | "object" | "array";
@@ -86,18 +41,6 @@ export declare function enumeratePropertyNode(specifier: string): PropertyChild[
  */
 export declare function hasProperty(specifier: string): boolean;
 
-type DumpableLiteral = "descriptors-info" | "event-loop" | "properties";
-export declare function dump(what: DumpableLiteral): void;
-
-export declare function open(path: string, flags: string, mode: number): number;
-export declare function openat(dirfd: number, path: string, flags: string, mode: number): number;
-export declare function close(vfd: number): void;
-export declare function seek(vfd: number, whence: number, offset: number): number;
-export declare function rename(oldpath: string, newpath: string): void;
-export declare function truncate(pathname: string, length: number): void;
-export declare function ftruncate(vfd: number, length: number): void;
-export declare function mknod(pathname: string, mode: number, dev: number): void;
-export declare function mknodat(dirfd: number, path: string, mode: number, dev: number): void;
 
 /**
  * Exit immediately without waiting for the event loop.
@@ -136,7 +79,42 @@ export declare class Buffer {
     constructor(str: string, encoding: BufferEncoding);
     constructor(length: number);
 
-    dump(): void;
+    byteAt(index: number): number;
+    copy(offset?: OffsetT, length?: SizeT): Buffer;
+    toDataView(offset?: OffsetT, length?: SizeT): DataView;
+}
+
+type SeekWhenceT = number;
+type FileModeT = number;
+
+export declare class FileHandle {
+    static readonly MODE_NONE: FileModeT;
+    static readonly MODE_USR_W: FileModeT;
+    static readonly MODE_USR_R: FileModeT;
+    static readonly MODE_USR_X: FileModeT;
+    static readonly MODE_OTH_W: FileModeT;
+    static readonly MODE_OTH_R: FileModeT;
+    static readonly MODE_OTH_X: FileModeT;
+    static readonly MODE_GRP_R: FileModeT;
+    static readonly MODE_GRP_W: FileModeT;
+    static readonly MODE_GRP_X: FileModeT;
+    static readonly MODE_DIR: FileModeT;
+    static readonly MODE_LINK: FileModeT;
+    static readonly MODE_REGULAR: FileModeT;
+    static readonly MODE_CHAR: FileModeT;
+    static readonly MODE_BLOCK: FileModeT;
+    static readonly MODE_FIFO: FileModeT;
+    static readonly MODE_SOCKET: FileModeT;
+    static readonly SEEK_SET: SeekWhenceT;
+    static readonly SEEK_CURRENT: SeekWhenceT;
+    static readonly SEEK_END: SeekWhenceT;
+
+    constructor(path: string, flags?: string, mode?: FileModeT);
+
+    close(): void;
+    read(dstBuffer: DataView, size: SizeT): SizeT;
+    write(srcBuffer: DataView, size: SizeT): SizeT;
+    seek(whence: SeekWhenceT, offset: SizeT): SizeT;
 }
 
 export declare const __name__: string;

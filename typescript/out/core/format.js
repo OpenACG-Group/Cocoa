@@ -113,7 +113,7 @@ function toBinary(_x, spec) {
     let st = [];
     while (x) {
         st.push((x & 1) == 1);
-        x >>= 1;
+        x >>>= 1;
     }
     let result = getSignString(spec.sign, neg);
     if (spec.alternateForm) {
@@ -133,7 +133,9 @@ function toHexadecimal(_x, spec) {
     let st = [];
     while (x) {
         st.push(x & 15);
-        x >>= 4;
+        x >>>= 4;
+        if (x < 0)
+            core.exit();
     }
     let result = stackPopToString(spec, neg, st, digits, spec.alternateForm ? "0x" : undefined);
     return stringFillAlignment(spec, spec.type == FmtType.HEX_UPPER ? result.toUpperCase() : result);

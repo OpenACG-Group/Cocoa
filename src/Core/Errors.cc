@@ -17,4 +17,10 @@ namespace cocoa {
     std::abort();
 }
 
+[[noreturn]] void __fatal_oom_error()
+{
+    fprintf(stderr, "Exited with EXIT_STATUS_OOM[%d]\n", EXIT_STATUS_OOM);
+    std::exit(EXIT_STATUS_OOM);
+}
+
 }

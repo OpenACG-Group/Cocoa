@@ -1,5 +1,4 @@
 import * as core from 'core';
-import {assert} from "./assert";
 
 class PropertyError extends Error {
     readonly propertyPath: string;
@@ -11,7 +10,7 @@ class PropertyError extends Error {
 
 export class Property {
     readonly path: string;
-    protected primitive: core.PropertyPrimitive;
+    protected primitive: core.PropertyPair;
     protected children: core.PropertyChild[];
 
     constructor(path: string) {
@@ -38,7 +37,7 @@ export class PropertyData extends Property {
         if (this.primitive.type != "data") {
             throw new PropertyError(path, "Property is not a data node");
         }
-        assert(Reflect.has(this.primitive, "value"));
-        assert(this.primitive.value != undefined);
+        // assert(Reflect.has(this.primitive, "value"));
+        // assert(this.primitive.value != undefined);
     }
 }

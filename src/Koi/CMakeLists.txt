@@ -36,6 +36,8 @@ add_library(Koi STATIC
         GlobalIsolateGuard.cc
         VMIntrospect.h
         VMIntrospect.cc
+        UnixPathTools.h
+        UnixPathTools.cc
         binder/PtrTraits.h
         binder/Utility.h
         binder/Convert.h

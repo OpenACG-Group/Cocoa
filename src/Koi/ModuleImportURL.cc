@@ -91,8 +91,8 @@ const char *resolveInternalScript(const std::string& name, ModuleImportURL::Reso
 
 } // namespace anonymous
 
-std::unique_ptr<ModuleImportURL>
-ModuleImportURL::Resolve(const std::unique_ptr<ModuleImportURL>& referer,
+ModuleImportURL::SharedPtr
+ModuleImportURL::Resolve(const ModuleImportURL::SharedPtr& referer,
                          const std::string& import,
                          ResolvedAs resolvedAs)
 {
@@ -157,7 +157,7 @@ ModuleImportURL::Resolve(const std::unique_ptr<ModuleImportURL>& referer,
         if (!(persistentCachedText = resolveInternalScript(path, resolvedAs)))
             return nullptr;
     }
-    return std::make_unique<ModuleImportURL>(proto, path,
+    return std::make_shared<ModuleImportURL>(proto, path,
                                              bindingCache, persistentCachedText);
 }
 

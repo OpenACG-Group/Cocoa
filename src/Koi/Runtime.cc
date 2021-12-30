@@ -1,20 +1,20 @@
-#include <thread>
 #include <tuple>
 #include <iostream>
 #include <memory>
 #include <utility>
+#include <thread>
+#include <map>
 
 #include "include/libplatform/libplatform.h"
 #include "include/v8.h"
 
-#include "Core/Utils.h"
 #include "Core/Exception.h"
 #include "Core/Journal.h"
 #include "Core/EventLoop.h"
 #include "Koi/KoiBase.h"
 #include "Koi/Runtime.h"
-#include "Koi/ModuleImportURL.h"
 #include "Koi/BindingManager.h"
+#include "Koi/ModuleImportURL.h"
 
 #include "Koi/binder/Module.h"
 #include "Koi/binder/Class.h"
@@ -49,6 +49,19 @@ v8::MaybeLocal<v8::Value> createSyntheticModuleEvalStep(v8::Local<v8::Context> c
     exportObject->Set(context, CASTJS("__desc__"), CASTJS(binding->description())).Check();
     exportObject->Set(context, CASTJS("__unique_id__"), CASTJS(binding->getUniqueId())).Check();
     binding->setInstanceProperties(exportObject);
+
+    Runtime *runtime = Runtime::GetBareFromIsolate(isolate);
+    auto& moduleCacheMap = runtime->getModuleCache();
+    bool exportObjectStored = false;
+    for (auto& cache : moduleCacheMap)
+    {
+        if (cache.second.module == module)
+        {
+            cache.second.setExportsObject(isolate, exportObject);
+            exportObjectStored = true;
+        }
+    }
+    CHECK(exportObjectStored);
 
     v8::Local<v8::Array> properties = exportObject->GetPropertyNames(context).ToLocalChecked();
     for (uint32_t i = 0; i < properties->Length(); i++)
@@ -97,6 +110,9 @@ std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(EventLoop *loop,
         v8::V8::InitializeICU(icuDataFile.c_str());
     else
         v8::V8::InitializeICU();
+
+    for (const auto& arg : options.v8_options)
+        v8::V8::SetFlagsFromString(arg.c_str(), arg.length());
 
     std::unique_ptr<v8::Platform> platform =
             v8::platform::NewDefaultPlatform(static_cast<int>(options.v8_platform_thread_pool),
@@ -162,11 +178,14 @@ Runtime::Runtime(EventLoop *loop,
 
 Runtime::~Runtime()
 {
+    if (fIntrospect)
+        fIntrospect->notifyBeforeExit();
+
     QLOG(LOG_DEBUG, "Imported modules (URL):");
     for (auto& module : fModuleCache)
     {
         QLOG(LOG_DEBUG, "  %fg<cyan,hl>{}%reset", module.first->toString());
-        module.second.module.Reset();
+        module.second.reset();
     }
 
     ModuleImportURL::FreeInternalCaches();
@@ -196,7 +215,36 @@ Runtime::ModuleCacheMap& Runtime::getModuleCache()
     return fModuleCache;
 }
 
-v8::Local<v8::Module> Runtime::compileModule(const ModuleImportURL::UniquePtr& referer, const std::string& url,
+v8::MaybeLocal<v8::Module> Runtime::getAndCacheSyntheticModule(const ModuleImportURL::SharedPtr& url)
+{
+    v8::EscapableHandleScope scope(fIsolate);
+    if (url->getProtocol() != ModuleImportURL::Protocol::kSynthetic)
+        return {};
+    for (auto& cache : fModuleCache)
+    {
+        if (*cache.first == *url)
+            return scope.Escape(cache.second.module.Get(fIsolate));
+    }
+    bindings::BindingBase *binding = url->getSyntheticBinding();
+    v8::Local<v8::Module> module = createSyntheticModule(fIsolate, binding);
+    fModuleCache[url] = ESModuleCache(fIsolate, module, binding);
+    return scope.Escape(module);
+}
+
+v8::Local<v8::Object> Runtime::getSyntheticModuleExportObject(v8::Local<v8::Module> module)
+{
+    for (auto& cache : fModuleCache)
+    {
+        if (cache.second.module == module)
+            return cache.second.exports.IsEmpty()
+                    ? v8::Local<v8::Object>()
+                    : cache.second.exports.Get(fIsolate);
+    }
+    return {};
+}
+
+v8::Local<v8::Module> Runtime::compileModule(const ModuleImportURL::SharedPtr& referer,
+                                             const std::string& url,
                                              bool isImport)
 {
     v8::Isolate::Scope isolateScope(fIsolate);
@@ -205,7 +253,7 @@ v8::Local<v8::Module> Runtime::compileModule(const ModuleImportURL::UniquePtr& r
 
     ModuleImportURL::ResolvedAs resolvedAs = isImport ? ModuleImportURL::ResolvedAs::kUserImport
                                              : ModuleImportURL::ResolvedAs::kUserExecute;
-    ModuleImportURL::UniquePtr resolved = ModuleImportURL::Resolve(referer, url, resolvedAs);
+    ModuleImportURL::SharedPtr resolved = ModuleImportURL::Resolve(referer, url, resolvedAs);
     if (!resolved)
         throw RuntimeException(__func__, "Failed to resolve module path \"" + url + "\"");
     for (auto& cache : fModuleCache)
@@ -217,12 +265,7 @@ v8::Local<v8::Module> Runtime::compileModule(const ModuleImportURL::UniquePtr& r
     // Synthetic modules don't need to be compiled
     if (resolved->getProtocol() == ModuleImportURL::Protocol::kSynthetic)
     {
-        bindings::BindingBase *binding = resolved->getSyntheticBinding();
-        v8::Local<v8::Module> module = createSyntheticModule(fIsolate, binding);
-        fModuleCache[std::move(resolved)] = {
-            v8::Global<v8::Module>(fIsolate, module),
-            binding
-        };
+        v8::Local<v8::Module> module = getAndCacheSyntheticModule(resolved).ToLocalChecked();
         return handleScope.Escape(module);
     }
 
@@ -250,10 +293,7 @@ v8::Local<v8::Module> Runtime::compileModule(const ModuleImportURL::UniquePtr& r
         throw RuntimeException(__func__, "Failed to compile ES6 module \"" + resolved->toString() + "\"");
     }
 
-    fModuleCache[std::move(resolved)] = {
-            v8::Global<v8::Module>(fIsolate, module),
-            nullptr
-    };
+    fModuleCache[resolved] = ESModuleCache(fIsolate, module);
     return handleScope.Escape(module);
 }
 

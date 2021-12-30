@@ -170,7 +170,8 @@ binder::Class<Buffer> Buffer::GetClass()
         .constructor<const v8::FunctionCallbackInfo<v8::Value>&>()
         .set("length", binder::Property(&Buffer::length))
         .set("byteAt", &Buffer::byteAt)
-        .set("dump", &Buffer::dump);
+        .set("copy", &Buffer::copy)
+        .set("toDataView", &Buffer::toDataView);
 }
 
 /**
@@ -210,43 +211,85 @@ Buffer::Buffer(const v8::FunctionCallbackInfo<v8::Value>& info)
     if (array.IsEmpty())
         throw std::invalid_argument("Memory allocation failed");
     fArray = v8::Global<v8::Uint8Array>(isolate, array);
+    fBackingStore = array->Buffer()->GetBackingStore();
 }
 
 Buffer::~Buffer()
 {
+    fBackingStore.reset();
     fArray.Reset();
+}
+
+uint8_t *Buffer::getWriteableDataPointerByte()
+{
+    return reinterpret_cast<uint8_t*>(fBackingStore->Data());
 }
 
 size_t Buffer::length()
 {
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return fArray.Get(isolate)->Buffer()->ByteLength();
+    return fBackingStore->ByteLength();
 }
 
 uint8_t Buffer::byteAt(int64_t idx)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::Local<v8::Uint8Array> ab = fArray.Get(isolate);
-    size_t length = ab->Buffer()->ByteLength();
-    if (idx < 0 || idx >= length)
+    if (idx < 0 || idx >= this->length())
     {
         binder::throw_(isolate, "Index out of range", v8::Exception::RangeError);
         return 0;
     }
-    auto bs = ab->Buffer()->GetBackingStore();
-    return reinterpret_cast<const uint8_t*>(bs->Data())[idx];
+    return reinterpret_cast<const uint8_t*>(fBackingStore->Data())[idx];
 }
 
-void Buffer::dump()
+v8::Local<v8::Value> Buffer::copy(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-    auto ab = fArray.Get(v8::Isolate::GetCurrent())->Buffer();
-    uint8_t *ptr = reinterpret_cast<uint8_t*>(ab->GetBackingStore()->Data());
-    size_t length = ab->ByteLength();
-    for (size_t i = 0; i < length; i++)
+    v8::Isolate *isolate = args.GetIsolate();
+    size_t byteSize = this->length();
+    uint64_t start = 0;
+    uint64_t len = byteSize;
+    JS_THROW_RET_IF(args.Length() > 2, "Too many arguments", {}, v8::Exception::Error);
+    for (int32_t i = 0; i < args.Length(); i++)
+        JS_THROW_RET_IF(!args[i]->IsNumber(), "Arguments are not numbers", {}, v8::Exception::TypeError);
+    if (args.Length() > 0)
     {
-        printf("%02x ", ptr[i]);
+        start = binder::from_v8<uint64_t>(isolate, args[0]);
+        if (args.Length() > 1)
+            len = binder::from_v8<uint64_t>(isolate, args[1]);
     }
-    printf("\n");
+    JS_THROW_RET_IF(start + len > byteSize, "Invalid length and offset", {}, v8::Exception::RangeError);
+
+    Runtime *pRT = Runtime::GetBareFromIsolate(isolate);
+    v8::Local<v8::Object> newBuffer;
+    if (!pRT->newObjectFromSynthetic("core", "Buffer", binder::to_v8(isolate, len)).ToLocal(&newBuffer))
+        JS_THROW_RET_IF(true, "Failed to construct a new buffer", {}, v8::Exception::Error);
+
+    auto pNativeNewBuffer = binder::Class<Buffer>::unwrap_object(isolate, newBuffer);
+    CHECK(pNativeNewBuffer != nullptr);
+
+    std::memcpy(pNativeNewBuffer->getWriteableDataPointerByte(),
+                this->getWriteableDataPointerByte() + start, len);
+    return newBuffer;
+}
+
+v8::Local<v8::Value> Buffer::toDataView(const v8::FunctionCallbackInfo<v8::Value>& args)
+{
+    v8::Isolate *isolate = args.GetIsolate();
+    JS_THROW_RET_IF(args.Length() > 2, "Too many arguments", {}, v8::Exception::Error);
+    int64_t offset = 0;
+    auto size = static_cast<int64_t>(this->length());
+    if (args.Length() > 0)
+    {
+        offset = binder::from_v8<decltype(offset)>(isolate, args[0]);
+        JS_THROW_RET_IF(offset < 0 || offset >= size, "Invalid offset in bytes", {}, v8::Exception::RangeError);
+        if (args.Length() > 1)
+        {
+            int64_t realSize = size;
+            size = binder::from_v8<decltype(size)>(isolate, args[1]);
+            JS_THROW_RET_IF(size < 0 || size >= realSize, "Invalid size in bytes", {}, v8::Exception::RangeError);
+        }
+    }
+    v8::Local<v8::Uint8Array> array = fArray.Get(isolate);
+    return v8::DataView::New(array->Buffer(), offset, size);
 }
 
 KOI_BINDINGS_NS_END

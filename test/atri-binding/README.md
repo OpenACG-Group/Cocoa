@@ -1,4 +1,6 @@
-### The Simplest Language Binding Example
+# The Simplest Language Binding Example
+
+## Building
 
 Generating files:
 ```shell
@@ -13,38 +15,41 @@ clang++ -I../../src -I../../third_party/v8 \
         -std=c++2a -shared -fPIC -o libatri.so
 ```
 
-Now, a dynamic library file named __libatri.so__ should be generated.
+Now, a dynamic library file named __libatri.so__ is generated.
 
+## Loading Dynamic Library
 To use the dynamic library as a language binding, 2 ways are available:
 
-- __Loading shared object by an external JS file:__
+### [ Ⅰ ] Loading shared object by an external JS file:
 
 ```javascript
 // loader.js:
 import {print} from 'core';
-
 introspect.loadSharedObject('./libatri.so');
 introspect.scheduleModuleUrlEvaluate('./use-example.js', (value) => {
     print('Finished\n');
 }, (except) => {
-    print('Rejected: ' + except.toString() + '\n');
+    print(`Rejected: ${except.toString()}\n`);
 });
 
 // use-example.js:
 import {print} from 'core';
 import * as atri from 'Atri';
-
 print(`fma(1, 2, 3) = ${atri.fma(1, 2, 3)}\n`);
 ```
 
+For more information about `introspect` object, see documents in `docs/`.
+
 Then launch Cocoa:
 ```shell
+## --introspect-policy must be specified explicitly, or Cocoa
+## will throw an exception.
 /path/to/Cocoa --log-level=debug                              \
                --introspect-policy=AllowLoadingSharedObject   \
                --startup=loader.js
 ```
 
-- __Loading shared object directly by Cocoa:__
+### [ Ⅱ ] Loading shared object directly by Cocoa:
 
 Launch Cocoa directly (use-example.js file is required):
 ```shell

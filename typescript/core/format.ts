@@ -146,7 +146,7 @@ function toBinary(_x: number, spec: FmtFormatSpec): string {
     let st: boolean[] = [];
     while (x) {
         st.push((x & 1) == 1);
-        x >>= 1;
+        x >>>= 1;
     }
     let result: string = getSignString(spec.sign, neg);
     if (spec.alternateForm) {
@@ -168,7 +168,9 @@ function toHexadecimal(_x: number, spec: FmtFormatSpec): string {
     let st: number[] = [];
     while (x) {
         st.push(x & 15);
-        x >>= 4;
+        x >>>= 4;
+        if (x < 0)
+            core.exit();
     }
     let result: string = stackPopToString(
         spec, neg, st,

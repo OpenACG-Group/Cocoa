@@ -21,6 +21,7 @@ class ModuleImportURL
 {
 public:
     using UniquePtr = std::unique_ptr<ModuleImportURL>;
+    using SharedPtr = std::shared_ptr<ModuleImportURL>;
 
     enum class Protocol
     {
@@ -52,9 +53,7 @@ public:
             , fPersistentCachedText(persistentCachedText) {}
     ~ModuleImportURL() = default;
 
-    static std::unique_ptr<ModuleImportURL> Resolve(const std::unique_ptr<ModuleImportURL>& referer,
-                                                    const std::string& import,
-                                                    ResolvedAs resolvedAs);
+    static SharedPtr Resolve(const SharedPtr& referer, const std::string& import, ResolvedAs resolvedAs);
 
     static void FreeInternalCaches();
 

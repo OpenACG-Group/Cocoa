@@ -10,8 +10,8 @@ struct AssertionInfo
     const char *message;
 };
 
-// NOLINTNEXTLINE
-[[noreturn]] void __fatal_assert(const AssertionInfo& info);
+[[noreturn]] void __fatal_assert(const AssertionInfo& info); // NOLINT
+[[noreturn]] void __fatal_oom_error(); // NOLINT
 
 #define STRINGIFY_(x) #x
 #define STRINGIFY(x) STRINGIFY_(x)
@@ -38,6 +38,16 @@ struct AssertionInfo
 
 #define MARK_UNREACHABLE(...) \
     CHECK_FAILED("Unreachable code reached" __VA_OPT__(": ") __VA_ARGS__)
+
+#ifndef EXIT_SUCCESS
+#define EXIT_SUCCESS        0
+#endif // EXIT_SUCCESS
+
+#define EXIT_ERROR_BIT      (1 << 1)
+#define EXIT_FATAL_BIT      (1 << 2)
+#define EXIT_OOM_BIT        (1 << 3)
+
+#define EXIT_STATUS_OOM     (EXIT_ERROR_BIT|EXIT_FATAL_BIT|EXIT_OOM_BIT)
 
 } // namespace cocoa
 #endif //COCOA_ERRORS_H

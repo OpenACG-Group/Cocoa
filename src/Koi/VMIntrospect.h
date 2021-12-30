@@ -50,6 +50,12 @@ public:
     };
     using CallbackMap = std::map<CallbackSlot, v8::Global<v8::Function>>;
 
+    enum class PerformCheckpointResult
+    {
+        kThrow,
+        kOk
+    };
+
     /**
      * Install global 'introspect' object to current context.
      * @note `isolate` must have an entered context scope.
@@ -66,7 +72,7 @@ public:
      */
 
     bool notifyUncaughtException(v8::Local<v8::Value> except);
-    bool notifyBeforeExit(v8::Local<v8::Value> exitCode);
+    bool notifyBeforeExit();
 
     void setCallbackSlot(CallbackSlot slot, v8::Local<v8::Function> func);
     v8::MaybeLocal<v8::Function> getCallbackFromSlot(CallbackSlot slot);
@@ -74,7 +80,7 @@ public:
     inline void scheduledTaskEnqueue(ScheduledTask task) {
         fScheduledTaskQueue.emplace(std::move(task));
     }
-    void performScheduledTasksCheckpoint();
+    PerformCheckpointResult performScheduledTasksCheckpoint();
 
 private:
     CallbackMap     fCallbackMap;
