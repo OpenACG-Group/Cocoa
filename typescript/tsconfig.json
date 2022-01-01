@@ -12,7 +12,9 @@
         }
     },
     "include": [
-        "./global/introspect.d.ts"
+        "./global/mutable_global.d.ts",
+        "./global/introspect.d.ts",
+        "./global/refvalue.d.ts"
     ],
     "files": [
         "./core/assert.ts",

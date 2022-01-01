@@ -162,6 +162,14 @@ public:
         MARK_UNREACHABLE();
     }
 
+    /**
+     * This equals to {value instanceof T} in JavaScript.
+     * @returns false if @a value is not an instance of the specified class,
+     *                or @a class_ can not be found in global context.
+     *          Otherwise, true.
+     */
+    bool isInstanceOfGlobalClass(v8::Local<v8::Value> value, const std::string& class_);
+
 private:
     inline void setGlobalIsolateGuard(std::unique_ptr<GlobalIsolateGuard> ptr) {
         fIsolateGuard = std::move(ptr);

@@ -1,3 +1,5 @@
+// %native_script:introspect
+
 /**
  * A Callback function of `scheduleScriptEvaluate` and `scheduleModuleUrlEvaluate`.
  * @param value Result of the evaluation.

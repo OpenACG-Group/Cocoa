@@ -182,6 +182,10 @@ void forward_function(v8::FunctionCallbackInfo<v8::Value> const& args)
     {
         forward_ret<Traits, F>(args, is_void_return<F>());
     }
+    catch (const JSException& ex)
+    {
+        args.GetReturnValue().Set(JSException::TakeOver(ex));
+    }
     catch (std::exception const& ex)
     {
         args.GetReturnValue().Set(throw_(isolate, ex.what()));

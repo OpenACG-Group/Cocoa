@@ -24,27 +24,32 @@ template<VMIntrospect::CallbackSlot kSlot>
 void introspect_set_callback_slot(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
     VMIntrospect *introspect = get_bare_introspect_ptr(args);
-    JS_THROW_IF(args.Length() != 1, "Invalid number of arguments", v8::Exception::Error);
-    JS_THROW_IF(!args[0]->IsFunction(), "Callback is not a function", v8::Exception::TypeError);
+    if (args.Length() != 1)
+        binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
+    if (!args[0]->IsFunction())
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "Callback is not a function");
     introspect->setCallbackSlot(kSlot, args[0].template As<v8::Function>());
 }
 
 void introspect_load_shared_object(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
     VMIntrospect *introspect = get_bare_introspect_ptr(args);
-    JS_THROW_IF(args.Length() != 1, "Invalid number of arguments", v8::Exception::Error);
-    JS_THROW_IF(!args[0]->IsString(), "Shared object path is not a string", v8::Exception::TypeError);
+    if (args.Length() != 1)
+	    binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
+    if (!args[0]->IsString())
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "Shared object path is not a string");
     auto path = binder::from_v8<std::string>(introspect->getIsolate(), args[0]);
     if (!Runtime::GetBareFromIsolate(introspect->getIsolate())->getOptions().introspect_allow_loading_shared_object)
     {
         QLOG(LOG_WARNING,
              "JavaScript is trying to load shared object {}, which is forbidden by current introspect policy", path);
-        JS_THROW_IF(true, "Loading shared object is forbidden by current introspect policy", v8::Exception::Error);
+        binder::JSException::Throw(binder::ExceptT::kError,
+                                   "Loading shared object is forbidden by current introspect policy");
     }
     try {
         BindingManager::Instance()->loadDynamicObject(path);
     } catch (const std::exception& e) {
-        JS_THROW_IF(true, e.what(), v8::Exception::Error);
+        binder::JSException::Throw(binder::ExceptT::kError, e.what());
     }
 }
 
@@ -53,21 +58,25 @@ void introspect_schedule_task(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
     VMIntrospect *introspect = get_bare_introspect_ptr(args);
     v8::Isolate *isolate = introspect->getIsolate();
-    JS_THROW_IF(args.Length() < 1 || args.Length() > 3, "Invalid number of arguments", v8::Exception::Error);
+    if (args.Length() < 1 || args.Length() > 3)
+        binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
+    if (!args[0]->IsString())
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "Script/module name is not a string");
 
-    JS_THROW_IF(!args[0]->IsString(), "Script/module name is not a string", v8::Exception::TypeError);
     VMIntrospect::ScheduledTask task{};
     task.type = kType;
     task.param = binder::from_v8<std::string>(isolate, args[0]);
 
     if (args.Length() >= 2)
     {
-        JS_THROW_IF(!args[1]->IsFunction(), "Callback is not a function", v8::Exception::TypeError);
+        if (!args[1]->IsFunction())
+            binder::JSException::Throw(binder::ExceptT::kTypeError, "Callback is not a function");
         task.callback = v8::Global<v8::Function>(isolate, v8::Local<v8::Function>::Cast(args[1]));
     }
     if (args.Length() == 3)
     {
-        JS_THROW_IF(!args[2]->IsFunction(), "Callback is not a function", v8::Exception::TypeError);
+        if (!args[2]->IsFunction())
+            binder::JSException::Throw(binder::ExceptT::kTypeError, "Callback is not a function");
         task.reject = v8::Global<v8::Function>(isolate, v8::Local<v8::Function>::Cast(args[2]));
     }
     introspect->scheduledTaskEnqueue(std::move(task));
@@ -85,8 +94,10 @@ void introspect_schedule_module_eval(const v8::FunctionCallbackInfo<v8::Value>& 
 
 void introspect_print(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-    JS_THROW_IF(args.Length() != 1, "Invalid number of arguments", v8::Exception::Error);
-    JS_THROW_IF(!args[0]->IsString(), "Argument is not a string", v8::Exception::TypeError);
+    if (args.Length() != 1)
+        binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
+    if (!args[0]->IsString())
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "Argument is not a string");
     v8::Isolate *isolate = get_bare_introspect_ptr(args)->getIsolate();
     std::printf("%s", binder::from_v8<std::string>(isolate, args[0]).c_str());
     std::fflush(stdout);
@@ -94,8 +105,10 @@ void introspect_print(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 void introspect_has_synthetic_module(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-    JS_THROW_IF(args.Length() != 1, "Invalid number of arguments", v8::Exception::Error);
-    JS_THROW_IF(!args[0]->IsString(), "Argument is not a string", v8::Exception::TypeError);
+    if (args.Length() != 1)
+        binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
+    if (!args[0]->IsString())
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "Argument is not a string");
     v8::Isolate *isolate = get_bare_introspect_ptr(args)->getIsolate();
     auto name = binder::from_v8<std::string>(isolate, args[0]);
     args.GetReturnValue().Set(BindingManager::Ref().search(name) != nullptr);
@@ -131,11 +144,14 @@ std::map<std::string, std::function<bool(const Runtime::Options&)>> policy_check
 
 void introspect_has_security_policy(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-    JS_THROW_IF(args.Length() != 1, "Invalid number of arguments", v8::Exception::Error);
-    JS_THROW_IF(!args[0]->IsString(), "Security policy name is not a string", v8::Exception::TypeError);
+    if (args.Length() != 1)
+        binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
+    if (!args[0]->IsString())
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "Security policy name is not a string");
     v8::Isolate *isolate = get_bare_introspect_ptr(args)->getIsolate();
     auto policy = binder::from_v8<std::string>(isolate, args[0]);
-    JS_THROW_IF(!policy_checker_map.contains(policy), "Invalid policy name", v8::Exception::Error);
+    if (!policy_checker_map.contains(policy))
+        binder::JSException::Throw(binder::ExceptT::kError, "Invalid policy name");
     Runtime *rt = Runtime::GetBareFromIsolate(isolate);
     CHECK(rt != nullptr);
     args.GetReturnValue().Set(policy_checker_map[policy](rt->getOptions()));
@@ -157,12 +173,18 @@ void introspect_write_journal(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
     v8::Isolate *isolate = get_bare_introspect_ptr(args)->getIsolate();
     Runtime *rt = Runtime::GetBareFromIsolate(isolate);
-    JS_THROW_IF(!rt->getOptions().introspect_allow_write_journal,
-                "Writing to journal is forbidden by current introspect policy", v8::Exception::Error);
-    JS_THROW_IF(args.Length() != 2, "Invalid number of arguments", v8::Exception::Error);
-    JS_THROW_IF(!args[0]->IsString() || !args[1]->IsString(), "Arguments is not strings", v8::Exception::TypeError);
+    if (!rt->getOptions().introspect_allow_write_journal)
+    {
+        binder::JSException::Throw(binder::ExceptT::kError,
+                                   "Writing to journal is forbidden by current introspect policy");
+    }
+    if (args.Length() != 2)
+        binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
+    if (!args[0]->IsString() || !args[1]->IsString())
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "Arguments is not strings");
     auto level = binder::from_v8<std::string>(isolate, args[0]);
-    JS_THROW_IF(!log_level_name_map.contains(level), "Unrecognized journal level string", v8::Exception::Error);
+    if (!log_level_name_map.contains(level))
+        binder::JSException::Throw(binder::ExceptT::kError, "Unrecognized journal level string");
     auto content = binder::from_v8<std::string>(isolate, args[1]);
     QLOG(log_level_name_map[level], "{}", content);
 }
@@ -172,17 +194,21 @@ void introspect_stacktrace(const v8::FunctionCallbackInfo<v8::Value>& args)
     // TODO: Complete this.
     v8::Isolate *isolate = get_bare_introspect_ptr(args)->getIsolate();
     v8::HandleScope scope(isolate);
-    JS_THROW_IF(args.Length() > 1, "Too many arguments", v8::Exception::Error);
+    if (args.Length() > 1)
+        binder::JSException::Throw(binder::ExceptT::kError, "Too many arguments");
     int frameLimit = Runtime::GetBareFromIsolate(isolate)->getOptions().introspect_stacktrace_frame_limit;
     if (args.Length() == 1)
     {
-        JS_THROW_IF(!args[0]->IsNumber(), "Frame limitation is not a number", v8::Exception::TypeError);
+        if (!args[0]->IsNumber())
+            binder::JSException::Throw(binder::ExceptT::kTypeError, "Frame limitation is not a number");
         frameLimit = binder::from_v8<int>(isolate, args[0]);
-        JS_THROW_IF(frameLimit < 0, "Invalid frame limitation", v8::Exception::RangeError);
+        if (frameLimit < 0)
+            binder::JSException::Throw(binder::ExceptT::kRangeError, "Invalid frame limitation");
     }
 
     v8::Local<v8::StackTrace> trace = v8::StackTrace::CurrentStackTrace(isolate, frameLimit);
-    JS_THROW_IF(trace.IsEmpty(), "Failed to capture stack state", v8::Exception::Error);
+    if (trace.IsEmpty())
+        binder::JSException::Throw(binder::ExceptT::kError, "Failed to capture stack state");
 
     v8::Local<v8::Array> result = v8::Array::New(isolate, trace->GetFrameCount());
     v8::Local<v8::Context> context = Runtime::GetBareFromIsolate(isolate)->context();
@@ -303,8 +329,8 @@ bool introspect_invoke_callback(VMIntrospect *this_, ArgsT&&...args)
     v8::Isolate *isolate = this_->getIsolate();
     v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
     v8::TryCatch tryCatch(isolate);
-    binder::call_v8(isolate, cb,
-                    isolate->GetCurrentContext()->Global(), std::forward<ArgsT>(args)...);
+    binder::Invoke(isolate, cb,
+                   isolate->GetCurrentContext()->Global(), std::forward<ArgsT>(args)...);
     if (tryCatch.HasCaught())
     {
         v8::Local<v8::String> string = tryCatch.Exception()->ToString(ctx).ToLocalChecked();
@@ -366,7 +392,7 @@ VMIntrospect::PerformCheckpointResult VMIntrospect::performScheduledTasksCheckpo
         if (hasCaught)
         {
             if (!task.reject.IsEmpty())
-                binder::call_v8(fIsolate, task.reject.Get(fIsolate), recv, exception);
+                binder::Invoke(fIsolate, task.reject.Get(fIsolate), recv, exception);
             else
             {
                 v8::Local<v8::String> str = exception->ToString(fIsolate->GetCurrentContext())
@@ -380,7 +406,7 @@ VMIntrospect::PerformCheckpointResult VMIntrospect::performScheduledTasksCheckpo
         }
         else if (!task.callback.IsEmpty())
         {
-            binder::call_v8(fIsolate, task.callback.Get(fIsolate), recv, value);
+            binder::Invoke(fIsolate, task.callback.Get(fIsolate), recv, value);
         }
         if (tryCatch.HasCaught())
             return PerformCheckpointResult::kThrow;

@@ -48,6 +48,10 @@ ObjectRegistry<Traits>::ObjectRegistry(v8::Isolate *isolate, type_info const& ty
                 {
                     return args.GetReturnValue().Set(this_->wrap_object(args));
                 }
+                catch (const JSException& ex)
+                {
+                    args.GetReturnValue().Set(JSException::TakeOver(ex));
+                }
                 catch (std::exception const& ex)
                 {
                     args.GetReturnValue().Set(throw_(isolate, ex.what()));

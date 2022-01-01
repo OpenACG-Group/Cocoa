@@ -20,7 +20,7 @@ void uncaughtException(v8::Local<v8::Message> message, v8::Local<v8::Value> exce
     v8::Local<v8::String> string = except->ToString(ctx).ToLocalChecked();
     QLOG(LOG_ERROR, "%fg<re>Uncaught exception: {}%reset", binder::from_v8<std::string>(isolate, string));
 
-    QLOG(LOG_ERROR, "%fg<re>Stack traceback (most recent call last):%reset");
+    QLOG(LOG_ERROR, "  %fg<re>Stack traceback (most recent call last):%reset");
     v8::Local<v8::StackTrace> trace = message->GetStackTrace();
     MeasuredTable mt(/* minSpace */ 1);
     for (int32_t i = 0; i < trace->GetFrameCount(); i++)
@@ -52,7 +52,7 @@ void uncaughtException(v8::Local<v8::Message> message, v8::Local<v8::Value> exce
                   fmt::format("%fg<cy>(from {})%reset", scriptName));
     }
     mt.flush([](const std::string& line) {
-        QLOG(LOG_ERROR, "{}", line);
+        QLOG(LOG_ERROR, "    {}", line);
     });
 
     if (rt->getIntrospect())
@@ -66,7 +66,8 @@ void perIsolateMessageListener(v8::Local<v8::Message> message,
     Runtime *rt = Runtime::GetBareFromIsolate(isolate);
     CHECK(rt);
 
-    switch (message->ErrorLevel())
+    auto level = message->ErrorLevel();
+    switch (level)
     {
     case v8::Isolate::MessageErrorLevel::kMessageWarning:
     {

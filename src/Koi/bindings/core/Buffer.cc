@@ -6,6 +6,7 @@
 #include "Core/Utils.h"
 #include "Koi/KoiBase.h"
 #include "Koi/binder/Class.h"
+#include "Koi/binder/CallV8.h"
 #include "Koi/bindings/core/Exports.h"
 KOI_BINDINGS_NS_BEGIN
 
@@ -15,7 +16,8 @@ enum class Encoding
 {
     kLatin1,        // ASCII
     kUtf8,
-    kUcs2
+    kUcs2,
+    kHex
 };
 
 // NOLINTNEXTLINE
@@ -23,20 +25,35 @@ std::map<std::string, Encoding> encoding_names_ = {
         {"latin1", Encoding::kLatin1},
         {"ascii",  Encoding::kLatin1},
         {"utf8",   Encoding::kUtf8},
-        {"ucs2",   Encoding::kUcs2}
+        {"ucs2",   Encoding::kUcs2},
+        {"hex",    Encoding::kHex}
 };
+
+constexpr int constexpr_log2ui(uint64_t x)
+{
+    int a = -1;
+    while (x) { x >>= 1; a++; }
+    return a;
+}
 
 size_t stringByteLength(v8::Isolate *isolate, v8::Local<v8::String> str,
                         Encoding encoding)
 {
+    size_t x = str->Length();
     switch (encoding)
     {
     case Encoding::kLatin1:
-        return str->Length();
+        return x;
     case Encoding::kUtf8:
         return str->Utf8Length(isolate);
     case Encoding::kUcs2:
-        return str->Length() * sizeof(uint16_t);
+        // p = 2^k (k∈N)
+        // => x * p == x << k == x << log2(p)
+        return x << constexpr_log2ui(sizeof(uint16_t));
+    case Encoding::kHex:
+        // x/2,     if x = 2k (k∈N)
+        // x/2 + 1, if x = 2k+1 (k∈N)
+        return (x >> 1) + (x & 1);
     }
 
     MARK_UNREACHABLE();
@@ -80,6 +97,35 @@ size_t encodeStringUcs2(v8::Isolate* isolate, char *buf, size_t buflen,
 
     *chars_written = nchars;
     return nchars * sizeof(*dst);
+}
+
+uint8_t parse_hex_byte(char p0)
+{
+    if (p0 >= '0' && p0 <= '9')
+        return p0 - '0';
+    else if (p0 >= 'a' && p0 <= 'f')
+        return p0 - 'a' + 10;
+    else if (p0 >= 'A' && p0 <= 'F')
+        return p0 - 'A' + 10;
+    throw std::runtime_error("Unexpected character in hex string");
+}
+
+size_t encodeStringHex(v8::Isolate *isolate, uint8_t *dstBuf, v8::Local<v8::String> str)
+{
+    if (!str->IsOneByte())
+        throw std::runtime_error("Hex string must be one-byte encoded");
+    auto hex_str = binder::from_v8<std::string>(isolate, str);
+    size_t p = hex_str.length() & 1;
+    uint8_t *ptr = dstBuf;
+    if (p)
+        *ptr++ = parse_hex_byte(hex_str[0]);
+    while (p < hex_str.length())
+    {
+        uint8_t r0 = parse_hex_byte(hex_str[p++]);
+        uint8_t r1 = parse_hex_byte(hex_str[p++]);
+        *ptr++ = (r0 << 4) | r1;
+    }
+    return (ptr - dstBuf);
 }
 
 size_t encodeString(v8::Isolate *isolate, uint8_t *buf, size_t buflen,
@@ -130,6 +176,10 @@ size_t encodeString(v8::Isolate *isolate, uint8_t *buf, size_t buflen,
             utils::SwapBytes16(buf, nbytes);
         break;
     }
+
+    case Encoding::kHex:
+        nbytes = encodeStringHex(isolate, buf, str);
+        break;
     }
     return nbytes;
 }
@@ -143,7 +193,8 @@ v8::Local<v8::Uint8Array> newBuffer(std::size_t length)
     return v8::Uint8Array::New(ab, 0, length);
 }
 
-v8::Local<v8::Uint8Array> newBuffer(v8::Local<v8::String> str, Encoding encoding)
+v8::Local<v8::Uint8Array> newBuffer(v8::Local<v8::String> str, Encoding encoding,
+                                    int *charsWritten)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     size_t length = stringByteLength(isolate, str, encoding);
@@ -157,7 +208,7 @@ v8::Local<v8::Uint8Array> newBuffer(v8::Local<v8::String> str, Encoding encoding
                                      length,
                                      str,
                                      encoding,
-                                     nullptr);
+                                     charsWritten);
     CHECK(actualSize > 0);
     return v8::Uint8Array::New(ab, 0, length);
 }
@@ -176,40 +227,59 @@ binder::Class<Buffer> Buffer::GetClass()
 
 /**
  * Prototypes:
- *      new Buffer(str: string, encoding: string)
+ *      new Buffer(str: string, encoding: string, charsWritten: RefValue)
  *      new Buffer(length: number)
  */
 Buffer::Buffer(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     v8::HandleScope scope(isolate);
-    if (info.Length() <= 0 || info.Length() > 2)
-        throw std::invalid_argument("Invalid number of arguments");
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+
+    if (info.Length() <= 0 || info.Length() > 3)
+        binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
 
     v8::Local<v8::Uint8Array> array;
-    if (info.Length() == 2 && info[0]->IsString() && info[1]->IsString())
+    if (info.Length() >= 2 && info[0]->IsString() && info[1]->IsString())
     {
+        v8::Local<v8::Object> outCharsWritten;
+        if (info.Length() == 3)
+        {
+            if (!info[2]->IsObject())
+                binder::JSException::Throw(binder::ExceptT::kTypeError, "Bad arguments");
+            if (!Runtime::GetBareFromIsolate(isolate)->isInstanceOfGlobalClass(info[2], "RefValue"))
+                binder::JSException::Throw(binder::ExceptT::kError, "Bad arguments: not an instance of RefValue");
+            outCharsWritten = info[2]->ToObject(context).ToLocalChecked();
+        }
         std::string encoding = binder::from_v8<std::string>(isolate, info[1]);
         if (!encoding_names_.contains(encoding))
-            throw std::invalid_argument("Unexpected encoding");
-        array = newBuffer(info[0].As<v8::String>(), encoding_names_[encoding]);
+            binder::JSException::Throw(binder::ExceptT::kError, "Invalid encoding name");
+
+        int chars;
+        array = newBuffer(info[0].As<v8::String>(), encoding_names_[encoding], &chars);
+        if (!outCharsWritten.IsEmpty())
+        {
+            v8::TryCatch catcher(isolate);
+            binder::InvokeMethod(isolate, outCharsWritten, "set", chars);
+            if (catcher.HasCaught())
+                binder::JSException::Throw(binder::ExceptT::kError, "Failed in setting value in RefValue");
+        }
     }
     else if (info.Length() == 1 && info[0]->IsNumber())
     {
         int64_t size = 0;
         if (!info[0].As<v8::Number>()->IntegerValue(isolate->GetCurrentContext()).To(&size))
-            throw std::invalid_argument("Bad buffer size");
-        if (size <= 0)
-            throw std::invalid_argument("Bad buffer size");
-        if (size >= v8::Uint8Array::kMaxLength)
-            throw std::invalid_argument("Buffer size is too large");
+            binder::JSException::Throw(binder::ExceptT::kError, "Bad buffer size: not an integer");
+        if (size <= 0 || size >= v8::Uint8Array::kMaxLength)
+            binder::JSException::Throw(binder::ExceptT::kRangeError, "Bad buffer size: out of range");
         array = newBuffer(size);
     }
     else
-        throw std::invalid_argument("Bad arguments");
+        binder::JSException::Throw(binder::ExceptT::kError, "Bad arguments");
 
     if (array.IsEmpty())
-        throw std::invalid_argument("Memory allocation failed");
+        binder::JSException::Throw(binder::ExceptT::kError, "Memory allocation failed");
+
     fArray = v8::Global<v8::Uint8Array>(isolate, array);
     fBackingStore = array->Buffer()->GetBackingStore();
 }
@@ -247,21 +317,27 @@ v8::Local<v8::Value> Buffer::copy(const v8::FunctionCallbackInfo<v8::Value>& arg
     size_t byteSize = this->length();
     uint64_t start = 0;
     uint64_t len = byteSize;
-    JS_THROW_RET_IF(args.Length() > 2, "Too many arguments", {}, v8::Exception::Error);
+    if (args.Length() > 2)
+        binder::JSException::Throw(binder::ExceptT::kError, "Too many arguments");
     for (int32_t i = 0; i < args.Length(); i++)
-        JS_THROW_RET_IF(!args[i]->IsNumber(), "Arguments are not numbers", {}, v8::Exception::TypeError);
+    {
+        if (!args[i]->IsNumber())
+            binder::JSException::Throw(binder::ExceptT::kTypeError, "Arguments are not numbers");
+    }
+
     if (args.Length() > 0)
     {
         start = binder::from_v8<uint64_t>(isolate, args[0]);
         if (args.Length() > 1)
             len = binder::from_v8<uint64_t>(isolate, args[1]);
     }
-    JS_THROW_RET_IF(start + len > byteSize, "Invalid length and offset", {}, v8::Exception::RangeError);
+    if (start + len > byteSize)
+        binder::JSException::Throw(binder::ExceptT::kRangeError, "Invalid length and offset");
 
     Runtime *pRT = Runtime::GetBareFromIsolate(isolate);
     v8::Local<v8::Object> newBuffer;
     if (!pRT->newObjectFromSynthetic("core", "Buffer", binder::to_v8(isolate, len)).ToLocal(&newBuffer))
-        JS_THROW_RET_IF(true, "Failed to construct a new buffer", {}, v8::Exception::Error);
+        binder::JSException::Throw(binder::ExceptT::kError, "Failed to construct a new buffer");
 
     auto pNativeNewBuffer = binder::Class<Buffer>::unwrap_object(isolate, newBuffer);
     CHECK(pNativeNewBuffer != nullptr);
@@ -274,22 +350,29 @@ v8::Local<v8::Value> Buffer::copy(const v8::FunctionCallbackInfo<v8::Value>& arg
 v8::Local<v8::Value> Buffer::toDataView(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
     v8::Isolate *isolate = args.GetIsolate();
-    JS_THROW_RET_IF(args.Length() > 2, "Too many arguments", {}, v8::Exception::Error);
+    if (args.Length() > 2)
+        binder::JSException::Throw(binder::ExceptT::kError, "Too many arguments");
     int64_t offset = 0;
     auto size = static_cast<int64_t>(this->length());
     if (args.Length() > 0)
     {
         offset = binder::from_v8<decltype(offset)>(isolate, args[0]);
-        JS_THROW_RET_IF(offset < 0 || offset >= size, "Invalid offset in bytes", {}, v8::Exception::RangeError);
+        if (offset < 0 || offset >= size)
+            binder::JSException::Throw(binder::ExceptT::kRangeError, "Invalid offset in bytes");
         if (args.Length() > 1)
         {
             int64_t realSize = size;
             size = binder::from_v8<decltype(size)>(isolate, args[1]);
-            JS_THROW_RET_IF(size < 0 || size >= realSize, "Invalid size in bytes", {}, v8::Exception::RangeError);
+            if (size < 0 || size >= realSize)
+        binder::JSException::Throw(binder::ExceptT::kRangeError, "Invalid size in bytes");
         }
     }
     v8::Local<v8::Uint8Array> array = fArray.Get(isolate);
     return v8::DataView::New(array->Buffer(), offset, size);
+}
+
+v8::Local<v8::Value> Buffer::toString(const std::string& coding)
+{
 }
 
 KOI_BINDINGS_NS_END

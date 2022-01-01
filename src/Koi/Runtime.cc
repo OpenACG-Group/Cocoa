@@ -18,6 +18,7 @@
 
 #include "Koi/binder/Module.h"
 #include "Koi/binder/Class.h"
+#include "Koi/binder/CallV8.h"
 #include "Koi/bindings/Base.h"
 KOI_NS_BEGIN
 
@@ -97,6 +98,42 @@ v8::Local<v8::Module> createSyntheticModule(v8::Isolate *isolate,
     return scope.Escape(module);
 }
 
+void executeInternalScript(const std::shared_ptr<Runtime>& rt, const std::string& url)
+{
+    v8::Isolate *isolate = rt->isolate();
+    v8::HandleScope handleScope(isolate);
+
+    auto resolvedUrl = ModuleImportURL::Resolve(nullptr,
+                                                url,
+                                                ModuleImportURL::ResolvedAs::kSysExecute);
+    if (!resolvedUrl)
+    {
+        throw RuntimeException::Builder(__func__)
+            .append("Failed in decompressing internal script ")
+            .append(resolvedUrl->toString())
+            .make<RuntimeException>();
+    }
+
+    auto maybeSource = resolvedUrl->loadResourceText();
+    if (!maybeSource)
+    {
+        throw RuntimeException::Builder(__func__)
+                .append("Failed in decompressing internal script ")
+                .append(resolvedUrl->toString())
+                .make<RuntimeException>();
+    }
+
+    auto result = rt->execute(resolvedUrl->toString().c_str(),
+                              maybeSource->c_str());
+    if (result.IsEmpty())
+    {
+        throw RuntimeException::Builder(__func__)
+                .append("Failed in executing internal script ")
+                .append(resolvedUrl->toString())
+                .make<RuntimeException>();
+    }
+}
+
 } // namespace anonymous
 
 std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(EventLoop *loop,
@@ -127,20 +164,26 @@ std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(EventLoop *loop,
 
     auto *isolate = v8::Isolate::New(params);
     isolate->SetMicrotasksPolicy(v8::MicrotasksPolicy::kExplicit);
-    v8::Isolate::Scope isolateScope(isolate);
-    v8::HandleScope scope(isolate);
+    std::shared_ptr<Runtime> runtime;
 
-    v8::Local<v8::Context> context = v8::Context::New(isolate);
-    v8::Context::Scope contextScope(context);
+    {
+        v8::Isolate::Scope isolateScope(isolate);
+        v8::HandleScope scope(isolate);
 
-    auto runtime = std::make_shared<Runtime>(loop,
-                                             std::move(platform),
-                                             params.array_buffer_allocator,
-                                             isolate,
-                                             v8::Global<v8::Context>(isolate, context),
-                                             options);
-    auto isolateGuard = std::make_unique<GlobalIsolateGuard>(runtime);
-    runtime->setGlobalIsolateGuard(std::move(isolateGuard));
+        v8::Local<v8::Context> context = v8::Context::New(isolate);
+        v8::Context::Scope contextScope(context);
+
+        runtime = std::make_shared<Runtime>(loop,
+                                            std::move(platform),
+                                            params.array_buffer_allocator,
+                                            isolate,
+                                            v8::Global<v8::Context>(isolate, context),
+                                            options);
+        auto isolateGuard = std::make_unique<GlobalIsolateGuard>(runtime);
+        runtime->setGlobalIsolateGuard(std::move(isolateGuard));
+
+        executeInternalScript(runtime, "internal://context/refvalue");
+    }
 
     return runtime;
 }
@@ -174,6 +217,9 @@ Runtime::Runtime(EventLoop *loop,
     fIsolate->SetData(ISOLATE_DATA_SLOT_RUNTIME_PTR, this);
     if (fOptions.rt_expose_introspect)
         fIntrospect = VMIntrospect::InstallGlobal(fIsolate);
+
+    v8::Local<v8::Context> ctx = this->context();
+    ctx->Global()->Set(ctx, binder::to_v8(fIsolate, "__global__"), ctx->Global()).Check();
 }
 
 Runtime::~Runtime()
@@ -386,6 +432,44 @@ KeepInLoop Runtime::loopPrologueDispatch()
 void Runtime::asyncDispatch()
 {
     // TODO: Implement inspector
+}
+
+bool Runtime::isInstanceOfGlobalClass(v8::Local<v8::Value> value, const std::string& class_)
+{
+    if (!value->IsObject())
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "value is not an object");
+
+    v8::HandleScope scope(fIsolate);
+    v8::Local<v8::Context> ctx = context();
+
+    v8::Local<v8::Value> constructor;
+    if (!ctx->Global()->Get(ctx, binder::to_v8(fIsolate, class_)).ToLocal(&constructor))
+    {
+        binder::JSException::Throw(binder::ExceptT::kReferenceError,
+                                   "No global constructor function named " + class_);
+    }
+    if (!constructor->IsFunction())
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "Constructor is not a function");
+
+    v8::Local<v8::Value> method;
+    if (!constructor.As<v8::Function>()->Get(ctx, binder::to_v8(fIsolate, "__has_instance__")).ToLocal(&method))
+    {
+        binder::JSException::Throw(binder::ExceptT::kReferenceError,
+                                   "Constructor has no property named __has_instance__");
+    }
+    if (!method->IsFunction())
+    {
+        binder::JSException::Throw(binder::ExceptT::kTypeError,
+                                   "Property __has_instance__ is not a function");
+    }
+
+    v8::Local<v8::Value> ret = binder::Invoke(fIsolate, method.As<v8::Function>(), ctx->Global(), value);
+    if (!ret->IsBoolean())
+    {
+        binder::JSException::Throw(binder::ExceptT::kTypeError,
+                                   "Method __has_instance__ does not return a boolean value");
+    }
+    return ret.As<v8::Boolean>()->Value();
 }
 
 KOI_NS_END

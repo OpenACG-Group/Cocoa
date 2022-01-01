@@ -18,13 +18,9 @@ void corePrint(const std::string& str)
 void coreDump(const std::string& what)
 {
     if (what == "descriptors-info")
-    {
         FDLRDumpMappingInfo();
-    }
     else
-    {
-        JS_THROW_IF(false, "Unknown dump target");
-    }
+        binder::JSException::Throw(binder::ExceptT::kError, "Invalid dump target");
 }
 
 void coreExit()

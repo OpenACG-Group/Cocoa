@@ -135,6 +135,10 @@ struct r_property_impl<Get, Set, true>
             get_impl(*obj, prop.getter, name, info, select_getter_tag<Get>());
         }
     }
+    catch (const JSException& ex)
+    {
+        info.GetReturnValue().Set(JSException::TakeOver(ex));
+    }
     catch (std::exception const& ex)
     {
         info.GetReturnValue().Set(throw_(info.GetIsolate(), ex.what()));
@@ -186,6 +190,10 @@ struct r_property_impl<Get, Set, false>
         {
             get_impl(prop.getter, name, info, select_getter_tag<Get>());
         }
+    }
+    catch (const JSException& ex)
+    {
+        info.GetReturnValue().Set(JSException::TakeOver(ex));
     }
     catch (std::exception const& ex)
     {
@@ -253,6 +261,10 @@ struct rw_property_impl<Get, Set, true>
             set_impl(*obj, prop.setter, name, value, info, select_setter_tag<Set>());
         }
     }
+    catch (const JSException& ex)
+    {
+        info.GetReturnValue().Set(JSException::TakeOver(ex));
+    }
     catch (std::exception const& ex)
     {
         info.GetReturnValue().Set(throw_(info.GetIsolate(), ex.what()));
@@ -303,6 +315,10 @@ struct rw_property_impl<Get, Set, false>
         {
             set_impl(prop.setter, name, value, info, select_setter_tag<Set>());
         }
+    }
+    catch (const JSException& ex)
+    {
+        info.GetReturnValue().Set(JSException::TakeOver(ex));
     }
     catch (std::exception const& ex)
     {

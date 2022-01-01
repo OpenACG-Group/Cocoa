@@ -73,6 +73,8 @@ public:
     uint8_t byteAt(int64_t idx);
     v8::Local<v8::Value> copy(const v8::FunctionCallbackInfo<v8::Value>& args);
     v8::Local<v8::Value> toDataView(const v8::FunctionCallbackInfo<v8::Value>& args);
+    v8::Local<v8::Value> toString(const std::string& coding);
+    static size_t GetEncodedSize(v8::Local<v8::Value> str, const std::string& encoding);
 
 private:
     uint8_t *getWriteableDataPointerByte();

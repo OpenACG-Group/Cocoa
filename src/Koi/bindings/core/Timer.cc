@@ -110,9 +110,9 @@ private:
             return KeepInLoop::kNo;
         }
         v8::Isolate *isolate = v8::Isolate::GetCurrent();
-        v8::Local<v8::Value> result = binder::call_v8(isolate,
-                                                      fCallback.Get(isolate),
-                                                      isolate->GetCurrentContext()->Global());
+        v8::Local<v8::Value> result = binder::Invoke(isolate,
+                                                     fCallback.Get(isolate),
+                                                     isolate->GetCurrentContext()->Global());
 
         if (fState == State::kWaitTimeout)
         {

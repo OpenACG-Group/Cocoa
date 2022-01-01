@@ -465,6 +465,10 @@ private:
             Attribute attr = detail::external_data::get<Attribute>(info.Data());
             info.GetReturnValue().Set(to_v8(isolate, (*self).*attr));
         }
+        catch (const JSException& ex)
+        {
+            info.GetReturnValue().Set(JSException::TakeOver(ex));
+        }
         catch (std::exception const& ex)
         {
             info.GetReturnValue().Set(throw_(isolate, ex.what()));
@@ -483,6 +487,10 @@ private:
             Attribute ptr = detail::external_data::get<Attribute>(info.Data());
             using attr_type = typename detail::function_traits<Attribute>::return_type;
             (*self).*ptr = from_v8<attr_type>(isolate, value);
+        }
+        catch (const JSException& ex)
+        {
+            info.GetReturnValue().Set(JSException::TakeOver(ex));
         }
         catch (std::exception const& ex)
         {
