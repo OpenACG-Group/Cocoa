@@ -16,14 +16,16 @@ struct InternalScript
         kUserImport     = 1,
         kSysExecute     = 2,
         kSysImport      = 3,
-        kLastScopeAttr  = kSysImport
+        kUnknown        = 4,
+        kLastScopeAttr  = kUnknown
     };
 
     enum class ScopeAttrValue
     {
         kAllowed,
         kForbidden,
-        kInformal
+        kInformal,
+        kEmpty
     };
 
     enum class Error
@@ -33,10 +35,13 @@ struct InternalScript
         kNotFound
     };
 
-    std::string name;
-    std::string author;
-    std::string content;
-    ScopeAttrValue scope[kLastScopeAttr + 1];
+    ~InternalScript();
+
+    std::string         name;
+    std::string         author;
+    char               *content;
+    size_t              contentSize;
+    ScopeAttrValue      scope[kLastScopeAttr + 1];
 
     using ConstPtr = const InternalScript*;
 

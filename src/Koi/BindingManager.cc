@@ -2,10 +2,11 @@
 #include "Core/Errors.h"
 #include <vector>
 
+#include "Core/Journal.h"
 #include "Koi/BindingManager.h"
 #include "Koi/bindings/Base.h"
+#include "Koi/bindings/SignalSlotForwardAdapter.h"
 #include "Koi/bindings/core/Exports.h"
-#include "Core/Journal.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi)
 
@@ -23,11 +24,16 @@ BindingManager::~BindingManager()
     for (bindings::BindingBase *ptr : fBindings)
     {
         CHECK(ptr);
-        QLOG(LOG_DEBUG, "Unloading binding {}:{}", ptr->name(), ptr->getUniqueId());
+        QLOG(LOG_DEBUG, "Unloading binding {}:{}", ptr->name(), ptr->onGetUniqueId());
         delete ptr;
     }
     for (void *ptr : fLibHandles)
         ::dlclose(ptr);
+}
+
+void BindingManager::NotifyIsolateHasCreated(v8::Isolate *isolate)
+{
+    bindings::SignalSlotForwardAdapter::RegisterClass(isolate);
 }
 
 bindings::BindingBase *BindingManager::search(const std::string& name)
@@ -81,7 +87,7 @@ bool BindingManager::appendBinding(bindings::BindingBase *ptr)
     if (pos != fBlacklist.end())
     {
         QLOG(LOG_DEBUG, "Binding {}:{} is blocked because of blacklist",
-             ptr->name(), ptr->getUniqueId());
+             ptr->name(), ptr->onGetUniqueId());
         return false;
     }
     for (auto itr = fBindings.begin(); itr != fBindings.end(); itr++)
@@ -91,16 +97,16 @@ bool BindingManager::appendBinding(bindings::BindingBase *ptr)
             if (!fAllowOverride)
             {
                 QLOG(LOG_DEBUG, "Binding {}:{} won't be loaded because of name conflict",
-                     ptr->name(), ptr->getUniqueId());
+                     ptr->name(), ptr->onGetUniqueId());
                 return false;
             }
             QLOG(LOG_WARNING, "Binding {}:{} is overriden by {}",
-                 (*itr)->name(), (*itr)->getUniqueId(), ptr->getUniqueId());
+                 (*itr)->name(), (*itr)->onGetUniqueId(), ptr->onGetUniqueId());
             *itr = ptr;
             return true;
         }
     }
-    QLOG(LOG_DEBUG, "Binding {} is registered (import \'{}\')", ptr->getUniqueId(), ptr->name());
+    QLOG(LOG_DEBUG, "Binding {} is registered (import \'{}\')", ptr->onGetUniqueId(), ptr->name());
     fBindings.push_back(ptr);
     return true;
 }

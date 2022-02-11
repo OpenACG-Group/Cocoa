@@ -3,26 +3,22 @@
 #include <cstring>
 #include <map>
 
-#include <tinyxml2.h>
-
 #include "Core/Exception.h"
+#include "Core/QResource.h"
 #include "Core/CrpkgImage.h"
 #include "Core/Data.h"
 #include "Core/Journal.h"
 #include "Core/Errors.h"
+#include "Core/Utils.h"
 #include "Koi/KoiBase.h"
 #include "Koi/Internals.h"
 KOI_NS_BEGIN
-
-extern "C" const ::uint8_t __koi_internals_sfs_compressed[]; // NOLINT
-extern "C" const ::size_t __koi_internals_sfs_size;         // NOLINT
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi)
 
 namespace {
 
 std::vector<InternalScript*> iCachedScripts;
-std::shared_ptr<CrpkgImage> iImage;
 
 // NOLINTNEXTLINE
 std::map<InternalScript::ScopeAttr, std::string> iScopeAttrNames = {
@@ -76,124 +72,132 @@ getFromCachedScript(const std::string& name, InternalScript::ScopeAttr scope)
     return {s, InternalScript::Error::kNone};
 }
 
-using tinyxml2::XMLError;
-using tinyxml2::XMLDocument;
-using tinyxml2::XMLNode;
-using tinyxml2::XMLElement;
+#define is_whitespace(c)    ((c) == ' ' || (c) == '\t')
 
-bool parseScriptXmlDirectiveScope(XMLElement *pElement, InternalScript *pScript)
+const char *skipWhitespaces(const char *ptr, const char *ep)
 {
-    auto attr = pElement->FindAttribute("attr");
-    auto value = pElement->FindAttribute("value");
-    if (!attr || !value)
-        return false;
-    if (!iScopeAttrValueNames.contains(value->Value()))
-        return false;
-
-    for (const auto& p : iScopeAttrNames)
-    {
-        if (p.second == attr->Value())
-        {
-            pScript->scope[p.first] = iScopeAttrValueNames[value->Value()];
-            return true;
-        }
-    }
-    return false;
+    while (is_whitespace(*ptr) && ptr < ep)
+        ptr++;
+    if (ptr == ep)
+        return nullptr;
+    return ptr;
 }
 
-bool parseScriptXmlDirective(XMLElement *pElement, InternalScript *pScript)
+bool rangeMatch(const char *bp, const char *ep, const char *m, size_t mSize)
 {
-    for (auto& attr : pScript->scope)
-        attr = InternalScript::ScopeAttrValue::kForbidden;
-    XMLElement *directive = pElement->FirstChildElement();
-    while (directive)
+    if (ep - bp != mSize)
+        return false;
+    while (ep < bp)
     {
-        if (!std::strcmp(directive->Name(), "scope"))
-        {
-            if (!parseScriptXmlDirectiveScope(directive, pScript))
-                return false;
-        }
-        else if (!std::strcmp(directive->Name(), "author"))
-        {
-            if (!directive->FirstChild() || !directive->FirstChild()->ToText())
-                return false;
-            pScript->author = directive->FirstChild()->Value();
-        }
-        directive = directive->NextSiblingElement();
+        if (*ep != *m)
+            return false;
+        ep++;
+        m++;
     }
     return true;
 }
 
-InternalScript *parseScriptXml(const char *ptr, size_t size)
+bool parseScriptSingleAttribute(InternalScript *script, const char *bp, const char *ep)
 {
-    XMLDocument document;
-    auto err = document.Parse(ptr, size);
-    if (err != XMLError::XML_SUCCESS)
-        throw RuntimeException(__func__, XMLDocument::ErrorIDToName(err));
+    // attribute:value
+    // ^        ^     ^
+    // bp       sep   ep
 
-    XMLElement *element = document.FirstChildElement();
-    if (std::strcmp(element->Name(), "internal") != 0)
-        return nullptr;
-    element = element->FirstChildElement();
-    auto script = new InternalScript;
-    ScopeEpilogue ep([script] { delete script; });
-    while (element)
+    const char *sep = bp;
+    while (*sep != ':' && sep < ep)
+        sep++;
+    if (sep == ep)
+        return false;
+
+    InternalScript::ScopeAttr attr = InternalScript::ScopeAttr::kUnknown;
+    for (const auto& pair : iScopeAttrNames)
     {
-        if (!std::strcmp(element->Name(), "directive"))
+        if (rangeMatch(bp, sep, pair.second.c_str(), pair.second.length()))
         {
-            if (!parseScriptXmlDirective(element, script))
-                return nullptr;
+            attr = pair.first;
+            break;
         }
-        else if (!std::strcmp(element->Name(), "content"))
+    }
+    if (attr == InternalScript::ScopeAttr::kUnknown)
+        return false;
+
+    InternalScript::ScopeAttrValue value = InternalScript::ScopeAttrValue::kEmpty;
+    for (const auto& pair : iScopeAttrValueNames)
+    {
+        if (rangeMatch(sep + 1, ep, pair.first.c_str(), pair.first.length()))
         {
-            if (!element->FirstChild() || !element->FirstChild()->ToText())
-                return nullptr;
-            script->content = element->FirstChild()->Value();
+            value = pair.second;
+            break;
         }
-        element = element->NextSiblingElement();
+    }
+    if (value == InternalScript::ScopeAttrValue::kEmpty)
+        return false;
+
+    script->scope[attr] = value;
+    return true;
+}
+
+bool parseScriptAttribute(InternalScript *script)
+{
+    const char *sp = script->content;
+    const char *ep = sp;
+    while (*ep != '\0' && *ep != '\n')
+        ep++;
+
+    const char *ptr = skipWhitespaces(sp, ep);
+    if (!ptr)
+        return false;
+    int seq = 1;
+    while (ptr)
+    {
+        const char *tsp = ptr;
+        while (!is_whitespace(*ptr) && ptr < ep)
+            ptr++;
+
+        /* now a separated token is [tsp, ptr) */
+        switch (seq)
+        {
+        case 1:
+            if (!rangeMatch(tsp, ptr, "//", std::char_traits<char>::length("//")))
+                return false;
+            break;
+        case 2:
+            if (!rangeMatch(tsp, ptr, "%scope", std::char_traits<char>::length("%scope")))
+                return false;
+            break;
+        default:
+            if (!parseScriptSingleAttribute(script, tsp, ptr))
+                return false;
+            break;
+        }
+
+        ptr = skipWhitespaces(ptr, ep);
+        seq++;
     }
 
-    ep.abolish();
-    return script;
+    return true;
 }
 
 std::tuple<InternalScript::ConstPtr, InternalScript::Error>
 findFromCompressed(const std::string& name, InternalScript::ScopeAttr scope)
 {
-    std::string fsname;
-    for (char p : name)
-        fsname.push_back(p == '/' ? '.' : p);
+    // FIXME: Check whether `name` is a valid pathname
 
-    if (!iImage)
-    {
-        auto ptr = static_cast<void*>(const_cast<uint8_t*>(__koi_internals_sfs_compressed));
-        auto data = Data::MakeFromPtrWithoutCopy(ptr,
-                                                 __koi_internals_sfs_size,
-                                                 false);
-        CHECK(data);
-        iImage = CrpkgImage::MakeFromData(data);
-        CHECK(iImage);
-    }
-
-    auto file = iImage->openFile("/" + fsname + ".xml");
-    if (!file)
+    auto data = QResource::Instance()->Lookup("org.cocoa.internal.v8", name);
+    if (!data)
         return {nullptr, InternalScript::Error::kNotFound};
-    auto maybeStat = file->stat();
-    CHECK(maybeStat);
 
-    char *buf = new char[maybeStat->size + 1];
-    CHECK(buf);
-    std::memset(buf, '\0', maybeStat->size + 1);
-    CHECK(file->read(buf, static_cast<ssize_t>(maybeStat->size)) > 0);
+    auto *script = new InternalScript;
+    script->contentSize = data->size();
+    script->content = new char[script->contentSize + 1];
+    script->contentSize = data->read(script->content, script->contentSize);
+    script->content[script->contentSize] = '\0';
+    ScopeEpilogue epi([script] { delete script; });
 
-    auto script = parseScriptXml(buf, maybeStat->size);
-    delete[] buf;
-    if (!script)
-    {
-        std::string str(fmt::format("An error has occurred when parse internal script {} (CRPKG:/{}.xml)", name, fsname));
-        throw RuntimeException(__func__, str);
-    }
-    script->name = name;
+    if (!parseScriptAttribute(script))
+        return {nullptr, InternalScript::Error::kNotFound};
+
+    epi.abolish();
     iCachedScripts.push_back(script);
 
     if (!checkScriptScope(script, scope))
@@ -202,6 +206,11 @@ findFromCompressed(const std::string& name, InternalScript::ScopeAttr scope)
 }
 
 } // namespace anonymous
+
+InternalScript::~InternalScript()
+{
+    delete[] content;
+}
 
 std::tuple<InternalScript::ConstPtr, InternalScript::Error>
 InternalScript::Get(const std::string& name, ScopeAttr scope)
@@ -215,12 +224,8 @@ InternalScript::Get(const std::string& name, ScopeAttr scope)
 void InternalScript::GlobalCollect()
 {
     for (InternalScript *ptr : iCachedScripts)
-    {
-        CHECK(ptr != nullptr);
         delete ptr;
-    }
     iCachedScripts.clear();
-    iImage.reset();
 }
 
 KOI_NS_END

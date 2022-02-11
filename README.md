@@ -19,6 +19,14 @@ like scenario parsing are implemented in TypeScript, which is based on native co
 Cocoa is still being developed and haven't been ready for commercial use.
 Issues / Pull requests are welcome.
 
+
+## Background & Pronunciation
+As we all known, cocoa is a type of plant whose bean is the thing from which chocolate is made.
+But _Cocoa_ here doesn't mean that. Instead it comes from an anime called _Is the Order a Rabbit?_
+which has a heroine named _Kokoa Hoto_. So its pronunciation is actually follows the Japanese
+Katakana 「ココア」, which is \kokoa\ in IPA. But it doesn't matter much if you pronounce it in
+English way.
+
 ## Dependencies
 Generally, Cocoa is based on Google's [V8 JavaScript Engine](https://v8.dev) and
 [Skia Graphics Library](https://skia.org). V8 provides an execution environment
@@ -30,6 +38,8 @@ script can download (or clone for git repositories) and build dependencies autom
 instructions in [configuration file](third_party/package-lists.json). Most huge third-party libraries
 will be built as shared objects (`.so` file), and other small dependencies like fmt and libuv will
 be built as static libraries and linked to Cocoa directly.
+
+## CLI Options
 
 
 ## TypeScript
@@ -46,9 +56,5 @@ A *synthetic module* is **a module that only contains native exports**. Syntheti
 have no file paths, which means you should import them just by thier name directly (like `'core'`).
 Actually, synthetic modules are presented by a special format in Cocoa internally: name of
 the module adds a prefix `synthetic://`. For instance, `core` module will be identified by
-URL `synthetic://core`. There are three special exports for each synthetic module: `__name__`,
-`__desc__` and `__unique_id__`. As you can see, `__name__` and `__desc__` are global
-variables with string type that store the name and description of the module. `__unique_id__`
-can be a little complex, it identifies a *language binding* for a globally unique identifier.
-For more details about *language bindings* and *synthetic modules*, see also
-[Developers' Guide](docs/build/html/index.html).
+URL `synthetic://core`.
+

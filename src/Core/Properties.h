@@ -18,14 +18,9 @@ class PropertyNode : public std::enable_shared_from_this<PropertyNode>
 public:
     enum class Protection
     {
-        /* Accessible to C++, JavaScript, and command line */
         kPublic,
-        /* Accessible to C++ and JavaScript */
-        kProtected,
-        /* Accessible to C++ only */
         kPrivate,
-
-        kDefault = kPublic
+        kDefault = kPrivate
     };
 
     enum class Kind {
@@ -39,6 +34,11 @@ public:
     explicit PropertyNode(Kind kind);
     virtual ~PropertyNode() = default;
 
+    template<typename T, typename std::enable_if<std::is_base_of_v<PropertyNode, T>>::type* = nullptr>
+    co_nodiscard inline std::shared_ptr<T> as() {
+        return std::dynamic_pointer_cast<T>(shared_from_this());
+    }
+
     inline std::shared_ptr<PropertyNode> parent()
     { return fParent.lock(); }
 
@@ -50,8 +50,9 @@ public:
 
     void setParent(const std::shared_ptr<PropertyNode>& node);
 
-    inline void setProtection(Protection prot)
-    { fProtection = prot; }
+    void setProtection(Protection prot) {
+        fProtection = prot;
+    }
 
     co_nodiscard inline Protection protection() const
     { return fProtection; }
@@ -73,7 +74,9 @@ public:
     ~PropertyObjectNode() override = default;
 
     std::shared_ptr<PropertyNode> getMember(const std::string& name);
-    void setMember(const std::string& name, std::shared_ptr<PropertyNode> member);
+    std::shared_ptr<PropertyNode> setMember(const std::string& name,
+                                            const std::shared_ptr<PropertyNode>& member);
+    void renameMember(const std::string& oldName, const std::string& newName);
     void unsetMember(const std::string& name);
     bool hasMember(const std::string& name);
 
@@ -94,11 +97,44 @@ private:
     std::map<std::string, std::shared_ptr<PropertyNode>> fMembers;
 };
 
+class PropertyDataNode : public PropertyNode
+{
+public:
+    explicit PropertyDataNode(std::any&& value);
+    PropertyDataNode();
+    ~PropertyDataNode() override = default;
+
+    template<typename T>
+    T& extract() {
+        return std::any_cast<T&>(fData);
+    }
+
+    const std::type_info& type();
+    void reset(std::any&& value);
+
+    co_nodiscard inline bool hasValue() const {
+        return fData.has_value();
+    }
+
+    std::string toQLogString() override;
+    void forEachChild(ForEachChildCb cb) override {}
+
+private:
+    std::any    fData;
+};
+
 class PropertyArrayNode : public PropertyNode
 {
 public:
     PropertyArrayNode();
     ~PropertyArrayNode() override = default;
+
+    template<typename T>
+    std::shared_ptr<PropertyArrayNode> append(const std::vector<T>& vec) {
+        for (const T& element : vec)
+            append(std::make_shared<PropertyDataNode>(element));
+        return shared_from_this()->template as<PropertyArrayNode>();
+    }
 
     void append(std::shared_ptr<PropertyNode> node);
     void erase(uint32_t i0);
@@ -122,27 +158,6 @@ public:
 
 private:
     std::vector<std::shared_ptr<PropertyNode>> fSubscripts;
-};
-
-class PropertyDataNode : public PropertyNode
-{
-public:
-    explicit PropertyDataNode(std::any&& value);
-    ~PropertyDataNode() override = default;
-
-    template<typename T>
-    T& extract() {
-        return std::any_cast<T&>(fData);
-    }
-
-    const std::type_info& type();
-    void reset(std::any&& value);
-
-    std::string toQLogString() override;
-    void forEachChild(ForEachChildCb cb) override {}
-
-private:
-    std::any    fData;
 };
 
 namespace prop

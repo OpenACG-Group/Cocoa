@@ -82,9 +82,6 @@
             "temporaryDirs": [
                 "${build_dir}/dbus-cxx-build"
             ],
-            "patch": [
-                "${patch_dir}/dbus-cxx-typeinfo.patch"
-            ],
             "compile": [
                 {
                     "workingDir": "${build_dir}/dbus-cxx-build",

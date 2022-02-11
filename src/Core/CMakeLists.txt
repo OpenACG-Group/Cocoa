@@ -1,7 +1,20 @@
 enable_language(C ASM CXX)
 
-set(core_target Core)
-set(core_sources
+set(
+        QRESOURCE_AUTOLOAD_IMAGES
+        ${QRESOURCE_COMPILED_DIR}/org.cocoa.internal.v8.crpkg
+)
+
+add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
+        COMMAND ${CMAKE_HOME_DIRECTORY}/script/intern-crpkgs.py
+                ${QRESOURCE_AUTOLOAD_IMAGES}
+                >${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
+        DEPENDS ${QRESOURCE_AUTOLOAD_IMAGES}
+)
+
+add_library(
+        Core STATIC
         Journal.h
         Journal.cc
         Exception.h
@@ -25,12 +38,15 @@ set(core_sources
         CpuInfo.cc
         Errors.h
         Errors.cc
-        EnumClassBitfield.h)
+        EnumClassBitfield.h
+        DBusConnection.h
+        DBusConnection.cc
+        QResource.h
+        QResource.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
+)
 
-add_library(${core_target} STATIC ${core_sources})
-
-set(SQUASH_LIBS squash z)
-target_link_libraries(${core_target}
+target_link_libraries(Core
         PRIVATE
         pthread
         dl
@@ -38,7 +54,13 @@ target_link_libraries(${core_target}
         uv_a
         fmt::fmt
         cpu_features
-        ${SQUASH_LIBS})
+
+        ## DBus libraries
+        PkgConfig::SIGC
+        dbus-cxx
+
+        ## SquashFS required libraries
+        squash z)
 
 ## For symbol analyzing in RuntimeException
 add_link_options(-rdynamic)

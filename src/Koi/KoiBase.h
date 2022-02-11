@@ -12,8 +12,9 @@
 #define KOI_BINDINGS_NS_BEGIN   namespace cocoa::koi::bindings {
 #define KOI_BINDINGS_NS_END     }
 
-#define koi_nodiscard [[nodiscard]]
-#define koi_maybe_unsed [[maybe_unused]]
+#define koi_nodiscard       [[nodiscard]]
+#define koi_maybe_unsed     [[maybe_unused]]
+#define koi_noreturn        [[noreturn]]
 
 template<typename T>
 using KoSp = std::shared_ptr<T>;

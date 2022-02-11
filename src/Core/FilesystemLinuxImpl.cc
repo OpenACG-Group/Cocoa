@@ -110,6 +110,14 @@ std::string Realpath(const std::string& path)
     return gRealpathBuffer;
 }
 
+bool IsDirectory(const std::string& path)
+{
+    struct stat stbuf{};
+    if (::stat(path.c_str(), &stbuf) < 0)
+        return false;
+    return S_ISDIR(stbuf.st_mode);
+}
+
 AccessResult Access(const std::string& path, Bitfield<AccessMode> mode)
 {
     int32_t iMode = 0;
@@ -194,6 +202,11 @@ void *MemMap(int32_t fd, void *address, Bitfield<MapProtection> protection,
 
     void *ptr = mmap(address, size, iProtection, iFlags, fd, offset);
     return (ptr == MAP_FAILED) ? nullptr : ptr;
+}
+
+bool MemMapHasFailed(void *ret)
+{
+    return (ret == MAP_FAILED);
 }
 
 int32_t MemUnmap(void *address, size_t size)

@@ -46,7 +46,9 @@ public:
     enum class CallbackSlot
     {
         kUncaughtException,
-        kBeforeExit
+        kBeforeExit,
+        kUnhandledPromiseRejection,
+        kPromiseMultipleResolve
     };
     using CallbackMap = std::map<CallbackSlot, v8::Global<v8::Function>>;
 
@@ -54,6 +56,12 @@ public:
     {
         kThrow,
         kOk
+    };
+
+    enum class MultipleResolveAction
+    {
+        kResolve,
+        kReject
     };
 
     /**
@@ -73,6 +81,8 @@ public:
 
     bool notifyUncaughtException(v8::Local<v8::Value> except);
     bool notifyBeforeExit();
+    bool notifyUnhandledPromiseRejection(v8::Local<v8::Promise> promise, v8::Local<v8::Value> value);
+    bool notifyPromiseMultipleResolve(v8::Local<v8::Promise> promise, MultipleResolveAction action);
 
     void setCallbackSlot(CallbackSlot slot, v8::Local<v8::Function> func);
     v8::MaybeLocal<v8::Function> getCallbackFromSlot(CallbackSlot slot);

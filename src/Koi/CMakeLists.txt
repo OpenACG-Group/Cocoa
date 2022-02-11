@@ -14,13 +14,6 @@ macro(add_binding_exports_getter generated mdspath)
     )
 endmacro()
 
-add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/InternalsSfsBytes.cc
-        COMMAND ${CMAKE_HOME_DIRECTORY}/script/compress-internal-scripts.py
-                ${CMAKE_CURRENT_SOURCE_DIR}/internals > ${CMAKE_CURRENT_BINARY_DIR}/InternalsSfsBytes.cc
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/internals/**
-)
-
 add_library(Koi STATIC
         KoiBase.h
         Runtime.h
@@ -38,6 +31,8 @@ add_library(Koi STATIC
         VMIntrospect.cc
         UnixPathTools.h
         UnixPathTools.cc
+        Infrastructures.h
+        Infrastructures.cc
         binder/PtrTraits.h
         binder/Utility.h
         binder/Convert.h
@@ -53,18 +48,24 @@ add_library(Koi STATIC
         binder/Module.h
         binder/CallV8.h
         bindings/Base.h
+        bindings/SignalSlotForwardAdapter.h
+        bindings/SignalSlotForwardAdapter.cc
+
         bindings/core/Exports.h
         bindings/core/CoreBinding.cc
         bindings/core/Property.cc
-        bindings/core/Timer.cc
         bindings/core/FdRandomize.h
         bindings/core/FdRandomize.cc
         bindings/core/Filesystem.cc
         bindings/core/Buffer.cc
         bindings/core/Process.cc
         ${CMAKE_CURRENT_BINARY_DIR}/CoreBindingGen.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/InternalsSfsBytes.cc)
+)
 
-target_link_libraries(Koi PRIVATE v8_libplatform v8 tinyxml2)
+target_link_libraries(
+        Koi
+        tinyxml2
+        ${COCOA_THIRDPARTY_DIR}/v8/out/release/obj/libv8_monolith.a
+)
 
 add_binding_exports_getter(CoreBindingGen.cc bindings/core/exports.mds)

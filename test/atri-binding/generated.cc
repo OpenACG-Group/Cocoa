@@ -1,14 +1,14 @@
 #include "atri.h"
 namespace cocoa::koi::bindings {
 void AtriBinding::getModule(binder::Module& __mod) {
-    __mod.set("fma", atriRoboko);
+    __mod.set("wakeup", ATRIWakeup);
 }
 namespace {
 const char *__g_this_exports[] = {
-   "fma",
+   "wakeup",
    nullptr
 };
-const char *__g_unique_id = "c2a3ce62d70f9426";
+const char *__g_unique_id = "200337a1ddf2877f";
 } // namespace anonymous
 const char **AtriBinding::getExports() { return __g_this_exports; }
 const char *AtriBinding::getUniqueId() { return __g_unique_id; }

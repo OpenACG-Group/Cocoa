@@ -13,8 +13,8 @@
       <config projectName="Cocoa" targetName="uv" />
       <config projectName="Cocoa" targetName="Core" />
       <config projectName="Cocoa" targetName="ContinuousSubmit" />
+      <config projectName="Cocoa" targetName="cocoa-qresc" />
       <config projectName="Cocoa" targetName="ExperimentalUpdate" />
-      <config projectName="Cocoa" targetName="dist" />
       <config projectName="Cocoa" targetName="ExperimentalTest" />
       <config projectName="Cocoa" targetName="ExperimentalCoverage" />
       <config projectName="Cocoa" targetName="Shader" />
@@ -27,7 +27,6 @@
       <config projectName="Cocoa" targetName="NightlySubmit" />
       <config projectName="Cocoa" targetName="Cocoa" />
       <config projectName="Cocoa" targetName="fmt" />
-      <config projectName="Cocoa" targetName="GENHDR" />
       <config projectName="Cocoa" targetName="ExperimentalStart" />
       <config projectName="Cocoa" targetName="NightlyCoverage" />
       <config projectName="Cocoa" targetName="cpu_features" />
@@ -41,10 +40,10 @@
       <config projectName="Cocoa" targetName="ContinuousStart" />
       <config projectName="Cocoa" targetName="ContinuousCoverage" />
       <config projectName="Cocoa" targetName="NightlyTest" />
-      <config projectName="Cocoa" targetName="websockets" />
       <config projectName="Cocoa" targetName="Experimental" />
       <config projectName="Cocoa" targetName="Nightly" />
       <config projectName="Cocoa" targetName="ExperimentalMemCheck" />
+      <config projectName="Cocoa" targetName="Cobalt" />
       <config projectName="Cocoa" targetName="NightlyMemCheck" />
       <config projectName="Cocoa" targetName="ContinuousUpdate" />
       <config projectName="Cocoa" targetName="Koi" />
@@ -53,116 +52,331 @@
   </component>
   <component name="CMakeSettings">
     <configurations>
-      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" GENERATION_OPTIONS="-DCMAKE_EXPORT_COMPILE_COMMANDS=ON" />
+      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" GENERATION_OPTIONS="-G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON" />
     </configurations>
   </component>
   <component name="ChangeListManager">
     <list default="true" id="625018aa-1ca1-4995-ae3f-94e4e8743e1f" name="Default Changelist" comment="Default Changelist">
-      <change afterPath="$PROJECT_DIR$/src/Koi/internals/context.refvalue.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/typescript/global/mutable_global.d.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/literature/essay.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/qresource/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/qresource/compiled/org.cocoa.internal.v8.crpkg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/qresource/org.cocoa.internal.v8/qresource.template.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/qresource/org.cocoa.internal.v8/tests/hello_world.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/qresource/qresourcekit/CMakeLists.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/qresource/qresourcekit/md5.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/qresource/qresourcekit/md5.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/qresource/qresourcekit/qresc.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/script/intern-crpkgs.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/CMakeLists.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Cobalt.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Cobalt.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/CopyMoveTest.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Display.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Display.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderClient.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderClient.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderClientCallInfo.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderClientEmitterInfo.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderClientObject.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderClientObject.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderClientSignalEmit.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderClientTransfer.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderHost.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderHost.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderHostCallbackInfo.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderHostCallbackInfo.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderHostCreator.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderHostCreator.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderHostInvocation.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderHostSlotCallbackInfo.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/RenderHostSlotCallbackInfo.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/WaylandDisplay.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/WaylandDisplay.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/protos/pointer-gestures-unstable-v1-client-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/protos/pointer-gestures-unstable-v1-client-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/protos/primary-selection-unstable-v1-client-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/protos/primary-selection-unstable-v1-client-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/protos/tablet-unstable-v2-client-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/protos/tablet-unstable-v2-client-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/protos/xdg-output-unstable-v1-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/protos/xdg-output-unstable-v1-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/protos/xdg-shell-client-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/protos/xdg-shell-client-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/protos/xdg-shell-unstable-v6-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/protos/xdg-shell-unstable-v6-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Core/DBusConnection.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Core/DBusConnection.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Core/QResource.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Core/QResource.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Core/dbus-cocoa-inspector.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/CMakeLists.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/Gsk.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/Gsk.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskContentFormats.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskContentFormats.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskContentProvider.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskContentProvider.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskCursor.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskCursor.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskDevice.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskDevice.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskDisplay.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskDisplay.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskDisplayManager.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskDisplayManager.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskEnumerations.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskEvent.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskEvent.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskEventQueue.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskEventQueue.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskKey.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskKeySymbols.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskKeyUnicode.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskKeymap.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskKeymap.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskKeynameTable.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskMonitor.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskMonitor.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskSeat.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/GskSeat.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/GskSkSurfaceWrapper.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/GskWaylandCursor.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/GskWaylandDevice.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/GskWaylandDevice.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/GskWaylandDisplay.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/GskWaylandDisplay.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/GskWaylandKeymap.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/GskWaylandKeymap.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/GskWaylandMonitor.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/GskWaylandMonitor.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/GskWaylandSeat.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/GskWaylandSeat.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/cursor/XCursor.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/cursor/XCursor.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/cursor/config.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/cursor/os-compatibility.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/cursor/os-compatibility.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/cursor/wayland-cursor.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/cursor/wayland-cursor.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/protos/pointer-gestures-unstable-v1-client-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/protos/pointer-gestures-unstable-v1-client-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/protos/primary-selection-unstable-v1-client-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/protos/primary-selection-unstable-v1-client-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/protos/tablet-unstable-v2-client-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/protos/tablet-unstable-v2-client-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/protos/xdg-output-unstable-v1-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/protos/xdg-output-unstable-v1-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/protos/xdg-shell-client-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/protos/xdg-shell-client-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/protos/xdg-shell-unstable-v6-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gsk/wayland/protos/xdg-shell-unstable-v6-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Koi/Infrastructures.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Koi/Infrastructures.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Koi/bindings/SignalSlotForwardAdapter.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Koi/bindings/SignalSlotForwardAdapter.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/WaylandDisplay.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/WaylandDisplay.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/WaylandSeat.cc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/WaylandSeat.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/pointer-gestures-unstable-v1-client-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/pointer-gestures-unstable-v1-client-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/primary-selection-unstable-v1-client-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/primary-selection-unstable-v1-client-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/tablet-unstable-v2-client-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/tablet-unstable-v2-client-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/xdg-shell-client-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/xdg-shell-client-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/xdg-shell-unstable-v6-protocol.c" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Vanilla/Wayland/xdg-shell-unstable-v6-protocol.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/atri-binding/invokeany.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/atri-binding/tutorial/interact.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/benchmark/fib.bin" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/benchmark/fibonacci.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/benchmark/fibonacci.lua" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/promise/pass-0.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/promise/pass-1.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/promise/pass-3.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/promise/pass-4.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/test/promise/pass-5.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/typescript/copy_test.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/typescript/dump.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/typescript/synthetics/gsk.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/Cocoa.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Cocoa.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/jsLibraryMappings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/jsLibraryMappings.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.jshintrc" beforeDir="false" afterPath="$PROJECT_DIR$/.jshintrc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/build/html/runtime_cmd.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/build/html/runtime_cmd.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/old/[Users] TypeScript.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/old/[Users] TypeScript.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/TestSample/bgm/01_遠く君へ.m4a" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/TestSample/icon/koinu.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/TestSample/signature.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/cantarell.ttf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/drmhowto-double-buffer.c" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/keysyms.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/keysyms2.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/keysyms3.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/koinu.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/ktdl_note.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/ktdl_sample.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/profiler_raster.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/profiler_vk.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_0.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_1.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_10.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_11.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_12.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_13.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_14.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_15.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_16.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_17.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_18.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_19.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_2.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_20.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_21.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_22.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_23.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_24.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_25.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_26.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_27.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_28.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_29.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_3.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_30.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_31.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_32.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_33.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_34.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_35.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_36.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_37.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_38.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_39.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_4.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_40.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_41.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_42.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_43.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_44.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_45.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_46.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_47.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_48.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_49.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_5.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_50.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_51.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_52.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_53.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_54.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_55.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_56.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_57.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_58.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_59.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_6.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_60.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_61.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_62.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_63.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_64.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_65.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_66.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_67.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_68.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_69.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_7.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_70.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_71.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_8.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/skp/frame_9.skp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/visual_novel_example.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/res/かなりあ.mp3" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/cocoaproject/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/compress-internal-scripts.py" beforeDir="false" afterPath="$PROJECT_DIR$/script/compress-internal-scripts.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/generate-binding-exports-getter.py" beforeDir="false" afterPath="$PROJECT_DIR$/script/generate-binding-exports-getter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/CrpkgImage.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/CrpkgImage.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/CrpkgImage.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/CrpkgImage.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/EnumClassBitfield.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EnumClassBitfield.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/EventLoop.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EventLoop.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/EventSource.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/EventSource.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Filesystem.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Filesystem.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/FilesystemLinuxImpl.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/FilesystemLinuxImpl.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Journal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Journal.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Project.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Project.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Properties.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Properties.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Properties.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Properties.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Utils.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utils.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/Utils.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/Utils.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/plist-lang/PListASTNode.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/plist-lang/Parser.y" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Core/plist-lang/Scanner.l" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/BindingManager.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/BindingManager.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/BindingManager.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/BindingManager.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/GlobalIsolateGuard.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/GlobalIsolateGuard.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/GlobalIsolateGuard.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/GlobalIsolateGuard.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/Internals.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Internals.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/Internals.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Internals.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/KoiBase.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/KoiBase.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/ModuleImportURL.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/ModuleImportURL.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/Runtime.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Runtime.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/Runtime.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Runtime.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/UnixPathTools.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/UnixPathTools.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/VMIntrospect.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/VMIntrospect.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/binder/CallV8.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/binder/CallV8.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/binder/Class.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/binder/Class.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/VMIntrospect.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/VMIntrospect.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/binder/Class.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/binder/Class.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/binder/Function.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/binder/Function.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/binder/Property.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/binder/Property.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/binder/ThrowExcept.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/binder/ThrowExcept.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/binder/Convert.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/binder/Convert.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/binder/ThrowExcept.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/binder/ThrowExcept.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/binder/Utility.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/binder/Utility.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/bindings/Base.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/Base.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/Buffer.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/Buffer.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/CoreBinding.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/CoreBinding.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/Exports.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/Exports.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/FdRandomize.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/FdRandomize.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/Filesystem.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/Filesystem.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/Process.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/Process.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/Timer.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/Timer.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/dbus-cxx/dbus-cxx/demangle.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/Property.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/Property.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/Timer.cc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/exports.mds" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/exports.mds" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Koi/internals/context.refvalue.xml" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/internals/context.refvalue.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Context.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Context.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Context.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Context.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Display.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Display.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/DrawContext.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/DrawContext.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/VkDrawContext.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/VkDrawContext.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbDisplay.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbDisplay.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbDisplay.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbDisplay.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbEventQueue.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Vanilla/Xcb/XcbEventQueue.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/vanilla_render_test.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/vanilla_render_test.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/atri-binding/atri.cc" beforeDir="false" afterPath="$PROJECT_DIR$/test/atri-binding/atri.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/atri-binding/atri.h" beforeDir="false" afterPath="$PROJECT_DIR$/test/atri-binding/atri.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/atri-binding/exports.mds" beforeDir="false" afterPath="$PROJECT_DIR$/test/atri-binding/exports.mds" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/atri-binding/generated.cc" beforeDir="false" afterPath="$PROJECT_DIR$/test/atri-binding/generated.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/atri-binding/libatri.so" beforeDir="false" afterPath="$PROJECT_DIR$/test/atri-binding/libatri.so" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/atri-binding/use-example.js" beforeDir="false" afterPath="$PROJECT_DIR$/test/atri-binding/use-example.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/third_party/libsquash/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libsquash/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/libsquash/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libsquash/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/DEPS" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/DEPS" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/PRESUBMIT.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/PRESUBMIT.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/include/cppgc/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/include/cppgc/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/include/v8.h" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/include/v8.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/infra/testing/PRESUBMIT.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/infra/testing/PRESUBMIT.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/src/builtins/array-join.tq" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/src/builtins/array-join.tq" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/test/benchmarks/csuite/benchmark.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/test/benchmarks/csuite/benchmark.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/test/benchmarks/csuite/compare-baseline.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/test/benchmarks/csuite/compare-baseline.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/test/mozilla/mozilla.status" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/test/mozilla/mozilla.status" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/third_party/binutils/download.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/third_party/binutils/download.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/third_party/inspector_protocol/check_protocol_compatibility.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/third_party/inspector_protocol/check_protocol_compatibility.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/third_party/inspector_protocol/code_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/third_party/inspector_protocol/code_generator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/third_party/inspector_protocol/concatenate_protocols.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/third_party/inspector_protocol/concatenate_protocols.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/third_party/inspector_protocol/convert_protocol_to_json.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/third_party/inspector_protocol/convert_protocol_to_json.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/third_party/inspector_protocol/roll.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/third_party/inspector_protocol/roll.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/third_party/jsoncpp/README.chromium" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/third_party/jsoncpp/README.chromium" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/third_party/v8/builtins/LICENSE" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/third_party/v8/builtins/LICENSE" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/adb-d8.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/adb-d8.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/bigint-tester.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/bigint-tester.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/callstats.html" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/callstats.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/callstats.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/callstats.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/js_fuzzer/tools/fuzz_one.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/js_fuzzer/tools/fuzz_one.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/js_fuzzer/tools/minimize.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/js_fuzzer/tools/minimize.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/js_fuzzer/tools/run_one.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/js_fuzzer/tools/run_one.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/js_fuzzer/tools/workbench.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/js_fuzzer/tools/workbench.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/v8_foozzie.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/v8_foozzie.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/v8_foozzie_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/v8_foozzie_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/v8_fuzz_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/clusterfuzz/v8_fuzz_config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/compare_torque_output.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/compare_torque_output.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/debug_helper/gen-heap-constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/debug_helper/gen-heap-constants.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/dev/gen-tags.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/dev/gen-tags.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/dev/gm.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/dev/gm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/dev/update-compile-commands.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/dev/update-compile-commands.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/dev/v8gen.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/dev/v8gen.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/dump-cpp.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/dump-cpp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/find-commit-for-patch.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/find-commit-for-patch.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/gc_nvp_common.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/gc_nvp_common.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/gcmole/gcmole.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/gcmole/gcmole.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/gdb-v8-support.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/gdb-v8-support.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/gen-inlining-tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/gen-inlining-tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/gen-keywords-gen-h.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/gen-keywords-gen-h.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/generate-builtins-tests.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/generate-builtins-tests.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/generate-header-include-checks.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/generate-header-include-checks.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/generate-runtime-call-stats.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/generate-runtime-call-stats.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/generate-ten-powers.scm" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/generate-ten-powers.scm" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/link_clicker.extension/README.txt" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/link_clicker.extension/README.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/locs.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/locs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/mb/mb.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/mb/mb.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/perf-compare.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/perf-compare.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/regexp-sequences.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/regexp-sequences.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/release/check_clusterfuzz.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/release/check_clusterfuzz.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/release/common_includes.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/release/common_includes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/release/filter_build_files.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/release/filter_build_files.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/release/merge_to_branch.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/release/merge_to_branch.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/release/roll_merge.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/release/roll_merge.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/release/test_scripts.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/release/test_scripts.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/run_perf.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/run_perf.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/sanitizers/sancov_formatter.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/sanitizers/sancov_formatter.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/sanitizers/sancov_formatter_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/sanitizers/sancov_formatter_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/sanitizers/sancov_merger.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/sanitizers/sancov_merger.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/snapshot/asm_to_inline_asm.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/snapshot/asm_to_inline_asm.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/system-analyzer/view/list-panel-template.html" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/system-analyzer/view/list-panel-template.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/testrunner/base_runner.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/testrunner/base_runner.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/testrunner/local/statusfile.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/testrunner/local/statusfile.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/testrunner/local/utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/testrunner/local/utils.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/testrunner/objects/testcase.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/testrunner/objects/testcase.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/testrunner/outproc/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/testrunner/outproc/base.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/testrunner/outproc/message.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/testrunner/outproc/message.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/testrunner/outproc/mkgrokdump.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/testrunner/outproc/mkgrokdump.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/testrunner/testproc/progress.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/testrunner/testproc/progress.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/testrunner/utils/dump_build_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/testrunner/utils/dump_build_config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/testrunner/utils/dump_build_config_gyp.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/testrunner/utils/dump_build_config_gyp.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/torque/format-torque.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/torque/format-torque.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/turbolizer-perf.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/turbolizer-perf.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/unittests/run_perf_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/unittests/run_perf_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/unittests/run_tests_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/unittests/run_tests_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/unittests/testdata/predictable_mocked.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/unittests/testdata/predictable_mocked.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/unittests/testdata/testroot2/d8_mocked.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/unittests/testdata/testroot2/d8_mocked.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/unittests/v8_presubmit_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/unittests/v8_presubmit_test.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/update-object-macros-undef.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/update-object-macros-undef.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/inject-compilation-hints.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/inject-compilation-hints.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/wasm-objdump-compilation-hints.py" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/tools/wasm-compilation-hints/wasm-objdump-compilation-hints.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/third_party/package-lists.json" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/package-lists.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/third_party/v8/third_party/googletest/BUILD.gn" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/third_party/googletest/BUILD.gn" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/core/property_tree.ts" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/typescript/global/introspect.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/global/introspect.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/global/mutable_global.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/global/infrastructure.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/global/refvalue.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/global/refvalue.d.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/index.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/out/core/property_tree.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/core/property_tree.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/out/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/synthetics/core.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/synthetics/core.d.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/typescript/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/tsconfig.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -174,16 +388,13 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
-  <component name="FileColors">
-    <fileColor scope="Open Files" color="Green" />
-  </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="CMakeLists.txt" />
-        <option value="JavaScript File" />
         <option value="TypeScript File" />
         <option value="Python Script" />
+        <option value="JavaScript File" />
+        <option value="CMakeLists.txt" />
       </list>
     </option>
   </component>
@@ -219,15 +430,18 @@
     <option name="stateVersion" value="1" />
   </component>
   <component name="OCResolveContextSettings">
-    <option name="configuration" value="0-Debug-Koi" />
+    <option name="configuration" value="0-Debug-Gsk" />
   </component>
   <component name="ProjectId" id="1nQNEoyPdrzgqwWQElfzYOVS8Nt" />
-  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="Git.Branch.Popup.ShowAllRepositories" value="true" />
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
@@ -264,11 +478,11 @@
       <recent name="$PROJECT_DIR$/src/NaGui" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/src/Koi/bindings/core" />
+      <recent name="$PROJECT_DIR$/qresource/compiled" />
       <recent name="$PROJECT_DIR$/script" />
-      <recent name="$PROJECT_DIR$/typescript/synthetics" />
-      <recent name="$PROJECT_DIR$/src/Vanilla" />
-      <recent name="$PROJECT_DIR$/deprecated" />
+      <recent name="$PROJECT_DIR$/qresource/qresourcekit" />
+      <recent name="$PROJECT_DIR$/src/Gsk/wayland" />
+      <recent name="$PROJECT_DIR$/src/Koi/bindings" />
     </key>
   </component>
   <component name="RunAnythingCache">
@@ -283,15 +497,30 @@
         <option name="com.jetbrains.cidr.cpp.gradle.execution.GradleNativeBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration default="true" type="lua.app" factoryName="Lua Application">
+      <option name="program" value="/usr/bin/lua" />
+      <option name="file" value="" />
+      <option name="workingDir" value="$PROJECT_DIR$/third_party/libsquash/include/squash/cache.h" />
+      <option name="debuggerType" value="2" />
+      <option name="params" value="" />
+      <option name="charset" value="UTF-8" />
+      <option name="showConsole" value="true" />
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="skia_viewer" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/third_party/skia" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Default" CONFIG_NAME="Default" RUN_PATH="$PROJECT_DIR$/third_party/skia/out/Dev/viewer">
       <method v="2" />
     </configuration>
-    <configuration name="Cocoa" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--log-level=debug -s index.js" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/cmake-build-debug" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Cocoa" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="Cocoa">
+    <configuration name="Cobalt" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Cobalt" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="GENHDR" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="GENHDR" CONFIG_NAME="Debug">
+    <configuration name="Cocoa" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--log-level=debug -s js/fs.js" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/cmake-build-debug" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Cocoa" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="Cocoa">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -301,12 +530,12 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="cpu_features" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="cpu_features" CONFIG_NAME="Debug">
+    <configuration name="cocoa-qresc" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="cocoa-qresc" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Cocoa" RUN_TARGET_NAME="cocoa-qresc">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="dist" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="dist" CONFIG_NAME="Debug">
+    <configuration name="cpu_features" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="cpu_features" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -322,11 +551,6 @@
       </method>
     </configuration>
     <configuration name="utils" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="utils" CONFIG_NAME="Debug">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="websockets" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="websockets" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -374,15 +598,14 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="CMake Application.Cobalt" />
       <item itemvalue="CMake Application.Cocoa" />
-      <item itemvalue="CMake Application.GENHDR" />
       <item itemvalue="CMake Application.Koi" />
+      <item itemvalue="CMake Application.cocoa-qresc" />
       <item itemvalue="CMake Application.cpu_features" />
-      <item itemvalue="CMake Application.dist" />
       <item itemvalue="CMake Application.list_cpu_features" />
       <item itemvalue="CMake Application.unix_based_hardware_detection" />
       <item itemvalue="CMake Application.utils" />
-      <item itemvalue="CMake Application.websockets" />
       <item itemvalue="Custom Build Application.skia_viewer" />
       <item itemvalue="Python.BUILD" />
       <item itemvalue="Python.build-third-party" />
@@ -793,6 +1016,72 @@
       <workItem from="1641027215247" duration="175000" />
       <workItem from="1641027423112" duration="310000" />
       <workItem from="1641027744893" duration="10921000" />
+      <workItem from="1641099062139" duration="22923000" />
+      <workItem from="1641181417375" duration="11601000" />
+      <workItem from="1641306931167" duration="2871000" />
+      <workItem from="1641394029249" duration="3618000" />
+      <workItem from="1641478087487" duration="3104000" />
+      <workItem from="1641564830452" duration="3441000" />
+      <workItem from="1641619285457" duration="29075000" />
+      <workItem from="1641707924561" duration="1976000" />
+      <workItem from="1641710960169" duration="8495000" />
+      <workItem from="1641824054589" duration="960000" />
+      <workItem from="1641909607453" duration="5907000" />
+      <workItem from="1641982569904" duration="17899000" />
+      <workItem from="1642000949683" duration="876000" />
+      <workItem from="1642070500537" duration="10197000" />
+      <workItem from="1642161822057" duration="6163000" />
+      <workItem from="1642213981936" duration="10339000" />
+      <workItem from="1642235884651" duration="6907000" />
+      <workItem from="1642305421243" duration="1222000" />
+      <workItem from="1642309002917" duration="18479000" />
+      <workItem from="1642392799136" duration="11608000" />
+      <workItem from="1642412468706" duration="123000" />
+      <workItem from="1642417409854" duration="9920000" />
+      <workItem from="1642428495819" duration="943000" />
+      <workItem from="1642486990753" duration="23339000" />
+      <workItem from="1642649283032" duration="18000" />
+      <workItem from="1642651640705" duration="719000" />
+      <workItem from="1642664300235" duration="2164000" />
+      <workItem from="1642666513152" duration="12720000" />
+      <workItem from="1642749020464" duration="15169000" />
+      <workItem from="1642828783114" duration="20083000" />
+      <workItem from="1642914071161" duration="8047000" />
+      <workItem from="1643009005099" duration="17557000" />
+      <workItem from="1643095648886" duration="10479000" />
+      <workItem from="1643175124634" duration="1637000" />
+      <workItem from="1643181505393" duration="6443000" />
+      <workItem from="1643258010771" duration="18409000" />
+      <workItem from="1643355863853" duration="23346000" />
+      <workItem from="1643423243581" duration="37271000" />
+      <workItem from="1643514806945" duration="8091000" />
+      <workItem from="1643523724295" duration="29091000" />
+      <workItem from="1643601918751" duration="21514000" />
+      <workItem from="1643684982901" duration="34223000" />
+      <workItem from="1643799596740" duration="15927000" />
+      <workItem from="1643855512936" duration="29563000" />
+      <workItem from="1643951681261" duration="13077000" />
+      <workItem from="1643983612992" duration="877000" />
+      <workItem from="1644030289286" duration="1482000" />
+      <workItem from="1644032008306" duration="4270000" />
+      <workItem from="1644036607443" duration="17910000" />
+      <workItem from="1644115890997" duration="1400000" />
+      <workItem from="1644124675255" duration="4727000" />
+      <workItem from="1644139107054" duration="23262000" />
+      <workItem from="1644164233318" duration="1437000" />
+      <workItem from="1644200996024" duration="16126000" />
+      <workItem from="1644233752805" duration="3049000" />
+      <workItem from="1644241970759" duration="8505000" />
+      <workItem from="1644293416838" duration="19182000" />
+      <workItem from="1644336200777" duration="1458000" />
+      <workItem from="1644395481504" duration="8994000" />
+      <workItem from="1644414522762" duration="12683000" />
+      <workItem from="1644472295907" duration="446000" />
+      <workItem from="1644472762303" duration="123000" />
+      <workItem from="1644472899717" duration="142000" />
+      <workItem from="1644473282804" duration="19063000" />
+      <workItem from="1644555303357" duration="2813000" />
+      <workItem from="1644582654140" duration="5264000" />
     </task>
     <servers />
   </component>
@@ -818,6 +1107,31 @@
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
       <map>
+        <entry key="33f96d88-4b7d-4d1f-a370-bc8b61352a11">
+          <value>
+            <State>
+              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="HEAD" />
+                      </list>
+                    </value>
+                  </entry>
+                  <entry key="structure">
+                    <value>
+                      <list>
+                        <option value="dir:/home/sora/Project/C++/Cocoa/src/Gsk" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
         <entry key="MAIN">
           <value>
             <State>
@@ -830,6 +1144,13 @@
                       </list>
                     </value>
                   </entry>
+                  <entry key="roots">
+                    <value>
+                      <list>
+                        <option value="$PROJECT_DIR$" />
+                      </list>
+                    </value>
+                  </entry>
                 </map>
               </option>
             </State>
@@ -839,6 +1160,7 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
+    <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
     <ignored-roots>
       <path value="$PROJECT_DIR$/deprecated/svm/asmjit" />
       <path value="$PROJECT_DIR$/deps/depot_tools" />
@@ -1007,6 +1329,7 @@
       <path value="$PROJECT_DIR$/third_party/libwebsockets/minimal-examples/embedded/pico/pico-sspc-binance/libwebsockets" />
       <path value="$PROJECT_DIR$/third_party/libwebsockets/minimal-examples/embedded/rt595/hello_world/libwebsockets" />
       <path value="$PROJECT_DIR$/third_party/libwebsockets" />
+      <path value="$PROJECT_DIR$/third_party/lua" />
     </ignored-roots>
   </component>
   <component name="XDebuggerManager">
@@ -1014,8 +1337,18 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/third_party/v8/src/api/api.cc</url>
-          <line>2852</line>
+          <line>2923</line>
           <option name="timeStamp" value="10" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/Cobalt/CopyMoveTest.h</url>
+          <line>13</line>
+          <option name="timeStamp" value="16" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/Cobalt/CopyMoveTest.h</url>
+          <line>17</line>
+          <option name="timeStamp" value="17" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

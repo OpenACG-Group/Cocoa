@@ -30,7 +30,7 @@ print(r'#include <cstdint>')
 print(r'extern "C" const uint8_t __koi_internals_sfs_compressed[] = {')
 size: int = 0
 with open('internals.sfs', 'rb') as f:
-    while (byte := f.read(1)):
+    while byte := f.read(1):
         print('  0x' + byte.hex() + ',')
         size += 1
 print(r'};')

@@ -17,7 +17,7 @@ extern "C" {
 #include "Core/Errors.h"
 #include "Core/Data.h"
 
-#define THIS_FILE_MODULE COCOA_MODULE_NAME(Core)
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Core.Crpkg)
 
 namespace cocoa {
 
@@ -104,6 +104,14 @@ std::shared_ptr<CrpkgFile> CrpkgImage::openFile(const std::string& path)
     return std::make_shared<CrpkgFile>(vfd, shared_from_this());
 }
 
+std::shared_ptr<CrpkgDirectory> CrpkgImage::openDir(const std::string& path)
+{
+    SQUASH_DIR *dirp = squash_opendir(fData->squash, path.c_str());
+    if (!dirp)
+        return nullptr;
+    return std::make_shared<CrpkgDirectory>(dirp, shared_from_this());
+}
+
 namespace {
 thread_local char gTlsPathBuffer[PATH_MAX];
 } // namespace anonymous
@@ -187,6 +195,89 @@ off_t CrpkgFile::seek(vfs::SeekWhence whence, off_t offset)
         break;
     }
     return squash_lseek(fFile, offset, iWhence);
+}
+
+CrpkgDirectory::ScopedSeekRewind::ScopedSeekRewind(std::shared_ptr<CrpkgDirectory> dir,
+                                                   bool rewindImmediately)
+    : fDir(std::move(dir))
+{
+    CHECK(fDir != nullptr);
+    if (rewindImmediately)
+        squash_rewinddir(dir->fDirp);
+}
+
+CrpkgDirectory::ScopedSeekRewind::~ScopedSeekRewind()
+{
+    squash_rewinddir(fDir->fDirp);
+}
+
+CrpkgDirectory::CrpkgDirectory(SQUASH_DIR *dirp, std::shared_ptr<CrpkgImage> image)
+    : fDirp(dirp)
+    , fImage(std::move(image))
+{
+}
+
+CrpkgDirectory::~CrpkgDirectory()
+{
+    squash_closedir(fDirp);
+}
+
+namespace {
+
+CrpkgDirectory::NameFilterMode dirent_type_to_filter_mode(uint8_t type)
+{
+    CrpkgDirectory::NameFilterMode filter;
+    switch (type)
+    {
+    case DT_BLK:
+    case DT_CHR:
+    case DT_FIFO:
+    case DT_REG:
+    case DT_SOCK:
+    case DT_UNKNOWN:
+        filter = CrpkgDirectory::NameFilterMode::kRegular;
+        break;
+    case DT_LNK:
+        filter = CrpkgDirectory::NameFilterMode::kLinked;
+        break;
+    case DT_DIR:
+        filter = CrpkgDirectory::NameFilterMode::kDirectory;
+        break;
+    default:
+        filter = CrpkgDirectory::NameFilterMode::kUnknown;
+        break;
+    }
+    return filter;
+}
+
+} // namespace anonymous
+
+bool CrpkgDirectory::contains(const std::string& name, Bitfield<NameFilterMode> filterMask)
+{
+    ScopedSeekRewind scope(shared_from_this(), true);
+
+    dirent *d = squash_readdir(fDirp);
+    while (d)
+    {
+        NameFilterMode filter = dirent_type_to_filter_mode(d->d_type);
+        if (d->d_name == name && (filterMask & filter))
+            return true;
+        d = squash_readdir(fDirp);
+    }
+    return false;
+}
+
+void CrpkgDirectory::foreachEntry(const ElementForeachFunc& func)
+{
+    ScopedSeekRewind scope(shared_from_this(), true);
+
+    dirent *d = squash_readdir(fDirp);
+    while (d)
+    {
+        NameFilterMode filter = dirent_type_to_filter_mode(d->d_type);
+        func(d->d_name, filter);
+        d = squash_readdir(fDirp);
+    }
 }
 
 } // namespace cocoa

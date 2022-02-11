@@ -23,6 +23,8 @@ public:
     void loadDynamicObject(const std::string& path);
     bindings::BindingBase *search(const std::string& name);
 
+    static void NotifyIsolateHasCreated(v8::Isolate *isolate);
+
 private:
     bool appendBinding(bindings::BindingBase *ptr);
 

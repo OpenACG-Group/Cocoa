@@ -1,5 +1,6 @@
 #include "Core/Properties.h"
 #include "Core/Errors.h"
+#include "Core/Utils.h"
 #include "Koi/UnixPathTools.h"
 
 KOI_NS_BEGIN
@@ -8,13 +9,13 @@ namespace unixpath
 
 std::string SolveShortestPathRepresentation(const std::string& path)
 {
-    CHECK(path.starts_with('/') && "Path should be an absolute path");
+    CHECK(utils::StrStartsWith(path, '/') && "Path should be an absolute path");
     auto cwd = prop::Cast<PropertyDataNode>(prop::Get()
                 ->next("Runtime")
                 ->next("CurrentPath"))
                 ->extract<std::string>();
-    CHECK(cwd.starts_with('/') && "Runtime.CurrentPath should be an absolute path");
-    if (cwd != "/" && !cwd.ends_with('/'))
+    CHECK(utils::StrStartsWith(path, '/') && "Runtime.CurrentPath should be an absolute path");
+    if (cwd != "/" && !utils::StrStartsWith(path, '/'))
         cwd += '/';
 
     /* Find the longest common prefix (LCP) [0, cp) of `path` and `cwd` */

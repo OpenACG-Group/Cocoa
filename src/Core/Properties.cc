@@ -8,6 +8,7 @@
 #include "Core/Exception.h"
 #include "Core/Properties.h"
 #include "Core/Errors.h"
+#include "Core/Utils.h"
 namespace cocoa {
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Core.Property)
@@ -18,8 +19,6 @@ std::string protection_to_string(PropertyNode::Protection prot)
     {
     case PropertyNode::Protection::kPublic:
         return "Public";
-    case PropertyNode::Protection::kProtected:
-        return "Protected";
     case PropertyNode::Protection::kPrivate:
         return "Private";
     }
@@ -34,7 +33,6 @@ PropertyNode::PropertyNode(Kind kind)
 
 void PropertyNode::setParent(const std::shared_ptr<PropertyNode>& node)
 {
-    fProtection = node->protection();
     fParent = node;
 }
 
@@ -62,8 +60,8 @@ std::shared_ptr<PropertyNode> PropertyNode::next(const std::string& member)
 
 std::string PropertyNode::getName()
 {
-    if (fParent.expired() || !fParent.lock())
-        return "<unnamed>";
+    if (fParent.expired())
+        return "<orphan>";
     auto parent = this->parent();
     CHECK(parent->kind() != Kind::kData);
     if (parent->kind() == Kind::kArray)
@@ -84,7 +82,7 @@ std::string PropertyNode::getName()
             if (p.second.get() == this)
                 return p.first;
         }
-        return "<unnamed>";
+        return "<unknown>";
     }
     MARK_UNREACHABLE();
 }
@@ -102,28 +100,39 @@ std::string PropertyObjectNode::toQLogString()
 
 std::shared_ptr<PropertyNode> PropertyObjectNode::getMember(const std::string& name)
 {
-    if (!fMembers.contains(name))
+    if (!utils::MapContains(fMembers, name))
         return nullptr;
     return fMembers[name];
 }
 
 void PropertyObjectNode::unsetMember(const std::string& name)
 {
-    if (!fMembers.contains(name))
+    if (!utils::MapContains(fMembers, name))
         return;
     fMembers.erase(name);
 }
 
-void PropertyObjectNode::setMember(const std::string& name,
-                                   std::shared_ptr<PropertyNode> member)
+std::shared_ptr<PropertyNode> PropertyObjectNode::setMember(const std::string& name,
+                                                            const std::shared_ptr<PropertyNode>& member)
 {
     member->setParent(shared_from_this());
-    fMembers[name] = std::move(member);
+    fMembers[name] = member;
+
+    return member;
+}
+
+void PropertyObjectNode::renameMember(const std::string& oldName, const std::string& newName)
+{
+    if (fMembers.count(oldName) > 0 && fMembers.count(newName) == 0)
+    {
+        fMembers[newName] = fMembers[oldName];
+        fMembers.erase(oldName);
+    }
 }
 
 bool PropertyObjectNode::hasMember(const std::string& name)
 {
-    return fMembers.contains(name);
+    return utils::MapContains(fMembers, name);
 }
 
 PropertyArrayNode::PropertyArrayNode()
@@ -164,6 +173,11 @@ PropertyDataNode::PropertyDataNode(std::any&& value)
 {
 }
 
+PropertyDataNode::PropertyDataNode()
+    : PropertyNode(Kind::kData)
+{
+}
+
 void PropertyDataNode::reset(std::any&& value)
 {
     fData = value;
@@ -186,6 +200,7 @@ std::shared_ptr<PropertyNode> gPropRoot;
 [[maybe_unused]] __attribute__((constructor)) void _initializer()
 {
     gPropRoot = std::make_shared<PropertyObjectNode>();
+    gPropRoot->setProtection(PropertyNode::Protection::kPublic);
 }
 
 [[maybe_unused]] __attribute__((destructor)) void _finalizer()

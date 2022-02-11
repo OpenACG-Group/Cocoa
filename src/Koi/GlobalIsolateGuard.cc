@@ -1,5 +1,6 @@
 #include "Core/MeasuredTable.h"
 #include "Core/Journal.h"
+#include "Core/Utils.h"
 #include "Koi/GlobalIsolateGuard.h"
 #include "Koi/Runtime.h"
 #include "Koi/binder/Convert.h"
@@ -35,7 +36,7 @@ void uncaughtException(v8::Local<v8::Message> message, v8::Local<v8::Value> exce
         if (!frame->GetScriptName().IsEmpty())
         {
             scriptName = binder::from_v8<std::string>(isolate, frame->GetScriptName());
-            if (scriptName.starts_with("file://"))
+            if (utils::StrStartsWith(scriptName, "file://"))
             {
                 scriptName = "file://" + unixpath::SolveShortestPathRepresentation(scriptName.substr(7));
             }
@@ -81,6 +82,8 @@ void perIsolateMessageListener(v8::Local<v8::Message> message,
     case v8::Isolate::MessageErrorLevel::kMessageError:
         uncaughtException(message, except);
         break;
+    default:
+        MARK_UNREACHABLE();
     }
 }
 
@@ -89,6 +92,35 @@ void perIsolateOutOfMemoryHandler(const char *location, bool isHeapOOM)
     QLOG(LOG_EXCEPTION, "%fg<re,hl>JavaScriptVM: Out of memory: {}%reset", location);
     __fatal_oom_error();
     MARK_UNREACHABLE();
+}
+
+void perIsolatePromiseRejectionHandler(v8::PromiseRejectMessage message)
+{
+    // QLOG(LOG_ERROR, "Promise reject, event={}", message.GetEvent());
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    Runtime *pRuntime = Runtime::GetBareFromIsolate(isolate);
+    auto& guard = pRuntime->getUniqueGlobalIsolateGuard();
+
+    VMIntrospect::MultipleResolveAction multipleResolveAction;
+    switch (message.GetEvent())
+    {
+    case v8::kPromiseRejectWithNoHandler:
+        guard->pushMaybeUnhandledRejectPromise(message.GetPromise(), message.GetValue());
+        return;
+    case v8::kPromiseHandlerAddedAfterReject:
+        guard->removeMaybeUnhandledRejectPromise(message.GetPromise());
+        return;
+    case v8::kPromiseRejectAfterResolved:
+        multipleResolveAction = VMIntrospect::MultipleResolveAction::kReject;
+        break;
+    case v8::kPromiseResolveAfterResolved:
+        multipleResolveAction = VMIntrospect::MultipleResolveAction::kResolve;
+        break;
+    }
+    if (pRuntime->getIntrospect())
+        pRuntime->getIntrospect()->notifyPromiseMultipleResolve(message.GetPromise(),
+                                                                multipleResolveAction);
 }
 
 } // namespace anonymous
@@ -102,13 +134,53 @@ GlobalIsolateGuard::GlobalIsolateGuard(const std::shared_ptr<Runtime>& rt)
                                                v8::Isolate::MessageErrorLevel::kMessageError |
                                                v8::Isolate::MessageErrorLevel::kMessageWarning);
     fIsolate->SetOOMErrorHandler(perIsolateOutOfMemoryHandler);
+    fIsolate->SetPromiseRejectCallback(perIsolatePromiseRejectionHandler);
 }
 
 GlobalIsolateGuard::~GlobalIsolateGuard()
 {
+    fIsolate->SetPromiseRejectCallback(nullptr);
     fIsolate->SetOOMErrorHandler(nullptr);
     fIsolate->RemoveMessageListeners(perIsolateMessageListener);
     fIsolate->SetCaptureStackTraceForUncaughtExceptions(false);
+}
+
+void GlobalIsolateGuard::pushMaybeUnhandledRejectPromise(v8::Local<v8::Promise> promise,
+                                                         v8::Local<v8::Value> value)
+{
+    PromiseWithValue pack(fIsolate, promise, value);
+    if (std::find(fRejectPromises.begin(), fRejectPromises.end(), pack) != fRejectPromises.end())
+        return;
+    fRejectPromises.emplace_back(std::move(pack));
+}
+
+void GlobalIsolateGuard::removeMaybeUnhandledRejectPromise(v8::Local<v8::Promise> promise)
+{
+    auto pv = std::find(fRejectPromises.begin(), fRejectPromises.end(), promise);
+    if (pv == fRejectPromises.end())
+        return;
+    fRejectPromises.erase(pv);
+}
+
+void GlobalIsolateGuard::performUnhandledRejectPromiseCheck()
+{
+    auto& introspect = getRuntime()->getIntrospect();
+    if (!introspect)
+    {
+        QLOG(LOG_WARNING, "{} promise(s) was rejected but not handled (introspect not available)",
+             fRejectPromises.size());
+        fRejectPromises.clear();
+        return;
+    }
+    for (PromiseWithValue& pv : fRejectPromises)
+    {
+        v8::HandleScope scope(fIsolate);
+        v8::Local<v8::Promise> promise = pv.promise.Get(fIsolate);
+        v8::Local<v8::Value> value = pv.value.Get(fIsolate);
+        if (!introspect->notifyUnhandledPromiseRejection(promise, value))
+            throw RuntimeException(__func__, "Uncaught and unhandled promise rejection");
+    }
+    fRejectPromises.clear();
 }
 
 KOI_NS_END

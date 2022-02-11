@@ -58,6 +58,54 @@ inline void SwapBytes16(uint8_t *ptr, size_t size) {
     }
 }
 
+template<typename Map, typename K>
+bool MapContains(const Map& map, const K& key)
+{
+    return (map.find(key) != map.end());
+}
+
+inline bool StrStartsWith(const std::string& str, char ch)
+{
+    if (str.empty())
+        return false;
+    return str[0] == ch;
+}
+
+inline bool StrStartsWith(const std::string& str, const std::string& prefix)
+{
+    if (str.empty() || str.length() < prefix.length())
+        return false;
+    return str.find(prefix, 0) == 0;
+}
+
+inline bool StrStartsWith(const std::string& str, const char *prefix)
+{
+    if (!prefix || str.empty() || str.length() < std::strlen(prefix))
+        return false;
+    return str.find(prefix, 0) == 0;
+}
+
+inline bool StrStartsWith(const std::string_view& str, char ch)
+{
+    if (str.empty())
+        return false;
+    return str[0] == ch;
+}
+
+inline bool StrStartsWith(const std::string_view& str, const std::string& prefix)
+{
+    if (str.empty() || str.length() < prefix.length())
+        return false;
+    return str.find(prefix, 0) == 0;
+}
+
+inline bool StrStartsWith(const std::string_view& str, const char *prefix)
+{
+    if (!prefix || str.empty() || str.length() < std::strlen(prefix))
+        return false;
+    return str.find(prefix, 0) == 0;
+}
+
 } // namespace cocoa
 
 #endif //COCOA_UTILS_H

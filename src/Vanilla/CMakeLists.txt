@@ -54,7 +54,18 @@ add_library(${target_name} STATIC
             Xcb/XcbEventQueue.h
             Xcb/XcbEventQueue.cc
             Xcb/XcbRasterDrawContext.h
-            Xcb/XcbRasterDrawContext.cc)
+            Xcb/XcbRasterDrawContext.cc
+            Wayland/WaylandDisplay.h
+            Wayland/WaylandDisplay.cc
+            Wayland/WaylandSeat.h
+            Wayland/WaylandSeat.cc
+            Wayland/xdg-shell-client-protocol.h
+            Wayland/xdg-shell-client-protocol.c
+            Wayland/xdg-shell-unstable-v6-protocol.h
+            Wayland/xdg-shell-unstable-v6-protocol.c
+            Wayland/pointer-gestures-unstable-v1-client-protocol.c
+            Wayland/primary-selection-unstable-v1-client-protocol.c
+            Wayland/tablet-unstable-v2-client-protocol.c)
 
 set(XCB_BACKEND_LIBS
         xcb
@@ -63,7 +74,8 @@ set(XCB_BACKEND_LIBS
         xcb-xkb
         xcb-xinput
         xkbcommon
-        xkbcommon-x11)
+        xkbcommon-x11
+        wayland-client)
 
 set(RENDERER_LIBS
         skia

@@ -1,0 +1,2 @@
+introspect.print('A\n');
+

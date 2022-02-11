@@ -107,6 +107,7 @@ std::string ReadLink(const std::string& path);
 std::string Realpath(const std::string& path);
 AccessResult Access(const std::string& path, Bitfield<AccessMode> mode);
 int32_t Rename(const std::string& old, const std::string& _new);
+bool IsDirectory(const std::string& path);
 
 ssize_t FileSize(int32_t fd);
 ssize_t FileSize(const std::string& path);
@@ -116,6 +117,7 @@ ssize_t Write(int32_t fd, const void *buffer, size_t size);
 off_t Seek(int32_t fd, off_t offset, SeekWhence whence);
 void *MemMap(int32_t fd, void *address, Bitfield<MapProtection> protection,
              Bitfield<MapFlags> flags, size_t size, off64_t offset);
+bool MemMapHasFailed(void *ret);
 int32_t MemUnmap(void *address, size_t size);
 
 int32_t Truncate(const std::string& path, off_t length);

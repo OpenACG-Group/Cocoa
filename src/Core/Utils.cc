@@ -67,7 +67,7 @@ std::string GetCpuModel()
     linebuf.resize(512);
     while (fs.getline(linebuf.data(), static_cast<std::streamsize>(linebuf.size())))
     {
-        if (linebuf.starts_with("model name"))
+        if (StrStartsWith(linebuf, "model name"))
         {
             auto pos = linebuf.find_first_of(':');
             if (pos == std::string::npos || pos + 2 >= linebuf.length())

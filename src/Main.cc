@@ -1,11 +1,11 @@
 #include <iostream>
 #include <optional>
 #include <vector>
-#include "Core/Errors.h"
 #include <string_view>
 
 #include "Core/Project.h"
 #include "Core/Properties.h"
+#include "Core/Errors.h"
 #include "Core/Utils.h"
 #include "Core/MeasuredTable.h"
 #include "Core/Journal.h"
@@ -13,9 +13,17 @@
 #include "Core/Exception.h"
 #include "Core/EventLoop.h"
 #include "Core/Filesystem.h"
+#include "Core/DBusConnection.h"
+#include "Core/QResource.h"
+#include "fmt/format.h"
+#include "include/core/SkTypes.h"
 
 #include "Koi/Runtime.h"
 #include "Koi/BindingManager.h"
+
+#include "Cobalt/Cobalt.h"
+
+#include "general_tests.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Main)
 
@@ -50,7 +58,8 @@ enum class ParseState
 {
     kExit,
     kSuccess,
-    kError
+    kError,
+    kJustInitialize
 };
 
 struct ParseResult
@@ -107,12 +116,26 @@ const Template gTemplates[] = {
             .desc = "Don't print logs with colors through ANSI escape code"
         },
         {
+            .longName = "dbus-bus-type",
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kString,
+            .desc = "Connect to the system or the session DBus service"
+        },
+        {
+            .longName = "dbus-bus-address",
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kString,
+            .desc = "Connect to the specified DBus socket address"
+        },
+        {
+            .longName = "just-initialize",
+            .desc = "Exit immediately after finishing all the initialization steps (not running script)"
+        },
+        {
             .longName = "vm-thread-pool-size",
             .hasValue = Template::RequireValue::kNecessary,
             .valueType = ValueType::kInteger,
-            .desc = "Specify the number of worker threads to allocate for background jobs for V8."
-                    " If a value of zero is passed, a suitable default based on the current"
-                    " number of processors online will be chosen."
+            .desc = "Specify the number of worker threads to allocate for background jobs for V8"
         },
         {
             .longName = "vm-options",
@@ -150,14 +173,14 @@ const Template gTemplates[] = {
             .desc = "Enable/disable functions in 'introspect' global object"
         },
         {
-            .longName = "escapable-args",
+            .longName = "pass",
             .shortName = 'A',
             .hasValue = Template::RequireValue::kNecessary,
             .valueType = ValueType::kString,
             .desc = "Specify a delimiter separated list passed to JavaScript"
         },
         {
-            .longName = "escapable-args-delimiter",
+            .longName = "pass-delimiter",
             .shortName = 'D',
             .hasValue = Template::RequireValue::kNecessary,
             .valueType = ValueType::kString,
@@ -169,6 +192,12 @@ const Template gTemplates[] = {
             .hasValue = Template::RequireValue::kNecessary,
             .valueType = ValueType::kString,
             .desc = "Specify a JavaScript file to run. (index.js for default)"
+        },
+        {
+            .longName = "cobalt-use-jit",
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kBoolean,
+            .desc = "Use JIT to accelerate CPU-bound operations while rendering (true by default)"
         }
 };
 
@@ -407,7 +436,7 @@ ParseState Parse(int argc, const char **argv, ParseResult& result)
                 result.orphans.push_back(argv[j]);
             break;
         }
-        else if (current.starts_with("--"))
+        else if (utils::StrStartsWith(current, "--"))
         {
             ParseResult::Option opt;
             if (!interpret_and_set_long_option(opt, current))
@@ -417,7 +446,7 @@ ParseState Parse(int argc, const char **argv, ParseResult& result)
             }
             result.options.push_back(opt);
         }
-        else if (current.starts_with('-'))
+        else if (utils::StrStartsWith(current, '-'))
         {
             if (!interpret_and_set_short_options(result, current))
             {
@@ -517,13 +546,16 @@ AVAILABLE OPTIONS:
 void PrintVersion()
 {
     fmt::print("Cocoa 2D Rendering Framework Version {}\n", COCOA_VERSION);
-    fmt::print("Copyright (C) 2021 OpenACG Group | GPLv3 License\n");
+    fmt::print("Copyright (C) " COCOA_COPYRIGHT_YEAR " OpenACG Group | GPLv3 License\n");
 }
 
 void PrintGreeting(const koi::Runtime::Options& opts)
 {
     QLOG(LOG_INFO, "%fg<hl>Cocoa 2D Rendering Framework, version {}%reset", COCOA_VERSION);
-    QLOG(LOG_INFO, "%fg<hl>Copyright (C) 2021 OpenACG Group | GPLv3 License%reset");
+    QLOG(LOG_INFO, "  %fg<hl>Copyright (C) " COCOA_COPYRIGHT_YEAR " OpenACG Group | GPLv3 License%reset");
+    QLOG(LOG_INFO, "  %fg<hl>libuv asynchronous I/O, version {}%reset", uv_version_string());
+    QLOG(LOG_INFO, "  %fg<hl>Google V8 JavaScript Engine, version {}.{}%reset", V8_MAJOR_VERSION, V8_MINOR_VERSION);
+    QLOG(LOG_INFO, "  %fg<hl>Google Skia 2D Library%reset");
     QLOG(LOG_INFO, "Startup script %fg<ye,hl>{}%reset", opts.startup);
 }
 
@@ -571,6 +603,102 @@ cmd::ParseState InitializeLogger(cmd::ParseResult& args)
     return cmd::ParseState::kSuccess;
 }
 
+const char *test_directory_env_variable(const char *name, bool report_if_unset)
+{
+    const char *value = ::getenv(name);
+    if (!value || std::strlen(value) == 0)
+    {
+        if (report_if_unset)
+            fmt::print(std::cerr, "Error: Environment variable ${} not set or empty\n", name);
+        return nullptr;
+    }
+
+    if (value[0] != '/')
+    {
+        fmt::print(std::cerr, "Error: Environment variable ${} points to a relative directory\n", name);
+        return nullptr;
+    }
+
+    if (!vfs::IsDirectory(value))
+    {
+        fmt::print(std::cerr, "Error: Environment variable ${} points to an invalid directory\n", name);
+        return nullptr;
+    }
+    return value;
+}
+
+std::vector<std::string> test_directory_list_env_variable(const char *name)
+{
+    const char *value = ::getenv(name);
+    if (!value || std::strlen(value) == 0)
+        return {};
+
+    std::string valueDump = value;
+    auto vec = utils::SplitString(valueDump, ':');
+    for (const std::string_view& sv : vec)
+    {
+        if (sv[0] != '/')
+        {
+            fmt::print(std::cerr, "Error: Environment variable ${} contains a relative directory {}\n",
+                       name, sv);
+            return {};
+        }
+        /* We do NOT check whether the directory exists. */
+    }
+
+    std::vector<std::string> result(vec.size());
+    std::transform(vec.begin(), vec.end(), result.begin(), [](const std::string_view& sv) -> std::string {
+        return std::string(sv);
+    });
+    return result;
+}
+
+cmd::ParseState initialize_path_table_properties()
+{
+    auto runtime = prop::Get()->next("Runtime")->as<PropertyObjectNode>();
+    auto paths = runtime->setMember("Paths", prop::New<PropertyObjectNode>())->as<PropertyObjectNode>();
+
+    const char *home = test_directory_env_variable("HOME", true);
+    if (!home)
+        return cmd::ParseState::kError;
+    paths->setMember("Home", prop::New<PropertyDataNode>(home));
+
+    const char *userDataEnv = test_directory_env_variable("XDG_DATA_HOME", false);
+    std::string userData = userDataEnv ? userDataEnv
+                           : vfs::Realpath(fmt::format("{}/.local/share", home));
+    paths->setMember("UserData", prop::New<PropertyDataNode>(userData));
+
+    const char *userConfigEnv = test_directory_env_variable("XDG_CONFIG_HOME", false);
+    std::string userConfig = userConfigEnv ? userConfigEnv
+                             : vfs::Realpath(fmt::format("{}/.config", home));
+    paths->setMember("UserConfig", prop::New<PropertyDataNode>(userConfig));
+
+    std::vector<std::string> systemDatas = test_directory_list_env_variable("XDG_DATA_DIRS");
+    if (systemDatas.empty())
+    {
+        systemDatas.emplace_back("/usr/local/share");
+        systemDatas.emplace_back("/usr/share");
+    }
+    paths->setMember("SystemData", prop::New<PropertyArrayNode>()->append(systemDatas));
+
+    std::vector<std::string> systemConfigs = test_directory_list_env_variable("XDG_CONFIG_DIRS");
+    if (systemConfigs.empty())
+        systemConfigs.emplace_back("/etc/xdg");
+    paths->setMember("SystemConfig", prop::New<PropertyArrayNode>()->append(systemConfigs));
+
+    const char *userCacheEnv = test_directory_env_variable("XDG_CACHE_HOME", false);
+    std::string userCache = userCacheEnv ? userCacheEnv
+                            : vfs::Realpath(fmt::format("{}/.cache", home));
+    paths->setMember("UserCache", prop::New<PropertyDataNode>(userCache));
+
+    const char *runtimeDirEnv = test_directory_env_variable("XDG_RUNTIME_DIR", true);
+    if (!runtimeDirEnv)
+        return cmd::ParseState::kError;
+    paths->setMember("Runtime", prop::New<PropertyDataNode>(runtimeDirEnv));
+
+    return cmd::ParseState::kSuccess;
+}
+
 cmd::ParseState InitializeProperties(int argc, const char **argv, cmd::ParseResult& args)
 {
     if (args.orphans.size() > 1)
@@ -604,6 +732,10 @@ cmd::ParseState InitializeProperties(int argc, const char **argv, cmd::ParseResu
         runtimeProp->setMember("ExecutablePath", prop::New<PropertyDataNode>(execPath));
         runtimeProp->setMember("CurrentPath", prop::New<PropertyDataNode>(workingPath));
         prop::Get()->setMember("Runtime", runtimeProp);
+
+        auto state = initialize_path_table_properties();
+        if (state != cmd::ParseState::kSuccess)
+            return state;
     }
 
     /* Set `system` property object */
@@ -624,7 +756,10 @@ void report_vulnerability_option(const std::string& opt)
                       " may cause fatal security problems", opt);
 }
 
-cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& koiOptions)
+cmd::ParseState Initialize(int argc, char const **argv,
+                           koi::Runtime::Options& koiOptions,
+                           cobalt::ContextOptions& cobaltOptions,
+                           DBusService::Options& dbusOptions)
 {
     cmd::ParseResult args;
     cmd::ParseState state = cmd::Parse(argc, argv, args);
@@ -661,9 +796,37 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
     auto lbpBlacklist = prop::New<PropertyArrayNode>();
     auto scriptArgs = prop::New<PropertyArrayNode>();
     char delimiter = ',';
+
+    bool justInitialize = false;
+
     for (const auto& arg : args.options)
     {
-        if arg_longopt_match("vm-thread-pool-size")
+        if arg_longopt_match("dbus-bus-type")
+        {
+            if (arg.value->v_str == CORE_DBUS_TYPE_SESSION)
+                dbusOptions.busType = DBus::BusType::SESSION;
+            else if (arg.value->v_str == CORE_DBUS_TYPE_SYSTEM)
+                dbusOptions.busType = DBus::BusType::SYSTEM;
+            else
+            {
+                fmt::print(std::cerr, "Unrecognized value of --dbus-bus-type: {}\n", arg.value->v_str);
+                return cmd::ParseState::kError;
+            }
+        }
+        else if arg_longopt_match("dbus-bus-address")
+        {
+            if (arg.value->v_str.empty())
+            {
+                fmt::print(std::cerr, "Empty DBus address is not allowed");
+                return cmd::ParseState::kError;
+            }
+            dbusOptions.address = arg.value->v_str;
+        }
+        else if arg_longopt_match("just-initialize")
+        {
+            justInitialize = true;
+        }
+        else if arg_longopt_match("vm-thread-pool-size")
         {
             if (arg.value->v_int < 0)
             {
@@ -696,7 +859,7 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
             koiOptions.rt_allow_override = true;
             report_vulnerability_option("--rt-allow-override");
         }
-        else if arg_longopt_match("escapable-args")
+        else if arg_longopt_match("pass")
         {
             std::vector<std::string_view> argsView = utils::SplitString(arg.value->v_str, delimiter);
             for (const auto& view : argsView)
@@ -704,7 +867,7 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
                 scriptArgs->append(prop::New<PropertyDataNode>(std::string(view)));
             }
         }
-        else if arg_longopt_match("escapable-args-delimiter")
+        else if arg_longopt_match("pass-delimiter")
         {
             if (arg.value->v_str.size() > 1)
             {
@@ -719,8 +882,8 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
         }
         else if arg_longopt_match("introspect-policy")
         {
-            auto splited = utils::SplitString(arg.value->v_str, ',');
-            for (auto& policy : splited)
+            auto split = utils::SplitString(arg.value->v_str, ',');
+            for (auto& policy : split)
             {
                 if (policy == "AllowLoadingSharedObject")
                     koiOptions.introspect_allow_loading_shared_object = true;
@@ -731,12 +894,19 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
                 else if (policy == "ForbidWritingToJournal")
                     koiOptions.introspect_allow_write_journal = false;
                 else
-                    throw std::runtime_error("Unrecognized introspect policy: " + std::string(policy));
+                {
+                    fmt::print(std::cerr, "Error: Unrecognized introspect policy: {}\n", policy);
+                    return cmd::ParseState::kError;
+                }
             }
         }
         else if arg_longopt_match("startup")
         {
             koiOptions.startup = arg.value->v_str;
+        }
+        else if arg_longopt_match("cobalt-use-jit")
+        {
+            cobaltOptions.SetSkiaJIT(arg.value->v_bool);
         }
     }
 
@@ -744,7 +914,7 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
         auto scriptNode = prop::New<PropertyObjectNode>();
         scriptNode->setMember("LoaderPreloads", lbpPreloads);
         scriptNode->setMember("LoaderBlacklist", lbpBlacklist);
-        scriptNode->setMember("Args", scriptArgs);
+        scriptNode->setMember("Pass", scriptArgs);
         prop::Cast<PropertyObjectNode>(prop::Get()->next("Runtime"))->setMember("Script", scriptNode);
 
         auto persistentNode = prop::New<PropertyObjectNode>();
@@ -753,54 +923,69 @@ cmd::ParseState Initialize(int argc, char const **argv, koi::Runtime::Options& k
         prop::Get()->setMember("Persistent", persistentNode);
     }
 
-    return cmd::ParseState::kSuccess;
+    return justInitialize ? cmd::ParseState::kJustInitialize : cmd::ParseState::kSuccess;
 }
 
 #undef arg_longopt_match
 
 void Finalize()
 {
-    koi::BindingManager::Delete();
-    EventLoop::Delete();
     Journal::Delete();
     CpuInfo::Delete();
 }
 
-void Execute(const koi::Runtime::Options& options)
+void Execute(bool justInitialize,
+             const koi::Runtime::Options& options,
+             const cobalt::ContextOptions& cobaltOptions,
+             const DBusService::Options& dbusOptions)
 {
-    prop::SerializeToJournal(prop::Get());
-    auto workingPath = prop::Cast<PropertyDataNode>(prop::Get()
-            ->next("Runtime")->next("CurrentPath"))->extract<std::string>();
-    auto execPath = prop::Cast<PropertyDataNode>(prop::Get()
-            ->next("Runtime")->next("ExecutablePath"))->extract<std::string>();
+    QResource::New();
+    DBusService::New(dbusOptions);
 
+    prop::SerializeToJournal(prop::Get());
+
+    cobalt::GlobalScope::New(cobaltOptions, EventLoop::Instance());
     koi::BindingManager::New(options);
 
     auto preloads = prop::Get()
             ->next("Runtime")
             ->next("Script")
-            ->next("LoaderPreloads");
-    for (const auto& p : *prop::Cast<PropertyArrayNode>(preloads))
+            ->next("LoaderPreloads")->as<PropertyArrayNode>();
+    for (const auto& p : *preloads)
     {
         auto& val = prop::Cast<PropertyDataNode>(p)->extract<std::string>();
         koi::BindingManager::Ref().loadDynamicObject(val);
     }
 
-    std::string snapshotFile = execPath + "snapshot_blob.bin";
-    auto runtime = koi::Runtime::MakeFromSnapshot(EventLoop::Instance(),
-                                                  snapshotFile,
-                                                  std::string(),
-                                                  options);
-    CHECK(runtime != nullptr);
+    if (!justInitialize)
+    {
+        auto runtime = koi::Runtime::Make(EventLoop::Instance(), options);
+        CHECK(runtime != nullptr);
+        v8::Isolate::Scope isolateScope(runtime->isolate());
+        v8::HandleScope handleScope(runtime->isolate());
+        v8::Context::Scope contextScope(runtime->context());
 
-    v8::Isolate::Scope isolateScope(runtime->isolate());
-    v8::HandleScope handleScope(runtime->isolate());
-    v8::Context::Scope contextScope(runtime->context());
+        v8::Local<v8::Value> result;
+        if (!runtime->evaluateModule(options.startup).ToLocal(&result))
+            return;
+        EventLoop::Ref().run();
+        koi::BindingManager::Delete();
 
-    v8::Local<v8::Value> result;
-    if (!runtime->evaluateModule(options.startup).ToLocal(&result))
-        return;
-    EventLoop::Ref().run();
+        CHECK(runtime.unique() && "Runtime is referenced by other scopes");
+    }
+    else
+    {
+        fmt::print(std::cerr, "[TESTRUN] Cocoa exits after finishing initialization steps.\n");
+        test::vanilla_render_test();
+    }
+
+
+    /* No matter whether these UniquePersistent objects are created,
+     * deleting them is safe. */
+    cobalt::GlobalScope::Delete();
+    DBusService::Delete();
+    QResource::Delete();
+    EventLoop::Delete();
 }
 
 int Main(int argc, char const **argv)
@@ -809,21 +994,27 @@ int Main(int argc, char const **argv)
     ScopeEpilogue epilogue([]() -> void { Finalize(); });
 
     koi::Runtime::Options koiOptions;
+    cobalt::ContextOptions cobaltOptions;
+    DBusService::Options dbusOptions;
+    bool justInitialize = false;
+
     try {
-        switch (Initialize(argc, argv, koiOptions))
+        switch (Initialize(argc, argv, koiOptions, cobaltOptions, dbusOptions))
         {
         case cmd::ParseState::kError:
             return EXIT_FAILURE;
-
         case cmd::ParseState::kExit:
             return EXIT_SUCCESS;
-
         case cmd::ParseState::kSuccess:
+            break;
+        case cmd::ParseState::kJustInitialize:
+            justInitialize = true;
             break;
         }
 
+        koi::Runtime::AdoptV8CommandOptions(koiOptions);
         cmd::PrintGreeting(koiOptions);
-        Execute(koiOptions);
+        Execute(justInitialize, koiOptions, cobaltOptions, dbusOptions);
     } catch (const RuntimeException& e) {
         utils::SerializeException(e);
         return EXIT_FAILURE;

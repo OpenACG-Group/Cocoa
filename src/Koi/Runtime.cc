@@ -1,4 +1,3 @@
-#include <tuple>
 #include <iostream>
 #include <memory>
 #include <utility>
@@ -11,10 +10,13 @@
 #include "Core/Exception.h"
 #include "Core/Journal.h"
 #include "Core/EventLoop.h"
+#include "Core/QResource.h"
+#include "Core/Data.h"
 #include "Koi/KoiBase.h"
 #include "Koi/Runtime.h"
 #include "Koi/BindingManager.h"
 #include "Koi/ModuleImportURL.h"
+#include "Koi/Infrastructures.h"
 
 #include "Koi/binder/Module.h"
 #include "Koi/binder/Class.h"
@@ -43,13 +45,16 @@ v8::MaybeLocal<v8::Value> createSyntheticModuleEvalStep(v8::Local<v8::Context> c
     bindings::BindingBase *binding = pRT->getSyntheticModuleBinding(module);
     CHECK(binding);
 
+    binding->onRegisterClasses(isolate);
+
     binder::Module binderModule(isolate);
-    binding->getModule(binderModule);
+    binding->onGetModule(binderModule);
+
     v8::Local<v8::Object> exportObject = binderModule.new_instance();
     exportObject->Set(context, CASTJS("__name__"), CASTJS(binding->name())).Check();
     exportObject->Set(context, CASTJS("__desc__"), CASTJS(binding->description())).Check();
-    exportObject->Set(context, CASTJS("__unique_id__"), CASTJS(binding->getUniqueId())).Check();
-    binding->setInstanceProperties(exportObject);
+    exportObject->Set(context, CASTJS("__unique_id__"), CASTJS(binding->onGetUniqueId())).Check();
+    binding->onSetInstanceProperties(exportObject);
 
     Runtime *runtime = Runtime::GetBareFromIsolate(isolate);
     auto& moduleCacheMap = runtime->getModuleCache();
@@ -83,7 +88,7 @@ v8::Local<v8::Module> createSyntheticModule(v8::Isolate *isolate,
     std::vector<v8::Local<v8::String>> exports{CASTJS("__name__"),
                                                CASTJS("__desc__"),
                                                CASTJS("__unique_id__")};
-    for (const char **p = binding->getExports(); *p; p++)
+    for (const char **p = binding->onGetExports(); *p; p++)
         exports.emplace_back(CASTJS(*p));
 
     v8::Local<v8::Module> module = v8::Module::CreateSyntheticModule(isolate,
@@ -136,20 +141,35 @@ void executeInternalScript(const std::shared_ptr<Runtime>& rt, const std::string
 
 } // namespace anonymous
 
-std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(EventLoop *loop,
-                                                   const std::string& snapshotFile,
-                                                   const std::string& icuDataFile,
-                                                   const Options& options)
+void Runtime::AdoptV8CommandOptions(const Options& options)
 {
-    if (!snapshotFile.empty())
-        v8::V8::InitializeExternalStartupDataFromFile(snapshotFile.c_str());
-    if (!icuDataFile.empty())
-        v8::V8::InitializeICU(icuDataFile.c_str());
-    else
-        v8::V8::InitializeICU();
-
     for (const auto& arg : options.v8_options)
         v8::V8::SetFlagsFromString(arg.c_str(), arg.length());
+}
+
+std::shared_ptr<Runtime> Runtime::Make(EventLoop *loop, const Options& options)
+{
+    /*
+    auto snapshotData = QResource::Instance()->Lookup("org.cocoa.internal.v8", "/data/snapshot_blob.bin");
+    if (!snapshotData)
+    {
+        QLOG(LOG_ERROR, "Failed to load snapshot data from package org.cocoa.internal.v8");
+        return nullptr;
+    }
+
+    size_t snapshotDataSize = snapshotData->size();
+    auto *startupData = new v8::StartupData{
+        .data = new char[snapshotDataSize],
+        .raw_size = static_cast<int>(snapshotDataSize)
+    };
+    ScopeEpilogue epi([startupData] {
+        delete[] startupData->data;
+        delete startupData;
+    });
+
+    snapshotData->read(const_cast<char*>(startupData->data), snapshotDataSize);
+    v8::V8::SetSnapshotDataBlob(startupData);
+    */
 
     std::unique_ptr<v8::Platform> platform =
             v8::platform::NewDefaultPlatform(static_cast<int>(options.v8_platform_thread_pool),
@@ -174,6 +194,7 @@ std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(EventLoop *loop,
         v8::Context::Scope contextScope(context);
 
         runtime = std::make_shared<Runtime>(loop,
+                                            nullptr,
                                             std::move(platform),
                                             params.array_buffer_allocator,
                                             isolate,
@@ -182,7 +203,7 @@ std::shared_ptr<Runtime> Runtime::MakeFromSnapshot(EventLoop *loop,
         auto isolateGuard = std::make_unique<GlobalIsolateGuard>(runtime);
         runtime->setGlobalIsolateGuard(std::move(isolateGuard));
 
-        executeInternalScript(runtime, "internal://context/refvalue");
+        BindingManager::NotifyIsolateHasCreated(isolate);
     }
 
     return runtime;
@@ -196,34 +217,47 @@ Runtime *Runtime::GetBareFromIsolate(v8::Isolate *isolate)
 }
 
 Runtime::Runtime(EventLoop *loop,
+                 v8::StartupData *startupData,
                  std::unique_ptr<v8::Platform> platform,
                  v8::ArrayBuffer::Allocator *allocator,
                  v8::Isolate *isolate,
                  v8::Global<v8::Context> context,
                  Options opts)
-    : LoopPrologueSource(loop)
-    , AsyncSource(loop)
+    : PrepareSource(loop)
+    , CheckSource(loop)
     , fOptions(std::move(opts))
+    , fStartupData(startupData)
     , fPlatform(std::move(platform))
     , fArrayBufferAllocator(allocator)
     , fIsolate(isolate)
     , fContext(std::move(context))
+    , fResolvedPromises(0)
+    , fIdle{}
 {
     v8::Isolate::Scope isolateScope(fIsolate);
     v8::HandleScope handleScope(fIsolate);
     v8::Context::Scope ctxScope(this->context());
 
-    LoopPrologueSource::startLoopPrologue();
     fIsolate->SetData(ISOLATE_DATA_SLOT_RUNTIME_PTR, this);
+    fIsolate->SetPromiseHook(Runtime::PromiseHookCallback);
+    fIsolate->SetHostImportModuleDynamicallyCallback(Runtime::DynamicImportHostCallback);
+
+    PrepareSource::startPrepare();
+    PrepareSource::unrefEventSource();
+    CheckSource::startCheck();
+    CheckSource::unrefEventSource();
+
+    infra::InstallOnGlobalContext(fIsolate, this->context());
     if (fOptions.rt_expose_introspect)
         fIntrospect = VMIntrospect::InstallGlobal(fIsolate);
 
-    v8::Local<v8::Context> ctx = this->context();
-    ctx->Global()->Set(ctx, binder::to_v8(fIsolate, "__global__"), ctx->Global()).Check();
+    uv_idle_init(loop->handle(), &fIdle);
 }
 
 Runtime::~Runtime()
 {
+    uv_close((uv_handle_t *)&fIdle, nullptr);
+
     if (fIntrospect)
         fIntrospect->notifyBeforeExit();
 
@@ -244,6 +278,12 @@ Runtime::~Runtime()
     v8::V8::ShutdownPlatform();
     delete fArrayBufferAllocator;
     fPlatform.reset();
+
+    if (fStartupData)
+    {
+        delete[] fStartupData->data;
+        delete fStartupData;
+    }
 }
 
 bindings::BindingBase *Runtime::getSyntheticModuleBinding(v8::Local<v8::Module> module)
@@ -364,11 +404,17 @@ v8::MaybeLocal<v8::Module> instantiateModuleCallback(v8::Local<v8::Context> cont
 }
 } // namespace anonymous
 
-v8::MaybeLocal<v8::Value> Runtime::evaluateModule(const std::string& url)
+v8::MaybeLocal<v8::Value> Runtime::evaluateModule(const std::string& url,
+                                                  v8::Local<v8::Module> *outModule,
+                                                  const std::shared_ptr<ModuleImportURL> &referer,
+                                                  bool isImport)
 {
-    v8::Local<v8::Module> module = this->compileModule(nullptr, url, false);
+    v8::Local<v8::Module> module = this->compileModule(referer, url, isImport);
+    if (outModule)
+        *outModule = module;
     if (module->GetStatus() == v8::Module::Status::kInstantiated
-        || module->GetStatus() == v8::Module::Status::kEvaluated)
+        || module->GetStatus() == v8::Module::Status::kEvaluated
+        || module->GetStatus() == v8::Module::Status::kErrored)
     {
         return module->Evaluate(this->context());
     }
@@ -376,7 +422,71 @@ v8::MaybeLocal<v8::Value> Runtime::evaluateModule(const std::string& url)
 
     if (instantiate.IsNothing())
         throw RuntimeException(__func__, "Could not instantiate ES6 module " + url);
-    return module->Evaluate(this->context());
+
+    v8::MaybeLocal<v8::Value> result = module->Evaluate(this->context());
+    updateIdleRequirementByPromiseCounter();
+
+    return result;
+}
+
+v8::MaybeLocal<v8::Promise>
+Runtime::DynamicImportHostCallback(v8::Local<v8::Context> context,
+                                   v8::Local<v8::Data> host_defined_options,
+                                   v8::Local<v8::Value> resource_name,
+                                   v8::Local<v8::String> specifier,
+                                   v8::Local<v8::FixedArray> import_assertions)
+{
+    v8::Isolate *isolate = context->GetIsolate();
+    v8::EscapableHandleScope scope(isolate);
+
+    v8::Local<v8::Promise::Resolver> resolver =
+            v8::Promise::Resolver::New(context).ToLocalChecked();
+    v8::MaybeLocal<v8::Promise> promise(resolver->GetPromise());
+
+    if (resource_name->IsNullOrUndefined())
+    {
+        resolver->Reject(context,
+                         binder::to_v8(isolate, "Dynamic import: resource name of referrer is undefined"))
+                         .Check();
+        return scope.EscapeMaybe(promise);
+    }
+
+    auto referrerUrl = binder::from_v8<std::string>(isolate, resource_name);
+    Runtime *runtime = Runtime::GetBareFromIsolate(isolate);
+
+    auto& moduleCache = runtime->getModuleCache();
+    auto itr = std::find_if(moduleCache.begin(), moduleCache.end(),
+                            [&referrerUrl](ModuleCacheMap::value_type& pair) {
+        return (pair.first->toString() == referrerUrl);
+    });
+
+    if (itr == moduleCache.end())
+    {
+        resolver->Reject(context,
+                         binder::to_v8(isolate, "Dynamic import: Referrer is not cached"))
+                         .Check();
+        return scope.EscapeMaybe(promise);
+    }
+
+    auto specifierUrl = binder::from_v8<std::string>(isolate, specifier);
+    v8::Local<v8::Module> module;
+    try
+    {
+        v8::Local<v8::Value> value;
+        if (!runtime->evaluateModule(specifierUrl, &module, itr->first, true).ToLocal(&value))
+            throw RuntimeException(__func__, fmt::format("Error evaluating module {}", specifierUrl));
+    }
+    catch (const std::exception& e)
+    {
+        resolver->Reject(context,
+                         binder::to_v8(isolate, fmt::format("Dynamic import: {}", e.what())))
+                         .Check();
+        return scope.EscapeMaybe(promise);
+    }
+
+    QLOG(LOG_DEBUG, "Resolved ES module {} (from {}, dynamically)", specifierUrl, itr->first->toString());
+    resolver->Resolve(context, module->GetModuleNamespace()).Check();
+    return scope.EscapeMaybe(promise);
 }
 
 v8::MaybeLocal<v8::Value> Runtime::execute(const char *scriptName, const char *str)
@@ -401,37 +511,52 @@ v8::MaybeLocal<v8::Value> Runtime::execute(const char *scriptName, const char *s
 
     if (!v8::ScriptCompiler::Compile(this->context(), &source).ToLocal(&script))
         return {};
-    return handleScope.EscapeMaybe(script->Run(this->context()));
+
+    v8::MaybeLocal<v8::Value> result = script->Run(this->context());
+    updateIdleRequirementByPromiseCounter();
+
+    return handleScope.EscapeMaybe(result);
 }
 
-KeepInLoop Runtime::loopPrologueDispatch()
+KeepInLoop Runtime::prepareDispatch()
 {
-    while (v8::platform::PumpMessageLoop(fPlatform.get(),
-                                         fIsolate,
-                                         v8::platform::MessageLoopBehavior::kDoNotWait))
-    {
-        // Do nothing, just waiting
-    }
-    fIsolate->PerformMicrotaskCheckpoint();
-    fIntrospect->performScheduledTasksCheckpoint();
-
-    int handlesCount = 0;
-    LoopPrologueSource::eventLoop()->walk([&handlesCount](uv_handle_t *handle) -> void {
-        if (uv_is_active(handle))
-            handlesCount++;
-    });
-
-    if (handlesCount <= 2)
-    {
-        LoopPrologueSource::stopLoopPrologue();
-        AsyncSource::close();
-    }
+    updateIdleRequirementByPromiseCounter();
     return KeepInLoop::kYes;
 }
 
-void Runtime::asyncDispatch()
+KeepInLoop Runtime::checkDispatch()
 {
-    // TODO: Implement inspector
+    performTasksCheckpoint();
+    updateIdleRequirementByPromiseCounter();
+    return KeepInLoop::kYes;
+}
+
+void Runtime::performTasksCheckpoint()
+{
+    while (v8::platform::PumpMessageLoop(fPlatform.get(), fIsolate));
+    fIsolate->PerformMicrotaskCheckpoint();
+    fResolvedPromises = 0;
+    fIsolateGuard->performUnhandledRejectPromiseCheck();
+
+    // TODO(Important): Where should it be placed?
+    if (fIntrospect)
+        fIntrospect->performScheduledTasksCheckpoint();
+}
+
+void Runtime::PromiseHookCallback(v8::PromiseHookType type, v8::Local<v8::Promise> promise,
+                                  [[maybe_unused]] v8::Local<v8::Value> parent)
+{
+    Runtime *runtime = Runtime::GetBareFromIsolate(promise->GetIsolate());
+    if (type == v8::PromiseHookType::kResolve)
+        runtime->fResolvedPromises++;
+}
+
+void Runtime::updateIdleRequirementByPromiseCounter()
+{
+    if (fResolvedPromises > 0)
+        uv_idle_start(&fIdle, [](uv_idle_t *) {});
+    else
+        uv_idle_stop(&fIdle);
 }
 
 bool Runtime::isInstanceOfGlobalClass(v8::Local<v8::Value> value, const std::string& class_)

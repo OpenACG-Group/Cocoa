@@ -7,57 +7,31 @@
 %class CoreBinding
 
 %insert_begin
-    auto timer_class = CoreTimerProxy::GetClass();
-    auto buffer_class = Buffer::GetClass();
-    int32_t vin = FDLRNewRandomizedDescriptor(STDIN_FILENO, FDLRTable::kSystem, nullptr);
-    int32_t vout = FDLRNewRandomizedDescriptor(STDOUT_FILENO, FDLRTable::kSystem, nullptr);
-    int32_t verror = FDLRNewRandomizedDescriptor(STDERR_FILENO, FDLRTable::kSystem, nullptr);
+    int32_t vin = FDLRNewRandomizedDescriptor(0, FDLRTable::kSystem, nullptr);
+    int32_t vout = FDLRNewRandomizedDescriptor(1, FDLRTable::kSystem, nullptr);
+    int32_t verror = FDLRNewRandomizedDescriptor(2, FDLRTable::kSystem, nullptr);
 %insert_end
 
 %export VFD_STDIN vin
 %export VFD_STDOUT vout
 %export VFD_STDERR verror
 
-%export print corePrint
-%export delay coreDelay
-%export getProperty coreGetProperty
-%export hasProperty coreHasProperty
-%export enumeratePropertyNode coreEnumeratePropertyNode
-%export TimerProxy timer_class
-%export open coreOpen
-%export openat coreOpenAt
-%export close coreClose
-%export dump coreDump
-%export exit coreExit
-%export seek coreSeek
-%export rename coreRename
-%export truncate coreTruncate
-%export ftruncate coreFTruncate
-%export mknod coreMknod
-%export mknodat coreMknodAt
+%export print Print
+%export dump Dump
+%export exit Exit
+
+%export open Open
+%export unlink Unlink
+%export mkdir Mkdir
+%export mkdtemp Mkdtemp
+%export mkstemp Mkstemp
+%export rmdir Rmdir
+%export stat Stat
+%export lstat LStat
+%export rename Rename
 
 %export_decl args
-
-%export Buffer buffer_class
-
-%export_const MODE_NONE static_cast<uint16_t>(vfs::Mode::kNone)
-%export_const MODE_USR_W static_cast<uint16_t>(vfs::Mode::kUsrW)
-%export_const MODE_USR_R static_cast<uint16_t>(vfs::Mode::kUsrR)
-%export_const MODE_USR_X static_cast<uint16_t>(vfs::Mode::kUsrX)
-%export_const MODE_OTH_W static_cast<uint16_t>(vfs::Mode::kOthW)
-%export_const MODE_OTH_R static_cast<uint16_t>(vfs::Mode::kOthR)
-%export_const MODE_OTH_X static_cast<uint16_t>(vfs::Mode::kOthX)
-%export_const MODE_GRP_R static_cast<uint16_t>(vfs::Mode::kGrpR)
-%export_const MODE_GRP_W static_cast<uint16_t>(vfs::Mode::kGrpW)
-%export_const MODE_GRP_X static_cast<uint16_t>(vfs::Mode::kGrpX)
-%export_const MODE_DIR static_cast<uint16_t>(vfs::Mode::kDir)
-%export_const MODE_LINK static_cast<uint16_t>(vfs::Mode::kLink)
-%export_const MODE_REGULAR static_cast<uint16_t>(vfs::Mode::kRegular)
-%export_const MODE_CHAR static_cast<uint16_t>(vfs::Mode::kChar)
-%export_const MODE_BLOCK static_cast<uint16_t>(vfs::Mode::kBlock)
-%export_const MODE_FIFO static_cast<uint16_t>(vfs::Mode::kFifo)
-%export_const MODE_SOCKET static_cast<uint16_t>(vfs::Mode::kSocket)
-%export_const SEEK_SET static_cast<uint8_t>(vfs::SeekWhence::kSet)
-%export_const SEEK_CURRENT static_cast<uint8_t>(vfs::SeekWhence::kCurrent)
-%export_const SEEK_END static_cast<uint8_t>(vfs::SeekWhence::kEnd)
-%export_const AT_FDCWD VFS_AT_FDCWD
+%export_decl property
+%export File (*class_file_wrap_)
+%export Property (*class_property_wrap_)
+%export Buffer (*class_buffer_)

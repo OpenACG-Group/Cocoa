@@ -38,9 +38,9 @@ Handle<DrawContext> DrawContext::MakeRaster(Handle<Window> window)
 {
     switch (window->getDisplay()->backend())
     {
-    case DisplayBackend::kDisplay_Xcb:
+    case DisplayBackend::kXcb:
         return std::make_shared<XcbRasterDrawContext>(std::move(window));
-    case DisplayBackend::kDisplay_Wayland:
+    case DisplayBackend::kWayland:
         return nullptr;
     }
 }

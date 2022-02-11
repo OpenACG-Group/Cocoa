@@ -112,7 +112,7 @@ def calc_unique_id():
 
 
 def produce_exports_impl():
-    print(f'void {class_name}::getModule(binder::Module& __mod) {{')
+    print(f'void {class_name}::onGetModule(binder::Module& __mod) {{')
     for line in insert_lines:
         print(line)
     for export in export_symbols:
@@ -137,8 +137,8 @@ def produce_exports_impl():
     print('};')
     print(f'const char *__g_unique_id = "{calc_unique_id()}";')
     print('} // namespace anonymous')
-    print(f'const char **{class_name}::getExports() {{ return __g_this_exports; }}')
-    print(f'const char *{class_name}::getUniqueId() {{ return __g_unique_id; }}')
+    print(f'const char **{class_name}::onGetExports() {{ return __g_this_exports; }}')
+    print(f'const char *{class_name}::onGetUniqueId() {{ return __g_unique_id; }}')
 
 
 for header in header_lines:

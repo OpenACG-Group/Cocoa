@@ -1,0 +1,7 @@
+{
+    "C_Cpp.default.includePath": [
+        "../../src",
+        "../../third_party/v8",
+        "../../third_party/v8/include"
+    ]
+}

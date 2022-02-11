@@ -1,142 +1,482 @@
 #include <cerrno>
 #include <cstdlib>
 
-#include "Core/Filesystem.h"
+#include "uv.h"
+
+#include "Core/EventLoop.h"
+#include "Core/Exception.h"
 #include "Koi/bindings/core/Exports.h"
 #include "Koi/bindings/core/FdRandomize.h"
-
 KOI_BINDINGS_NS_BEGIN
 
-Bitfield<vfs::OpenFlags> resolveOpenFlags(const std::string& _flags)
+struct FsRequest
 {
-    Bitfield<vfs::OpenFlags> flags;
-    bool fR = false, fW = false;
-    for (char p : _flags)
-    {
-        switch (p)
-        {
-        case 'r': fR = true; break;
-        case 'w': fW = true; break;
-        case '+': flags |= vfs::OpenFlags::kCreate; break;
-        case 'a': flags |= vfs::OpenFlags::kAppend; break;
-        case 't': flags |= vfs::OpenFlags::kTrunc; break;
-        default:
-            binder::JSException::Throw(binder::ExceptT::kError, "Bad open mode");
-        }
+    explicit FsRequest(v8::Isolate *isolate, const char *syscall, void *closure)
+        : req_{}
+        , isolate_(isolate)
+        , syscall_(syscall)
+        , closure_(closure)
+        , closure_collected_(false)
+        , buffer_(nullptr) {
+        v8::HandleScope scope(isolate);
+        v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+        auto r = v8::Promise::Resolver::New(ctx).ToLocalChecked();
+        resolver_.Reset(isolate, r);
+        uv_req_set_data(reinterpret_cast<uv_req_t*>(&req_), this);
     }
-    if (fR && fW)
-        flags |= vfs::OpenFlags::kReadWrite;
-    else if (fR)
-        flags |= vfs::OpenFlags::kReadonly;
-    else if (fW)
-        flags |= vfs::OpenFlags::kWriteOnly;
-    return flags;
+
+    ~FsRequest() {
+        uv_fs_req_cleanup(&req_);
+        resolver_.Reset();
+        buffer_ref_.Reset();
+    }
+
+    static FsRequest *Cast(uv_fs_t *req) {
+        return reinterpret_cast<FsRequest*>(
+                uv_req_get_data(reinterpret_cast<uv_req_t*>(req)));
+    }
+
+    v8::Local<v8::Promise::Resolver> GetResolver() {
+        return resolver_.Get(isolate_);
+    }
+
+    void Resolve(v8::Local<v8::Value> value) {
+        v8::Local<v8::Context> ctx = isolate_->GetCurrentContext();
+        GetResolver()->Resolve(ctx, value).Check();
+    }
+
+    void Reject(v8::Local<v8::Value> value) {
+        v8::Local<v8::Context> ctx = isolate_->GetCurrentContext();
+        GetResolver()->Reject(ctx, value).Check();
+    }
+
+    uv_fs_t req_;
+    v8::Global<v8::Promise::Resolver> resolver_;
+    v8::Isolate *isolate_;
+
+    const char *syscall_;
+
+    void *closure_;
+    /* The object referenced by @p closure_ was destructed by GC */
+    bool closure_collected_;
+
+    /* Keep a reference of the used Buffer object here to avoid being collected by GC */
+    v8::Global<v8::Value> buffer_ref_;
+    Buffer *buffer_;
+};
+
+void callback_reject_error_code(FsRequest *req, ssize_t err, const char *syscall_)
+{
+    v8::Isolate *i = req->isolate_;
+    v8::Local<v8::Context> ctx = i->GetCurrentContext();
+    v8::Local<v8::String> str = binder::to_v8(i, uv_strerror(static_cast<int>(err)));
+    v8::Local<v8::Object> e = v8::Exception::Error(str).As<v8::Object>();
+    e->Set(ctx, binder::to_v8(i, "errno"), binder::to_v8(i, err)).Check();
+    e->Set(ctx, binder::to_v8(i, "syscall"), binder::to_v8(i, syscall_)).Check();
+    req->Reject(e);
 }
 
-int32_t coreOpen(const std::string& path, const std::string& _flags, int32_t mode)
-{
-    auto flags = resolveOpenFlags(_flags);
-    if (flags.isEmpty())
-        return -1;
-    int32_t fd = vfs::Open(path, flags, Bitfield<vfs::Mode>(mode));
-    if (fd < 0)
-        binder::JSException::Throw(binder::ExceptT::kError, ::strerror(errno));
-    return FDLRNewRandomizedDescriptor(fd, FDLRTable::kUser, [](int32_t fd) {
-        vfs::Close(fd);
+#define NEW_REQUEST(syscall_, self_)  auto *req = new FsRequest(i, syscall_, self_)
+#define RET_PROMISE                   return req->GetResolver()->GetPromise()
+
+#define CALLBACK_PROLOGUE \
+    FsRequest *req = FsRequest::Cast(ptr); \
+    v8::Isolate *i = req->isolate_;        \
+    v8::HandleScope __scope(i);            \
+    ScopeEpilogue __deleter([req] {        \
+        delete req;                        \
     });
-}
 
-int32_t resolveRealDirFd(int32_t _dirfd)
-{
-    if (_dirfd == VFS_AT_FDCWD)
-        return VFS_AT_FDCWD;
-    auto *p = FDLRGetUnderlyingDescriptor(_dirfd);
-    if (!p)
-        return -1;
-    return p->fd;
-}
-
-int32_t coreOpenAt(int32_t dirfd, const std::string& path, const std::string& _flags, int32_t mode)
-{
-    int32_t realfd = resolveRealDirFd(dirfd);
-    if (realfd < 0)
-        binder::JSException::Throw(binder::ExceptT::kError, "Corrupted file (directory) descriptor");
-    auto flags = resolveOpenFlags(_flags);
-    if (flags.isEmpty())
-        return -1;
-    int32_t fd = vfs::OpenAt(realfd, path, flags, Bitfield<vfs::Mode>(mode));
-    if (fd < 0)
-        binder::JSException::Throw(binder::ExceptT::kError, ::strerror(errno));
-    return FDLRNewRandomizedDescriptor(fd, FDLRTable::kUser, [](int32_t fd) {
-        vfs::Close(fd);
+#define FILE_CALLBACK_PROLOGUE \
+    CALLBACK_PROLOGUE                                                \
+    ScopeEpilogue __pop([req] {                                      \
+        if (!req->closure_collected_ && req->closure_) {             \
+            auto *wrap = reinterpret_cast<FileWrap*>(req->closure_); \
+            wrap->pending_requests_.remove(req);                     \
+        }                                                            \
     });
+    
+    
+#define API_PROLOGUE                                \
+    v8::Isolate *i = v8::Isolate::GetCurrent();     \
+    uv_loop_t *loop = EventLoop::Ref().handle();    \
+
+void on_open_callback(uv_fs_t *ptr)
+{
+    CALLBACK_PROLOGUE
+
+    if (req->req_.result < 0)
+        callback_reject_error_code(req, req->req_.result, req->syscall_);
+    else
+    {
+        v8::Local<v8::Object> file = binder::Class<FileWrap>::create_object(i, req->req_.result);
+        req->Resolve(file);
+    }
 }
 
-void coreClose(int32_t fd)
+void on_undefined_promise_callback(uv_fs_t *ptr)
 {
-    FDLRTable::Target *target = FDLRGetUnderlyingDescriptor(fd);
-    if (!target)
-        binder::JSException::Throw(binder::ExceptT::kError, "Corrupted file descriptor");
-    if (!target->closer)
-        binder::JSException::Throw(binder::ExceptT::kError, "File descriptor is not closable");
-    target->closer(target->fd);
-    FDLRMarkUnused(fd);
+    CALLBACK_PROLOGUE
+    if (req->req_.result < 0)
+        callback_reject_error_code(req, req->req_.result, req->syscall_);
+    else
+        req->Resolve(v8::Undefined(i));
 }
 
-int64_t coreSeek(int32_t fd, int32_t whence, int64_t offset)
+v8::Local<v8::Value> Open(const std::string& path, int32_t flags, int32_t mode)
 {
-    FDLRTable::Target *target = FDLRGetUnderlyingDescriptor(fd);
-    if (!target)
-        binder::JSException::Throw(binder::ExceptT::kError, "Corrupted file descriptor");
-    if (whence < 0 || whence > static_cast<uint8_t>(vfs::SeekWhence::kLastWhence))
-        binder::JSException::Throw(binder::ExceptT::kError, "Invalid argument #2");
-
-    auto ret = vfs::Seek(target->fd, offset, static_cast<vfs::SeekWhence>(whence));
-    if (ret < 0)
-        binder::JSException::Throw(binder::ExceptT::kError, ::strerror(errno));
-    return ret;
+    API_PROLOGUE
+    NEW_REQUEST("open", nullptr);
+    uv_fs_open(loop, &req->req_, path.c_str(), flags, mode, on_open_callback);
+    RET_PROMISE;
 }
 
-void coreRename(const std::string& oldpath, const std::string& newpath)
+v8::Local<v8::Value> Unlink(const std::string& path)
 {
-    if (vfs::Rename(oldpath, newpath) < 0)
-        binder::JSException::Throw(binder::ExceptT::kError, ::strerror(errno));
+    API_PROLOGUE
+    NEW_REQUEST("unlink", nullptr);
+    uv_fs_unlink(loop, &req->req_, path.c_str(), on_undefined_promise_callback);
+    RET_PROMISE;
 }
 
-void coreTruncate(const std::string& path, size_t length)
+v8::Local<v8::Value> Mkdir(const std::string& path, int32_t mode)
 {
-    if (vfs::Truncate(path, length) < 0)
-        binder::JSException::Throw(binder::ExceptT::kError, ::strerror(errno));
+    API_PROLOGUE
+    NEW_REQUEST("mkdir", nullptr);
+    uv_fs_mkdir(loop, &req->req_, path.c_str(), mode, on_undefined_promise_callback);
+    RET_PROMISE;
 }
 
-void coreFTruncate(int32_t fd, size_t length)
+void on_mkdtemp_callback(uv_fs_t *ptr)
 {
-    auto *target = FDLRGetUnderlyingDescriptor(fd);
-    if (!target)
-        binder::JSException::Throw(binder::ExceptT::kError, "Corrupted file descriptor");
-    if (vfs::FTruncate(target->fd, length) < 0)
-        binder::JSException::Throw(binder::ExceptT::kError, ::strerror(errno));
+    CALLBACK_PROLOGUE
+    if (req->req_.result < 0)
+        callback_reject_error_code(req, req->req_.result, req->syscall_);
+    else
+        req->Resolve(binder::to_v8(i, req->req_.path));
 }
 
-void coreMknod(const std::string& path, int32_t mode, int32_t dev)
+v8::Local<v8::Value> Mkdtemp(const std::string& tpl)
 {
-    Bitfield<vfs::Mode> modeBits(mode);
-    if (!(modeBits & vfs::Mode::kChar || modeBits & vfs::Mode::kBlock))
-        dev = 0;
-    if (vfs::Mknod(path, modeBits, dev) < 0)
-        binder::JSException::Throw(binder::ExceptT::kError, ::strerror(errno));
+    API_PROLOGUE
+    NEW_REQUEST("mkdtemp", nullptr);
+    uv_fs_mkdtemp(loop, &req->req_, tpl.c_str(), on_mkdtemp_callback);
+    RET_PROMISE;
 }
 
-void coreMknodAt(int32_t dirfd, const std::string& path, int32_t mode, int32_t dev)
+void on_mkstemp_callback(uv_fs_t *ptr)
 {
-    Bitfield<vfs::Mode> modeBits(mode);
-    if (!(modeBits & vfs::Mode::kChar || modeBits & vfs::Mode::kBlock))
-        dev = 0;
-    int32_t realfd = resolveRealDirFd(dirfd);
-    if (realfd < 0)
-        binder::JSException::Throw(binder::ExceptT::kError, "Corrupted file (directory) descriptor");
-    if (vfs::MknodAt(realfd, path, modeBits, dev))
-        binder::JSException::Throw(binder::ExceptT::kError, ::strerror(errno));
+    CALLBACK_PROLOGUE
+    if (req->req_.result < 0)
+        callback_reject_error_code(req, req->req_.result, req->syscall_);
+    else
+    {
+        v8::Local<v8::Context> ctx = i->GetCurrentContext();
+        v8::Local<v8::Object> w = v8::Object::New(i);
+        w->Set(ctx, binder::to_v8(i, "path"), binder::to_v8(i, req->req_.path)).Check();
+        v8::Local<v8::Object> file = binder::Class<FileWrap>::create_object(i, req->req_.result);
+        w->Set(ctx, binder::to_v8(i, "file"), file).Check();
+        req->Resolve(w);
+    }
+}
+
+v8::Local<v8::Value> Mkstemp(const std::string& tpl)
+{
+    API_PROLOGUE
+    NEW_REQUEST("mkstemp", nullptr);
+    uv_fs_mkstemp(loop, &req->req_, tpl.c_str(), on_mkstemp_callback);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> Rmdir(const std::string& path)
+{
+    API_PROLOGUE
+    NEW_REQUEST("rmdir", nullptr);
+    uv_fs_rmdir(loop, &req->req_, path.c_str(), on_undefined_promise_callback);
+    RET_PROMISE;
+}
+
+double calc_uv_timespec_milliseconds(const uv_timespec_t& tv)
+{
+    return (static_cast<double>(tv.tv_sec) * 1e3) +
+           (static_cast<double>(tv.tv_nsec) / 1e6);
+}
+
+v8::Local<v8::Value> make_date_from_uv_timespec(const uv_timespec_t& tv, v8::Local<v8::Context> ctx)
+{
+    double ms = calc_uv_timespec_milliseconds(tv);
+    return v8::Date::New(ctx, ms).ToLocalChecked();
+}
+
+v8::Local<v8::Object> make_stat_object(uv_stat_t *st, v8::Isolate *i)
+{
+    v8::Local<v8::Object> r = v8::Object::New(i);
+    v8::Local<v8::Context> ctx = i->GetCurrentContext();
+#define SET(k, v) r->Set(ctx, binder::to_v8(i, k), binder::to_v8(i, v)).Check()
+#define SET_(k)   SET(#k, st->st_##k)
+
+    SET_(dev);
+    SET_(mode);
+    SET_(nlink);
+    SET_(uid);
+    SET_(gid);
+    SET_(rdev);
+    SET_(blksize);
+    SET_(ino);
+    SET_(size);
+    SET_(blocks);
+    SET("atimeMs", calc_uv_timespec_milliseconds(st->st_atim));
+    SET("mtimeMs", calc_uv_timespec_milliseconds(st->st_mtim));
+    SET("ctimeMs", calc_uv_timespec_milliseconds(st->st_ctim));
+    SET("atime", make_date_from_uv_timespec(st->st_atim, ctx));
+    SET("mtime", make_date_from_uv_timespec(st->st_mtim, ctx));
+    SET("ctime", make_date_from_uv_timespec(st->st_ctim, ctx));
+
+#undef SET_
+#undef SET
+    return r;
+}
+
+void on_stat_or_lstat_callback(uv_fs_t *ptr)
+{
+    CALLBACK_PROLOGUE
+    if (req->req_.result < 0)
+        callback_reject_error_code(req, req->req_.result, req->syscall_);
+    else
+        req->Resolve(make_stat_object(&req->req_.statbuf, i));
+}
+
+v8::Local<v8::Value> Stat(const std::string& path)
+{
+    API_PROLOGUE
+    NEW_REQUEST("stat", nullptr);
+    uv_fs_stat(loop, &req->req_, path.c_str(), on_stat_or_lstat_callback);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> LStat(const std::string& path)
+{
+    API_PROLOGUE
+    NEW_REQUEST("lstat", nullptr);
+    uv_fs_lstat(loop, &req->req_, path.c_str(), on_stat_or_lstat_callback);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> Rename(const std::string& path, const std::string& newPath)
+{
+    API_PROLOGUE
+    NEW_REQUEST("rename", nullptr);
+    uv_fs_rename(loop, &req->req_, path.c_str(), newPath.c_str(), on_undefined_promise_callback);
+    RET_PROMISE;
+}
+
+FileWrap::FileWrap(uv_file fd)
+    : closed_(false)
+    , is_closing_(false)
+    , fd_(fd)
+{
+}
+
+FileWrap::~FileWrap()
+{
+    if (!closed_ && !is_closing_)
+    {
+        uv_loop_t *loop = EventLoop::Ref().handle();
+        uv_fs_t req{};
+        uv_fs_close(loop, &req, fd_, nullptr);
+    }
+
+    for (FsRequest *r : pending_requests_)
+    {
+        r->closure_collected_ = true;
+        r->closure_ = nullptr;
+    }
+}
+
+void on_close_callback(uv_fs_t *ptr)
+{
+    FILE_CALLBACK_PROLOGUE
+
+    if (req->req_.result < 0)
+        callback_reject_error_code(req, req->req_.result, req->syscall_);
+    else
+        req->Resolve(v8::Undefined(i));
+
+    if (!req->closure_collected_)
+    {
+        auto *wrap = reinterpret_cast<FileWrap*>(req->closure_);
+        wrap->is_closing_ = false;
+        wrap->closed_ = true;
+    }
+}
+
+#define CHECK_CLOSED                             \
+    do {                                         \
+        if (closed_ || is_closing_) {            \
+            binder::JSException::Throw(          \
+                binder::ExceptT::kError,         \
+                "File has already been closed or is closing"); \
+        } \
+    } while (false)
+
+v8::Local<v8::Value> FileWrap::close()
+{
+    CHECK_CLOSED;
+    API_PROLOGUE
+    NEW_REQUEST("close", this);
+    uv_fs_close(loop, &req->req_, fd_, on_close_callback);
+    pending_requests_.push_back(req);
+    is_closing_ = true;
+    RET_PROMISE;
+}
+
+bool FileWrap::isClosed() const
+{
+    return closed_;
+}
+
+bool FileWrap::isClosing() const
+{
+    return is_closing_;
+}
+
+void on_read_callback(uv_fs_t *ptr)
+{
+    FILE_CALLBACK_PROLOGUE
+    if (req->req_.result < 0)
+        callback_reject_error_code(req, req->req_.result, req->syscall_);
+    else
+        req->Resolve(binder::to_v8(i, req->req_.result));
+}
+
+v8::Local<v8::Value> FileWrap::read(v8::Local<v8::Value> dst, int64_t dstOffset, size_t size, int64_t offset)
+{
+    CHECK_CLOSED;
+    API_PROLOGUE
+
+    Buffer *pBuffer = binder::Class<Buffer>::unwrap_object(i, dst);
+    if (!pBuffer)
+    {
+        binder::JSException::Throw(binder::ExceptT::kTypeError,
+                                   "Argument 'dst' must be a core.Buffer");
+    }
+
+    if (dstOffset + size - 1 > pBuffer->length())
+    {
+        binder::JSException::Throw(binder::ExceptT::kRangeError,
+                                   "Invalid 'bufOffset' and 'size'");
+    }
+
+    NEW_REQUEST("preadv", this);
+    req->buffer_ref_.Reset(i, dst);
+    req->buffer_ = pBuffer;
+
+    uv_buf_t buf{};
+    buf.len = size;
+    buf.base = reinterpret_cast<char*>(pBuffer->getWriteableDataPointerByte() + dstOffset);
+
+    uv_fs_read(loop, &req->req_, fd_, &buf, 1, offset, on_read_callback);
+
+    pending_requests_.push_back(req);
+    RET_PROMISE;
+}
+
+void on_fstat_callback(uv_fs_t *ptr)
+{
+    FILE_CALLBACK_PROLOGUE
+    if (req->req_.result < 0)
+        callback_reject_error_code(req, req->req_.result, req->syscall_);
+    else
+        req->Resolve(make_stat_object(&req->req_.statbuf, i));
+}
+
+v8::Local<v8::Value> FileWrap::fstat()
+{
+    CHECK_CLOSED;
+    API_PROLOGUE
+    NEW_REQUEST("fstat", this);
+    uv_fs_fstat(loop, &req->req_, fd_, on_fstat_callback);
+    pending_requests_.push_back(req);
+    RET_PROMISE;
+}
+
+void on_write_callback(uv_fs_t *ptr)
+{
+    FILE_CALLBACK_PROLOGUE
+    if (req->req_.result < 0)
+        callback_reject_error_code(req, req->req_.result, req->syscall_);
+    else
+        req->Resolve(binder::to_v8(i, req->req_.result));
+}
+
+v8::Local<v8::Value> FileWrap::write(v8::Local<v8::Value> src, int64_t srcOffset, size_t size, int64_t offset)
+{
+    CHECK_CLOSED;
+    API_PROLOGUE
+
+    Buffer *pBuffer = binder::Class<Buffer>::unwrap_object(i, src);
+    if (!pBuffer)
+    {
+        binder::JSException::Throw(binder::ExceptT::kTypeError,
+                                   "Argument 'src' must be a core.Buffer");
+    }
+
+    if (srcOffset + size - 1 > pBuffer->length())
+    {
+        binder::JSException::Throw(binder::ExceptT::kRangeError,
+                                   "Invalid 'bufOffset' and 'size'");
+    }
+
+    NEW_REQUEST("write", this);
+    req->buffer_ref_.Reset(i, src);
+    req->buffer_ = pBuffer;
+
+    uv_buf_t buf{};
+    buf.len = size;
+    buf.base = reinterpret_cast<char*>(pBuffer->getWriteableDataPointerByte() + srcOffset);
+    uv_fs_write(loop, &req->req_, fd_, &buf, 1, offset, on_write_callback);
+
+    pending_requests_.push_back(req);
+    RET_PROMISE;
+}
+
+void on_file_undefined_promise_callback(uv_fs_t *ptr)
+{
+    FILE_CALLBACK_PROLOGUE
+    if (req->req_.result < 0)
+        callback_reject_error_code(req, req->req_.result, req->syscall_);
+    else
+        req->Resolve(v8::Undefined(i));
+}
+
+v8::Local<v8::Value> FileWrap::fsync()
+{
+    CHECK_CLOSED;
+    API_PROLOGUE
+    NEW_REQUEST("fsync", this);
+    uv_fs_fsync(loop, &req->req_, fd_, on_file_undefined_promise_callback);
+    pending_requests_.push_back(req);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> FileWrap::fdatasync()
+{
+    CHECK_CLOSED;
+    API_PROLOGUE
+    NEW_REQUEST("fdatasync", this);
+    uv_fs_fdatasync(loop, &req->req_, fd_, on_file_undefined_promise_callback);
+    pending_requests_.push_back(req);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> FileWrap::ftruncate(off_t length)
+{
+    CHECK_CLOSED;
+    API_PROLOGUE
+    NEW_REQUEST("ftruncate", this);
+    uv_fs_ftruncate(loop, &req->req_, fd_, length, on_file_undefined_promise_callback);
+    pending_requests_.push_back(req);
+    RET_PROMISE;
 }
 
 KOI_BINDINGS_NS_END

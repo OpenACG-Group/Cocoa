@@ -14,7 +14,8 @@ class Context : public std::enable_shared_from_this<Context>
 public:
     enum class Backend
     {
-        kXcb
+        kXcb,
+        kWayland
     };
 
     enum ResourceId
@@ -32,8 +33,8 @@ public:
 
     va_nodiscard inline EventLoop *eventLoop()
     { return fEventLoop; }
-    va_nodiscard Handle<Display> display(int32_t id);
-    va_nodiscard inline bool hasDisplay(int32_t id)
+    va_nodiscard Handle<Display> getConnectedDisplay(int32_t id);
+    va_nodiscard inline bool hasConnectedDisplay(int32_t id)
     { return fDisplays.contains(id); }
 
     void connectTo(char const *displayName, int32_t id);

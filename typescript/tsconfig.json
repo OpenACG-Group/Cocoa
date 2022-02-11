@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "module": "ES6",
+        "module": "ES2020",
         "target": "ES2021",
         "moduleResolution": "Classic",
         "outDir": "./out",
@@ -12,14 +12,12 @@
         }
     },
     "include": [
-        "./global/mutable_global.d.ts",
+        "./global/infrastructure.d.ts",
         "./global/introspect.d.ts",
-        "./global/refvalue.d.ts"
     ],
     "files": [
         "./core/assert.ts",
         "./core/format.ts",
-        "./core/property_tree.ts",
         "./index.ts"
     ]
 }

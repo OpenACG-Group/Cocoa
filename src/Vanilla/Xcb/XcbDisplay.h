@@ -14,7 +14,7 @@ class Context;
 class XcbWindow;
 
 class XcbDisplay : public Display,
-                     public std::enable_shared_from_this<XcbDisplay>
+                   public std::enable_shared_from_this<XcbDisplay>
 {
 public:
     XcbDisplay(const Handle<Context>& context,

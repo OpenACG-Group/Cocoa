@@ -1,0 +1,3 @@
+Hello, world!
+This is a simple test case for file copying function.
+END

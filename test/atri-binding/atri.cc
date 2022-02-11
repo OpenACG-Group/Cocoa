@@ -3,10 +3,10 @@
 #include "atri.h"
 KOI_BINDINGS_NS_BEGIN
 
-int32_t atriRoboko(int32_t a, int32_t b, int32_t c)
+void ATRIWakeup()
 {
-	std::cout << "atriRoboko() in native\n";
-	return (a + b) * c;
+	std::cout << "「ありがとう、私の好きな人\n"
+                 "もう二度と帰らない愛しい日々...」\n";
 }
 
 extern "C" AtriBinding *__g_cocoa_hook()

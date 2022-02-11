@@ -1,245 +1,521 @@
 #include <optional>
+#include <unordered_map>
+#include <map>
+#include <cxxabi.h>
 
 #include "include/v8.h"
 #include "fmt/format.h"
 
 #include "Core/Properties.h"
+#include "Core/Utils.h"
+#include "Core/Journal.h"
+#include "Koi/binder/CallV8.h"
 #include "Koi/bindings/core/Exports.h"
-
 KOI_BINDINGS_NS_BEGIN
 
-std::optional<int> parsePropertyArraySubscript(const std::string_view& spec,
-                                               bool& thrown,
-                                               v8::Isolate *isolate)
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi.bindings.core)
+
+namespace {
+std::unordered_map<std::shared_ptr<PropertyNode>, v8::Global<v8::Object>> property_cache_;
+
+bool checkIsLegalNodeName(const std::string& name)
 {
-    thrown = false;
-    if (!spec.starts_with('#'))
-        return {};
+    if (name.empty())
+        return false;
 
-    std::string_view subscript(spec);
-    subscript.remove_prefix(1);
+    if (!std::isalpha(name[0]) && name[0] != '_')
+        return false;
 
-    std::string subscript_dump(subscript);
-
-    char *end_ptr = nullptr;
-    long subscript_val = std::strtol(subscript_dump.c_str(), &end_ptr, 10);
-    if (end_ptr - subscript_dump.c_str() != subscript_dump.size())
-    {
-        binder::throw_(isolate, "Array subscript should be an integer", v8::Exception::Error);
-        thrown = true;
-        return {};
-    }
-
-    if (subscript_val < 0)
-    {
-        binder::throw_(isolate, "Array subscript should be a positive integer", v8::Exception::Error);
-        thrown = true;
-        return {};
-    }
-
-    if (subscript_val > INT_MAX)
-    {
-        binder::throw_(isolate, "Array subscript is too large", v8::Exception::Error);
-        thrown = true;
-        return {};
-    }
-
-    return std::make_optional(static_cast<int>(subscript_val));
+    return std::all_of(name.begin(), name.end(), [](char c) -> bool {
+        return (std::isdigit(c) || std::isalpha(c) || c == '_');
+    });
 }
 
-std::shared_ptr<PropertyNode> parsePropertySpec(const std::string& spec,
-                                                bool& thrown,
-                                                v8::Isolate *isolate)
+int32_t property_direct_invocation_test(int32_t a, int32_t b)
 {
-    thrown = false;
-
-    std::vector<std::string_view> selectors;
-    std::size_t p = 0;
-    int64_t last_p = -1;
-    while ((p = spec.find('.', p + 1)) != std::string::npos)
-    {
-        std::string_view view(spec);
-        view.remove_prefix(last_p + 1);
-        view.remove_suffix(spec.size() - p);
-        selectors.emplace_back(view);
-        last_p = static_cast<int64_t>(p);
-    }
-    std::string_view view(spec);
-    view.remove_prefix(last_p + 1);
-    selectors.emplace_back(view);
-
-    std::shared_ptr<PropertyNode> currentNode = prop::Get();
-    for (auto const& sel : selectors)
-    {
-        if (currentNode->kind() == PropertyNode::Kind::kData)
-            return nullptr;
-
-        auto maybe_array = parsePropertyArraySubscript(sel, thrown, isolate);
-        if (thrown)
-            return nullptr;
-
-        if (maybe_array)
-        {
-            if (currentNode->kind() != PropertyNode::Kind::kArray)
-            {
-                binder::throw_(isolate, "Illegal usage of array subscript", v8::Exception::Error);
-                thrown = true;
-                return nullptr;
-            }
-
-            int subscript = maybe_array.value();
-            auto array_node = prop::Cast<PropertyArrayNode>(currentNode);
-            if (subscript >= array_node->size())
-                return nullptr;
-
-            currentNode = array_node->at(subscript);
-        }
-        else
-        {
-            if (currentNode->kind() != PropertyNode::Kind::kObject)
-            {
-                binder::throw_(isolate, "Illegal usage of member selector", v8::Exception::Error);
-                thrown = true;
-                return nullptr;
-            }
-
-            auto object_node = prop::Cast<PropertyObjectNode>(currentNode);
-            if (!object_node->hasMember(std::string(sel)))
-                return nullptr;
-
-            currentNode = object_node->getMember(std::string(sel));
-        }
-    }
-
-    return currentNode;
+    return (a + b);
 }
 
-namespace
-{
-std::map<PropertyNode::Kind, const char*> gNodeKindNameMap = {
-        {PropertyNode::Kind::kData, "data"},
-        {PropertyNode::Kind::kObject, "object"},
-        {PropertyNode::Kind::kArray, "array"}
-};
 } // namespace anonymous
 
-v8::Local<v8::Value> coreGetProperty(const std::string& spec)
+void PropertyWrap::InstallProperties()
 {
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::EscapableHandleScope scope(isolate);
-    v8::Local<v8::Context> context = isolate->GetCurrentContext();
-    bool thrown = false;
-    std::shared_ptr<PropertyNode> maybeNode = parsePropertySpec(spec, thrown, isolate);
-    if (thrown)
-        return {};
+    auto script = prop::Get()->next("Runtime")->next("Script")->as<PropertyObjectNode>();
 
-    if (!maybeNode || maybeNode->protection() == PropertyNode::Protection::kPrivate)
-    {
-        binder::throw_(isolate, "No such property or inaccessible to JavaScript", v8::Exception::Error);
-        return {};
-    }
-    auto node = prop::Cast<PropertyDataNode>(maybeNode);
-
-    v8::Local<v8::Object> result = v8::Object::New(isolate);
-    result->Set(context, binder::to_v8(isolate, "type"),
-                binder::to_v8(isolate, gNodeKindNameMap[node->kind()])).Check();
-
-    if (maybeNode->kind() != PropertyNode::Kind::kData)
-        return scope.Escape(result);
-
-    v8::Local<v8::Primitive> value;
-#define T_(t)  (node->type() == typeid(t))
-    if (T_(int8_t) || T_(int16_t) || T_(int32_t))
-        value = v8::Integer::New(isolate, node->extract<int32_t>());
-    else if (T_(uint8_t) || T_(uint16_t) || T_(uint32_t))
-        value = v8::Integer::NewFromUnsigned(isolate, node->extract<uint32_t>());
-    else if (T_(int64_t))
-        value = v8::BigInt::New(isolate, node->extract<int64_t>());
-    else if (T_(uint64_t))
-        value = v8::BigInt::NewFromUnsigned(isolate, node->extract<uint64_t>());
-    else if (T_(bool))
-        value = v8::Boolean::New(isolate, node->extract<bool>());
-    else if (T_(float))
-        value = v8::Number::New(isolate, node->extract<float>());
-    else if (T_(double))
-        value = v8::Number::New(isolate, node->extract<double>());
-    else if (T_(const char*))
-        value = v8::String::NewFromUtf8(isolate, node->extract<const char*>()).ToLocalChecked();
-    else if (T_(std::string))
-        value = v8::String::NewFromUtf8(isolate, node->extract<std::string>().c_str()).ToLocalChecked();
-#undef T_
-    if (!value.IsEmpty())
-        result->Set(context, binder::to_v8(isolate, "value"), value).Check();
-    return scope.Escape(result);
+    script->setMember("DirectCallTestFunc",
+                      prop::New<PropertyDataNode>(property_direct_invocation_test));
 }
 
-v8::Local<v8::Value> coreEnumeratePropertyNode(const std::string& spec)
+v8::Local<v8::Object> PropertyWrap::GetWrap(v8::Isolate *isolate,
+                                            const std::shared_ptr<PropertyNode>& node)
 {
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::EscapableHandleScope handleScope(isolate);
-    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    v8::EscapableHandleScope scope(isolate);
+    if (property_cache_.count(node) > 0)
+        return scope.Escape(property_cache_[node].Get(isolate));
+    v8::Local<v8::Object> wrap = binder::Class<PropertyWrap>::create_object(isolate,
+                                                                            node);
+    v8::Global<v8::Object> global = v8::Global<v8::Object>(isolate, wrap);
+    /**
+     * turn this global handle to a phantom weak handle without a finalizer callback,
+     * which makes sure that the wrap object can be destructed when GC happens.
+     */
+    global.SetWeak();
 
-    bool thrown = false;
-    std::shared_ptr<PropertyNode> node = parsePropertySpec(spec, thrown, isolate);
-    if (thrown)
-        return {};
+    property_cache_[node] = std::move(global);
+    return scope.Escape(wrap);
+}
 
-    if (!node || node->protection() == PropertyNode::Protection::kPrivate)
+PropertyWrap::PropertyWrap(const std::shared_ptr<PropertyNode>& node)
+    : fNode(node)
+{
+    CHECK(node);
+}
+
+PropertyWrap::~PropertyWrap()
+{
+    std::shared_ptr<PropertyNode> node = fNode.lock();
+    if (property_cache_.count(node) > 0)
     {
-        binder::throw_(isolate, "No such property or inaccessible to JavaScript", v8::Exception::Error);
-        return {};
+        property_cache_[node].Reset();
+        property_cache_.erase(node);
     }
-    if (node->kind() == PropertyNode::Kind::kData)
+}
+
+void PropertyWrap::checkNodeProtectionForJSWriting() const
+{
+    if (lockNode()->protection() != PropertyNode::Protection::kPublic)
+    {
+        binder::JSException::Throw(binder::ExceptT::kError,
+                                   "Permission denied for property accessing");
+    }
+}
+
+v8::Local<v8::Value> PropertyWrap::getType() const
+{
+    auto node = lockNode();
+    Type tp;
+    switch (node->kind())
+    {
+    case PropertyNode::Kind::kObject:
+        tp = Type::kObject;
+        break;
+    case PropertyNode::Kind::kArray:
+        tp = Type::kArray;
+        break;
+    case PropertyNode::Kind::kData:
+        tp = Type::kData;
+        break;
+    }
+
+    return binder::to_v8(v8::Isolate::GetCurrent(), static_cast<uint32_t>(tp));
+}
+
+v8::Local<v8::Value> PropertyWrap::getParent() const
+{
+    auto node = lockNode();
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    if (!node->parent())
         return v8::Null(isolate);
 
-    v8::Local<v8::Array> resultArray = v8::Array::New(isolate);
-    if (node->kind() == PropertyNode::Kind::kObject)
-    {
-        auto objectNode = prop::Cast<PropertyObjectNode>(node);
-        int count = 0;
-        for (const auto& child : *objectNode)
-        {
-            v8::Local<v8::Object> result = v8::Object::New(isolate);
-            auto childNode = child.second;
-            result->Set(context,
-                        binder::to_v8(isolate, "name"),
-                        binder::to_v8(isolate, child.first)).Check();
-            result->Set(context,
-                        binder::to_v8(isolate, "type"),
-                        binder::to_v8(isolate, gNodeKindNameMap[childNode->kind()])).Check();
-            resultArray->Set(context, count++, result).Check();
-        }
-    }
-    else if (node->kind() == PropertyNode::Kind::kArray)
-    {
-        auto arrayNode = prop::Cast<PropertyArrayNode>(node);
-        int count = 0;
-        for (const auto& element : *arrayNode)
-        {
-            v8::Local<v8::Object> result = v8::Object::New(isolate);
-            result->Set(context,
-                        binder::to_v8(isolate, "name"),
-                        binder::to_v8(isolate, fmt::format("#{}", count))).Check();
-            result->Set(context,
-                        binder::to_v8(isolate, "type"),
-                        binder::to_v8(isolate, gNodeKindNameMap[element->kind()])).Check();
-            result->Set(context,
-                        binder::to_v8(isolate, "index"),
-                        binder::to_v8(isolate, count)).Check();
-            resultArray->Set(context, count++, result).Check();
-        }
-    }
-    return handleScope.Escape(resultArray);
+    return GetWrap(isolate, node->parent());
 }
 
-bool coreHasProperty(const std::string& spec)
+v8::Local<v8::Value> PropertyWrap::getName() const
 {
-    bool thrown = false;
-    std::shared_ptr<PropertyNode> node = parsePropertySpec(spec, thrown, v8::Isolate::GetCurrent());
-    if (thrown)
-        return {};
+    auto node = lockNode();
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    return (node && node->protection() != PropertyNode::Protection::kPrivate);
+    return binder::to_v8(isolate, node->getName());
+}
+
+void PropertyWrap::setName(v8::Local<v8::Value> name) const
+{
+    checkNodeProtectionForJSWriting();
+    if (!name->IsString())
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "name must be a string");
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    std::string newName = binder::from_v8<std::string>(isolate, name);
+    if (!checkIsLegalNodeName(newName))
+        binder::JSException::Throw(binder::ExceptT::kError, "Illegal node name");
+
+    auto node = lockNode();
+    if (!node->parent())
+        binder::JSException::Throw(binder::ExceptT::kError, "Cannot set name for orphan node");
+    if (node->parent()->kind() != PropertyNode::Kind::kObject)
+        binder::JSException::Throw(binder::ExceptT::kError, "Cannot set name for node which has non-object parent");
+
+    auto parent = node->parent()->as<PropertyObjectNode>();
+    if (parent->hasMember(newName))
+        binder::JSException::Throw(binder::ExceptT::kError, "Name has already been used");
+
+    parent->renameMember(node->getName(), newName);
+}
+
+v8::Local<v8::Value> PropertyWrap::getProtection() const
+{
+    Prot prot;
+    switch (lockNode()->protection())
+    {
+    case PropertyNode::Protection::kPublic:
+        prot = Prot::kPublic;
+        break;
+    case PropertyNode::Protection::kPrivate:
+        prot = Prot::kPrivate;
+        break;
+    }
+    return binder::to_v8(v8::Isolate::GetCurrent(), static_cast<uint32_t>(prot));
+}
+
+v8::Local<v8::Value> PropertyWrap::getNumberOfChildren() const
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    PropertyNode::Kind kind = lockNode()->kind();
+    if (kind == PropertyNode::Kind::kObject)
+    {
+        auto node = lockNode()->as<PropertyObjectNode>();
+        return binder::to_v8(isolate, std::distance(node->begin(), node->end()));
+    }
+    else if (kind == PropertyNode::Kind::kArray)
+    {
+        auto array = lockNode()->as<PropertyArrayNode>();
+        return binder::to_v8(isolate, array->size());
+    }
+    else
+        return binder::to_v8(isolate, 0);
+}
+
+namespace {
+
+bool invokeForeachCallback(const std::shared_ptr<PropertyNode>& child,
+                           v8::Local<v8::Value> callback)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::HandleScope scope(isolate);
+    v8::Local<v8::Object> wrap = PropertyWrap::GetWrap(isolate, child);
+
+    v8::TryCatch tryCatch(isolate);
+    binder::Invoke(isolate, callback.As<v8::Function>(),
+                   isolate->GetCurrentContext()->Global(), wrap);
+    if (tryCatch.HasCaught())
+    {
+        tryCatch.ReThrow();
+        return false;
+    }
+    return true;
+}
+
+} // namespace anonymous
+
+void PropertyWrap::foreachChild(v8::Local<v8::Value> callback) const
+{
+    if (!callback->IsFunction())
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "Callback must be a function");
+    PropertyNode::Kind kind = lockNode()->kind();
+
+    if (kind == PropertyNode::Kind::kObject)
+    {
+        auto node = lockNode()->as<PropertyObjectNode>();
+        for (const auto& pair : *node)
+        {
+            if (!invokeForeachCallback(pair.second, callback))
+                return;
+        }
+    }
+    else if (kind == PropertyNode::Kind::kArray)
+    {
+        auto node = lockNode()->as<PropertyArrayNode>();
+        for (const auto& child : *node)
+        {
+            if (!invokeForeachCallback(child, callback))
+                return;
+        }
+    }
+}
+
+void PropertyWrap::detachFromParent()
+{
+    checkNodeProtectionForJSWriting();
+    auto node = lockNode();
+    if (!node->parent())
+        binder::JSException::Throw(binder::ExceptT::kError, "Detach an orphan node");
+
+    auto parent = node->parent();
+
+    if (parent->kind() == PropertyNode::Kind::kArray)
+    {
+        auto array = parent->as<PropertyArrayNode>();
+        for (size_t i = 0; i < array->size(); i++)
+        {
+            if (array->at(i) == node)
+            {
+                array->erase(i);
+                break;
+            }
+        }
+    }
+    else if (parent->kind() == PropertyNode::Kind::kObject)
+    {
+        parent->as<PropertyObjectNode>()->unsetMember(node->getName());
+    }
+    else
+    {
+        MARK_UNREACHABLE();
+    }
+}
+
+namespace {
+
+std::shared_ptr<PropertyNode> createPropertyNode(v8::Isolate *isolate, int32_t type)
+{
+    std::shared_ptr<PropertyNode> child;
+
+    switch (type)
+    {
+    case static_cast<uint32_t>(PropertyWrap::Type::kObject):
+        child = prop::New<PropertyObjectNode>();
+        break;
+    case static_cast<uint32_t>(PropertyWrap::Type::kArray):
+        child = prop::New<PropertyArrayNode>();
+        break;
+    case static_cast<uint32_t>(PropertyWrap::Type::kData):
+        child = prop::New<PropertyDataNode>();
+        break;
+    default:
+        binder::JSException::Throw(binder::ExceptT::kRangeError, "Invalid type", isolate);
+    }
+
+    child->setProtection(PropertyNode::Protection::kPublic);
+
+    return child;
+}
+
+} // namespace anonymous
+
+v8::Local<v8::Value> PropertyWrap::insertChild(int32_t type, const std::string& name) const
+{
+    checkNodeProtectionForJSWriting();
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    if (!checkIsLegalNodeName(name))
+        binder::JSException::Throw(binder::ExceptT::kError, "Illegal node name");
+
+    if (lockNode()->kind() != PropertyNode::Kind::kObject)
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "insertChild only available for object node");
+    auto node = lockNode()->as<PropertyObjectNode>();
+
+    if (node->hasMember(name))
+        binder::JSException::Throw(binder::ExceptT::kError, "Name has already been used");
+
+    auto child = createPropertyNode(isolate, type);
+
+    node->setMember(name, child);
+
+    return GetWrap(isolate, child);
+}
+
+v8::Local<v8::Value> PropertyWrap::findChild(const std::string& name) const
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (lockNode()->kind() == PropertyNode::Kind::kObject)
+    {
+        auto node = lockNode()->as<PropertyObjectNode>()->getMember(name);
+        if (node)
+            return GetWrap(isolate, node);
+        else
+            return v8::Null(isolate);
+    }
+    else
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "findChild only available for object node");
+}
+
+v8::Local<v8::Value> PropertyWrap::pushbackChild(int32_t type) const
+{
+    checkNodeProtectionForJSWriting();
+    if (lockNode()->kind() != PropertyNode::Kind::kArray)
+    {
+        binder::JSException::Throw(binder::ExceptT::kTypeError,
+                                   "pushbackChild only available for array node");
+    }
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    auto child = createPropertyNode(isolate, type);
+
+    lockNode()->as<PropertyArrayNode>()->append(child);
+
+    return GetWrap(isolate, child);
+}
+
+namespace {
+
+// NOLINTNEXTLINE
+bool __typeinfo_is_pointer(const std::type_info& typeinfo)
+{
+#if defined(__GNUG__)
+    return typeinfo.__is_pointer_p();
+#else
+    return false;
+#endif /* __GNUG__ */
+}
+
+} // namespace anonymous
+
+std::string PropertyWrap::dataTypeinfo() const
+{
+    if (lockNode()->kind() != PropertyNode::Kind::kData)
+    {
+        binder::JSException::Throw(binder::ExceptT::kTypeError,
+                                   "dataValueRTTI only available for data node");
+    }
+
+    auto node = lockNode()->as<PropertyDataNode>();
+
+    const std::type_info& info = node->type();
+    int status;
+    const char *demangled = abi::__cxa_demangle(info.name(), nullptr, nullptr, &status);
+
+    ScopeEpilogue epi([demangled] { std::free(const_cast<char*>(demangled)); });
+
+    if (status != 0)
+    {
+        demangled = info.name();
+        epi.abolish();
+    }
+
+    bool is_pointer_p = __typeinfo_is_pointer(info);
+    // [{p}real_type]
+    return fmt::format("[{{{}}}{}]", is_pointer_p ? "p" : "", demangled);
+}
+
+namespace {
+
+#define ARGS v8::Isolate *i, const std::shared_ptr<PropertyDataNode> &n
+#define RET v8::Local<v8::Value>
+#define TYPE_EXTRACTOR(T, obj, creator, ...) \
+    [](ARGS) -> RET { return v8::obj::creator(i, n->extract<T>()) __VA_OPT__(.) __VA_ARGS__; }
+
+#define EXTRACTOR_ENTRY(T, obj, creator) \
+    { &typeid(T), TYPE_EXTRACTOR(T, obj, creator) }
+
+#define EXTRACTOR_MAYBE_ENTRY(T, obj, creator) \
+    { &typeid(T), TYPE_EXTRACTOR(T, obj, creator, FromMaybe(v8::Null(i))) }
+
+// NOLINTNEXTLINE
+std::map<const std::type_info *, RET(*)(ARGS)> primitive_type_extractor_map_ = {
+        EXTRACTOR_ENTRY(int8_t, Integer, New),
+        EXTRACTOR_ENTRY(uint8_t, Integer, NewFromUnsigned),
+        EXTRACTOR_ENTRY(int16_t, Integer, New),
+        EXTRACTOR_ENTRY(uint16_t, Integer, NewFromUnsigned),
+        EXTRACTOR_ENTRY(int32_t, Integer, New),
+        EXTRACTOR_ENTRY(uint32_t, Integer, NewFromUnsigned),
+        EXTRACTOR_ENTRY(int64_t, BigInt, New),
+        EXTRACTOR_ENTRY(uint64_t, BigInt, NewFromUnsigned),
+        EXTRACTOR_ENTRY(float, Number, New),
+        EXTRACTOR_ENTRY(double, Number, New),
+        EXTRACTOR_ENTRY(bool, Boolean, New),
+        EXTRACTOR_MAYBE_ENTRY(const char*, String, NewFromUtf8),
+        EXTRACTOR_MAYBE_ENTRY(char*, String, NewFromUtf8),
+        { &typeid(std::string), [](ARGS) -> RET {
+                return v8::String::NewFromUtf8(i, n->extract<std::string>().c_str())
+                       .FromMaybe(v8::Null(i));
+            }
+        }
+};
+
+#undef EXTRACTOR_MAYBE_ENTRY
+#undef EXTRACTOR_ENTRY
+#undef TYPE_EXTRACTOR
+#undef ARGS
+#undef RET
+
+} // namespace anonymous
+
+v8::Local<v8::Value> PropertyWrap::extract() const
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    auto node = lockNode()->as<PropertyDataNode>();
+
+    const std::type_info& info = node->type();
+
+    for (const auto& match : primitive_type_extractor_map_)
+    {
+        if (*match.first == info)
+            return match.second(isolate, node);
+    }
+
+    return v8::Null(v8::Isolate::GetCurrent());
+}
+
+bool PropertyWrap::hasData() const
+{
+    if (lockNode()->kind() != PropertyNode::Kind::kData)
+    {
+        binder::JSException::Throw(binder::ExceptT::kTypeError,
+                                   "hasData only available for data node");
+    }
+
+    return lockNode()->as<PropertyDataNode>()->hasValue();
+}
+
+namespace {
+
+#define RET     std::any
+#define ARGS    v8::Isolate *i, v8::Local<v8::Context> c, v8::Local<v8::Value> v
+#define LAMBDA  [](ARGS) -> RET
+#define AS_STDCPP_STRING static_cast<std::string>(binder::from_v8<std::string>(i ,v))
+
+// NOLINTNEXTLINE
+std::unordered_map<std::string, RET(*)(ARGS)> js_primitive_converters_ = {
+        { "boolean", LAMBDA { return v->ToBoolean(i)->Value(); } },
+        { "number", LAMBDA { return v->ToNumber(c).ToLocalChecked()->Value(); } },
+        { "bigint", LAMBDA { return AS_STDCPP_STRING; } },
+        { "string", LAMBDA { return AS_STDCPP_STRING; } },
+        { "symbol", LAMBDA { return AS_STDCPP_STRING; } }
+};
+
+#undef AS_STDCPP_STRING
+#undef LAMBDA
+#undef ARGS
+#undef RET
+
+} // namespace anonymous
+
+void PropertyWrap::resetData(const v8::FunctionCallbackInfo<v8::Value>& args) const
+{
+    checkNodeProtectionForJSWriting();
+    if (lockNode()->kind() != PropertyNode::Kind::kData)
+    {
+        binder::JSException::Throw(binder::ExceptT::kTypeError,
+                                   "resetData only available for data node");
+    }
+    if (args.Length() > 1)
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "Too many arguments");
+
+    auto node = lockNode()->as<PropertyDataNode>();
+    if (args.Length() == 0)
+    {
+        node->reset({});
+        return;
+    }
+
+    if (args[0]->IsNullOrUndefined())
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "Cannot reset value to null or undefined");
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    auto type = binder::from_v8<std::string>(isolate, args[0]->TypeOf(isolate));
+
+    if (js_primitive_converters_.count(type) > 0)
+    {
+        std::any value = js_primitive_converters_[type](isolate, context, args[0]);
+        node->reset(std::move(value));
+    }
+    else
+    {
+        binder::JSException::Throw(binder::ExceptT::kTypeError, "Unsupported type of value");
+    }
 }
 
 KOI_BINDINGS_NS_END

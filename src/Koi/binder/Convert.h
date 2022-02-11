@@ -24,8 +24,8 @@ struct invalid_argument : std::invalid_argument
 };
 
 // converter specializations for string types
-template<detail::IsString String>
-struct convert<String>
+template<typename String>
+struct convert<String, typename std::enable_if<detail::is_string<String>::value>::type>
 {
     using Char = typename String::value_type;
     using Traits = typename String::traits_type;
@@ -122,8 +122,8 @@ struct convert<bool>
     { return v8::Boolean::New(isolate, value); }
 };
 
-template<std::integral T>
-struct convert<T>
+template<typename T>
+struct convert<T, typename std::enable_if<std::is_integral_v<T>>::type>
 {
     using from_type = T;
     using to_type = v8::Local<v8::Number>;
@@ -194,8 +194,8 @@ struct convert<T, typename std::enable_if<std::is_enum<T>::value>::type>
     }
 };
 
-template<std::floating_point T>
-struct convert<T>
+template<typename T>
+struct convert<T, typename std::enable_if<std::is_floating_point_v<T>>::type>
 {
     using from_type = T;
     using to_type = v8::Local<v8::Number>;
@@ -274,11 +274,10 @@ private:
 };
 
 // convert Array <-> std::array, vector, deque, list
-template<typename T>
-concept IsSequenceOrArray = detail::is_sequence<T>::value || detail::is_array<T>::value;
 
-template<IsSequenceOrArray Sequence>
-struct convert<Sequence>
+template<typename Sequence>
+struct convert<Sequence, typename std::enable_if<detail::is_sequence<Sequence>::value
+                        || detail::is_array<Sequence>::value>::type>
 {
     using from_type = Sequence;
     using to_type = v8::Local<v8::Array>;
@@ -337,8 +336,8 @@ struct convert<Sequence>
 };
 
 // convert Object <-> std::{unordered_}{multi}map
-template<detail::IsMapping Mapping>
-struct convert<Mapping>
+template<typename Mapping>
+struct convert<Mapping, typename std::enable_if<detail::is_mapping<Mapping>::value>::type>
 {
     using from_type = Mapping;
     using to_type = v8::Local<v8::Object>;
@@ -429,10 +428,7 @@ template<typename T>
 struct is_wrapped_class<v8::Global<T>> : std::false_type {};
 
 template<typename T>
-concept IsWrappedClass = is_wrapped_class<T>::value;
-
-template<IsWrappedClass T>
-struct convert<T *>
+struct convert<T*, typename std::enable_if<is_wrapped_class<T>::value>::type>
 {
     using from_type = T *;
     using to_type = v8::Local<v8::Object>;
@@ -458,8 +454,8 @@ struct convert<T *>
     }
 };
 
-template<IsWrappedClass T>
-struct convert<T>
+template<typename T>
+struct convert<T, typename std::enable_if<is_wrapped_class<T>::value>::type>
 {
     using from_type = T&;
     using to_type = v8::Local<v8::Object>;
@@ -492,8 +488,8 @@ struct convert<T>
     }
 };
 
-template<IsWrappedClass T>
-struct convert<std::shared_ptr<T>>
+template<typename T>
+struct convert<std::shared_ptr<T>, typename std::enable_if<is_wrapped_class<T>::value>::type>
 {
     using from_type = std::shared_ptr<T>;
     using to_type = v8::Local<v8::Object>;

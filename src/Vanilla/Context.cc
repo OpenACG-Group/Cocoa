@@ -55,12 +55,16 @@ void Context::connectTo(const char *displayName, int32_t id)
     {
     case Backend::kXcb:
         fDisplays[id] = Display::OpenXcb(shared_from_this(), displayName);
-        if (fDisplays[id] == nullptr)
-            throw VanillaException(__func__, "Couldn't connect to display server");
+        break;
+    case Backend::kWayland:
+        fDisplays[id] = Display::OpenWayland(shared_from_this(), displayName ? displayName : "");
+        break;
     }
+    if (fDisplays[id] == nullptr)
+        throw VanillaException(__func__, "Couldn't connect to display server");
 }
 
-Handle<Display> Context::display(int32_t id)
+Handle<Display> Context::getConnectedDisplay(int32_t id)
 {
     if (!fDisplays.contains(id))
     {

@@ -12,6 +12,11 @@ type EvalResolvedCb = (value: any) => void;
  */
 type EvalRejectedCb = (except: any) => void;
 
+type UnhandledRejectionHandler<T> = (promise: Promise<T>, value: any) => void;
+
+type MultipleResolveAction = 'resolve' | 'reject';
+type MultipleResolveHandler<T> = (promise: Promise<T>, action: MultipleResolveAction) => void;
+
 type JournalLogLevel = 'debug' | 'info' | 'warning' | 'warn' |
                        'error' | 'err' | 'exception' | 'except';
 
@@ -46,6 +51,22 @@ interface Introspect {
     setBeforeExitHandler(handler: () => void): void;
 
     /**
+     * Register a callback function for unhandled promise rejection.
+     *
+     * @param handler A function that will be called when a promise rejects
+     *                but is not handled.
+     */
+    setUnhandledPromiseRejectionHandler<T>(handler: UnhandledRejectionHandler<T>): void;
+
+    /**
+     * Register a callback function for multiple promise resolve.
+     *
+     * @param handler A function that will be called when a resolved
+     *                promise resolves/rejects again.
+     */
+    setPromiseMultipleResolveHandler<T>(handler: MultipleResolveHandler<T>): void;
+
+    /**
      * Load a dynamic shared object as a language binding.
      * 
      * @param path Path of the dynamic library file.
@@ -59,7 +80,7 @@ interface Introspect {
      * Evaluate a code snippet in the future.
      * The code snippet is treated as a task that will be pushed into task queue,
      * and the task queue will be checked (which means code snippet will be executed)
-     * in the prepare stage of event loop.
+     * in the preparation stage of event loop.
      * 
      * @param source Code snippet to be executed.
      * @param resolved A callback function that will be called when the code snippet
@@ -75,7 +96,7 @@ interface Introspect {
      * Evaluate a module in the future.
      * The module evaluation is treated as a task that will be pushed into task queue,
      * and the task queue will be checked (which means code snippet will be executed)
-     * in the prepare stage of event loop.
+     * in the preparation stage of event loop.
      * 
      * @param url A module URL to be evaluated.
      * @param resolved A callback function that will be called when the module

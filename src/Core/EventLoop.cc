@@ -130,33 +130,62 @@ void AsyncSource::Callback(uv_async_t *handle)
     pThis->asyncDispatch();
 }
 
-LoopPrologueSource::LoopPrologueSource(EventLoop *loop)
+PrepareSource::PrepareSource(EventLoop *loop)
     : EventSource(loop)
 {
     uv_prepare_init(loop->handle(), get());
     setThis(this);
 }
 
-LoopPrologueSource::~LoopPrologueSource()
+PrepareSource::~PrepareSource()
 {
     uv_prepare_stop(get());
 }
 
-void LoopPrologueSource::startLoopPrologue()
+void PrepareSource::startPrepare()
 {
-    uv_prepare_start(get(), LoopPrologueSource::Callback);
+    uv_prepare_start(get(), PrepareSource::Callback);
 }
 
-void LoopPrologueSource::stopLoopPrologue()
+void PrepareSource::stopPrepare()
 {
     uv_prepare_stop(get());
 }
 
-void LoopPrologueSource::Callback(uv_prepare_t *handle)
+void PrepareSource::Callback(uv_prepare_t *handle)
 {
-    auto *pThis = reinterpret_cast<LoopPrologueSource*>(uv_handle_get_data((uv_handle_t*)handle));
-    if (pThis->loopPrologueDispatch() == KeepInLoop::kNo)
-        pThis->stopLoopPrologue();
+    auto *pThis = reinterpret_cast<PrepareSource*>(uv_handle_get_data((uv_handle_t*)handle));
+    if (pThis->prepareDispatch() == KeepInLoop::kNo)
+        pThis->stopPrepare();
+}
+
+CheckSource::CheckSource(EventLoop *loop)
+    : EventSource(loop)
+{
+    uv_check_init(loop->handle(), get());
+    setThis(this);
+}
+
+CheckSource::~CheckSource()
+{
+    uv_check_stop(get());
+}
+
+void CheckSource::startCheck()
+{
+    uv_check_start(get(), CheckSource::Callback);
+}
+
+void CheckSource::stopCheck()
+{
+    uv_check_stop(get());
+}
+
+void CheckSource::Callback(uv_check_t *handle)
+{
+    auto *pThis = reinterpret_cast<CheckSource*>(uv_handle_get_data((uv_handle_t*)handle));
+    if (pThis->checkDispatch() == KeepInLoop::kNo)
+        pThis->stopCheck();
 }
 
 } // namespace cocoa

@@ -46,6 +46,6 @@
                 return value instanceof RefValue;
             }
         }
-        __global__.RefValue = RefValue;
+        global.RefValue = RefValue;
     </content>
 </internal>

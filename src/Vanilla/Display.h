@@ -14,8 +14,8 @@ class Window;
 
 enum class DisplayBackend
 {
-    kDisplay_Xcb,
-    kDisplay_Wayland
+    kXcb,
+    kWayland
 };
 
 class Display
@@ -25,6 +25,7 @@ public:
     virtual ~Display() = default;
 
     static Handle<Display> OpenXcb(const Handle<Context>& ctx, const char *displayName);
+    static Handle<Display> OpenWayland(const Handle<Context>& ctx, const std::string& name);
 
     inline DisplayBackend backend() const
     { return fBackend; }
@@ -55,7 +56,7 @@ protected:
 private:
     DisplayBackend                  fBackend;
     WeakHandle<Context>             fContext;
-    std::list<Handle<Window>>     fWindows;
+    std::list<Handle<Window>>       fWindows;
 };
 
 VANILLA_NS_END

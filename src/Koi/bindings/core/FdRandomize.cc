@@ -130,14 +130,15 @@ void FDLRDumpMappingInfo()
             else if (gFDLRTable.pMap[i].closer)
                 os << "%fg<gr,hl>closable%reset<>,";
 
-            if (gFDLRTable.pMap[i].fd == STDIN_FILENO)
+            if (gFDLRTable.pMap[i].fd == 0)
                 os << "%fg<bl,hl>stdin%reset<>,";
-            else if (gFDLRTable.pMap[i].fd == STDOUT_FILENO)
+            else if (gFDLRTable.pMap[i].fd == 1)
                 os << "%fg<bl,hl>stdout%reset<>,";
-            else if (gFDLRTable.pMap[i].fd == STDERR_FILENO)
+            else if (gFDLRTable.pMap[i].fd == 2)
                 os << "%fg<bl,hl>stderr%reset<>,";
 
-            std::string_view str = os.view();
+            std::string str_ = os.str();
+            std::string_view str(str_);
             if (str.length() > 0)
                 str.remove_suffix(1);
             QLOG(LOG_DEBUG, "  Entry#{} %fg<ma,hl>{:03d}%reset -> %fg<cy,hl>{:03d}%reset [{}]",

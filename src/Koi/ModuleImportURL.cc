@@ -17,7 +17,7 @@ namespace {
 
 std::string normalize(std::string url)
 {
-    if (!url.starts_with('/'))
+    if (url[0] != '/')
     {
         auto cwd = prop::Cast<PropertyDataNode>(
                 prop::Get()
@@ -34,7 +34,7 @@ std::string normalize(std::string url)
 std::string resolveRelativeFilePath(const std::string& refererUrl, const std::string& specifier)
 {
     std::string result;
-    if (specifier.starts_with('/'))
+    if (specifier[0] == '/')
         result = specifier;
     else
     {
@@ -84,7 +84,7 @@ const char *resolveInternalScript(const std::string& name, ModuleImportURL::Reso
         throw RuntimeException(__func__,
                                fmt::format("Internal script {} not found", name));
     default:
-        return ptr->content.c_str();
+        return ptr->content;
     }
     MARK_UNREACHABLE();
 }
@@ -104,7 +104,7 @@ ModuleImportURL::Resolve(const ModuleImportURL::SharedPtr& referer,
     std::string path;
     for (const auto& pproto : protocols_)
     {
-        if (import.starts_with(pproto.first))
+        if (import.find(pproto.first, 0) == 0)
         {
             proto = pproto.second;
             path = import.substr(pproto.first.length());

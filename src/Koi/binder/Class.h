@@ -217,7 +217,7 @@ public:
         return *this;
     }
 
-    /// Inhert from C++ class U
+    /// Inherit from C++ class U
     template<typename U>
     Class& inherit()
     {

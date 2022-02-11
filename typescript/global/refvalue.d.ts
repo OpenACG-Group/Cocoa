@@ -6,7 +6,7 @@
  * When you pass a primitive-typed variable (LValue) in a function call,
  * its value will be copied and if you change its value in callee, its
  * value in caller will not be changed.
- * If you do need to change a primtive-typed variable's value in callee,
+ * If you do need to change a primitive-typed variable's value in callee,
  * or other similar cases, RefValue can be helpful.
  */
 declare class RefValue {
@@ -16,14 +16,14 @@ declare class RefValue {
     constructor(value?: any);
 
     /**
-     * Gets the value which is holded.
-     * @returns The value which is holded.
+     * Gets the value which is held.
+     * @returns The value which is held.
      */
     get(): any;
 
     /**
      * Saves the value.
-     * @param value - The value which will be holded.
+     * @param value - The value which will be held.
      * @throws Error if this RefValue instance is locked.
      */
     set(value: any): void;

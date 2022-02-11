@@ -1,0 +1,13 @@
+#ifndef COCOA_GSKCONTENTFORMATS_H
+#define COCOA_GSKCONTENTFORMATS_H
+
+#include "Gsk/Gsk.h"
+GSK_NAMESPACE_BEGIN
+
+class GskContentFormats
+{
+
+};
+
+GSK_NAMESPACE_END
+#endif //COCOA_GSKCONTENTFORMATS_H

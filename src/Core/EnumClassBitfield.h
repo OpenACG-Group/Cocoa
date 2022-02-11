@@ -40,6 +40,29 @@ public:
         return (fValue & static_cast<T>(bit)) == static_cast<T>(bit);
     }
 
+    Bitfield operator~() const {
+        Bitfield result = *this;
+        result.fValue = ~result.fValue;
+        return result;
+    }
+
+    Bitfield& operator|=(const Bitfield<E> bit) {
+        fValue |= bit.fValue;
+        return *this;
+    }
+
+    Bitfield operator|(const Bitfield<E> bit) const {
+        Bitfield result = *this;
+        result.fValue |= bit.fValue;
+        return result;
+    }
+
+    Bitfield operator&(const Bitfield<E> bit) const {
+        Bitfield result = *this;
+        result.fValue = result.fValue & bit.fValue;
+        return result;
+    }
+
     [[nodiscard]] bool isEmpty() const {
         return fValue == 0;
     }

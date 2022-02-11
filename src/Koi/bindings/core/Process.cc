@@ -8,14 +8,14 @@
 
 KOI_BINDINGS_NS_BEGIN
 
-void corePrint(const std::string& str)
+void Print(const std::string& str)
 {
     if (str.empty())
         return;
     std::fwrite(str.c_str(), str.size(), 1, stdout);
 }
 
-void coreDump(const std::string& what)
+void Dump(const std::string& what)
 {
     if (what == "descriptors-info")
         FDLRDumpMappingInfo();
@@ -23,7 +23,7 @@ void coreDump(const std::string& what)
         binder::JSException::Throw(binder::ExceptT::kError, "Invalid dump target");
 }
 
-void coreExit()
+void Exit()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     isolate->TerminateExecution();
@@ -37,7 +37,7 @@ v8::Local<v8::Array> GetEscapableArgs()
     v8::EscapableHandleScope scope(isolate);
     v8::Local<v8::Array> array = v8::Array::New(isolate);
 
-    auto args = prop::Cast<PropertyArrayNode>(prop::Get()->next("Runtime")->next("Script")->next("Args"));
+    auto args = prop::Cast<PropertyArrayNode>(prop::Get()->next("Runtime")->next("Script")->next("Pass"));
     uint32_t index = 0;
     for (const std::shared_ptr<PropertyNode>& node : *args)
     {

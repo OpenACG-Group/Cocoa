@@ -101,7 +101,7 @@ XcbDisplay::XcbDisplay(const Handle<Context>& context,
                            xcb_screen_t *pScreen,
                            xcb_visualtype_t *pVisual,
                            SkColorType format)
-    : Display(DisplayBackend::kDisplay_Xcb, context),
+    : Display(DisplayBackend::kXcb, context),
       fConnection(pConnection),
       fScreen(pScreen),
       fVisual(pVisual),

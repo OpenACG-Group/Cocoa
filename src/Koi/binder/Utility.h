@@ -42,9 +42,6 @@ struct is_string<char32_t const*> : std::true_type {};
 template<>
 struct is_string<wchar_t const*> : std::true_type {};
 
-template<typename T>
-concept IsString = is_string<T>::value;
-
 // is_mapping<T>
 template<typename T, typename U = void>
 struct is_mapping : std::false_type {};
@@ -52,9 +49,6 @@ struct is_mapping : std::false_type {};
 template<typename T>
 struct is_mapping<T, std::void_t<typename T::key_type, typename T::mapped_type,
     decltype(std::declval<T>().begin()), decltype(std::declval<T>().end())>> : std::true_type {};
-
-template<typename T>
-concept IsMapping = is_mapping<T>::value;
 
 // is_sequence<T>
 template<typename T, typename U = void>
@@ -64,9 +58,6 @@ template<typename T>
 struct is_sequence<T, std::void_t<typename T::value_type,
         decltype(std::declval<T>().begin()), decltype(std::declval<T>().end()),
         decltype(std::declval<T>().emplace_back(std::declval<typename T::value_type>()))>> : std::negation<is_string<T>> {};
-
-template<typename T>
-concept IsSequence = is_sequence<T>::value;
 
 // has_reserve<T>
 template<typename T, typename U = void>
@@ -81,9 +72,6 @@ struct has_reserve<T, std::void_t<decltype(std::declval<T>().reserve(0))>> : std
     static void reserve(T& container, size_t capacity)
     { container.reserve(capacity); }
 };
-
-template<typename T>
-concept HasReserve = has_reserve<T>::value;
 
 // is_array<T>
 template<typename T>
@@ -113,9 +101,6 @@ struct is_array<std::array<T, N>> : std::true_type
     { array[index] = std::forward<U>(item); }
 };
 
-template<typename T>
-concept IsArray = is_array<T>::value;
-
 // is_tuple<T>
 template<typename T>
 struct is_tuple : std::false_type {};
@@ -123,18 +108,12 @@ struct is_tuple : std::false_type {};
 template<typename... Ts>
 struct is_tuple<std::tuple<Ts...>> : std::true_type {};
 
-template<typename... Ts>
-concept IsTuple = is_tuple<Ts...>::value;
-
 // is_shared_ptr<T>
 template<typename T>
 struct is_shared_ptr : std::false_type {};
 
 template<typename T>
 struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {};
-
-template<typename T>
-concept IsSharedPtr = is_shared_ptr<T>::value;
 
 
 // Function traits

@@ -22,7 +22,7 @@ Handle<DrawContext> DrawContext::MakeVulkan(Handle<Window> window, bool enableDe
 
     switch (window->getDisplay()->backend())
     {
-    case DisplayBackend::kDisplay_Xcb:
+    case DisplayBackend::kXcb:
         instanceExt.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
         instanceExt.emplace_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
         surfaceCreator = [window](VkInstance instance) -> std::tuple<VkResult, VkSurfaceKHR> {

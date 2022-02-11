@@ -5,6 +5,7 @@
 
 #include "include/v8.h"
 #include "Koi/binder/Utility.h"
+#include "Koi/binder/Convert.h"
 KOI_BINDER_NS_BEGIN
 
 v8::Local<v8::Value> throw_(v8::Isolate* isolate,
@@ -34,11 +35,11 @@ public:
     /**
      * Throw a native C++ exception, which will be caught by binder automatically
      * if current function is called by binder from JavaScript.
-     * Binder will convert it to the corresponding JavaScript exception by @a TakeOver()
+     * Binder will convert it to the corresponding JavaScript exception by `TakeOver()`
      * and rethrow the converted exception after catching a JSException (C++ native exception).
      */
-    static void Throw(Category category, const std::string& what,
-                      v8::Isolate *isolate = nullptr);
+    koi_noreturn static void Throw(Category category, const std::string& what,
+                                   v8::Isolate *isolate = nullptr);
 
     static v8::Local<v8::Value> TakeOver(const JSException& except);
 

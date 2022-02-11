@@ -26,7 +26,7 @@ private:
     bool isDisposeEvent(xcb_generic_event_t *pEvent);
     void entrance();
 
-    XcbDisplay                    *fDisplay;
+    XcbDisplay                      *fDisplay;
     std::thread::id                  fMainThreadId;
     bool                             fDisposed;
     std::thread                      fThread;

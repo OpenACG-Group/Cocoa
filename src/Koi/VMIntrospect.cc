@@ -1,5 +1,6 @@
 #include "Core/Errors.h"
 #include "Core/Journal.h"
+#include "Core/Utils.h"
 #include "Koi/VMIntrospect.h"
 #include "Koi/binder/Convert.h"
 #include "Koi/binder/ThrowExcept.h"
@@ -24,32 +25,27 @@ template<VMIntrospect::CallbackSlot kSlot>
 void introspect_set_callback_slot(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
     VMIntrospect *introspect = get_bare_introspect_ptr(args);
-    if (args.Length() != 1)
-        binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
-    if (!args[0]->IsFunction())
-        binder::JSException::Throw(binder::ExceptT::kTypeError, "Callback is not a function");
+    JS_THROW_IF(args.Length() != 1, "Invalid number of arguments", v8::Exception::Error);
+    JS_THROW_IF(!args[0]->IsFunction(), "Callback must be a function", v8::Exception::TypeError);
     introspect->setCallbackSlot(kSlot, args[0].template As<v8::Function>());
 }
 
 void introspect_load_shared_object(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
     VMIntrospect *introspect = get_bare_introspect_ptr(args);
-    if (args.Length() != 1)
-	    binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
-    if (!args[0]->IsString())
-        binder::JSException::Throw(binder::ExceptT::kTypeError, "Shared object path is not a string");
+    JS_THROW_IF(args.Length() != 1, "Invalid number of arguments", v8::Exception::Error);
+    JS_THROW_IF(!args[0]->IsString(), "Shared object path must be a string", v8::Exception::TypeError);
     auto path = binder::from_v8<std::string>(introspect->getIsolate(), args[0]);
     if (!Runtime::GetBareFromIsolate(introspect->getIsolate())->getOptions().introspect_allow_loading_shared_object)
     {
         QLOG(LOG_WARNING,
              "JavaScript is trying to load shared object {}, which is forbidden by current introspect policy", path);
-        binder::JSException::Throw(binder::ExceptT::kError,
-                                   "Loading shared object is forbidden by current introspect policy");
+        JS_THROW_IF(true, "Loading shared object is forbidden by current introspect policy", v8::Exception::Error);
     }
     try {
         BindingManager::Instance()->loadDynamicObject(path);
     } catch (const std::exception& e) {
-        binder::JSException::Throw(binder::ExceptT::kError, e.what());
+        JS_THROW_IF(true, e.what(), v8::Exception::Error);
     }
 }
 
@@ -58,10 +54,8 @@ void introspect_schedule_task(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
     VMIntrospect *introspect = get_bare_introspect_ptr(args);
     v8::Isolate *isolate = introspect->getIsolate();
-    if (args.Length() < 1 || args.Length() > 3)
-        binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
-    if (!args[0]->IsString())
-        binder::JSException::Throw(binder::ExceptT::kTypeError, "Script/module name is not a string");
+    JS_THROW_IF(args.Length() < 1 || args.Length() > 3, "Invalid number of arguments", v8::Exception::Error);
+    JS_THROW_IF(!args[0]->IsString(), "Script/module name is not a string", v8::Exception::TypeError);
 
     VMIntrospect::ScheduledTask task{};
     task.type = kType;
@@ -69,14 +63,12 @@ void introspect_schedule_task(const v8::FunctionCallbackInfo<v8::Value>& args)
 
     if (args.Length() >= 2)
     {
-        if (!args[1]->IsFunction())
-            binder::JSException::Throw(binder::ExceptT::kTypeError, "Callback is not a function");
+        JS_THROW_IF(!args[1]->IsFunction(), "Callback is must be a function", v8::Exception::TypeError);
         task.callback = v8::Global<v8::Function>(isolate, v8::Local<v8::Function>::Cast(args[1]));
     }
     if (args.Length() == 3)
     {
-        if (!args[2]->IsFunction())
-            binder::JSException::Throw(binder::ExceptT::kTypeError, "Callback is not a function");
+        JS_THROW_IF(!args[2]->IsFunction(), "Callback is must be a function", v8::Exception::TypeError);
         task.reject = v8::Global<v8::Function>(isolate, v8::Local<v8::Function>::Cast(args[2]));
     }
     introspect->scheduledTaskEnqueue(std::move(task));
@@ -94,10 +86,8 @@ void introspect_schedule_module_eval(const v8::FunctionCallbackInfo<v8::Value>& 
 
 void introspect_print(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-    if (args.Length() != 1)
-        binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
-    if (!args[0]->IsString())
-        binder::JSException::Throw(binder::ExceptT::kTypeError, "Argument is not a string");
+    JS_THROW_IF(args.Length() != 1, "Invalid number of arguments", v8::Exception::Error);
+    JS_THROW_IF(!args[0]->IsString(), "str must be a string", v8::Exception::TypeError);
     v8::Isolate *isolate = get_bare_introspect_ptr(args)->getIsolate();
     std::printf("%s", binder::from_v8<std::string>(isolate, args[0]).c_str());
     std::fflush(stdout);
@@ -105,10 +95,8 @@ void introspect_print(const v8::FunctionCallbackInfo<v8::Value>& args)
 
 void introspect_has_synthetic_module(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-    if (args.Length() != 1)
-        binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
-    if (!args[0]->IsString())
-        binder::JSException::Throw(binder::ExceptT::kTypeError, "Argument is not a string");
+    JS_THROW_IF(args.Length() != 1, "Invalid number of arguments", v8::Exception::Error);
+    JS_THROW_IF(!args[0]->IsString(), "specifier must be a string", v8::Exception::TypeError);
     v8::Isolate *isolate = get_bare_introspect_ptr(args)->getIsolate();
     auto name = binder::from_v8<std::string>(isolate, args[0]);
     args.GetReturnValue().Set(BindingManager::Ref().search(name) != nullptr);
@@ -144,14 +132,11 @@ std::map<std::string, std::function<bool(const Runtime::Options&)>> policy_check
 
 void introspect_has_security_policy(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-    if (args.Length() != 1)
-        binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
-    if (!args[0]->IsString())
-        binder::JSException::Throw(binder::ExceptT::kTypeError, "Security policy name is not a string");
+    JS_THROW_IF(args.Length() != 1, "Invalid number of arguments", v8::Exception::Error);
+    JS_THROW_IF(!args[0]->IsString(), "Policy name must be a string", v8::Exception::TypeError);
     v8::Isolate *isolate = get_bare_introspect_ptr(args)->getIsolate();
     auto policy = binder::from_v8<std::string>(isolate, args[0]);
-    if (!policy_checker_map.contains(policy))
-        binder::JSException::Throw(binder::ExceptT::kError, "Invalid policy name");
+    JS_THROW_IF(!utils::MapContains(policy_checker_map, policy), "Invalid policy name", v8::Exception::Error);
     Runtime *rt = Runtime::GetBareFromIsolate(isolate);
     CHECK(rt != nullptr);
     args.GetReturnValue().Set(policy_checker_map[policy](rt->getOptions()));
@@ -173,42 +158,35 @@ void introspect_write_journal(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
     v8::Isolate *isolate = get_bare_introspect_ptr(args)->getIsolate();
     Runtime *rt = Runtime::GetBareFromIsolate(isolate);
-    if (!rt->getOptions().introspect_allow_write_journal)
-    {
-        binder::JSException::Throw(binder::ExceptT::kError,
-                                   "Writing to journal is forbidden by current introspect policy");
-    }
-    if (args.Length() != 2)
-        binder::JSException::Throw(binder::ExceptT::kError, "Invalid number of arguments");
-    if (!args[0]->IsString() || !args[1]->IsString())
-        binder::JSException::Throw(binder::ExceptT::kTypeError, "Arguments is not strings");
+    JS_THROW_IF(!rt->getOptions().introspect_allow_write_journal,
+                "Writing to journal is forbidden by current introspect policy",
+                v8::Exception::Error);
+    JS_THROW_IF(args.Length() != 2, "Invalid number of arguments", v8::Exception::Error);
+    JS_THROW_IF(!args[0]->IsString() || !args[1]->IsString(), "arguments must be strings",
+                v8::Exception::TypeError);
     auto level = binder::from_v8<std::string>(isolate, args[0]);
-    if (!log_level_name_map.contains(level))
-        binder::JSException::Throw(binder::ExceptT::kError, "Unrecognized journal level string");
+    JS_THROW_IF(!utils::MapContains(log_level_name_map, level), "Unrecognized journal level string",
+                v8::Exception::Error);
     auto content = binder::from_v8<std::string>(isolate, args[1]);
     QLOG(log_level_name_map[level], "{}", content);
 }
 
 void introspect_stacktrace(const v8::FunctionCallbackInfo<v8::Value>& args)
 {
-    // TODO: Complete this.
     v8::Isolate *isolate = get_bare_introspect_ptr(args)->getIsolate();
     v8::HandleScope scope(isolate);
-    if (args.Length() > 1)
-        binder::JSException::Throw(binder::ExceptT::kError, "Too many arguments");
+    JS_THROW_IF(args.Length() > 1, "Too many arguments", v8::Exception::Error);
+
     int frameLimit = Runtime::GetBareFromIsolate(isolate)->getOptions().introspect_stacktrace_frame_limit;
     if (args.Length() == 1)
     {
-        if (!args[0]->IsNumber())
-            binder::JSException::Throw(binder::ExceptT::kTypeError, "Frame limitation is not a number");
+        JS_THROW_IF(!args[0]->IsNumber(), "Frame limitation must be a number", v8::Exception::TypeError);
         frameLimit = binder::from_v8<int>(isolate, args[0]);
-        if (frameLimit < 0)
-            binder::JSException::Throw(binder::ExceptT::kRangeError, "Invalid frame limitation");
+        JS_THROW_IF(frameLimit < 0, "Invalid frame limitation", v8::Exception::RangeError);
     }
 
     v8::Local<v8::StackTrace> trace = v8::StackTrace::CurrentStackTrace(isolate, frameLimit);
-    if (trace.IsEmpty())
-        binder::JSException::Throw(binder::ExceptT::kError, "Failed to capture stack state");
+    JS_THROW_IF(trace.IsEmpty(), "Failed to capture stacktrace", v8::Exception::Error);
 
     v8::Local<v8::Array> result = v8::Array::New(isolate, trace->GetFrameCount());
     v8::Local<v8::Context> context = Runtime::GetBareFromIsolate(isolate)->context();
@@ -255,36 +233,43 @@ std::unique_ptr<VMIntrospect> VMIntrospect::InstallGlobal(v8::Isolate *isolate)
 
     v8::Local<v8::ObjectTemplate> object = v8::ObjectTemplate::New(isolate);
     object->SetInternalFieldCount(1);
+    using FT = v8::FunctionTemplate;
     object->Set(isolate,
                 "setUncaughtExceptionHandler",
-                v8::FunctionTemplate::New(isolate, introspect_set_callback_slot<CallbackSlot::kUncaughtException>));
+                FT::New(isolate, introspect_set_callback_slot<CallbackSlot::kUncaughtException>));
     object->Set(isolate,
                 "setBeforeExitHandler",
-                v8::FunctionTemplate::New(isolate, introspect_set_callback_slot<CallbackSlot::kBeforeExit>));
+                FT::New(isolate, introspect_set_callback_slot<CallbackSlot::kBeforeExit>));
+    object->Set(isolate,
+                "setUnhandledPromiseRejectionHandler",
+                FT::New(isolate, introspect_set_callback_slot<CallbackSlot::kUnhandledPromiseRejection>));
+    object->Set(isolate,
+                "setPromiseMultipleResolveHandler",
+                FT::New(isolate, introspect_set_callback_slot<CallbackSlot::kPromiseMultipleResolve>));
     object->Set(isolate,
                 "loadSharedObject",
-                v8::FunctionTemplate::New(isolate, introspect_load_shared_object));
+                FT::New(isolate, introspect_load_shared_object));
     object->Set(isolate,
                 "scheduleScriptEvaluate",
-                v8::FunctionTemplate::New(isolate, introspect_schedule_script_eval));
+                FT::New(isolate, introspect_schedule_script_eval));
     object->Set(isolate,
                 "scheduleModuleUrlEvaluate",
-                v8::FunctionTemplate::New(isolate, introspect_schedule_module_eval));
+                FT::New(isolate, introspect_schedule_module_eval));
     object->Set(isolate,
                 "print",
-                v8::FunctionTemplate::New(isolate, introspect_print));
+                FT::New(isolate, introspect_print));
     object->Set(isolate,
                 "writeToJournal",
-                v8::FunctionTemplate::New(isolate, introspect_write_journal));
+                FT::New(isolate, introspect_write_journal));
     object->Set(isolate,
                 "hasSyntheticModule",
-                v8::FunctionTemplate::New(isolate, introspect_has_synthetic_module));
+                FT::New(isolate, introspect_has_synthetic_module));
     object->Set(isolate,
                 "hasSecurityPolicy",
-                v8::FunctionTemplate::New(isolate, introspect_has_security_policy));
+                FT::New(isolate, introspect_has_security_policy));
     object->Set(isolate,
                 "inspectStackTrace",
-                v8::FunctionTemplate::New(isolate, introspect_stacktrace));
+                FT::New(isolate, introspect_stacktrace));
 
     auto introspect = std::make_unique<VMIntrospect>(isolate);
     CHECK(introspect);
@@ -313,7 +298,7 @@ void VMIntrospect::setCallbackSlot(CallbackSlot slot, v8::Local<v8::Function> fu
 
 v8::MaybeLocal<v8::Function> VMIntrospect::getCallbackFromSlot(CallbackSlot slot)
 {
-    if (!fCallbackMap.contains(slot))
+    if (!utils::MapContains(fCallbackMap, slot))
         return {};
     return fCallbackMap[slot].Get(fIsolate);
 }
@@ -352,6 +337,26 @@ bool VMIntrospect::notifyUncaughtException(v8::Local<v8::Value> except)
 bool VMIntrospect::notifyBeforeExit()
 {
     return introspect_invoke_callback<CallbackSlot::kBeforeExit>(this);
+}
+
+bool VMIntrospect::notifyUnhandledPromiseRejection(v8::Local<v8::Promise> promise, v8::Local<v8::Value> value)
+{
+    return introspect_invoke_callback<CallbackSlot::kUnhandledPromiseRejection>(this, promise, value);
+}
+
+bool VMIntrospect::notifyPromiseMultipleResolve(v8::Local<v8::Promise> promise, MultipleResolveAction action)
+{
+    std::string strAction;
+    switch (action)
+    {
+    case MultipleResolveAction::kResolve:
+        strAction = "resolve";
+        break;
+    case MultipleResolveAction::kReject:
+        strAction = "reject";
+        break;
+    }
+    return introspect_invoke_callback<CallbackSlot::kPromiseMultipleResolve>(this, promise, strAction);
 }
 
 VMIntrospect::PerformCheckpointResult VMIntrospect::performScheduledTasksCheckpoint()

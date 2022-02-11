@@ -10,7 +10,7 @@
 #include "Core/UniquePersistent.h"
 namespace cocoa {
 
-#define COCOA_MODULE_NAME(name)  "org.OpenACG.Cocoa." #name
+#define COCOA_MODULE_NAME(name)  "Cocoa." #name
 
 #define QLOG(level, fmt, ...)                                                       \
     do {                                                                            \

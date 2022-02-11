@@ -4,6 +4,7 @@
 
 #include "Core/Errors.h"
 #include "Core/Utils.h"
+
 #include "Koi/KoiBase.h"
 #include "Koi/binder/Class.h"
 #include "Koi/binder/CallV8.h"
@@ -215,16 +216,6 @@ v8::Local<v8::Uint8Array> newBuffer(v8::Local<v8::String> str, Encoding encoding
 
 } // namespace anonymous
 
-binder::Class<Buffer> Buffer::GetClass()
-{
-    return binder::Class<Buffer>(v8::Isolate::GetCurrent())
-        .constructor<const v8::FunctionCallbackInfo<v8::Value>&>()
-        .set("length", binder::Property(&Buffer::length))
-        .set("byteAt", &Buffer::byteAt)
-        .set("copy", &Buffer::copy)
-        .set("toDataView", &Buffer::toDataView);
-}
-
 /**
  * Prototypes:
  *      new Buffer(str: string, encoding: string, charsWritten: RefValue)
@@ -252,7 +243,7 @@ Buffer::Buffer(const v8::FunctionCallbackInfo<v8::Value>& info)
             outCharsWritten = info[2]->ToObject(context).ToLocalChecked();
         }
         std::string encoding = binder::from_v8<std::string>(isolate, info[1]);
-        if (!encoding_names_.contains(encoding))
+        if (!utils::MapContains(encoding_names_, encoding))
             binder::JSException::Throw(binder::ExceptT::kError, "Invalid encoding name");
 
         int chars;
@@ -371,8 +362,36 @@ v8::Local<v8::Value> Buffer::toDataView(const v8::FunctionCallbackInfo<v8::Value
     return v8::DataView::New(array->Buffer(), offset, size);
 }
 
-v8::Local<v8::Value> Buffer::toString(const std::string& coding)
+v8::Local<v8::Value> Buffer::toString(const std::string& coding, int32_t length)
 {
+    if (encoding_names_.count(coding) == 0)
+        binder::JSException::Throw(binder::ExceptT::kError, "Invalid encoding name");
+    Encoding enc = encoding_names_[coding];
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    if (length >= v8::String::kMaxLength || length > this->length())
+        binder::JSException::Throw(binder::ExceptT::kError, "String is too long");
+
+    v8::Local<v8::String> result;
+    switch (enc)
+    {
+    case Encoding::kUtf8:
+    {
+        auto maybe = v8::String::NewFromUtf8(isolate,
+                                             reinterpret_cast<char *>(getWriteableDataPointerByte()),
+                                             v8::NewStringType::kNormal,
+                                             static_cast<int>(length));
+        if (!maybe.ToLocal(&result))
+            binder::JSException::Throw(binder::ExceptT::kError, "Failed to decode UTF-8 string");
+        break;
+    }
+
+    default:
+        binder::JSException::Throw(binder::ExceptT::kError, "Unexpected coding name");
+    }
+
+    return result;
 }
 
 KOI_BINDINGS_NS_END

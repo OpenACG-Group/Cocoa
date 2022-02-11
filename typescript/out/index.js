@@ -1,28 +1,55 @@
-import { printf } from 'core/format';
-import * as core from 'core';
 /*
-let source = 'function foo(a, b) { return (a + b) * (a - b); }; foo;';
+import {printf} from 'core/format';
+import {delay, print} from 'core';
+import * as Gsk from 'gsk';
 
-introspect.scheduleScriptEvaluate(source, (value) => {
-    let castValue = <(a: number, b: number) => number> value;
-    try {
-        printf('result = {}\n', castValue(10, 22));
-    } catch (e) {
-        printf('Exception: {}\n', e.toString());
-    }
-}, (except) => {
-    printf('Exception: {}\n', except.toString());
+introspect.setUnhandledPromiseRejectionHandler((promise, value) => {
+    printf('Reject: {}\n', value.toString());
 });
-printf('Control follow end\n');
+
+async function run() {
+    let display: Gsk.Display = Gsk.Connect();
+    print('opened\n');
+    if (display.monitorsCount >= 1) {
+        let monitor: Gsk.Monitor = display.getMonitor(0);
+        printf('monitor[0]: manufacturer={}, model={}, connector={}, {}x{}\n',
+            monitor.manufacturer, monitor.model, monitor.connector,
+            monitor.geometryWidth, monitor.geometryHeight);
+    }
+
+    await delay(3000);
+    display.close();
+}
+
+run();
 */
-let buffer = new core.Buffer('惑わす心 苛々彼女', 'utf8');
-let view = buffer.toDataView();
-let dwordSize = Math.floor(view.byteLength / 4);
-for (let i = 0; i < dwordSize; i++) {
-    printf('{08x} ', view.getUint32(i * 4, true));
+import { File, Buffer, print, open, args } from "core";
+const kBufferSize = 4096;
+async function main() {
+    if (args.length != 2) {
+        throw Error('Need an option to specify a file to read');
+    }
+    let st = getMillisecondTimeCounter();
+    let src = await open(args[0], File.O_RDONLY, 0);
+    let srcStat = await src.fstat();
+    let dst = await open(args[1], File.O_WRONLY | File.O_CREAT, srcStat.mode);
+    let buf = [new Buffer(kBufferSize), new Buffer(kBufferSize)];
+    let p = 0;
+    let readSize = await src.read(buf[p], 0, kBufferSize, 0);
+    let pos_r = readSize, pos_w = 0;
+    while (readSize > 0) {
+        let pw = dst.write(buf[p], 0, readSize, pos_w);
+        let pr = src.read(buf[p ^ 1], 0, kBufferSize, pos_r);
+        readSize = await pr;
+        pos_r += readSize;
+        pos_w += await pw;
+        p ^= 1;
+    }
+    await src.close();
+    await dst.close();
+    let et = getMillisecondTimeCounter();
+    print(`Read ${srcStat.size} bytes in ${et - st} ms\n`);
 }
-printf('\n');
-for (let i = 0; i < view.byteLength; i++) {
-    printf('{02x} ', view.getUint8(i));
-}
-printf('\n');
+main().catch(reason => {
+    print(`error: ${reason}\n`);
+});

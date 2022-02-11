@@ -86,7 +86,7 @@ v8::Local<v8::Object> jsObj = mod.new_instance();
 ### Language Binding Chain (LBC)
 
 `lang::BaseBindingModule` 类表示了一个独立的语言绑定，
-任何语言绑定都至少应该继承该类，并在子类中实现方法 `void getModule(binder::Module&)`，
+任何语言绑定都至少应该继承该类，并在子类中实现方法 `void onGetModule(binder::Module&)`，
 在基类构造函数中填写语言绑定的名称字段 `name` 以及描述字段 `desc`，
 前者决定了语言绑定在 JavaScript 中所呈现的对象名（TypeScript 中的命名空间）。
 例如，`name` 字段为 `foo` 的语言绑定在 JavaScript 对应的对象名为 `Cocoa.foo`。

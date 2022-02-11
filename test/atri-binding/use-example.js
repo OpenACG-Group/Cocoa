@@ -1,5 +1,3 @@
-import {print} from 'core';
-import * as atri from 'Atri';
+import * as ATRI from 'ATRI';
 
-print(`fma(1, 2, 3) = ${atri.fma(1, 2, 3)}\n`);
-
+ATRI.wakeup();

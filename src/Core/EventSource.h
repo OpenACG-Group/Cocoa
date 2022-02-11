@@ -27,19 +27,21 @@ public:
     {
         fHandle = reinterpret_cast<uv_handle_t*>(std::malloc(sizeof(R)));
     }
-    virtual ~EventSource() {
-        if (fHandle)
-        {
-            close();
-        }
+    virtual ~EventSource()
+    {
+        uv_close(fHandle, [](uv_handle_t *ptr) {
+            std::free(ptr);
+        });
     }
 
-    void close()
+    void unrefEventSource()
     {
-        uv_close(fHandle, [](uv_handle_t *handle) -> void {
-            std::free(handle);
-        });
-        fHandle = nullptr;
+        uv_unref(fHandle);
+    }
+
+    void refEventSource()
+    {
+        uv_ref(fHandle);
     }
 
     inline EventLoop *eventLoop() {
@@ -92,19 +94,34 @@ private:
     std::atomic<bool> fDisabled;
 };
 
-class LoopPrologueSource : public EventSource<LoopPrologueSource, uv_prepare_t>
+class PrepareSource : public EventSource<PrepareSource, uv_prepare_t>
 {
 public:
-    explicit LoopPrologueSource(EventLoop *loop);
-    ~LoopPrologueSource() override;
+    explicit PrepareSource(EventLoop *loop);
+    ~PrepareSource() override;
 
 protected:
-    void startLoopPrologue();
-    void stopLoopPrologue();
-    virtual KeepInLoop loopPrologueDispatch() = 0;
+    void startPrepare();
+    void stopPrepare();
+    virtual KeepInLoop prepareDispatch() = 0;
 
 private:
     static void Callback(uv_prepare_t *handle);
+};
+
+class CheckSource : public EventSource<CheckSource, uv_check_t>
+{
+public:
+    explicit CheckSource(EventLoop *loop);
+    ~CheckSource() override;
+    virtual KeepInLoop checkDispatch() = 0;
+
+protected:
+    void startCheck();
+    void stopCheck();
+
+private:
+    static void Callback(uv_check_t *handle);
 };
 
 class PollSource : public EventSource<PollSource, uv_poll_t>

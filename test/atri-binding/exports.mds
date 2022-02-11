@@ -4,5 +4,5 @@
 %namespace cocoa::koi::bindings
 %class AtriBinding
 
-%export fma atriRoboko
+%export wakeup ATRIWakeup
 

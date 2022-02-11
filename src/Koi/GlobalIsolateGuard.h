@@ -1,6 +1,9 @@
 #ifndef COCOA_GLOBALISOLATEGUARD_H
 #define COCOA_GLOBALISOLATEGUARD_H
 
+#include <list>
+#include <map>
+
 #include "include/v8.h"
 
 #include "Koi/KoiBase.h"
@@ -22,9 +25,39 @@ public:
         return fRuntime.lock();
     }
 
+    void pushMaybeUnhandledRejectPromise(v8::Local<v8::Promise> promise, v8::Local<v8::Value> value);
+    void removeMaybeUnhandledRejectPromise(v8::Local<v8::Promise> promise);
+    void performUnhandledRejectPromiseCheck();
+
 private:
+    struct PromiseWithValue
+    {
+        PromiseWithValue(v8::Isolate *isolate, v8::Local<v8::Promise> promise,
+                         v8::Local<v8::Value> value)
+            : promise(isolate, promise), value(isolate, value) {}
+        PromiseWithValue(const PromiseWithValue&) = delete;
+        PromiseWithValue(PromiseWithValue&& rhs) noexcept
+            : promise(std::move(rhs.promise)) , value(std::move(rhs.value)) {}
+        ~PromiseWithValue() {
+            promise.Reset();
+            value.Reset();
+        }
+
+        bool operator==(const PromiseWithValue& pv) const {
+            return (promise == pv.promise);
+        }
+        bool operator==(const v8::Local<v8::Promise>& promise_) const {
+            return (promise == promise_);
+        }
+        v8::Global<v8::Promise> promise;
+        v8::Global<v8::Value> value;
+    };
+
+    using PromiseValueList = std::list<PromiseWithValue>;
+
     std::weak_ptr<Runtime> fRuntime;
     v8::Isolate           *fIsolate;
+    PromiseValueList       fRejectPromises;
 };
 
 KOI_NS_END

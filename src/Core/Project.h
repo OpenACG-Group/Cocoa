@@ -23,6 +23,8 @@ T& operator=(const T&) = delete;
 #define COCOA_VERSION   "1.0.0-develop"
 #define COCOA_LICENSE   "General Public License (GPLv3)"
 
+#define COCOA_COPYRIGHT_YEAR    "2022"
+
 #define co_nodiscard    [[nodiscard]]
 #define co_cdecl_begin  extern "C" {
 #define co_cdecl_end    }

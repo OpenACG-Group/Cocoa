@@ -1,0 +1,7 @@
+%header_begin
+#include "shell.h"
+%header_end
+%namespace cocoa::koi::bindings
+%class ShellBinding
+
+%export execute execute

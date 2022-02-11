@@ -20,10 +20,26 @@ KOI_NS_BEGIN
 
 #define ISOLATE_DATA_SLOT_RUNTIME_PTR       0
 
+#define JS_THROW_IF(cond, msg, ...)                                                     \
+    do {                                                                                \
+        if ((cond)) {                                                                   \
+            binder::throw_(v8::Isolate::GetCurrent(), msg __VA_OPT__(,) __VA_ARGS__);   \
+            return;                                                                     \
+        }                                                                               \
+    } while (false)
+
+#define JS_THROW_RET_IF(cond, msg, ret, ...)                                            \
+    do {                                                                                \
+        if ((cond)) {                                                                   \
+            binder::throw_(v8::Isolate::GetCurrent(), msg __VA_OPT__(,) __VA_ARGS__);   \
+            return ret;                                                                 \
+        }                                                                               \
+    } while (false)
+
 namespace bindings { class BindingBase; }
 
-class Runtime : public LoopPrologueSource,
-                public AsyncSource
+class Runtime : public PrepareSource,
+                public CheckSource
 {
 public:
     struct Options
@@ -35,7 +51,7 @@ public:
         std::vector<std::string> v8_options;
         std::vector<std::string> bindings_blacklist;
         bool        rt_allow_override = false;
-        bool        introspect_allow_loading_shared_object = false;
+        bool        introspect_allow_loading_shared_object = true;
         bool        introspect_allow_write_journal = false;
         int         introspect_stacktrace_frame_limit = 10;
         bool        rt_expose_introspect = true;
@@ -88,6 +104,7 @@ public:
     using ModuleCacheMap = std::map<ModuleImportURL::SharedPtr, ESModuleCache>;
 
     Runtime(EventLoop *loop,
+            v8::StartupData *startupData,
             std::unique_ptr<v8::Platform> platform,
             v8::ArrayBuffer::Allocator *allocator,
             v8::Isolate *isolate,
@@ -97,10 +114,9 @@ public:
     Runtime& operator=(const Runtime&) = delete;
     ~Runtime() override;
 
-    static std::shared_ptr<Runtime> MakeFromSnapshot(EventLoop *loop,
-                                                     const std::string& snapshotFile,
-                                                     const std::string& icuDataFile = std::string(),
-                                                     const Options& options = Options());
+    static std::shared_ptr<Runtime> Make(EventLoop *loop, const Options& options);
+
+    static void AdoptV8CommandOptions(const Options& options);
 
     static Runtime *GetBareFromIsolate(v8::Isolate *isolate);
 
@@ -118,7 +134,10 @@ public:
     v8::Local<v8::Module> compileModule(const ModuleImportURL::SharedPtr& referer,
                                         const std::string& url,
                                         bool isImport);
-    v8::MaybeLocal<v8::Value> evaluateModule(const std::string& url);
+    v8::MaybeLocal<v8::Value> evaluateModule(const std::string& url,
+                                             v8::Local<v8::Module> *outModule = nullptr,
+                                             const std::shared_ptr<ModuleImportURL> &referer = nullptr,
+                                             bool isImport = false);
 
     bindings::BindingBase *getSyntheticModuleBinding(v8::Local<v8::Module> module);
     v8::Local<v8::Object> getSyntheticModuleExportObject(v8::Local<v8::Module> module);
@@ -170,15 +189,33 @@ public:
      */
     bool isInstanceOfGlobalClass(v8::Local<v8::Value> value, const std::string& class_);
 
+    std::unique_ptr<GlobalIsolateGuard>& getUniqueGlobalIsolateGuard() {
+        return fIsolateGuard;
+    }
+
+    void performTasksCheckpoint();
+
 private:
+    static void PromiseHookCallback(v8::PromiseHookType type, v8::Local<v8::Promise> promise,
+                                    v8::Local<v8::Value> parent);
+
+    static v8::MaybeLocal<v8::Promise>DynamicImportHostCallback(v8::Local<v8::Context> context,
+                                                                v8::Local<v8::Data> host_defined_options,
+                                                                v8::Local<v8::Value> resource_name,
+                                                                v8::Local<v8::String> specifier,
+                                                                v8::Local<v8::FixedArray> import_assertions);
+
     inline void setGlobalIsolateGuard(std::unique_ptr<GlobalIsolateGuard> ptr) {
         fIsolateGuard = std::move(ptr);
     }
     v8::MaybeLocal<v8::Module> getAndCacheSyntheticModule(const ModuleImportURL::SharedPtr& url);
-    KeepInLoop loopPrologueDispatch() override;
-    void asyncDispatch() override;
+
+    void updateIdleRequirementByPromiseCounter();
+    KeepInLoop prepareDispatch() override;
+    KeepInLoop checkDispatch() override;
 
     Options                         fOptions;
+    v8::StartupData                *fStartupData;
     std::unique_ptr<v8::Platform>   fPlatform;
     v8::ArrayBuffer::Allocator     *fArrayBufferAllocator;
     v8::Isolate                    *fIsolate;
@@ -187,6 +224,8 @@ private:
     v8::Global<v8::Context>         fContext;
     std::unique_ptr<VMIntrospect>   fIntrospect;
     ModuleCacheMap                  fModuleCache;
+    int32_t                         fResolvedPromises;
+    uv_idle_t                       fIdle;
 };
 
 KOI_NS_END
