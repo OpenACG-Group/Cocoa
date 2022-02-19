@@ -9,10 +9,9 @@ void ATRIWakeup()
                  "もう二度と帰らない愛しい日々...」\n";
 }
 
-extern "C" AtriBinding *__g_cocoa_hook()
+KOI_BINDING_LOADER_HOOK
 {
-	return new AtriBinding();
+	KOI_HOOK_RET(new AtriBinding());
 }
 
 KOI_BINDINGS_NS_END
-

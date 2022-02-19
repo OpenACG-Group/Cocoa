@@ -16,9 +16,9 @@ public:
         return reinterpret_cast<WaylandDisplay*>(data);
     }
 
-    static co_sp<WaylandDisplay> Connect(EventLoop *loop, const std::string& name);
+    static co_sp<WaylandDisplay> Connect(uv_loop_t *loop, const std::string& name);
 
-    WaylandDisplay(EventLoop *loop, int fd);
+    WaylandDisplay(uv_loop_t *loop, int fd);
     ~WaylandDisplay() override;
 
     g_nodiscard g_inline auto& GetGlobalsIdMap() {

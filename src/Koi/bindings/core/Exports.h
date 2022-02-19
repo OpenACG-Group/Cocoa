@@ -1,7 +1,6 @@
 #ifndef COCOA_CORE_EXPORTS_H
 #define COCOA_CORE_EXPORTS_H
 
-#include <sys/types.h>
 #include "Core/EventSource.h"
 #include "Core/Properties.h"
 #include "Koi/bindings/Base.h"
@@ -13,7 +12,6 @@ KOI_BINDINGS_NS_BEGIN
 class FileWrap;
 class PropertyWrap;
 class Buffer;
-class ZeroCopyBuffer;
 
 class CoreBinding : public BindingBase
 {
@@ -95,6 +93,15 @@ public:
     /* JSDecl: function ftruncate(length: number): Promise<void> */
     koi_nodiscard v8::Local<v8::Value> ftruncate(off_t length);
 
+    /* JSDecl: function fchmod(mode: number): Promise<void> */
+    koi_nodiscard v8::Local<v8::Value> fchmod(int32_t mode);
+
+    /* JSDecl: function futime(atime: number, mtime: number): Promise<void> */
+    v8::Local<v8::Value> futime(double atime, double mtime);
+
+    /* JSDecl: function fchown(uid: number, gid: number): Promise<void> */
+    v8::Local<v8::Value> fchown(uv_uid_t uid, uv_gid_t gid);
+
     bool        closed_;
     bool        is_closing_;
     uv_file     fd_;
@@ -135,6 +142,36 @@ v8::Local<v8::Value> LStat(const std::string& path);
 
 /* JSDecl: function rename(path: string, newPath: string): Promise<void> */
 v8::Local<v8::Value> Rename(const std::string& path, const std::string& newPath);
+
+/* JSDecl: function access(path: string, mode: number): Promise<void> */
+v8::Local<v8::Value> Access(const std::string& path, int32_t mode);
+
+/* JSDecl: function chmod(path: string, mode: number): Promise<void> */
+v8::Local<v8::Value> Chmod(const std::string& path, int32_t mode);
+
+/* JSDecl: function utime(path: string, atime: number, mtime: number): Promise<void> */
+v8::Local<v8::Value> UTime(const std::string& path, double atime, double mtime);
+
+/* JSDecl: function lutime(path: string, atime: number, mtime: number): Promise<void> */
+v8::Local<v8::Value> LUTime(const std::string& path, double atime, double mtime);
+
+/* JSDecl: function link(path: string, newPath: string): Promise<void> */
+v8::Local<v8::Value> Link(const std::string& path, const std::string& newPath);
+
+/* JSDecl: function symlink(path: string, newPath: string, flags: number): Promise<void> */
+v8::Local<v8::Value> Symlink(const std::string& path, const std::string& newPath, int32_t flags);
+
+/* JSDecl: function readlink(path: string): Promise<string> */
+v8::Local<v8::Value> Readlink(const std::string& path);
+
+/* JSDecl: function realpath(path: string): Promise<string> */
+v8::Local<v8::Value> Realpath(const std::string& path);
+
+/* JSDecL: function chown(path: string, uid: number, gid: number): Promise<void> */
+v8::Local<v8::Value> Chown(const std::string& path, uv_uid_t uid, uv_gid_t gid);
+
+/* JSDecL: function lchown(path: string, uid: number, gid: number): Promise<void> */
+v8::Local<v8::Value> LChown(const std::string& path, uv_uid_t uid, uv_gid_t gid);
 
 /* JSDecl: class Property */
 class PropertyWrap

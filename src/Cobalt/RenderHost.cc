@@ -77,13 +77,6 @@ void RenderHost::Send(const co_sp<RenderClientObject>& receiver, RenderClientCal
     invocation->MarkProfileMilestone(ITCProfileMilestone::kHostEnqueued);
 }
 
-void RenderHost::Send(const co_sp<RenderClientObject>& receiver, RenderClientCallInfo info)
-{
-    Send(receiver, std::move(info), [](const RenderHostCallbackInfo& info) {
-        // TODO: Fake callback
-    });
-}
-
 void RenderHost::WakeupHost(RenderClientTransfer *transfer)
 {
     {

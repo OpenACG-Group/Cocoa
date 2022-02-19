@@ -148,39 +148,6 @@ public:
         return fIntrospect;
     }
 
-    template<typename...ArgsT>
-    v8::MaybeLocal<v8::Object> newObjectFromSynthetic(const std::string& import,
-                                                      const std::string& ctor,
-                                                      ArgsT&&...args)
-    {
-        v8::EscapableHandleScope scope(fIsolate);
-        auto url = ModuleImportURL::Resolve(nullptr, import, ModuleImportURL::ResolvedAs::kSysImport);
-        if (!url)
-            return {};
-        v8::Local<v8::Module> module;
-        if (!getAndCacheSyntheticModule(url).ToLocal(&module) || !module->IsSyntheticModule())
-            return {};
-
-        v8::Local<v8::Object> exports = getSyntheticModuleExportObject(module);
-        CHECK(!exports.IsEmpty());
-
-        v8::Local<v8::String> ctor_key = binder::to_v8(fIsolate, ctor);
-        v8::Local<v8::Value> constructorValue;
-        if (!exports->Get(this->context(), ctor_key).ToLocal(&constructorValue))
-            return {};
-        if (!constructorValue->IsFunction())
-            return {};
-        v8::Local<v8::Function> constructorFunc = v8::Local<v8::Function>::Cast(constructorValue);
-        if constexpr(sizeof...(args) == 0)
-            return scope.EscapeMaybe(constructorFunc->NewInstance(context()));
-        else
-        {
-            v8::Local<v8::Value> values[] = {binder::to_v8(fIsolate, std::forward<ArgsT>(args))...};
-            return scope.EscapeMaybe(constructorFunc->NewInstance(context(), sizeof...(args), values));
-        }
-        MARK_UNREACHABLE();
-    }
-
     /**
      * This equals to {value instanceof T} in JavaScript.
      * @returns false if @a value is not an instance of the specified class,
@@ -194,6 +161,8 @@ public:
     }
 
     void performTasksCheckpoint();
+
+    void reportUncaughtExceptionInCallback(const v8::TryCatch& catchBlock);
 
 private:
     static void PromiseHookCallback(v8::PromiseHookType type, v8::Local<v8::Promise> promise,

@@ -270,6 +270,95 @@ v8::Local<v8::Value> Rename(const std::string& path, const std::string& newPath)
     RET_PROMISE;
 }
 
+v8::Local<v8::Value> Access(const std::string& path, int32_t mode)
+{
+    API_PROLOGUE
+    NEW_REQUEST("access", nullptr);
+    uv_fs_access(loop, &req->req_, path.c_str(), mode, on_undefined_promise_callback);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> Chmod(const std::string& path, int32_t mode)
+{
+    API_PROLOGUE
+    NEW_REQUEST("chmod", nullptr);
+    uv_fs_chmod(loop, &req->req_, path.c_str(), mode, on_undefined_promise_callback);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> UTime(const std::string& path, double atime, double mtime)
+{
+    API_PROLOGUE
+    NEW_REQUEST("utime", nullptr);
+    uv_fs_utime(loop, &req->req_, path.c_str(), atime, mtime, on_undefined_promise_callback);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> LUTime(const std::string& path, double atime, double mtime)
+{
+    API_PROLOGUE
+    NEW_REQUEST("lutime", nullptr);
+    uv_fs_lutime(loop, &req->req_, path.c_str(), atime, mtime, on_undefined_promise_callback);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> Symlink(const std::string& path, const std::string& newPath, int32_t flags)
+{
+    API_PROLOGUE
+    NEW_REQUEST("symlink", nullptr);
+    uv_fs_symlink(loop, &req->req_, path.c_str(), newPath.c_str(), flags, on_undefined_promise_callback);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> Link(const std::string& path, const std::string& newPath)
+{
+    API_PROLOGUE
+    NEW_REQUEST("link", nullptr);
+    uv_fs_link(loop, &req->req_, path.c_str(), newPath.c_str(), on_undefined_promise_callback);
+    RET_PROMISE;
+}
+
+void on_resolve_ptr_promise_callback(uv_fs_t *ptr)
+{
+    CALLBACK_PROLOGUE
+    if (ptr->result < 0)
+        callback_reject_error_code(req, ptr->result, req->syscall_);
+    else
+        req->Resolve(binder::to_v8(req->isolate_, static_cast<const char*>(ptr->ptr)));
+}
+
+v8::Local<v8::Value> Readlink(const std::string& path)
+{
+    API_PROLOGUE
+    NEW_REQUEST("readlink", nullptr);
+    uv_fs_readlink(loop, &req->req_, path.c_str(), on_resolve_ptr_promise_callback);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> Realpath(const std::string& path)
+{
+    API_PROLOGUE
+    NEW_REQUEST("realpath", nullptr);
+    uv_fs_realpath(loop, &req->req_, path.c_str(), on_resolve_ptr_promise_callback);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> Chown(const std::string& path, uv_uid_t uid, uv_gid_t gid)
+{
+    API_PROLOGUE
+    NEW_REQUEST("chown", nullptr);
+    uv_fs_chown(loop, &req->req_, path.c_str(), uid, gid, on_undefined_promise_callback);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> LChown(const std::string& path, uv_uid_t uid, uv_gid_t gid)
+{
+    API_PROLOGUE
+    NEW_REQUEST("lchown", nullptr);
+    uv_fs_lchown(loop, &req->req_, path.c_str(), uid, gid, on_undefined_promise_callback);
+    RET_PROMISE;
+}
+
 FileWrap::FileWrap(uv_file fd)
     : closed_(false)
     , is_closing_(false)
@@ -475,6 +564,36 @@ v8::Local<v8::Value> FileWrap::ftruncate(off_t length)
     API_PROLOGUE
     NEW_REQUEST("ftruncate", this);
     uv_fs_ftruncate(loop, &req->req_, fd_, length, on_file_undefined_promise_callback);
+    pending_requests_.push_back(req);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> FileWrap::fchmod(int32_t mode)
+{
+    CHECK_CLOSED;
+    API_PROLOGUE
+    NEW_REQUEST("fchmod", this);
+    uv_fs_fchmod(loop, &req->req_, fd_, mode, on_file_undefined_promise_callback);
+    pending_requests_.push_back(req);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> FileWrap::futime(double atime, double mtime)
+{
+    CHECK_CLOSED;
+    API_PROLOGUE
+    NEW_REQUEST("futime", this);
+    uv_fs_futime(loop, &req->req_, fd_, atime, mtime, on_file_undefined_promise_callback);
+    pending_requests_.push_back(req);
+    RET_PROMISE;
+}
+
+v8::Local<v8::Value> FileWrap::fchown(uv_uid_t uid, uv_gid_t gid)
+{
+    CHECK_CLOSED;
+    API_PROLOGUE
+    NEW_REQUEST("fchown", this);
+    uv_fs_fchown(loop, &req->req_, fd_, uid, gid, on_file_undefined_promise_callback);
     pending_requests_.push_back(req);
     RET_PROMISE;
 }

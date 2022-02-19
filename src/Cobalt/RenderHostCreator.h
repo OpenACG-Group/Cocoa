@@ -5,9 +5,9 @@
 #include "Cobalt/RenderClientObject.h"
 COBALT_NAMESPACE_BEGIN
 
-#define COBALT_OP_RENDERHOSTCREATOR_CREATE_DISPLAY      1
+#define CROP_RENDERHOSTCREATOR_CREATE_DISPLAY      1
 
-#define COBALT_SI_RENDERHOSTCREATOR_CREATED             1
+#define CRSI_RENDERHOSTCREATOR_CREATED             1
 
 class Display;
 
@@ -17,7 +17,7 @@ public:
     RenderHostCreator();
     ~RenderHostCreator() override = default;
 
-    co_sp<Display> CreateDisplay(const std::string& name);
+    co_sp<RenderClientObject> CreateDisplay(const std::string& name);
 };
 
 COBALT_NAMESPACE_END

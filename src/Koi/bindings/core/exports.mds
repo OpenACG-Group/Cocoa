@@ -29,6 +29,16 @@
 %export stat Stat
 %export lstat LStat
 %export rename Rename
+%export access Access
+%export chmod Chmod
+%export utime UTime
+%export lutime LUTime
+%export link Link
+%export symlink Symlink
+%export readlink Readlink
+%export realpath Realpath
+%export chown Chown
+%export lchown LChown
 
 %export_decl args
 %export_decl property

@@ -230,6 +230,12 @@ export class File {
     static readonly S_IFIFO: number;
     static readonly S_IFLNK: number;
     static readonly S_IFSOCK: number;
+    static readonly F_OK: number;
+    static readonly R_OK: number;
+    static readonly W_OK: number;
+    static readonly X_OK: number;
+    static readonly SYMLINK_DIR: number;
+    static readonly SYMLINK_JUNCTION: number;
 
     close(): Promise<void>;
     isClosed(): boolean;
@@ -240,6 +246,9 @@ export class File {
     fsync(): Promise<void>;
     fdatasync(): Promise<void>;
     ftruncate(): Promise<void>;
+    fchmod(mode: number): Promise<void>;
+    futime(atime: number, mtime: number): Promise<void>;
+    fchown(uid: number, gid: number): Promise<void>;
 }
 
 interface FileWithPath {
@@ -256,6 +265,16 @@ export function rmdir(path: string): Promise<void>;
 export function stat(path: string): Promise<Stat>;
 export function lstat(path: string): Promise<Stat>;
 export function rename(path: string, newPath: string): Promise<void>;
+export function access(path: string, mode: number): Promise<void>;
+export function chmod(path: string, mode: number): Promise<void>;
+export function utime(path: string, atime: number, mtime: number): Promise<void>;
+export function lutime(path: string, atime: number, mtime: number): Promise<void>;
+export function link(path: string, newPath: string): Promise<void>;
+export function symlink(path: string, newPath: string, flags: number): Promise<void>;
+export function readlink(path: string): Promise<string>;
+export function realpath(path: string): Promise<string>;
+export function chown(path: string, uid: number, gid: number): Promise<void>;
+export function lchown(path: string, uid: number, gid: number): Promise<void>;
 
 // =======================================================
 // Basic memory management: Buffer API

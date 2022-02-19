@@ -327,9 +327,7 @@ v8::Local<v8::Value> Buffer::copy(const v8::FunctionCallbackInfo<v8::Value>& arg
 
     Runtime *pRT = Runtime::GetBareFromIsolate(isolate);
     v8::Local<v8::Object> newBuffer;
-    if (!pRT->newObjectFromSynthetic("core", "Buffer", binder::to_v8(isolate, len)).ToLocal(&newBuffer))
-        binder::JSException::Throw(binder::ExceptT::kError, "Failed to construct a new buffer");
-
+    // TODO(fatal): create this `newBuffer` from `len`
     auto pNativeNewBuffer = binder::Class<Buffer>::unwrap_object(isolate, newBuffer);
     CHECK(pNativeNewBuffer != nullptr);
 

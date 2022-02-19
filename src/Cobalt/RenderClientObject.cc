@@ -13,10 +13,15 @@ RenderClientObject::RenderClientObject(RealType type)
     , trampolines_pool_(nullptr)
     , trampolines_pool_size_(kTrampolinePoolInitSize)
     , slot_id_counter_(0)
+    , dangling_callbacks_counter_(0)
 {
     trampolines_pool_ = reinterpret_cast<RenderClientCallTrampoline*>(
             calloc(sizeof(OpCode), kTrampolinePoolInitSize));
     CHECK(trampolines_pool_);
+
+    dummy_host_callback_ = [this](RenderHostCallbackInfo& info) {
+        this->dangling_callbacks_counter_++;
+    };
 }
 
 RenderClientObject::~RenderClientObject()

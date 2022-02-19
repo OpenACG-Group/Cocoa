@@ -52,8 +52,6 @@ public:
     g_private_api void Send(const co_sp<RenderClientObject>& receiver, RenderClientCallInfo info,
                             const RenderHostCallback& pCallback);
 
-    g_private_api void Send(const co_sp<RenderClientObject>& receiver, RenderClientCallInfo info);
-
     g_private_api void WakeupHost(RenderClientTransfer *transfer);
 
     g_private_api void OnDispose();

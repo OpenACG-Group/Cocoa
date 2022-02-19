@@ -1,0 +1,10 @@
+%header_begin
+#include "Koi/bindings/cobalt/Exports.h"
+%header_end
+
+%namespace cocoa::koi::bindings
+%class CobaltBinding
+
+%export renderHostInitialize RenderHostInitialize
+%export renderHostDispose RenderHostDispose
+%export connect Connect

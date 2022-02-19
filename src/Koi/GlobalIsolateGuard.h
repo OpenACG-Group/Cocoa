@@ -28,6 +28,7 @@ public:
     void pushMaybeUnhandledRejectPromise(v8::Local<v8::Promise> promise, v8::Local<v8::Value> value);
     void removeMaybeUnhandledRejectPromise(v8::Local<v8::Promise> promise);
     void performUnhandledRejectPromiseCheck();
+    void reportUncaughtExceptionFromCallback(const v8::TryCatch& caught);
 
 private:
     struct PromiseWithValue

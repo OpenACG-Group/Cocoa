@@ -597,4 +597,9 @@ bool Runtime::isInstanceOfGlobalClass(v8::Local<v8::Value> value, const std::str
     return ret.As<v8::Boolean>()->Value();
 }
 
+void Runtime::reportUncaughtExceptionInCallback(const v8::TryCatch& catchBlock)
+{
+    fIsolateGuard->reportUncaughtExceptionFromCallback(catchBlock);
+}
+
 KOI_NS_END

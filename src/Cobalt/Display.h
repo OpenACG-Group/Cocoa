@@ -1,35 +1,32 @@
 #ifndef COCOA_COBALT_DISPLAY_H
 #define COCOA_COBALT_DISPLAY_H
 
-#include "Core/EventLoop.h"
+#include "uv.h"
 #include "Cobalt/Cobalt.h"
+#include "Cobalt/RenderClientObject.h"
 COBALT_NAMESPACE_BEGIN
 
-class Display : public std::enable_shared_from_this<Display>
+#define CROP_DISPLAY_CLOSE      1
+#define CRSI_DISPLAY_CLOSED     1
+
+class Display : public RenderClientObject
 {
 public:
-    static co_sp<Display> Connect(EventLoop *loop, const std::string& name);
+    static co_sp<Display> Connect(uv_loop_t *loop, const std::string& name);
 
-    explicit Display(EventLoop *eventLoop);
-    virtual ~Display();
+    explicit Display(uv_loop_t *eventLoop);
+    ~Display() override;
 
-    g_nodiscard g_inline EventLoop *GetEventLoop() const {
+    g_nodiscard g_inline uv_loop_t *GetEventLoop() const {
         return event_loop_;
     }
 
     void Close();
 
-    g_signal_getter(Close);
-
 protected:
     virtual void OnDispose() = 0;
 
-private:
-    g_signal_fields(
-        g_signal_signature(void(const co_sp<Display>&), Close)
-    )
-
-    EventLoop           *event_loop_;
+    uv_loop_t           *event_loop_;
     bool                 has_disposed_;
 };
 

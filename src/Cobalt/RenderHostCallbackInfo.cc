@@ -40,4 +40,9 @@ const std::exception& RenderHostCallbackInfo::GetCaughtException() const
     return invocation_->GetClientCallInfo().GetCaughtException();
 }
 
+std::any& RenderHostCallbackInfo::GetClosureValue()
+{
+    return invocation_->GetClientCallInfo().GetClosure();
+}
+
 COBALT_NAMESPACE_END

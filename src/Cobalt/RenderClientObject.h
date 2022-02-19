@@ -22,7 +22,8 @@ class RenderClientObject : public std::enable_shared_from_this<RenderClientObjec
 public:
     enum class RealType
     {
-        kRenderHostCreator
+        kRenderHostCreator,
+        kDisplay
     };
 
     using OpCode = RenderClientCallInfo::OpCode;
@@ -31,6 +32,10 @@ public:
 
     explicit RenderClientObject(RealType type);
     virtual ~RenderClientObject();
+
+    g_nodiscard g_inline co_sp<RenderClientObject> Self() {
+        return shared_from_this();
+    }
 
     template<typename T, typename std::enable_if<std::is_base_of_v<RenderClientObject, T>>::type* = nullptr>
     g_nodiscard g_inline co_sp<T> As() {
@@ -43,9 +48,10 @@ public:
         return real_type_;
     }
 
-    template<typename...ArgsT>
-    void Invoke(OpCode opcode, const RenderHostCallback& callback, ArgsT&&...args) {
+    template<typename T, typename...ArgsT>
+    void Invoke(OpCode opcode, T&& closure, const RenderHostCallback& callback, ArgsT&&...args) {
         RenderClientCallInfo info(opcode);
+        info.SetClosure(std::forward<T>(closure));
         (info.SwallowBack(std::any(std::forward<ArgsT>(args))), ...);
         Invoke(std::move(info), callback);
     }
@@ -54,6 +60,14 @@ public:
 
     uint32_t Connect(SignalCode signal, const RenderHostSlotCallback& callback);
     void Disconnect(uint32_t id);
+
+    g_nodiscard g_inline const RenderHostCallback& DummyHostCallback() const {
+        return dummy_host_callback_;
+    }
+
+    g_nodiscard g_inline uint32_t GetDanglingCallbacksCounter() const {
+        return dangling_callbacks_counter_;
+    }
 
     g_private_api void Emit(SignalCode signal, RenderClientEmitterInfo info);
 
@@ -76,6 +90,8 @@ private:
     uint32_t                    slot_id_counter_;
     std::multimap<SignalCode, ConnectedSlot> signal_slots_map_;
     std::mutex                  signal_slots_map_lock_;
+    RenderHostCallback          dummy_host_callback_;
+    uint32_t                    dangling_callbacks_counter_;
 };
 
 COBALT_NAMESPACE_END

@@ -33,6 +33,11 @@ public:
         return std::any_cast<T&>(return_value_);
     }
 
+    template<typename T>
+    g_nodiscard g_inline T& GetClosure() {
+        return std::any_cast<T&>(GetClosureValue());
+    }
+
     g_nodiscard RenderClientCallInfo::Status GetReturnStatus() const;
 
     g_nodiscard const std::exception& GetCaughtException() const;
@@ -40,6 +45,8 @@ public:
     g_nodiscard std::chrono::steady_clock::time_point GetProfileMilestone(ITCProfileMilestone tag) const;
 
 private:
+    std::any& GetClosureValue();
+
     RenderHostInvocation    *invocation_;
     bool                     has_return_value_;
     std::any                 return_value_;

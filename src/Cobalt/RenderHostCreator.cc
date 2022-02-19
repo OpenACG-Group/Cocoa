@@ -1,4 +1,5 @@
 #include "Cobalt/RenderHostCreator.h"
+#include "Cobalt/Display.h"
 COBALT_NAMESPACE_BEGIN
 
 COBALT_TRAMPOLINE_IMPL(RenderHostCreator, CreateDisplay)
@@ -18,19 +19,19 @@ COBALT_TRAMPOLINE_IMPL(RenderHostCreator, CreateDisplay)
 RenderHostCreator::RenderHostCreator()
     : RenderClientObject(RealType::kRenderHostCreator)
 {
-    SetMethodTrampoline(COBALT_OP_RENDERHOSTCREATOR_CREATE_DISPLAY,
+    SetMethodTrampoline(CROP_RENDERHOSTCREATOR_CREATE_DISPLAY,
                         RenderHostCreator_CreateDisplay_Trampoline);
 }
 
-co_sp<Display> RenderHostCreator::CreateDisplay(const std::string& name)
+co_sp<RenderClientObject> RenderHostCreator::CreateDisplay(const std::string& name)
 {
-    printf("create display, name = %s\n", name.c_str());
+    auto result = Display::Connect(GlobalScope::Ref().GetRenderClient()->GetEventLoop(), name);
 
     RenderClientEmitterInfo emitterInfo;
-    emitterInfo.EmplaceBack<co_sp<RenderClientObject>>(nullptr);
-    Emit(COBALT_SI_RENDERHOSTCREATOR_CREATED, std::move(emitterInfo));
+    emitterInfo.PushBack(result->Self());
+    Emit(CRSI_RENDERHOSTCREATOR_CREATED, std::move(emitterInfo));
 
-    return nullptr;
+    return result;
 }
 
 COBALT_NAMESPACE_END

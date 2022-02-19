@@ -35,7 +35,8 @@ public:
             : op_code_(rhs.op_code_)
             , args_vector_(std::move(rhs.args_vector_))
             , return_status_(rhs.return_status_)
-            , return_value_(std::move(rhs.return_value_)) {}
+            , return_value_(std::move(rhs.return_value_))
+            , closure_ptr_(std::move(rhs.closure_ptr_)) {}
     ~RenderClientCallInfo() = default;
 
     g_nodiscard g_inline OpCode GetOpCode() const {
@@ -44,6 +45,15 @@ public:
 
     g_nodiscard g_inline size_t Length() const {
         return args_vector_.size();
+    }
+
+    template<typename T>
+    g_inline void SetClosure(T&& value) {
+        closure_ptr_ = std::forward<T>(value);
+    }
+
+    g_nodiscard g_inline std::any& GetClosure() {
+        return closure_ptr_;
     }
 
     template<typename T>
@@ -138,6 +148,7 @@ private:
     std::any                    return_value_;
     co_sp<RenderClientObject>   this_;
     std::optional<std::exception> caught_exception_;
+    std::any                    closure_ptr_;
 };
 
 COBALT_NAMESPACE_END

@@ -7,6 +7,7 @@
 #include "Koi/bindings/Base.h"
 #include "Koi/bindings/SignalSlotForwardAdapter.h"
 #include "Koi/bindings/core/Exports.h"
+#include "Koi/bindings/cobalt/Exports.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Koi)
 
@@ -17,6 +18,7 @@ BindingManager::BindingManager(const Runtime::Options& options)
     , fBlacklist(options.bindings_blacklist)
 {
     appendBinding(new bindings::CoreBinding());
+    appendBinding(new bindings::CobaltBinding());
 }
 
 BindingManager::~BindingManager()

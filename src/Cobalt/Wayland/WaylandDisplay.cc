@@ -58,7 +58,7 @@ void WaylandDisplay::RegistryHandleGlobal(void *data, wl_registry *registry, uin
     }
 }
 
-co_sp<WaylandDisplay> WaylandDisplay::Connect(EventLoop *loop, const std::string& name)
+co_sp<WaylandDisplay> WaylandDisplay::Connect(uv_loop_t *loop, const std::string& name)
 {
     CHECK(loop);
 
@@ -102,7 +102,7 @@ co_sp<WaylandDisplay> WaylandDisplay::Connect(EventLoop *loop, const std::string
     return display;
 }
 
-WaylandDisplay::WaylandDisplay(EventLoop *loop, int fd)
+WaylandDisplay::WaylandDisplay(uv_loop_t *loop, int fd)
     : Display(loop)
     , wl_display_(nullptr)
     , wl_registry_(nullptr)

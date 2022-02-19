@@ -1,0 +1,53 @@
+# 这是注释
+
+# 剧本路线 hiyori
+[route hiyori]
+
+# 转换场景为 hiyori_01
+[scene hiyori_01]
+
+# 将 BGM 压栈
+[audio-push assets/audio/see_you_next.mp3]
+
+# 播放 BGM
+[audio-play]
+
+# 为人物指定一个别名，别名在剧本中用于简化书写，引擎将显示人物的实际名字
+[alias u=羽未]
+[alias a=苍]
+
+[a:]
+苍的台词，
+这句话也是苍的台词。换行会被忽略，引擎的文字排版算法会选择在适当的时候换行
+[end]   # 这意味着台词结束
+
+[u:]
+羽未的台词
+[end]
+
+[u::]
+羽未的心理活动
+[end]
+
+这是旁白，
+换行同样会被忽略
+
+# 选择支，将用户选择的结果存放到 result 变量中
+[branch store=result]
+- 这是选择支的选项一，
+换行会被忽略。
+- 这是选择支的选项二。
+[end]
+
+# jne: Jump if Equal，若相等即跳转
+# 如果 result 等于 1（用户选择第一个选项），跳转到场景 hiyori_02
+[je result, 1, hiyori_02]
+
+# 同理
+[je result, 2, hiyori_03]
+
+# BGM 暂停
+[audio-pause]
+
+# 将栈顶的 BGM 弹出
+[audio-pop]

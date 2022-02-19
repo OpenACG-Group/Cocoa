@@ -5,11 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Python: 当前文件",
+            "type": "python",
+            "request": "launch",
+            "program": "./comiket/launch.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Cocoa",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/Cocoa",
-            "args": [ "-config", "../res/Cocoa.json" ],
+            "args": [
+                "-config",
+                "../res/Cocoa.json"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",
             "environment": [],
@@ -29,7 +39,10 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/host-build/Cocoa",
-            "args": [ "-config", "../res/Cocoa.json" ],
+            "args": [
+                "-config",
+                "../res/Cocoa.json"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/host-build",
             "environment": [],
@@ -49,7 +62,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/test/SlotsTest",
-            "args": [ ],
+            "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/test",
             "environment": [],
@@ -69,7 +82,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/test/sksl",
-            "args": [ ],
+            "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/test",
             "environment": [],

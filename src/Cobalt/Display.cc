@@ -15,7 +15,14 @@ std::map<Backends, const char*> backends_name_map_ = {
 };
 }
 
-co_sp<Display> Display::Connect(EventLoop *loop, const std::string& name)
+COBALT_TRAMPOLINE_IMPL(Display, Close)
+{
+    auto this_ = info.GetThis()->As<Display>();
+    this_->Close();
+    info.SetReturnStatus(RenderClientObject::ReturnStatus::kOpSuccess);
+}
+
+co_sp<Display> Display::Connect(uv_loop_t *loop, const std::string& name)
 {
     CHECK(loop);
 
@@ -38,10 +45,12 @@ co_sp<Display> Display::Connect(EventLoop *loop, const std::string& name)
     MARK_UNREACHABLE();
 }
 
-Display::Display(EventLoop *eventLoop)
-    : event_loop_(eventLoop)
+Display::Display(uv_loop_t *eventLoop)
+    : RenderClientObject(RealType::kDisplay)
+    , event_loop_(eventLoop)
     , has_disposed_(false)
 {
+    SetMethodTrampoline(CROP_DISPLAY_CLOSE, Display_Close_Trampoline);
 }
 
 Display::~Display()
@@ -55,7 +64,7 @@ void Display::Close()
     {
         this->OnDispose();
         has_disposed_ = true;
-        g_signal_emit(Close, shared_from_this());
+        RenderClientObject::Emit(CRSI_DISPLAY_CLOSED, RenderClientEmitterInfo());
     }
 }
 

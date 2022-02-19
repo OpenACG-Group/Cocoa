@@ -60,6 +60,11 @@ add_library(Koi STATIC
         bindings/core/Buffer.cc
         bindings/core/Process.cc
         ${CMAKE_CURRENT_BINARY_DIR}/CoreBindingGen.cc
+
+        bindings/cobalt/Exports.h
+        bindings/cobalt/Exports.cc
+        bindings/cobalt/RenderHost.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/CobaltBindingGen.cc
 )
 
 target_link_libraries(
@@ -69,3 +74,4 @@ target_link_libraries(
 )
 
 add_binding_exports_getter(CoreBindingGen.cc bindings/core/exports.mds)
+add_binding_exports_getter(CobaltBindingGen.cc bindings/cobalt/exports.mds)

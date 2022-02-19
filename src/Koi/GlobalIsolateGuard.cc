@@ -183,4 +183,12 @@ void GlobalIsolateGuard::performUnhandledRejectPromiseCheck()
     fRejectPromises.clear();
 }
 
+void GlobalIsolateGuard::reportUncaughtExceptionFromCallback(const v8::TryCatch& caught)
+{
+    if (caught.HasCaught())
+    {
+        uncaughtException(caught.Message(), caught.Exception());
+    }
+}
+
 KOI_NS_END

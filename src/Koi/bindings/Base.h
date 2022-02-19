@@ -28,11 +28,12 @@ using __voidptr__ = void*;
  * A dynamic language binding example (hook function, binding class is "ExampleBinding"):
  * @code
  * KOI_BINDING_LOADER_HOOK {
- *   return new ExampleBinding();
+ *   KOI_HOOK_RET(new ExampleBinding());
  * }
  * @endcode
  */
-#define KOI_BINDING_LOADER_HOOK koi_c_linkage koi_export __voidptr__ __g_cocoa_hook ()
+#define KOI_BINDING_LOADER_HOOK     koi_c_linkage koi_export __voidptr__ __g_cocoa_hook ()
+#define KOI_HOOK_RET(instance)      return static_cast<BindingBase*>(instance)
 
 class BindingBase
 {

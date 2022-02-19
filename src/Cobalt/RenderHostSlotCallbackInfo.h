@@ -27,6 +27,11 @@ public:
         return std::any_cast<T&>(args_vector_ref_[index]);
     }
 
+    g_nodiscard g_inline std::any& Get(size_t index) {
+        CHECK(index < args_vector_ref_.size());
+        return args_vector_ref_[index];
+    }
+
     g_nodiscard g_inline size_t Length() const {
         return args_vector_ref_.size();
     }

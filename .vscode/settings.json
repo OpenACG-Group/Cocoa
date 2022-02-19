@@ -1,38 +1,4 @@
 {
-    // "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-    "C_Cpp.default.cppStandard": "c++20",
-    "C_Cpp.default.includePath": [
-        "include",
-        "deps/skia",
-        "deps/v8",
-        "deps/v8/include",
-        "/usr/include/libdrm"
-        /*
-        "/usr/include/cairomm-1.0",
-        "/usr/lib/cairomm-1.0/include",
-        "/usr/include/cairo",
-        "/usr/include/glib-2.0",
-        "/usr/lib/glib-2.0/include",
-        "/usr/include/pixman-1",
-        "/usr/include/freetype2",
-        "/usr/include/libpng16",
-        "/usr/include/harfbuzz",
-        "/usr/include/sigc++-2.0",
-        "/usr/lib/sigc++-2.0/include"
-        */
-    ],
-    "files.watcherExclude": {
-        "**/.git/objects/**": true,
-        "**/.git/subtree-cache/**": true,
-        "**/node_modules/**": true,
-        "**/.hg/store/**": true,
-        "**/deps": true,
-        "**/build-*": true,
-    },
-    "C_Cpp.default.defines": [
-        "COCOA_PROJECT=1",
-        "SK_VULKAN"
-    ],
     "files.associations": {
         "functional": "cpp",
         "iosfwd": "cpp",
@@ -123,6 +89,6 @@
         "rope": "cpp",
         "bool_set": "cpp"
     },
-    "python.pythonPath": "/bin/python",
-    "restructuredtext.confPath": "${workspaceFolder}/docs/source"
+    "restructuredtext.confPath": "${workspaceFolder}/docs/source",
+    "python.defaultInterpreterPath": "/usr/bin/python3.10"
 }
