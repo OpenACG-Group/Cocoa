@@ -57,61 +57,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="625018aa-1ca1-4995-ae3f-94e4e8743e1f" name="Default Changelist" comment="Default Changelist">
-      <change afterPath="$PROJECT_DIR$/comiket/comiket.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/comiket/comiketproject/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/comiket/comiketproject/comiket_ksc_parser.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/comiket/exmaple.ksc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/comiket/test.ksc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/bindings/cobalt/Exports.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/bindings/cobalt/Exports.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/bindings/cobalt/RenderHost.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Koi/bindings/cobalt/exports.mds" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/typescript/synthetics/cobalt.d.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vscode/c_cpp_properties.json" beforeDir="false" afterPath="$PROJECT_DIR$/.vscode/c_cpp_properties.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vscode/launch.json" beforeDir="false" afterPath="$PROJECT_DIR$/.vscode/launch.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vscode/settings.json" beforeDir="false" afterPath="$PROJECT_DIR$/.vscode/settings.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/literature/essay.md" beforeDir="false" afterPath="$PROJECT_DIR$/literature/essay.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/Display.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/Display.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/Display.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/Display.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/RenderClientCallInfo.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/RenderClientCallInfo.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/RenderClientObject.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/RenderClientObject.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/RenderClientObject.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/RenderClientObject.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/RenderHost.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/RenderHost.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/RenderHost.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/RenderHost.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/RenderHostCallbackInfo.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/RenderHostCallbackInfo.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/RenderHostCallbackInfo.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/RenderHostCallbackInfo.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/RenderHostCreator.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/RenderHostCreator.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/RenderHostCreator.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/RenderHostCreator.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/RenderHostSlotCallbackInfo.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/RenderHostSlotCallbackInfo.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/Wayland/WaylandDisplay.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/WaylandDisplay.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/Wayland/WaylandDisplay.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/Wayland/WaylandDisplay.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/BindingManager.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/BindingManager.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/GlobalIsolateGuard.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/GlobalIsolateGuard.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/GlobalIsolateGuard.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/GlobalIsolateGuard.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/Runtime.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Runtime.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/Runtime.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/Runtime.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/bindings/Base.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/Base.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/Buffer.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/Buffer.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/CoreBinding.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/CoreBinding.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/Exports.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/Exports.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/Filesystem.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/Filesystem.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Koi/bindings/core/exports.mds" beforeDir="false" afterPath="$PROJECT_DIR$/src/Koi/bindings/core/exports.mds" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/vanilla_render_test.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/vanilla_render_test.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/atri-binding/atri.cc" beforeDir="false" afterPath="$PROJECT_DIR$/test/atri-binding/ATRI/atri.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/atri-binding/atri.h" beforeDir="false" afterPath="$PROJECT_DIR$/test/atri-binding/ATRI/atri.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/atri-binding/exports.mds" beforeDir="false" afterPath="$PROJECT_DIR$/test/atri-binding/ATRI/exports.mds" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/atri-binding/tutorial/interact.sh" beforeDir="false" afterPath="$PROJECT_DIR$/test/atri-binding/tutorial/interact.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/LuaJIT/src/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/LuaJIT/src/Makefile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/libsquash/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libsquash/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/libsquash/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libsquash/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/third_party/googletest/BUILD.gn" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/third_party/googletest/BUILD.gn" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/out/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/index.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/synthetics/core.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/synthetics/core.d.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/tsconfig.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -241,11 +191,6 @@
       <option name="showConsole" value="true" />
       <method v="2" />
     </configuration>
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="skia_viewer" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$PROJECT_DIR$/third_party/skia" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Default" CONFIG_NAME="Default" RUN_PATH="$PROJECT_DIR$/third_party/skia/out/Dev/viewer">
       <method v="2" />
     </configuration>
@@ -260,6 +205,11 @@
       </method>
     </configuration>
     <configuration name="Koi" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Koi" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -825,7 +775,8 @@
       <workItem from="1645025361614" duration="558000" />
       <workItem from="1645106208650" duration="7855000" />
       <workItem from="1645192913624" duration="5641000" />
-      <workItem from="1645246571782" duration="30980000" />
+      <workItem from="1645246571782" duration="31071000" />
+      <workItem from="1645333750679" duration="2084000" />
     </task>
     <servers />
   </component>
