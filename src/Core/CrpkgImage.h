@@ -1,5 +1,5 @@
-#ifndef COCOA_CRPKGIMAGE_H
-#define COCOA_CRPKGIMAGE_H
+#ifndef COCOA_CORE_CRPKGIMAGE_H
+#define COCOA_CORE_CRPKGIMAGE_H
 
 #include <string>
 #include <memory>
@@ -112,4 +112,4 @@ private:
 };
 
 } // namespace cocoa
-#endif //COCOA_CRPKGIMAGE_H
+#endif //COCOA_CORE_CRPKGIMAGE_H

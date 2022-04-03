@@ -1,5 +1,5 @@
-#ifndef COCOA_PROPERTIES_H
-#define COCOA_PROPERTIES_H
+#ifndef COCOA_CORE_PROPERTIES_H
+#define COCOA_CORE_PROPERTIES_H
 
 #include <vector>
 #include <string>
@@ -178,4 +178,4 @@ void SerializeToJournal(const std::shared_ptr<PropertyObjectNode>& root);
 
 } // namespace properties
 } // namespace cocoa
-#endif // COCOA_PROPERTIES_H
+#endif // COCOA_CORE_PROPERTIES_H

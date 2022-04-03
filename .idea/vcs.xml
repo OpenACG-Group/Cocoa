@@ -7,6 +7,7 @@
     <mapping directory="$PROJECT_DIR$/third_party/dbus-cxx" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/depot_tools" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/fmt" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/third_party/jemalloc" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/libsquash" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/libuv" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/third_party/libyuv" vcs="Git" />

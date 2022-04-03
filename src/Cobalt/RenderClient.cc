@@ -1,10 +1,15 @@
+#define VK_USE_PLATFORM_WAYLAND_KHR
+
 #include "Core/Errors.h"
 #include "Core/Journal.h"
+#include "Core/Properties.h"
 #include "Cobalt/RenderClient.h"
 #include "Cobalt/RenderHostInvocation.h"
 #include "Cobalt/RenderClientCallInfo.h"
 #include "Cobalt/RenderClientObject.h"
 #include "Cobalt/RenderHost.h"
+
+#include "Cobalt/HWComposeContext.h"
 COBALT_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Cobalt.RenderClient)
@@ -15,6 +20,8 @@ RenderClient::RenderClient(RenderHost *renderHost)
     , host_call_async_{}
     , disposed_(false)
     , thread_stopped_(false)
+    , hw_compose_context_creation_failed_(false)
+    , hw_compose_disabled_(false)
 {
     client_event_loop_ = new uv_loop_t;
     CHECK(client_event_loop_);
@@ -102,6 +109,120 @@ void RenderClient::EnqueueHostInvocation(RenderHostInvocation *invocation)
         host_invocation_queue_.push(invocation);
     }
     uv_async_send(&host_call_async_);
+}
+
+namespace {
+
+// NOLINTNEXTLINE
+std::map<std::string, HWComposeContext::Options::VkDBGTypeFilter> g_vkdbg_type_filters_name = {
+    { "general",     HWComposeContext::Options::VkDBGTypeFilter::kGeneral     },
+    { "performance", HWComposeContext::Options::VkDBGTypeFilter::kPerformance },
+    { "validation",  HWComposeContext::Options::VkDBGTypeFilter::kValidation  }
+};
+
+// NOLINTNEXTLINE
+std::map<std::string, HWComposeContext::Options::VkDBGLevelFilter> g_vkdbg_level_filters_name = {
+    { "verbose",  HWComposeContext::Options::VkDBGLevelFilter::kVerbose },
+    { "info",     HWComposeContext::Options::VkDBGLevelFilter::kInfo    },
+    { "warning",  HWComposeContext::Options::VkDBGLevelFilter::kWarning },
+    { "error",    HWComposeContext::Options::VkDBGLevelFilter::kError   }
+};
+
+} // namespace anonymous
+
+co_sp<HWComposeContext> RenderClient::GetHWComposeContext()
+{
+    if (hw_compose_context_creation_failed_ || hw_compose_disabled_)
+        return nullptr;
+
+    using DN = PropertyDataNode;
+    auto hwComposeNode = prop::Get()
+                         ->next("Graphics")
+                         ->next("HWCompose")
+                         ->as<PropertyObjectNode>();
+    if (hwComposeNode->hasMember("Disabled"))
+    {
+        if (hwComposeNode->getMember("Disabled")->as<DN>()->extract<bool>())
+        {
+            QLOG(LOG_INFO, "HWCompose is disabled for current environment");
+            hw_compose_disabled_ = true;
+            return nullptr;
+        }
+    }
+
+    if (hw_compose_context_)
+        return hw_compose_context_;
+
+    auto& hostApplicationInfo = render_host_->GetApplicationInfo();
+    HWComposeContext::Options options{};
+
+    options.application_name = hostApplicationInfo.name;
+    options.application_version_major = std::get<0>(hostApplicationInfo.version_triple);
+    options.application_version_minor = std::get<1>(hostApplicationInfo.version_triple);
+    options.application_version_patch = std::get<2>(hostApplicationInfo.version_triple);
+    options.use_vkdbg = false;
+
+    if (hwComposeNode->hasMember("EnableVkDBG"))
+    {
+        if (hwComposeNode->getMember("EnableVkDBG")->as<DN>()->extract<bool>())
+        {
+            QLOG(LOG_INFO, "Enabled VkDBG feature for HWCompose context");
+            options.use_vkdbg = true;
+        }
+    }
+
+    if (options.use_vkdbg)
+    {
+        options.vkdbg_type_filter |= HWComposeContext::Options::VkDBGTypeFilter::kGeneral;
+        options.vkdbg_level_filter |= HWComposeContext::Options::VkDBGLevelFilter::kWarning;
+        options.vkdbg_level_filter |= HWComposeContext::Options::VkDBGLevelFilter::kError;
+
+        if (hwComposeNode->hasMember("VkDBGFilterSeverities"))
+        {
+            options.vkdbg_type_filter.clear();
+            auto array = hwComposeNode->getMember("VkDBGFilterSeverities")->as<PropertyArrayNode>();
+            for (const std::shared_ptr<PropertyNode>& node : *array)
+            {
+                auto str = node->as<DN>()->extract<std::string>();
+                if (g_vkdbg_type_filters_name.count(str) == 0)
+                {
+                    QLOG(LOG_WARNING, "Unrecognized severity name of VkDBG filter: {}", str);
+                    continue;
+                }
+                options.vkdbg_type_filter |= g_vkdbg_type_filters_name[str];
+            }
+        }
+
+        if (hwComposeNode->hasMember("VkDBGFilterLevels"))
+        {
+            options.vkdbg_level_filter.clear();
+            auto array = hwComposeNode->getMember("VkDBGFilterLevels")->as<PropertyArrayNode>();
+            for (const std::shared_ptr<PropertyNode>& node : *array)
+            {
+                auto str = node->as<DN>()->extract<std::string>();
+                if (g_vkdbg_level_filters_name.count(str) == 0)
+                {
+                    QLOG(LOG_WARNING, "Unrecognized information level of VkDBG filter: {}", str);
+                    continue;
+                }
+                options.vkdbg_level_filter |= g_vkdbg_level_filters_name[str];
+            }
+        }
+    }
+
+    switch (GlobalScope::Ref().GetOptions().GetBackend())
+    {
+    case Backends::kWayland:
+        options.instance_extensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
+        options.instance_extensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+        break;
+    }
+
+    hw_compose_context_ = HWComposeContext::MakeVulkan(options);
+
+    if (!hw_compose_context_)
+        hw_compose_context_creation_failed_ = true;
+    return hw_compose_context_;
 }
 
 COBALT_NAMESPACE_END

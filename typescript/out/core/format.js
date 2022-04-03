@@ -134,8 +134,6 @@ function toHexadecimal(_x, spec) {
     while (x) {
         st.push(x & 15);
         x >>>= 4;
-        if (x < 0)
-            core.exit();
     }
     let result = stackPopToString(spec, neg, st, digits, spec.alternateForm ? "0x" : undefined);
     return stringFillAlignment(spec, spec.type == FmtType.HEX_UPPER ? result.toUpperCase() : result);

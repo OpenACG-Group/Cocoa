@@ -169,8 +169,6 @@ function toHexadecimal(_x: number, spec: FmtFormatSpec): string {
     while (x) {
         st.push(x & 15);
         x >>>= 4;
-        if (x < 0)
-            core.exit();
     }
     let result: string = stackPopToString(
         spec, neg, st,

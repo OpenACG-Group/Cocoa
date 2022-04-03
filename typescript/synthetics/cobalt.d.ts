@@ -14,5 +14,3 @@ export class RenderClientObject {
 export class Display extends RenderClientObject {
     close(): Promise<void>;
 }
-
-export function connect(name?: string): Promise<Display>;

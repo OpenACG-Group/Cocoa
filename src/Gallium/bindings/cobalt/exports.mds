@@ -1,0 +1,8 @@
+%header_begin
+#include "Gallium/bindings/cobalt/Exports.h"
+%header_end
+
+%namespace cocoa::gallium::bindings::cobalt_wrap
+%class CobaltBinding
+
+%export RenderHost (*render_host_wrap_)

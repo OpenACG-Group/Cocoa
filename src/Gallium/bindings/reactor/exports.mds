@@ -1,0 +1,9 @@
+%header_begin
+#include "Gallium/bindings/reactor/Exports.h"
+%header_end
+
+%namespace cocoa::gallium::bindings::reactor_wrap
+%class ReactorBinding
+
+%export GShaderBuilder (*gshader_builder_wrap_)
+%export GShaderModule (*gshader_module_wrap_)

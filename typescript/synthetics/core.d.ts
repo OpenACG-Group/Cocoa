@@ -2,7 +2,7 @@ type SizeT = number;
 type OffsetT = number;
 
 // =======================================================
-// Basic IO and process API
+// Basic Console IO and process API
 // =======================================================
 
 /**
@@ -17,12 +17,79 @@ export const args: string[];
  */
 export function print(str: string): void;
 
-/**
- * Exit immediately without waiting for the event loop.
- * This will not cause Cocoa to crash but print a debug-level log
- * which reports the call of `exit()`.
- */
-export function exit(): void;
+export function getEnviron(): Map<string, string>;
+
+export class Stream implements AsyncIterable<any> {
+    readonly readable: boolean;
+    readonly writable: boolean;
+
+    [Symbol.asyncIterator](): AsyncIterator<any>;
+}
+
+export interface ProcessExitStatus {
+    status: number;
+    signal: number;
+}
+
+export interface ProcessOptions {
+    file: string;
+    args?: string[];
+    env?: string[];
+    cwd?: string;
+    uid?: number;
+    gid?: number;
+    redirectStreams?: number;
+}
+
+export class Process {
+    static readonly STREAM_STDIN: number;
+    static readonly STREAM_STDOUT: number;
+    static readonly STREAM_STDERR: number;
+    static readonly SIGINT: number;
+    static readonly SIGILL: number;
+    static readonly SIGABRT: number;
+    static readonly SIGFPE: number;
+    static readonly SIGSEGV: number;
+    static readonly SIGTERM: number;
+    static readonly SIGHUP: number;
+    static readonly SIGQUIT: number;
+    static readonly SIGTRAP: number;
+    static readonly SIGKILL: number;
+    static readonly SIGPIPE: number;
+    static readonly SIGALRM: number;
+    static readonly SIGSTKFLT: number;
+    static readonly SIGPWR: number;
+    static readonly SIGBUS: number;
+    static readonly SIGSYS: number;
+    static readonly SIGURG: number;
+    static readonly SIGSTOP: number;
+    static readonly SIGTSTP: number;
+    static readonly SIGCONT: number;
+    static readonly SIGCHLD: number;
+    static readonly SIGTTIN: number;
+    static readonly SIGTTOU: number;
+    static readonly SIGPOLL: number;
+    static readonly SIGXFSZ: number;
+    static readonly SIGXCPU: number;
+    static readonly SIGVTALRM: number;
+    static readonly SIGPROF: number;
+    static readonly SIGUSR1: number;
+    static readonly SIGUSR2: number;
+
+    /**
+     * Create a new child process and execute an executable file.
+     * This functions returns when a child process has been created.
+     *
+     * @param options   Specify options. See `ProcessOptions` interface for more details.
+     * @return          A `Process` object by which you can manipulate the child process.
+     */
+    static Fork(options: ProcessOptions): Process;
+
+    readonly pid: number;
+
+    promiseOnExit(): Promise<ProcessExitStatus>;
+    kill(signum: number): void;
+}
 
 // =======================================================
 // Property Tree manipulation API
@@ -237,6 +304,8 @@ export class File {
     static readonly SYMLINK_DIR: number;
     static readonly SYMLINK_JUNCTION: number;
 
+    static Open(path: string, flags: number, mode: number): Promise<File>;
+
     close(): Promise<void>;
     isClosed(): boolean;
     isClosing(): boolean;
@@ -256,7 +325,6 @@ interface FileWithPath {
     path: string;
 }
 
-export function open(path: string, flags: number, mode: number): Promise<File>;
 export function unlink(path: string): Promise<void>;
 export function mkdir(path: string, mode: number): Promise<void>;
 export function mkdtemp(tpl: string): Promise<string>;
@@ -265,7 +333,7 @@ export function rmdir(path: string): Promise<void>;
 export function stat(path: string): Promise<Stat>;
 export function lstat(path: string): Promise<Stat>;
 export function rename(path: string, newPath: string): Promise<void>;
-export function access(path: string, mode: number): Promise<void>;
+export function access(path: string, mode: number): Promise<number>;
 export function chmod(path: string, mode: number): Promise<void>;
 export function utime(path: string, atime: number, mtime: number): Promise<void>;
 export function lutime(path: string, atime: number, mtime: number): Promise<void>;
@@ -280,15 +348,20 @@ export function lchown(path: string, uid: number, gid: number): Promise<void>;
 // Basic memory management: Buffer API
 // =======================================================
 
-type BufferEncoding = 'ascii' | 'latin1' | 'utf8' | 'ucs2';
 export class Buffer {
-    readonly length: number;
+    static readonly ENCODE_LATIN1: number;
+    static readonly ENCODE_ASCII: number;
+    static readonly ENCODE_UTF8: number;
+    static readonly ENCODE_UCS2: number;
+    static readonly ENCODE_HEX: number;
 
-    constructor(str: string, encoding: BufferEncoding);
+    constructor(str: string, encoding: number);
     constructor(length: number);
+
+    readonly length: number;
 
     byteAt(index: number): number;
     copy(offset?: OffsetT, length?: SizeT): Buffer;
     toDataView(offset?: OffsetT, length?: SizeT): DataView;
-    toString(coding: BufferEncoding, length: SizeT): string;
+    toString(coding: number, length: SizeT): string;
 }

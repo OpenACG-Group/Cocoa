@@ -1,0 +1,49 @@
+%header_begin
+#include "Gallium/bindings/core/Exports.h"
+#include "Gallium/bindings/core/FdRandomize.h"
+#include "Core/Filesystem.h"
+%header_end
+%namespace cocoa::gallium::bindings
+%class CoreBinding
+
+%insert_begin
+    int32_t vin = FDLRNewRandomizedDescriptor(0, FDLRTable::kSystem, nullptr);
+    int32_t vout = FDLRNewRandomizedDescriptor(1, FDLRTable::kSystem, nullptr);
+    int32_t verror = FDLRNewRandomizedDescriptor(2, FDLRTable::kSystem, nullptr);
+%insert_end
+
+%export VFD_STDIN vin
+%export VFD_STDOUT vout
+%export VFD_STDERR verror
+
+%export print Print
+%export dump Dump
+%export dumpNativeHeapProfile DumpNativeHeapProfile
+%export getEnviron GetEnviron
+
+%export unlink Unlink
+%export mkdir Mkdir
+%export mkdtemp Mkdtemp
+%export mkstemp Mkstemp
+%export rmdir Rmdir
+%export stat Stat
+%export lstat LStat
+%export rename Rename
+%export access Access
+%export chmod Chmod
+%export utime UTime
+%export lutime LUTime
+%export link Link
+%export symlink Symlink
+%export readlink Readlink
+%export realpath Realpath
+%export chown Chown
+%export lchown LChown
+
+%export_decl args
+%export_decl property
+%export Stream (*class_stream_wrap_)
+%export Process (*class_process_wrap_)
+%export File (*class_file_wrap_)
+%export Property (*class_property_wrap_)
+%export Buffer (*class_buffer_)

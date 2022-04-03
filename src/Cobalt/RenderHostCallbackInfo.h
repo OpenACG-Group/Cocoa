@@ -1,5 +1,5 @@
-#ifndef COCOA_RENDERHOSTCALLBACKINFO_H
-#define COCOA_RENDERHOSTCALLBACKINFO_H
+#ifndef COCOA_COBALT_RENDERHOSTCALLBACKINFO_H
+#define COCOA_COBALT_RENDERHOSTCALLBACKINFO_H
 
 #include <functional>
 #include <chrono>
@@ -54,4 +54,4 @@ private:
 using RenderHostCallback = std::function<void(RenderHostCallbackInfo&)>;
 
 COBALT_NAMESPACE_END
-#endif //COCOA_RENDERHOSTCALLBACKINFO_H
+#endif //COCOA_COBALT_RENDERHOSTCALLBACKINFO_H

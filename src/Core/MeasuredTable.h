@@ -1,5 +1,5 @@
-#ifndef COCOA_MEASUREDTABLE_H
-#define COCOA_MEASUREDTABLE_H
+#ifndef COCOA_CORE_MEASUREDTABLE_H
+#define COCOA_CORE_MEASUREDTABLE_H
 
 #include <functional>
 #include <string>
@@ -49,4 +49,4 @@ private:
 
 }
 
-#endif //COCOA_MEASUREDTABLE_H
+#endif //COCOA_CORE_MEASUREDTABLE_H

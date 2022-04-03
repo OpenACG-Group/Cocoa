@@ -1,5 +1,5 @@
-#ifndef COCOA_RENDERHOSTINVOCATION_H
-#define COCOA_RENDERHOSTINVOCATION_H
+#ifndef COCOA_COBALT_RENDERHOSTINVOCATION_H
+#define COCOA_COBALT_RENDERHOSTINVOCATION_H
 
 #include <utility>
 #include <chrono>
@@ -15,8 +15,6 @@ class RenderClientObject;
 class RenderHostInvocation : public RenderClientTransfer
 {
 public:
-    using Timepoint = std::chrono::steady_clock::time_point;
-
     RenderHostInvocation(co_sp<RenderClientObject> receiver, RenderClientCallInfo info,
                          RenderHostCallback pHostCallback)
         : RenderClientTransfer(RenderClientTransfer::Type::kInvocationResponse)
@@ -41,22 +39,11 @@ public:
         return host_callback_;
     }
 
-    g_inline void MarkProfileMilestone(ITCProfileMilestone tag) {
-        profile_milestones_[static_cast<uint8_t>(tag)] = std::chrono::steady_clock::now();
-    }
-
-    g_nodiscard g_inline Timepoint GetProfileMilestone(ITCProfileMilestone tag) const {
-        return profile_milestones_[static_cast<uint8_t>(tag)];
-    }
-
 private:
-    static constexpr size_t kMilestonesSize = static_cast<uint8_t>(ITCProfileMilestone::kLast) + 1;
-
     co_sp<RenderClientObject>       receiver_;
     RenderClientCallInfo            client_call_info_;
     RenderHostCallback              host_callback_;
-    Timepoint                       profile_milestones_[kMilestonesSize];
 };
 
 COBALT_NAMESPACE_END
-#endif //COCOA_RENDERHOSTINVOCATION_H
+#endif //COCOA_COBALT_RENDERHOSTINVOCATION_H

@@ -1,5 +1,5 @@
-#ifndef COCOA_RENDERCLIENT_H
-#define COCOA_RENDERCLIENT_H
+#ifndef COCOA_COBALT_RENDERCLIENT_H
+#define COCOA_COBALT_RENDERCLIENT_H
 
 #include <thread>
 #include <queue>
@@ -12,6 +12,7 @@ COBALT_NAMESPACE_BEGIN
 class RenderHost;
 class RenderHostInvocation;
 class RenderClientObject;
+class HWComposeContext;
 
 enum class ITCProfileMilestone : uint8_t
 {
@@ -20,9 +21,12 @@ enum class ITCProfileMilestone : uint8_t
     kClientReceived     = 2,
     kClientProcessed    = 3,
     kClientFeedback     = 4,
+
     kHostReceived       = 5,
 
-    kLast = kHostReceived
+    kClientEmitted      = 6,
+
+    kLast = 7
 };
 
 class RenderClient
@@ -38,6 +42,8 @@ public:
     g_nodiscard g_inline uv_loop_t *GetEventLoop() {
         return client_event_loop_;
     }
+
+    g_nodiscard co_sp<HWComposeContext> GetHWComposeContext();
 
     void EnqueueHostInvocation(RenderHostInvocation *invocation);
     void Dispose();
@@ -56,7 +62,11 @@ private:
     bool                     thread_stopped_;
     std::queue<RenderHostInvocation*> host_invocation_queue_;
     std::mutex                        host_invocation_queue_lock_;
+
+    bool                     hw_compose_context_creation_failed_;
+    bool                     hw_compose_disabled_;
+    co_sp<HWComposeContext>  hw_compose_context_;
 };
 
 COBALT_NAMESPACE_END
-#endif //COCOA_RENDERCLIENT_H
+#endif //COCOA_COBALT_RENDERCLIENT_H

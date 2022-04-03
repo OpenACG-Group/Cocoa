@@ -1,5 +1,5 @@
-#ifndef COCOA_CRPKGINPUTSTREAM_H
-#define COCOA_CRPKGINPUTSTREAM_H
+#ifndef COCOA_CORE_CRPKGINPUTSTREAM_H
+#define COCOA_CORE_CRPKGINPUTSTREAM_H
 
 #include <streambuf>
 #include <istream>
@@ -33,4 +33,4 @@ public:
 };
 
 } // namespace cocoa
-#endif //COCOA_CRPKGINPUTSTREAM_H
+#endif //COCOA_CORE_CRPKGINPUTSTREAM_H

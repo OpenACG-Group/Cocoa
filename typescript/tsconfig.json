@@ -8,7 +8,7 @@
 
         "baseUrl": ".",
         "paths": {
-            "*": [ "synthetics/*" ]
+            "*": [ "synthetics/*", "user-synthetics/*" ]
         }
     },
     "include": [
@@ -16,7 +16,6 @@
         "./global/introspect.d.ts",
     ],
     "files": [
-        "./core/assert.ts",
         "./core/format.ts",
         "./index.ts"
     ]

@@ -1,5 +1,5 @@
-#ifndef COCOA_DATA_H
-#define COCOA_DATA_H
+#ifndef COCOA_CORE_DATA_H
+#define COCOA_CORE_DATA_H
 
 #include <memory>
 
@@ -41,4 +41,4 @@ public:
 };
 
 } // namespace cocoa
-#endif //COCOA_DATA_H
+#endif //COCOA_CORE_DATA_H

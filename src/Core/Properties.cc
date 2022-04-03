@@ -18,9 +18,9 @@ std::string protection_to_string(PropertyNode::Protection prot)
     switch (prot)
     {
     case PropertyNode::Protection::kPublic:
-        return "Public";
+        return "public";
     case PropertyNode::Protection::kPrivate:
-        return "Private";
+        return "private";
     }
     MARK_UNREACHABLE();
 }

@@ -84,6 +84,7 @@ void RenderClientObject::Emit(SignalCode signal, RenderClientEmitterInfo info)
     auto *emit = new RenderClientSignalEmit(std::move(info), shared_from_this(), signal);
     CHECK(emit);
 
+    emit->MarkProfileMilestone(ITCProfileMilestone::kClientEmitted);
     host->WakeupHost(emit);
 }
 

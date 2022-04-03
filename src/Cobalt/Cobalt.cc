@@ -11,6 +11,7 @@ COBALT_NAMESPACE_BEGIN
 ContextOptions::ContextOptions()
     : fBackend(Backends::kDefault)
     , fSkiaJIT(COBALT_SKIA_JIT_DEFAULT)
+    , fProfileRenderHostTransfer(false)
 {
 }
 
@@ -34,6 +35,16 @@ void ContextOptions::SetSkiaJIT(bool allow)
     fSkiaJIT = allow;
 }
 
+bool ContextOptions::GetProfileRenderHostTransfer() const
+{
+    return fProfileRenderHostTransfer;
+}
+
+void ContextOptions::SetProfileRenderHostTransfer(bool value)
+{
+    fProfileRenderHostTransfer = value;
+}
+
 GlobalScope::GlobalScope(const ContextOptions& options, EventLoop *loop)
     : fOptions(options)
     , event_loop_(loop)
@@ -44,7 +55,7 @@ GlobalScope::GlobalScope(const ContextOptions& options, EventLoop *loop)
         SkGraphics::AllowJIT();
 }
 
-void GlobalScope::Initialize()
+void GlobalScope::Initialize(const ApplicationInfo& info)
 {
     if (render_host_ || render_client_)
     {
@@ -52,7 +63,7 @@ void GlobalScope::Initialize()
         return;
     }
 
-    render_host_ = new RenderHost(event_loop_);
+    render_host_ = new RenderHost(event_loop_, info);
     render_client_ = new RenderClient(render_host_);
     render_host_->SetRenderClient(render_client_);
 }

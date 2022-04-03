@@ -4,7 +4,6 @@ project(Cocoa VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(SIGC REQUIRED IMPORTED_TARGET sigc++-3.0)
 
 set(BUILD_SHARED_LIBS false)
 set(FMT_TEST false)
@@ -35,18 +34,16 @@ include_directories(
         third_party/cpu_features
         third_party/fmt/include
         third_party/libsquash/include
-        third_party/imgui
-        third_party/build/include
-        third_party/build/include/dbus-cxx-2.0
-        ${SIGC_INCLUDE_DIRS})
+        third_party/jsoncpp/include
+        third_party/build/include)
 
 link_directories(third_party/skia/out/Shared
-                 third_party/build/lib
-                 ${SIGC_LIBRARY_DIRS})
+                 third_party/build/lib)
 
-## For libsquash
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
     target_compile_options(squash PRIVATE -Wno-incompatible-pointer-types-discards-qualifiers)
+    target_compile_options(uv_a PRIVATE -Wno-sign-compare)
+    target_compile_options(uv PRIVATE -Wno-sign-compare)
 endif()
 
 ## Compile options and targets
@@ -55,14 +52,18 @@ add_compile_options(-Wall -mrdrnd)
 
 add_subdirectory(src/Core)
 add_subdirectory(src/Cobalt)
-add_subdirectory(src/Koi)
+add_subdirectory(src/Gallium)
+add_subdirectory(src/Reactor)
 add_subdirectory(qresource/qresourcekit)
 
-add_executable(Cocoa src/Main.cc src/vanilla_render_test.cc)
+add_executable(Cocoa src/Main.cc)
 
 target_link_libraries(
         Cocoa
-        Koi
+        Gallium
         Cobalt
+        Reactor
         Core
+        ${COCOA_THIRDPARTY_DIR}/jsoncpp/out/lib/libjsoncpp.a
+        ${COCOA_THIRDPARTY_DIR}/build/lib/libjemalloc_pic.a
 )

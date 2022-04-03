@@ -1,5 +1,5 @@
-#ifndef COCOA_COBALT_RENDERCLIENT_H
-#define COCOA_COBALT_RENDERCLIENT_H
+#ifndef COCOA_COBALT_RENDERCLIENTOBJECT_H
+#define COCOA_COBALT_RENDERCLIENTOBJECT_H
 
 #include <map>
 
@@ -17,13 +17,23 @@ using RenderClientCallTrampoline = void(*)(RenderClientCallInfo&);
 #define COBALT_TRAMPOLINE_IMPL(class_, method) \
 void class_##_##method##_Trampoline(RenderClientCallInfo& info)
 
+#define COBALT_TRAMPOLINE_CHECK_ARGS_NUMBER(n)                                  \
+    do {                                                                        \
+        if (info.Length() != (n)) {                                             \
+            info.SetReturnStatus(RenderClientCallInfo::Status::kArgsInvalid);   \
+            return;                                                             \
+        }                                                                       \
+    } while (false)
+
 class RenderClientObject : public std::enable_shared_from_this<RenderClientObject>
 {
 public:
     enum class RealType
     {
         kRenderHostCreator,
-        kDisplay
+        kDisplay,
+        kSurface,
+        kBlender
     };
 
     using OpCode = RenderClientCallInfo::OpCode;
@@ -32,6 +42,11 @@ public:
 
     explicit RenderClientObject(RealType type);
     virtual ~RenderClientObject();
+
+    template<typename T>
+    g_nodiscard g_inline co_sp<T> Cast() {
+        return std::dynamic_pointer_cast<T>(shared_from_this());
+    }
 
     g_nodiscard g_inline co_sp<RenderClientObject> Self() {
         return shared_from_this();
@@ -95,4 +110,4 @@ private:
 };
 
 COBALT_NAMESPACE_END
-#endif //COCOA_COBALT_RENDERCLIENT_H
+#endif //COCOA_COBALT_RENDERCLIENTOBJECT_H

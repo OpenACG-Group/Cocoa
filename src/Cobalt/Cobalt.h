@@ -1,9 +1,8 @@
-#ifndef COCOA_COBALT_H
-#define COCOA_COBALT_H
+#ifndef COCOA_COBALT_COBALT_H
+#define COCOA_COBALT_COBALT_H
 
 #include <memory>
 #include <vector>
-#include <sigc++/sigc++.h>
 
 #include "Core/UniquePersistent.h"
 #include "Core/EventLoop.h"
@@ -28,37 +27,8 @@ using co_weak = std::weak_ptr<T>;
 #define g_inline        inline
 #define g_maybe_unused  [[maybe_unused]]
 
-#define g_signal_signature(signature, name) \
-    sigc::signal<signature> s_##name;
-
-#define g_signal_fields(...)    \
-    struct Signals {            \
-        __VA_ARGS__             \
-    } __signals__;
-
-#define g_signal_getter(name)                                       \
-    inline auto& signal##name() { return __signals__.s_##name; }
-
-#define g_signal_emit(name, ...)                \
-    do {                                        \
-        __signals__.s_##name.emit(__VA_ARGS__); \
-    } while (false)
-
-#define g_slot
-
-#define g_slot_signature(emitterClass, name) \
-    sigc::connection s_##emitterClass##name;
-
-#define g_slot_fields(...) \
-    struct Connections {    \
-        __VA_ARGS__         \
-    } __connections__;
-
-#define g_slot_connect(emitterClass, name, emitter, slot) \
-    __connections__.s_##emitterClass##name = (emitter)->signal##name().connect(slot)
-
-#define g_slot_disconnect(emitterClass, name) \
-    __connections__.s_##emitterClass##name.disconnect()
+#define g_async_api
+#define g_sync_api
 
 #define COBALT_BACKEND_WAYLAND      "wayland"
 
@@ -82,24 +52,43 @@ public:
 
     g_nodiscard Backends GetBackend() const;
     g_nodiscard bool GetSkiaJIT() const;
+    g_nodiscard bool GetProfileRenderHostTransfer() const;
 
     void SetBackend(Backends backend);
     void SetSkiaJIT(bool allow);
+    void SetProfileRenderHostTransfer(bool value = true);
 
 private:
     Backends    fBackend;
     bool        fSkiaJIT;
+    bool        fProfileRenderHostTransfer;
 };
 
 class GlobalScope : public UniquePersistent<GlobalScope>
 {
 public:
+    struct ApplicationInfo
+    {
+        using VersionTriple = std::tuple<int32_t, int32_t, int32_t>;
+
+        ApplicationInfo() = default;
+        ApplicationInfo(const std::string_view& name, VersionTriple triple)
+                : name(name), version_triple(std::move(triple)) {}
+        ApplicationInfo(const ApplicationInfo&) = default;
+        ApplicationInfo(ApplicationInfo&& rhs) noexcept
+                : name(std::move(rhs.name))
+                , version_triple(std::move(rhs.version_triple)) {}
+
+        std::string         name;
+        VersionTriple       version_triple;
+    };
+
     GlobalScope(const ContextOptions& options, EventLoop *loop);
     ~GlobalScope();
 
     g_nodiscard ContextOptions& GetOptions();
 
-    void Initialize();
+    void Initialize(const ApplicationInfo& info);
     void Dispose();
 
     g_nodiscard g_inline RenderHost *GetRenderHost() {
@@ -118,4 +107,4 @@ private:
 };
 
 COBALT_NAMESPACE_END
-#endif //COCOA_COBALT_H
+#endif //COCOA_COBALT_COBALT_H

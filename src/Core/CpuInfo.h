@@ -1,5 +1,5 @@
-#ifndef COCOA_CPUINFO_H
-#define COCOA_CPUINFO_H
+#ifndef COCOA_CORE_CPUINFO_H
+#define COCOA_CORE_CPUINFO_H
 
 #include "Core/Project.h"
 #include "Core/UniquePersistent.h"
@@ -23,4 +23,4 @@ private:
 
 }
 
-#endif //COCOA_CPUINFO_H
+#endif //COCOA_CORE_CPUINFO_H

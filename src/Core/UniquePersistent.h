@@ -1,5 +1,5 @@
-#ifndef COCOA_UNIQUEPERSISTENT_H
-#define COCOA_UNIQUEPERSISTENT_H
+#ifndef COCOA_CORE_UNIQUEPERSISTENT_H
+#define COCOA_CORE_UNIQUEPERSISTENT_H
 
 #include <utility>
 #include <stdexcept>
@@ -11,9 +11,9 @@ class UniquePersistent
 {
 public:
     static T *Instance() {
-        if (fpSelf == nullptr)
+        if (self_pointer_ == nullptr)
             throw std::runtime_error("No available instance");
-        return fpSelf;
+        return self_pointer_;
     }
 
     static T& Ref() {
@@ -22,20 +22,20 @@ public:
 
     template<typename...ArgsT>
     static void New(ArgsT&&...args) {
-        fpSelf = new T(std::forward<ArgsT>(args)...);
+        self_pointer_ = new T(std::forward<ArgsT>(args)...);
     }
 
     static void Delete() {
-        delete fpSelf;
+        delete self_pointer_;
     }
 
 private:
-    static T *fpSelf;
+    static T *self_pointer_;
 };
 
 template<typename T>
-T *UniquePersistent<T>::fpSelf = nullptr;
+T *UniquePersistent<T>::self_pointer_ = nullptr;
 
 }
 
-#endif //COCOA_UNIQUEPERSISTENT_H
+#endif //COCOA_CORE_UNIQUEPERSISTENT_H

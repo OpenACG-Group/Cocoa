@@ -1,5 +1,5 @@
-#ifndef COCOA_EVENTSOURCE_H
-#define COCOA_EVENTSOURCE_H
+#ifndef COCOA_CORE_EVENTSOURCE_H
+#define COCOA_CORE_EVENTSOURCE_H
 
 #include <functional>
 #include <atomic>
@@ -141,4 +141,4 @@ private:
 
 } // namespace cocoa
 
-#endif //COCOA_EVENTSOURCE_H
+#endif //COCOA_CORE_EVENTSOURCE_H

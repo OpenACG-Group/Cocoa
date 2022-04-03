@@ -1,5 +1,5 @@
-#ifndef COCOA_JOURNAL_H
-#define COCOA_JOURNAL_H
+#ifndef COCOA_CORE_JOURNAL_H
+#define COCOA_CORE_JOURNAL_H
 
 #include <mutex>
 #include <string>
@@ -70,4 +70,4 @@ private:
 
 } // namespace cocoa
 
-#endif //COCOA_JOURNAL_H
+#endif //COCOA_CORE_JOURNAL_H

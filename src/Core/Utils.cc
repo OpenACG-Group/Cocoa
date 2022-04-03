@@ -3,6 +3,8 @@
 #include <sys/sysinfo.h>
 
 #include <fstream>
+#include <typeinfo>
+#include <atomic>
 
 #include "Core/Utils.h"
 #include "Core/Journal.h"
@@ -13,6 +15,78 @@ namespace cocoa::utils {
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Core)
 
+namespace {
+
+// NOLINTNEXTLINE
+std::vector<std::tuple<const char*, const std::type_info*>> cxa_symbol_simpl_typeinfo_ = {
+        { "std::string", &typeid(std::string) }
+};
+std::vector<std::tuple<const char*, std::string>> cxa_symbol_simpl_types_tbl_;
+
+// NOLINTNEXTLINE
+void build_cxa_symbol_simpl_types_tbl()
+{
+    for (const auto &ti : cxa_symbol_simpl_typeinfo_)
+    {
+        char *sym = abi::__cxa_demangle(std::get<1>(ti)->name(), nullptr, nullptr, nullptr);
+        if (sym)
+        {
+            cxa_symbol_simpl_types_tbl_.emplace_back(std::get<0>(ti), sym);
+            std::free(sym);
+        }
+    }
+}
+
+std::atomic<const char*> symbol_simplify_pending_message_;
+
+std::string try_simplify_cpp_symbol(std::string current)
+{
+    symbol_simplify_pending_message_.store(nullptr);
+
+    if (cxa_symbol_simpl_types_tbl_.empty())
+        build_cxa_symbol_simpl_types_tbl();
+
+    for (const auto& tp : cxa_symbol_simpl_types_tbl_)
+    {
+        auto p = current.find(std::get<1>(tp));
+        while (p != std::string::npos)
+        {
+            current.replace(p, std::get<1>(tp).size(), std::get<0>(tp));
+            p = current.find(std::get<1>(tp));
+        }
+    }
+
+    std::string stage_1_dump(current);
+
+    auto p = current.find('<');
+    while (p != std::string::npos)
+    {
+        int tpl_count = 1;
+        auto pend = p + 1;
+        for (; pend < current.size() && tpl_count > 0; pend++)
+        {
+            switch (current[pend])
+            {
+            case '<': tpl_count++; break;
+            case '>': tpl_count--; break;
+            }
+        }
+        if (tpl_count > 0)
+        {
+            symbol_simplify_pending_message_.store("Unexpected template syntax");
+            return stage_1_dump;
+        }
+
+        auto old_size = current.size();
+        current.replace(p, pend - p, std::string("<...>"));
+        p = current.find('<', pend + (current.size() - old_size));
+    }
+
+    return current;
+}
+
+} // namespace anonymous
+
 void SerializeException(const RuntimeException& except)
 {
     QLOG(LOG_EXCEPTION, "%fg<hl>Exception: {}: {}%reset", except.who(), except.what());
@@ -22,12 +96,12 @@ void SerializeException(const RuntimeException& except)
     for (const RuntimeException::Frame& f : except.frames())
     {
         std::ostringstream hdr, content;
-        hdr << "  #" << idx << " " << f.pc;
+        hdr << "  %fg<bl>#" << idx << "%reset %fg<cy>" << f.pc << "%reset %fg<gr>";
         if (f.symbol == "Unknown")
             hdr << " <...>";
         else
             hdr << " <+" << f.offset << ">";
-        content << f.symbol << " from " << f.file;
+        content << "%reset<>" << try_simplify_cpp_symbol(f.symbol) << " from " << f.file;
 
         table.append(hdr.str(), content.str());
         idx++;
@@ -35,6 +109,12 @@ void SerializeException(const RuntimeException& except)
     table.flush([](const std::string& str) {
         QLOG(LOG_EXCEPTION, "{}", str);
     });
+
+    if (symbol_simplify_pending_message_.load())
+    {
+        QLOG(LOG_ERROR, "(Internal.Cxa) Symbol simplification: {}",
+             symbol_simplify_pending_message_.load());
+    }
 }
 
 std::string GetAbsoluteDirectory(const std::string& dir)

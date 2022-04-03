@@ -17,6 +17,7 @@ T& operator=(const T&) = delete;
 #define COCOA_PATCH     0
 
 #define COCOA_NAME      "Cocoa"
+#define COCOA_PLATFORM  "GNU/Linux"
 
 #define COCOA_MAKE_VERSION(major, minor, patch)     (((major) << 24) | ((minor) << 16) | (patch))
 

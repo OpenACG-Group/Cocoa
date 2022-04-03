@@ -13,17 +13,14 @@
 #include "Core/Exception.h"
 #include "Core/EventLoop.h"
 #include "Core/Filesystem.h"
-#include "Core/DBusConnection.h"
 #include "Core/QResource.h"
 #include "fmt/format.h"
 #include "include/core/SkTypes.h"
 
-#include "Koi/Runtime.h"
-#include "Koi/BindingManager.h"
+#include "Gallium/Runtime.h"
+#include "Gallium/BindingManager.h"
 
 #include "Cobalt/Cobalt.h"
-
-#include "general_tests.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Main)
 
@@ -116,18 +113,6 @@ const Template gTemplates[] = {
             .desc = "Don't print logs with colors through ANSI escape code"
         },
         {
-            .longName = "dbus-bus-type",
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kString,
-            .desc = "Connect to the system or the session DBus service"
-        },
-        {
-            .longName = "dbus-bus-address",
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kString,
-            .desc = "Connect to the specified DBus socket address"
-        },
-        {
             .longName = "just-initialize",
             .desc = "Exit immediately after finishing all the initialization steps (not running script)"
         },
@@ -194,10 +179,37 @@ const Template gTemplates[] = {
             .desc = "Specify a JavaScript file to run. (index.js for default)"
         },
         {
+            .longName = "renderhost-transfer-profile",
+            .hasValue = Template::RequireValue::kEmpty,
+            .desc = "Enable profiling on RenderHost's message queue"
+        },
+        {
             .longName = "cobalt-use-jit",
             .hasValue = Template::RequireValue::kNecessary,
             .valueType = ValueType::kBoolean,
             .desc = "Use JIT to accelerate CPU-bound operations while rendering (true by default)"
+        },
+        {
+            .longName = "disable-hwcompose",
+            .hasValue = Template::RequireValue::kEmpty,
+            .desc = "Disable Vulkan-based hardware acceleration (disable HWCompose surfaces)"
+        },
+        {
+            .longName = "hwcompose-enable-vkdbg",
+            .hasValue = Template::RequireValue::kEmpty,
+            .desc = "Enable Vulkan debug utils to generate detailed Vulkan logs"
+        },
+        {
+            .longName = "hwcompose-vkdbg-severities",
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kString,
+            .desc = "Specify a comma separated list of allowed message severities for Vulkan debug utils"
+        },
+        {
+            .longName = "hwcompose-vkdbg-levels",
+            .hasValue = Template::RequireValue::kNecessary,
+            .valueType = ValueType::kString,
+            .desc = "Specify a comma separated list of allowed message types for Vulkan debug utils"
         }
 };
 
@@ -549,7 +561,7 @@ void PrintVersion()
     fmt::print("Copyright (C) " COCOA_COPYRIGHT_YEAR " OpenACG Group | GPLv3 License\n");
 }
 
-void PrintGreeting(const koi::Runtime::Options& opts)
+void PrintGreeting(const gallium::Runtime::Options& opts)
 {
     QLOG(LOG_INFO, "%fg<hl>Cocoa 2D Rendering Framework, version {}%reset", COCOA_VERSION);
     QLOG(LOG_INFO, "  %fg<hl>Copyright (C) " COCOA_COPYRIGHT_YEAR " OpenACG Group | GPLv3 License%reset");
@@ -756,10 +768,19 @@ void report_vulnerability_option(const std::string& opt)
                       " may cause fatal security problems", opt);
 }
 
+std::shared_ptr<PropertyArrayNode> splitStringStoreToArrayNode(const std::string& str, char delimiter)
+{
+    auto array = prop::New<PropertyArrayNode>();
+    auto v = utils::SplitString(str, delimiter);
+    for (const auto& l : v)
+        array->append(prop::New<PropertyDataNode>(std::string(l)));
+
+    return array;
+}
+
 cmd::ParseState Initialize(int argc, char const **argv,
-                           koi::Runtime::Options& koiOptions,
-                           cobalt::ContextOptions& cobaltOptions,
-                           DBusService::Options& dbusOptions)
+                           gallium::Runtime::Options& koiOptions,
+                           cobalt::ContextOptions& cobaltOptions)
 {
     cmd::ParseResult args;
     cmd::ParseState state = cmd::Parse(argc, argv, args);
@@ -799,30 +820,15 @@ cmd::ParseState Initialize(int argc, char const **argv,
 
     bool justInitialize = false;
 
+    auto graphicsNode = prop::New<PropertyObjectNode>();
+    prop::Get()->setMember("Graphics", graphicsNode);
+
+    auto hwComposeNode = prop::New<PropertyObjectNode>();
+    graphicsNode->setMember("HWCompose", hwComposeNode);
+
     for (const auto& arg : args.options)
     {
-        if arg_longopt_match("dbus-bus-type")
-        {
-            if (arg.value->v_str == CORE_DBUS_TYPE_SESSION)
-                dbusOptions.busType = DBus::BusType::SESSION;
-            else if (arg.value->v_str == CORE_DBUS_TYPE_SYSTEM)
-                dbusOptions.busType = DBus::BusType::SYSTEM;
-            else
-            {
-                fmt::print(std::cerr, "Unrecognized value of --dbus-bus-type: {}\n", arg.value->v_str);
-                return cmd::ParseState::kError;
-            }
-        }
-        else if arg_longopt_match("dbus-bus-address")
-        {
-            if (arg.value->v_str.empty())
-            {
-                fmt::print(std::cerr, "Empty DBus address is not allowed");
-                return cmd::ParseState::kError;
-            }
-            dbusOptions.address = arg.value->v_str;
-        }
-        else if arg_longopt_match("just-initialize")
+        if arg_longopt_match("just-initialize")
         {
             justInitialize = true;
         }
@@ -908,6 +914,26 @@ cmd::ParseState Initialize(int argc, char const **argv,
         {
             cobaltOptions.SetSkiaJIT(arg.value->v_bool);
         }
+        else if arg_longopt_match("disable-hwcompose")
+        {
+            hwComposeNode->setMember("Disabled", prop::New<PropertyDataNode>(true));
+        }
+        else if arg_longopt_match("hwcompose-enable-vkdbg")
+        {
+            hwComposeNode->setMember("EnableVkDBG", prop::New<PropertyDataNode>(true));
+        }
+        else if arg_longopt_match("hwcompose-vkdbg-severities")
+        {
+            hwComposeNode->setMember("VkDBGFilterSeverities", splitStringStoreToArrayNode(arg.value->v_str, ','));
+        }
+        else if arg_longopt_match("hwcompose-vkdbg-levels")
+        {
+            hwComposeNode->setMember("VkDBGFilterLevels", splitStringStoreToArrayNode(arg.value->v_str, ','));
+        }
+        else if arg_longopt_match("renderhost-transfer-profile")
+        {
+            cobaltOptions.SetProfileRenderHostTransfer(true);
+        }
     }
 
     {
@@ -935,17 +961,15 @@ void Finalize()
 }
 
 void Execute(bool justInitialize,
-             const koi::Runtime::Options& options,
-             const cobalt::ContextOptions& cobaltOptions,
-             const DBusService::Options& dbusOptions)
+             const gallium::Runtime::Options& options,
+             const cobalt::ContextOptions& cobaltOptions)
 {
     QResource::New();
-    DBusService::New(dbusOptions);
 
     prop::SerializeToJournal(prop::Get());
 
     cobalt::GlobalScope::New(cobaltOptions, EventLoop::Instance());
-    koi::BindingManager::New(options);
+    gallium::BindingManager::New(options);
 
     auto preloads = prop::Get()
             ->next("Runtime")
@@ -954,12 +978,12 @@ void Execute(bool justInitialize,
     for (const auto& p : *preloads)
     {
         auto& val = prop::Cast<PropertyDataNode>(p)->extract<std::string>();
-        koi::BindingManager::Ref().loadDynamicObject(val);
+        gallium::BindingManager::Ref().loadDynamicObject(val);
     }
 
     if (!justInitialize)
     {
-        auto runtime = koi::Runtime::Make(EventLoop::Instance(), options);
+        auto runtime = gallium::Runtime::Make(EventLoop::Instance(), options);
         CHECK(runtime != nullptr);
         v8::Isolate::Scope isolateScope(runtime->isolate());
         v8::HandleScope handleScope(runtime->isolate());
@@ -969,21 +993,25 @@ void Execute(bool justInitialize,
         if (!runtime->evaluateModule(options.startup).ToLocal(&result))
             return;
         EventLoop::Ref().run();
-        koi::BindingManager::Delete();
+        gallium::BindingManager::Delete();
 
+        runtime->notifyRuntimeWillExit();
         CHECK(runtime.unique() && "Runtime is referenced by other scopes");
     }
     else
     {
         fmt::print(std::cerr, "[TESTRUN] Cocoa exits after finishing initialization steps.\n");
-        test::vanilla_render_test();
     }
 
 
     /* No matter whether these UniquePersistent objects are created,
      * deleting them is safe. */
     cobalt::GlobalScope::Delete();
-    DBusService::Delete();
+
+    /* RenderHost message queue profiler may register a threadpool work.
+     * To make sure the task performed properly, we run event loop again. */
+    EventLoop::Ref().run();
+
     QResource::Delete();
     EventLoop::Delete();
 }
@@ -993,13 +1021,12 @@ int Main(int argc, char const **argv)
     CpuInfo::New();
     ScopeEpilogue epilogue([]() -> void { Finalize(); });
 
-    koi::Runtime::Options koiOptions;
+    gallium::Runtime::Options koiOptions;
     cobalt::ContextOptions cobaltOptions;
-    DBusService::Options dbusOptions;
     bool justInitialize = false;
 
     try {
-        switch (Initialize(argc, argv, koiOptions, cobaltOptions, dbusOptions))
+        switch (Initialize(argc, argv, koiOptions, cobaltOptions))
         {
         case cmd::ParseState::kError:
             return EXIT_FAILURE;
@@ -1012,9 +1039,9 @@ int Main(int argc, char const **argv)
             break;
         }
 
-        koi::Runtime::AdoptV8CommandOptions(koiOptions);
+        gallium::Runtime::AdoptV8CommandOptions(koiOptions);
         cmd::PrintGreeting(koiOptions);
-        Execute(justInitialize, koiOptions, cobaltOptions, dbusOptions);
+        Execute(justInitialize, koiOptions, cobaltOptions);
     } catch (const RuntimeException& e) {
         utils::SerializeException(e);
         return EXIT_FAILURE;

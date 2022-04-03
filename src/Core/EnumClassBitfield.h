@@ -1,5 +1,5 @@
-#ifndef COCOA_ENUMCLASSBITFIELD_H
-#define COCOA_ENUMCLASSBITFIELD_H
+#ifndef COCOA_CORE_ENUMCLASSBITFIELD_H
+#define COCOA_CORE_ENUMCLASSBITFIELD_H
 
 #include <concepts>
 #include <initializer_list>
@@ -23,6 +23,10 @@ public:
     Bitfield(const std::initializer_list<E>& values) : fValue(0) {
         for (E v : values)
             fValue |= static_cast<T>(v);
+    }
+
+    void clear() {
+        fValue = 0;
     }
 
     Bitfield& operator|=(const E bit) {
@@ -67,10 +71,14 @@ public:
         return fValue == 0;
     }
 
+    [[nodiscard]] T value() const {
+        return fValue;
+    }
+
 private:
     T   fValue;
 };
 
 }
 
-#endif //COCOA_ENUMCLASSBITFIELD_H
+#endif //COCOA_CORE_ENUMCLASSBITFIELD_H

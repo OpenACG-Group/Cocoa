@@ -39,8 +39,6 @@ add_library(
         Errors.h
         Errors.cc
         EnumClassBitfield.h
-        DBusConnection.h
-        DBusConnection.cc
         QResource.h
         QResource.cc
         ${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
@@ -54,11 +52,6 @@ target_link_libraries(Core
         uv_a
         fmt::fmt
         cpu_features
-
-        ## DBus libraries
-        PkgConfig::SIGC
-        dbus-cxx
-
         ## SquashFS required libraries
         squash z)
 

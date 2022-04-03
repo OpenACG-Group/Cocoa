@@ -1,5 +1,5 @@
-#ifndef COCOA_COPYMOVETEST_H
-#define COCOA_COPYMOVETEST_H
+#ifndef COCOA_COBALT_COPYMOVETEST_H
+#define COCOA_COBALT_COPYMOVETEST_H
 
 #include "fmt/format.h"
 
@@ -27,4 +27,4 @@ public:
     }
 };
 
-#endif //COCOA_COPYMOVETEST_H
+#endif //COCOA_COBALT_COPYMOVETEST_H

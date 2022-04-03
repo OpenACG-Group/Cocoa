@@ -260,7 +260,7 @@ bool QResource::Load(const std::shared_ptr<Data>& data)
     if (checksumFromFile.empty())
         return false;
 
-    size_t xmlFileSize = 0;
+    size_t xmlFileSize;
     if (auto maybe = xmlFile->stat())
         xmlFileSize = maybe->size;
     else

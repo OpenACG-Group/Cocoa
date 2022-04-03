@@ -1,1 +1,42 @@
-import * as core from 'core';
+import { print, exit } from "core";
+
+let kStackTraceFrameLimitation: number = 16;
+
+export function adjustStackTraceFramesLimitation(value: number): void {
+    if (value < 0 || !Number.isInteger(value)) {
+        throw TypeError('Stacktrace limitation should be a non-negative integer');
+    }
+    kStackTraceFrameLimitation = value;
+}
+
+function printStacktrace(stacktrace: StackTraceFrame[]): void {
+    let depth: number = 1;
+    for (let frame of stacktrace) {
+        print(`  #${depth++} at `);
+        if (frame.isConstructor) {
+            print('new ');
+        }
+        print(`${frame.functionName} (${frame.scriptName}`);
+        if (frame.line > 0 && frame.column > 0) {
+            print(`:${frame.line}:${frame.column}`);
+        }
+        print(')\n');
+    }
+}
+
+export function assert(expr: boolean, message?: string): void {
+    if (expr)
+        return;
+    
+    print('Assertion Failed: ');
+    if (message != undefined) {
+        print(`${message}:`);
+    }
+    print('\n');
+
+    let stacktrace = introspect.inspectStackTrace(kStackTraceFrameLimitation);
+    printStacktrace(stacktrace);
+
+    /* Exit immediately without waiting for event loop */
+    exit();
+}

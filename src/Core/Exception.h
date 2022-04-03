@@ -1,5 +1,5 @@
-#ifndef COCOA_EXCEPTION_H
-#define COCOA_EXCEPTION_H
+#ifndef COCOA_CORE_EXCEPTION_H
+#define COCOA_CORE_EXCEPTION_H
 
 #include <stdexcept>
 #include <string>
@@ -101,4 +101,4 @@ private:
 
 } // namespace cocoa
 
-#endif //COCOA_EXCEPTION_H
+#endif //COCOA_CORE_EXCEPTION_H

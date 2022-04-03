@@ -1,5 +1,5 @@
-#ifndef COCOA_ERRORS_H
-#define COCOA_ERRORS_H
+#ifndef COCOA_CORE_ERRORS_H
+#define COCOA_CORE_ERRORS_H
 
 namespace cocoa {
 
@@ -50,4 +50,4 @@ struct AssertionInfo
 #define EXIT_STATUS_OOM     (EXIT_ERROR_BIT|EXIT_FATAL_BIT|EXIT_OOM_BIT)
 
 } // namespace cocoa
-#endif //COCOA_ERRORS_H
+#endif //COCOA_CORE_ERRORS_H

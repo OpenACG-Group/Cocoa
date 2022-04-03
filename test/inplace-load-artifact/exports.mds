@@ -1,0 +1,8 @@
+%header_begin
+#include "Artifact.h"
+%header_end
+
+%namespace cocoa::gallium::bindings
+%class ArtifactBinding
+
+%export __trampoline ArtifactTrampoline

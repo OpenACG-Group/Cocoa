@@ -1,0 +1,14 @@
+#ifndef COCOA_COBALT_LAPSCOMPILER_LAPSCOMPILER_H
+#define COCOA_COBALT_LAPSCOMPILER_LAPSCOMPILER_H
+
+#include "Cobalt/Cobalt.h"
+
+#define LAPS_COMPILER_BEGIN_NS  namespace cocoa::cobalt::laps {
+#define LAPS_COMPILER_END_NS    }
+
+#define LAPS_COMPILER_DESC      "Cobalt LAPS (Layer Paint Script) JIT Compiler"
+
+LAPS_COMPILER_BEGIN_NS
+
+LAPS_COMPILER_END_NS
+#endif //COCOA_COBALT_LAPSCOMPILER_LAPSCOMPILER_H

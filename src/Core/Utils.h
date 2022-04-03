@@ -1,5 +1,5 @@
-#ifndef COCOA_UTILS_H
-#define COCOA_UTILS_H
+#ifndef COCOA_CORE_UTILS_H
+#define COCOA_CORE_UTILS_H
 
 #include <functional>
 #include <vector>
@@ -108,4 +108,4 @@ inline bool StrStartsWith(const std::string_view& str, const char *prefix)
 
 } // namespace cocoa
 
-#endif //COCOA_UTILS_H
+#endif //COCOA_CORE_UTILS_H

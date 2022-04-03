@@ -1,5 +1,5 @@
-#ifndef COCOA_DBUSCONNECTION_H
-#define COCOA_DBUSCONNECTION_H
+#ifndef COCOA_CORE_DBUSCONNECTION_H
+#define COCOA_CORE_DBUSCONNECTION_H
 
 #include <optional>
 
@@ -35,4 +35,4 @@ private:
 };
 
 } // namespace cocoa
-#endif //COCOA_DBUSCONNECTION_H
+#endif //COCOA_CORE_DBUSCONNECTION_H

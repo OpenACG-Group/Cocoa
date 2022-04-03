@@ -1,5 +1,5 @@
-#ifndef COCOA_EVENTLOOP_H
-#define COCOA_EVENTLOOP_H
+#ifndef COCOA_CORE_EVENTLOOP_H
+#define COCOA_CORE_EVENTLOOP_H
 
 #include <functional>
 
@@ -30,4 +30,4 @@ private:
 };
 
 } // namespace cocoa
-#endif //COCOA_EVENTLOOP_H
+#endif //COCOA_CORE_EVENTLOOP_H

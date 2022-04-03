@@ -1,5 +1,5 @@
-#ifndef COCOA_RENDERHOST_H
-#define COCOA_RENDERHOST_H
+#ifndef COCOA_COBALT_RENDERHOST_H
+#define COCOA_COBALT_RENDERHOST_H
 
 #include <any>
 #include <queue>
@@ -12,6 +12,11 @@
 #include "Cobalt/RenderHostCallbackInfo.h"
 #include "Cobalt/RenderClientCallInfo.h"
 #include "Cobalt/RenderClientTransfer.h"
+
+namespace Json {
+class Value;
+}
+
 COBALT_NAMESPACE_BEGIN
 
 class RenderClientObject;
@@ -26,7 +31,11 @@ public:
     static constexpr size_t kCallbackPoolInitSize = 128;
     using RequestId = uint64_t;
 
-    explicit RenderHost(EventLoop *hostLoop);
+    struct TransferProfileSample;
+
+    using ApplicationInfo = GlobalScope::ApplicationInfo;
+
+    explicit RenderHost(EventLoop *hostLoop, ApplicationInfo applicationInfo);
     ~RenderHost() override;
 
     g_inline void SetRenderClient(RenderClient *pClient) {
@@ -37,7 +46,13 @@ public:
         return render_client_;
     }
 
+    g_nodiscard g_inline const ApplicationInfo& GetApplicationInfo() const {
+        return application_info_;
+    }
+
     g_nodiscard co_sp<RenderClientObject> GetRenderHostCreator();
+
+    void CollectTransferProfileSample(RenderClientTransfer *transfer);
 
     /**
      * Host thread calls this to send a request (invocation/call) to render thread.
@@ -58,6 +73,7 @@ public:
 
 private:
     void OnResponseFromClient();
+    void FlushProfileSamplesAsync();
 
     void asyncDispatch() override;
 
@@ -65,7 +81,12 @@ private:
     std::queue<RenderClientTransfer*> client_transfer_queue_;
     std::mutex                        client_transfer_queue_lock_;
     co_sp<RenderHostCreator>          host_creator_;
+    ApplicationInfo                   application_info_;
+
+    RenderClientTransfer::Timepoint           samples_time_base_;
+    std::vector<co_sp<TransferProfileSample>> transfer_profile_samples_;
+    co_sp<Json::Value>                        profile_json_root_;
 };
 
 COBALT_NAMESPACE_END
-#endif //COCOA_RENDERHOST_H
+#endif //COCOA_COBALT_RENDERHOST_H

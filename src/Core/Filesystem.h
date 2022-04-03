@@ -1,5 +1,5 @@
-#ifndef COCOA_FILESYSTEM_H
-#define COCOA_FILESYSTEM_H
+#ifndef COCOA_CORE_FILESYSTEM_H
+#define COCOA_CORE_FILESYSTEM_H
 
 #include <cstdint>
 #include <type_traits>
@@ -128,4 +128,4 @@ int32_t MknodAt(int32_t dirfd, const std::string& path, Bitfield<Mode> mode, int
 
 VFS_NS_END
 
-#endif //COCOA_FILESYSTEM_H
+#endif //COCOA_CORE_FILESYSTEM_H
