@@ -16,7 +16,13 @@
         "./global/introspect.d.ts",
     ],
     "files": [
+        "./synthetics/core.d.ts",
+        "./synthetics/cobalt.d.ts",
         "./core/format.ts",
+        "./core/comath.ts",
+        "./core/cocanvas.ts",
+        "./core/assert.ts",
+        "./core/linked_list.ts",
         "./index.ts"
     ]
 }

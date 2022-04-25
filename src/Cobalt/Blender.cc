@@ -1,3 +1,5 @@
+#include "include/core/SkCanvas.h"
+
 #include "Cobalt/Blender.h"
 #include "Cobalt/RenderTarget.h"
 #include "Cobalt/Surface.h"

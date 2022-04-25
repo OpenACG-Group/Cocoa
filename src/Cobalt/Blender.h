@@ -4,9 +4,27 @@
 #include "Cobalt/Cobalt.h"
 #include "Cobalt/RenderClientObject.h"
 #include "Cobalt/RenderTarget.h"
+
+#include "include/core/SkDeferredDisplayList.h"
+
 COBALT_NAMESPACE_BEGIN
 
 class Surface;
+
+/**
+ * Cobalt 2D Rendering Pipeline:
+ *
+ * Without hardware acceleration:
+ * Main Thread => SkPicture
+ * -> RenderThread => SkSurface     [Rasterize]
+ * -> RenderThread => Composite     [Composite]
+ *
+ * With hardware acceleration:
+ * Main Thread => SkPicture
+ * -> RenderHelperThread => SkDeferredDisplayList
+ * -> RenderThread => SkSurface
+ * -> RenderThread => Composite
+ */
 
 class Blender : public RenderClientObject
 {

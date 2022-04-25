@@ -1,12 +1,8 @@
 import * as std from 'core';
 import * as cobalt from 'cobalt';
 
-introspect.setUnhandledPromiseRejectionHandler((promise, value) => {
-    std.print(`Reject: ${value}\n`);
-});
-
 cobalt.RenderHost.Initialize({
-    name: "White Eternity",
+    // name: "White Eternity",
     major: 1,
     minor: 0,
     patch: 0

@@ -8,8 +8,7 @@ set(
 add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
         COMMAND ${CMAKE_HOME_DIRECTORY}/script/intern-crpkgs.py
-                ${QRESOURCE_AUTOLOAD_IMAGES}
-                >${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
+                ${QRESOURCE_AUTOLOAD_IMAGES} >${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
         DEPENDS ${QRESOURCE_AUTOLOAD_IMAGES}
 )
 

@@ -7,7 +7,6 @@
 #include "Gallium/bindings/Base.h"
 #include "Gallium/bindings/core/Exports.h"
 #include "Gallium/bindings/cobalt/Exports.h"
-#include "Gallium/bindings/reactor/Exports.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium)
 
@@ -19,7 +18,6 @@ BindingManager::BindingManager(const Runtime::Options& options)
 {
     appendBinding(new bindings::CoreBinding());
     appendBinding(new bindings::cobalt_wrap::CobaltBinding());
-    appendBinding(new bindings::reactor_wrap::ReactorBinding());
 }
 
 BindingManager::~BindingManager()

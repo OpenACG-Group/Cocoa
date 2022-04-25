@@ -364,4 +364,5 @@ export class Buffer {
     copy(offset?: OffsetT, length?: SizeT): Buffer;
     toDataView(offset?: OffsetT, length?: SizeT): DataView;
     toString(coding: number, length: SizeT): string;
+    memsetZero(offset: OffsetT, length: SizeT): void;
 }

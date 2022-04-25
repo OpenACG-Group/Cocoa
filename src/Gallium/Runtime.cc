@@ -103,43 +103,26 @@ v8::Local<v8::Module> createSyntheticModule(v8::Isolate *isolate,
     return scope.Escape(module);
 }
 
-#if 0
-void executeInternalScript(const std::shared_ptr<Runtime>& rt, const std::string& url)
+v8::StartupData *load_startup_snapshot()
 {
-    v8::Isolate *isolate = rt->isolate();
-    v8::HandleScope handleScope(isolate);
-
-    auto resolvedUrl = ModuleImportURL::Resolve(nullptr,
-                                                url,
-                                                ModuleImportURL::ResolvedAs::kSysExecute);
-    if (!resolvedUrl)
+    auto snapshotData = QResource::Instance()->Lookup("org.cocoa.internal.v8", "/snapshot_blob.bin");
+    if (!snapshotData)
     {
-        throw RuntimeException::Builder(__func__)
-            .append("Failed in decompressing internal script ")
-            .append(resolvedUrl->toString())
-            .make<RuntimeException>();
+        QLOG(LOG_ERROR, "Failed to load snapshot data from package org.cocoa.internal.v8");
+        return nullptr;
     }
 
-    auto maybeSource = resolvedUrl->loadResourceText();
-    if (!maybeSource)
-    {
-        throw RuntimeException::Builder(__func__)
-                .append("Failed in decompressing internal script ")
-                .append(resolvedUrl->toString())
-                .make<RuntimeException>();
-    }
+    size_t snapshotDataSize = snapshotData->size();
+    auto *startupData = new v8::StartupData{
+            .data = new char[snapshotDataSize],
+            .raw_size = static_cast<int>(snapshotDataSize)
+    };
 
-    auto result = rt->execute(resolvedUrl->toString().c_str(),
-                              maybeSource->c_str());
-    if (result.IsEmpty())
-    {
-        throw RuntimeException::Builder(__func__)
-                .append("Failed in executing internal script ")
-                .append(resolvedUrl->toString())
-                .make<RuntimeException>();
-    }
+    snapshotData->read(const_cast<char*>(startupData->data), snapshotDataSize);
+    v8::V8::SetSnapshotDataBlob(startupData);
+
+    return startupData;
 }
-#endif
 
 } // namespace anonymous
 
@@ -151,27 +134,14 @@ void Runtime::AdoptV8CommandOptions(const Options& options)
 
 std::shared_ptr<Runtime> Runtime::Make(EventLoop *loop, const Options& options)
 {
-    /*
-    auto snapshotData = QResource::Instance()->Lookup("org.cocoa.internal.v8", "/data/snapshot_blob.bin");
-    if (!snapshotData)
-    {
-        QLOG(LOG_ERROR, "Failed to load snapshot data from package org.cocoa.internal.v8");
+    v8::StartupData *startupData = load_startup_snapshot();
+    if (!startupData)
         return nullptr;
-    }
 
-    size_t snapshotDataSize = snapshotData->size();
-    auto *startupData = new v8::StartupData{
-        .data = new char[snapshotDataSize],
-        .raw_size = static_cast<int>(snapshotDataSize)
-    };
-    ScopeEpilogue epi([startupData] {
+    ScopeEpilogue startupDataReleaser([startupData] {
         delete[] startupData->data;
         delete startupData;
     });
-
-    snapshotData->read(const_cast<char*>(startupData->data), snapshotDataSize);
-    v8::V8::SetSnapshotDataBlob(startupData);
-    */
 
     std::unique_ptr<v8::Platform> platform =
             v8::platform::NewDefaultPlatform(static_cast<int>(options.v8_platform_thread_pool),
@@ -202,6 +172,8 @@ std::shared_ptr<Runtime> Runtime::Make(EventLoop *loop, const Options& options)
                                             isolate,
                                             v8::Global<v8::Context>(isolate, context),
                                             options);
+        startupDataReleaser.abolish();
+
         auto isolateGuard = std::make_unique<GlobalIsolateGuard>(runtime);
         runtime->setGlobalIsolateGuard(std::move(isolateGuard));
 
@@ -254,6 +226,8 @@ Runtime::Runtime(EventLoop *loop,
         fIntrospect = VMIntrospect::InstallGlobal(fIsolate);
 
     uv_idle_init(loop->handle(), &fIdle);
+
+    evaluateModule("internal:///gallium/bootstrap.js", nullptr, nullptr, false, true);
 }
 
 Runtime::~Runtime()
@@ -330,14 +304,29 @@ v8::Local<v8::Object> Runtime::getSyntheticModuleExportObject(v8::Local<v8::Modu
 
 v8::Local<v8::Module> Runtime::compileModule(const ModuleImportURL::SharedPtr& referer,
                                              const std::string& url,
-                                             bool isImport)
+                                             bool isImport,
+                                             bool isSysInvoke)
 {
     v8::Isolate::Scope isolateScope(fIsolate);
     v8::EscapableHandleScope handleScope(fIsolate);
     v8::Context::Scope contextScope(this->context());
 
-    ModuleImportURL::ResolvedAs resolvedAs = isImport ? ModuleImportURL::ResolvedAs::kUserImport
-                                             : ModuleImportURL::ResolvedAs::kUserExecute;
+    ModuleImportURL::ResolvedAs resolvedAs;
+    if (isImport)
+    {
+        if (isSysInvoke)
+            resolvedAs = ModuleImportURL::ResolvedAs::kSysImport;
+        else
+            resolvedAs = ModuleImportURL::ResolvedAs::kUserImport;
+    }
+    else
+    {
+        if (isSysInvoke)
+            resolvedAs = ModuleImportURL::ResolvedAs::kSysExecute;
+        else
+            resolvedAs = ModuleImportURL::ResolvedAs::kUserExecute;
+    }
+
     ModuleImportURL::SharedPtr resolved = ModuleImportURL::Resolve(referer, url, resolvedAs);
     if (!resolved)
         throw RuntimeException(__func__, "Failed to resolve module path \"" + url + "\"");
@@ -395,7 +384,9 @@ v8::MaybeLocal<v8::Module> instantiateModuleCallback(v8::Local<v8::Context> cont
         if (cache.second.module != referer)
             continue;
         auto url = binder::from_v8<std::string>(pRT->isolate(), specifier);
-        v8::MaybeLocal<v8::Module> maybeModule = pRT->compileModule(cache.first, url, true);
+
+        // TODO: propagate `isSysInvoke`
+        v8::MaybeLocal<v8::Module> maybeModule = pRT->compileModule(cache.first, url, true, false);
         QLOG(LOG_DEBUG, "Resolved ES module {} (from {})", url, cache.first->toString());
         return maybeModule;
     }
@@ -406,9 +397,9 @@ v8::MaybeLocal<v8::Module> instantiateModuleCallback(v8::Local<v8::Context> cont
 v8::MaybeLocal<v8::Value> Runtime::evaluateModule(const std::string& url,
                                                   v8::Local<v8::Module> *outModule,
                                                   const std::shared_ptr<ModuleImportURL> &referer,
-                                                  bool isImport)
+                                                  bool isImport, bool isSysInvoke)
 {
-    v8::Local<v8::Module> module = this->compileModule(referer, url, isImport);
+    v8::Local<v8::Module> module = this->compileModule(referer, url, isImport, isSysInvoke);
     if (outModule)
         *outModule = module;
     if (module->GetStatus() == v8::Module::Status::kInstantiated

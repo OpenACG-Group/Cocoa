@@ -448,4 +448,11 @@ v8::Local<v8::Value> Buffer::toString(uint32_t coding, int32_t length)
     return result;
 }
 
+void Buffer::memsetZero(uint32_t offset, uint32_t length)
+{
+    if (offset + length > this->length())
+        g_throw(RangeError, "Invalid offset and length");
+    std::memset(getWriteableDataPointerByte() + offset, 0, length);
+}
+
 GALLIUM_BINDINGS_NS_END

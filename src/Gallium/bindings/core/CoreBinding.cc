@@ -158,7 +158,8 @@ void CoreBinding::onRegisterClasses(v8::Isolate *isolate)
         .set("byteAt", &Buffer::byteAt)
         .set("copy", &Buffer::copy)
         .set("toDataView", &Buffer::toDataView)
-        .set("toString", &Buffer::toString);
+        .set("toString", &Buffer::toString)
+        .set("memsetZero", &Buffer::memsetZero);
 
     class_process_wrap_ = NewClassExport<ProcessWrap>(isolate);
     (*class_process_wrap_)

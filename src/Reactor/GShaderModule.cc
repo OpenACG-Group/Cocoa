@@ -9,6 +9,7 @@
 #include "llvm/IR/DataLayout.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
+#include "llvm/IR/Verifier.h"
 
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/InstCombine/InstCombine.h"
@@ -40,10 +41,14 @@ public:
 
 std::shared_ptr<GShaderModule> GShaderModule::Compile(GShaderBuilder& builder)
 {
-    builder.ir_builder_.reset();
     std::unique_ptr<llvm::Module> module(std::move(builder.module_));
     std::unique_ptr<llvm::LLVMContext> context(std::move(builder.context_));
     std::vector<llvm::Function *> functions(std::move(builder.exposed_functions_));
+
+    std::string verifyMessages;
+    llvm::raw_string_ostream stream(verifyMessages);
+    if (llvm::verifyModule(*module, &stream))
+        throw std::runtime_error(verifyMessages);
 
     auto *hostContext = new HostContext{};
     hostContext->magic_number = external::HOST_CTX_MAGIC_NUMBER;
@@ -55,6 +60,8 @@ std::shared_ptr<GShaderModule> GShaderModule::Compile(GShaderBuilder& builder)
     using P = Options::CodeOptPass;
     if (op & P::kCFGSimplification)
         passes.add(llvm::createCFGSimplificationPass());
+    if (op & P::kReassociate)
+        passes.add(llvm::createReassociatePass());
     if (op & P::kLICM)
         passes.add(llvm::createLICMPass());
     if (op & P::kAggressiveDCE)
@@ -63,8 +70,6 @@ std::shared_ptr<GShaderModule> GShaderModule::Compile(GShaderBuilder& builder)
         passes.add(llvm::createNewGVNPass());
     if (op & P::kInstructionCombining)
         passes.add(llvm::createInstructionCombiningPass());
-    if (op & P::kReassociate)
-        passes.add(llvm::createReassociatePass());
     if (op & P::kDeadStoreElimination)
         passes.add(llvm::createDeadStoreEliminationPass());
     if (op & P::kSCCP)
@@ -75,6 +80,7 @@ std::shared_ptr<GShaderModule> GShaderModule::Compile(GShaderBuilder& builder)
         passes.add(llvm::createEarlyCSEPass());
 
     passes.run(*module);
+
     module->print(llvm::outs(), nullptr);
 
     return std::make_shared<GShaderModule>(std::move(module),

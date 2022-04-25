@@ -37,8 +37,7 @@ include_directories(
         third_party/jsoncpp/include
         third_party/build/include)
 
-link_directories(third_party/skia/out/Shared
-                 third_party/build/lib)
+link_directories(third_party/build/lib)
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
     target_compile_options(squash PRIVATE -Wno-incompatible-pointer-types-discards-qualifiers)

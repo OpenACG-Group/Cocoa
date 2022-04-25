@@ -5,6 +5,7 @@
 #include "include/core/SkSurface.h"
 #include "include/core/SkRegion.h"
 
+#include "Core/Errors.h"
 #include "Cobalt/Cobalt.h"
 COBALT_NAMESPACE_BEGIN
 
@@ -28,6 +29,39 @@ public:
 
         /* Skia CPU rasterizer backend */
         kRaster
+    };
+
+    class ScopedFrame
+    {
+    public:
+        explicit ScopedFrame(co_sp<RenderTarget> rt)
+            : render_target_(std::move(rt)), surface_(nullptr)
+        {
+            surface_ = render_target_->BeginFrame();
+            CHECK(surface_ && "Failed to acquire a new graphics frame");
+        }
+
+        ~ScopedFrame() {
+            render_target_->Submit(dirty_region_);
+        }
+
+        void MarkWholeFrameDirty() {
+            SkISize size = surface_->imageInfo().dimensions();
+            dirty_region_ = SkRegion(SkIRect::MakeSize(size));
+        }
+
+        void MarkDirtyRegion(const SkRegion& region) {
+            dirty_region_ = region;
+        }
+
+        SkSurface *GetSurface() {
+            return surface_;
+        }
+
+    private:
+        co_sp<RenderTarget>     render_target_;
+        SkSurface              *surface_;
+        SkRegion                dirty_region_;
     };
 
     RenderTarget(const co_sp<Display>& display, RenderDevice device,

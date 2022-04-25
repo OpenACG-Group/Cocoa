@@ -448,6 +448,7 @@ public:
     v8::Local<v8::Value> copy(const v8::FunctionCallbackInfo<v8::Value>& args);
     v8::Local<v8::Value> toDataView(const v8::FunctionCallbackInfo<v8::Value>& args);
     v8::Local<v8::Value> toString(uint32_t coding, int32_t length);
+    void memsetZero(uint32_t offset, uint32_t length);
 
     uint8_t *getWriteableDataPointerByte();
 

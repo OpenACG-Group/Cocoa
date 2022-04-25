@@ -7,8 +7,8 @@ GShaderBuilder::GShaderBuilder(const std::string& name)
     : name_(name)
     , context_(std::make_unique<llvm::LLVMContext>())
     , module_(std::make_unique<llvm::Module>(name, *context_))
-    , ir_builder_(std::make_unique<llvm::IRBuilder<>>(*context_))
     , main_function_(nullptr)
+    , main_basic_block_(nullptr)
 {
     module_->setTargetTriple(JitSession::Ref().GetTargetTriple().str());
     module_->setDataLayout(JitSession::Ref().GetDataLayout());
@@ -44,35 +44,34 @@ void GShaderBuilder::CreateEntryFunction()
 
     builder.CreateStore(startUserFunc->getArg(0), hostContextGV);
 
-    /* int32_t __builtin_check_host_context(void *ctx) */
-    FunctionType *checkHostCtxFuncT = FunctionType::get(Type::getInt32Ty(*context_),
-                                                        { hostCtxPtrT }, false);
-    FunctionCallee checkHostCtxFunc = module_->getOrInsertFunction("__builtin_check_host_context",
-                                                                   checkHostCtxFuncT);
+    CallInst *call = CreateExternalFunctionCall(block, external::kBuiltinCheckHostContext,
+                                                LoadHostContextGV(block));
 
     BasicBlock *retNormalBlock = BasicBlock::Create(*context_, "normal_ret", startUserFunc);
     {
         BasicBlock *retFailBlock = BasicBlock::Create(*context_, "check_failed", startUserFunc);
-
-        /* call = __builtin_check_host_context(__program_host_context) */
-        LoadInst *loadGV = builder.CreateLoad(hostCtxPtrT, hostContextGV);
-        CallInst *call = builder.CreateCall(checkHostCtxFunc, { loadGV });
-        Value *cond = builder.CreateICmpNE(call, ConstantInt::get(Type::getInt32Ty(*context_), 0));
+        Value *cond = builder.CreateICmpNE(call, NewInt(0));
         builder.CreateCondBr(cond, retFailBlock, retNormalBlock);
 
-        Value *retValue = ConstantInt::get(Type::getInt32Ty(*context_), external::START_USER_RET_FAILED);
-        ReturnInst::Create(*context_, retValue, retFailBlock);
+        builder.SetInsertPoint(retFailBlock);
+
+        /* return START_USER_RET_FAILED */
+        builder.CreateRet(NewInt(external::START_USER_RET_FAILED));
     }
+    builder.SetInsertPoint(retNormalBlock);
 
     /* void main() */
     FunctionType *mainFuncT = FunctionType::get(Type::getVoidTy(*context_), {}, false);
     main_function_ = Function::Create(mainFuncT, Function::ExternalLinkage, "main", *module_);
+    exposed_functions_.push_back(main_function_);
+
+    main_basic_block_ = BasicBlock::Create(*context_, "__user_main_entrypoint", main_function_);
 
     /* main() */
-    CallInst::Create(main_function_, {}, retNormalBlock);
+    builder.CreateCall(main_function_);
 
-    Value *retValue = ConstantInt::get(Type::getInt32Ty(*context_), external::START_USER_RET_NORMAL);
-    ReturnInst::Create(*context_, retValue, retNormalBlock);
+    /* return START_USER_RET_NORMAL */
+    builder.CreateRet(NewInt(external::START_USER_RET_NORMAL));
 }
 
 void GShaderBuilder::InsertV8FunctionSymbol(v8::Local<v8::Function> func, const std::string& name)
@@ -97,22 +96,143 @@ void GShaderBuilder::CreateBuiltinV8FunctionCall(llvm::BasicBlock *insert, const
     LoadInst *loadGV = builder.CreateLoad(Type::getInt8PtrTy(*context_), gv);
     Constant *methodIdConst = ConstantInt::get(Type::getInt32Ty(*context_), id);
 
-    FunctionType *funcT = FunctionType::get(Type::getVoidTy(*context_),
-                                            {loadGV->getType(), methodIdConst->getType()}, false);
-    FunctionCallee func = module_->getOrInsertFunction("__builtin_v8_trampoline", funcT);
-    builder.CreateCall(func, { loadGV, methodIdConst });
+    CreateExternalFunctionCall(insert, external::kBuiltinV8Trampoline,
+                               {loadGV, methodIdConst});
 }
+
+llvm::CallInst *
+GShaderBuilder::CreateExternalFunctionCall(llvm::BasicBlock *insert, int32_t id,
+                                           llvm::ArrayRef<llvm::Value *> args)
+{
+    llvm::IRBuilder<> builder(insert);
+    llvm::FunctionType *funcT = GetExternalFunctionType(*context_, id);
+    const char *funcName = GetExternalFunctionName(id);
+
+    llvm::FunctionCallee func = module_->getOrInsertFunction(funcName, funcT);
+    return builder.CreateCall(func, args);
+}
+
+llvm::LoadInst *GShaderBuilder::LoadHostContextGV(llvm::BasicBlock *insert)
+{
+    llvm::IRBuilder<> builder(insert);
+    llvm::GlobalVariable *gv = module_->getGlobalVariable("__program_host_context");
+    return builder.CreateLoad(gv->getValueType(), gv);
+}
+
+#define DECL_NEW_INT_CONSTANT(name, width) \
+llvm::Constant *GShaderBuilder::New##name (int##width##_t v) { \
+    return llvm::ConstantInt::get(llvm::Type::getInt##width##Ty(*context_), v); \
+}
+
+#define DECL_NEW_UINT_CONSTANT(name, width) \
+llvm::Constant *GShaderBuilder::New##name (uint##width##_t v) { \
+    int##width##_t sv = *reinterpret_cast<int##width##_t*>(static_cast<void*>(&v)); \
+    return llvm::ConstantInt::get(llvm::Type::getInt##width##Ty(*context_), sv); \
+}
+
+DECL_NEW_INT_CONSTANT(SByte, 8)
+DECL_NEW_INT_CONSTANT(Short, 16)
+DECL_NEW_INT_CONSTANT(Int, 32)
+DECL_NEW_INT_CONSTANT(Long, 64)
+DECL_NEW_UINT_CONSTANT(Byte, 8)
+DECL_NEW_UINT_CONSTANT(UShort, 16)
+DECL_NEW_UINT_CONSTANT(UInt, 32)
+DECL_NEW_UINT_CONSTANT(ULong, 64)
+
+llvm::Constant *GShaderBuilder::NewFloat(float v)
+{
+    return llvm::ConstantFP::get(llvm::Type::getFloatTy(*context_), v);
+}
+
+#undef DECL_NEW_INT_CONSTANT
+#undef DECL_NEW_UINT_CONSTANT
+
+template<typename R, typename...Tp>
+llvm::Constant *get_vector_constant(llvm::LLVMContext& ctx, Tp&&...args)
+{
+    return llvm::ConstantDataVector::get(ctx, llvm::ArrayRef<R>{
+        *reinterpret_cast<R*>(static_cast<void*>(&args))...
+    });
+}
+
+#define DECL_NEW_VEC2_CONSTANT(vec, ctype, rtype)                   \
+llvm::Constant *GShaderBuilder::New##vec (ctype x, ctype y) {       \
+    return get_vector_constant<rtype>(*context_, x, y);             \
+}
+
+#define DECL_NEW_VEC4_CONSTANT(vec, ctype, rtype)                                    \
+llvm::Constant *GShaderBuilder::New##vec (ctype x, ctype y, ctype z, ctype w) {      \
+    return get_vector_constant<rtype>(*context_, x, y, z, w);                        \
+}
+
+DECL_NEW_VEC2_CONSTANT(Byte2, uint8_t, uint8_t)
+DECL_NEW_VEC2_CONSTANT(Short2, int16_t, uint16_t)
+DECL_NEW_VEC2_CONSTANT(Int2, int32_t, uint32_t)
+DECL_NEW_VEC2_CONSTANT(Long2, int64_t, uint64_t)
+DECL_NEW_VEC2_CONSTANT(Float2, float, float)
+DECL_NEW_VEC2_CONSTANT(SByte2, int8_t, uint8_t)
+DECL_NEW_VEC2_CONSTANT(UShort2, uint16_t, uint16_t)
+DECL_NEW_VEC2_CONSTANT(UInt2, uint32_t, uint32_t)
+DECL_NEW_VEC2_CONSTANT(ULong2, uint64_t, uint64_t)
+DECL_NEW_VEC4_CONSTANT(Byte4, uint8_t, uint8_t)
+DECL_NEW_VEC4_CONSTANT(Short4, int16_t, uint16_t)
+DECL_NEW_VEC4_CONSTANT(Int4, int32_t, uint32_t)
+DECL_NEW_VEC4_CONSTANT(Long4, int64_t, uint64_t)
+DECL_NEW_VEC4_CONSTANT(Float4, float, float)
+DECL_NEW_VEC4_CONSTANT(SByte4, int8_t, uint8_t)
+DECL_NEW_VEC4_CONSTANT(UShort4, uint16_t, uint16_t)
+DECL_NEW_VEC4_CONSTANT(UInt4, uint32_t, uint32_t)
+DECL_NEW_VEC4_CONSTANT(ULong4, uint64_t, uint64_t)
+
+#undef DECL_NEW_VEC2_CONSTANT
+#undef DECL_NEW_VEC4_CONSTANT
+
+#define DECL_NEW_UNDEF(ctype, rtype)                                     \
+llvm::Value *GShaderBuilder::New##ctype() {                              \
+    return llvm::UndefValue::get(llvm::Type::get##rtype##Ty(*context_)); \
+}
+
+#define DECL_NEW_VEC_UNDEF(ctype, rtype, count)                 \
+llvm::Value *GShaderBuilder::New##ctype() {                     \
+    return llvm::UndefValue::get(llvm::FixedVectorType::get(    \
+        llvm::Type::get##rtype##Ty(*context_), count));         \
+}
+
+DECL_NEW_UNDEF(Byte, Int8)
+DECL_NEW_UNDEF(SByte, Int8)
+DECL_NEW_UNDEF(Short, Int16)
+DECL_NEW_UNDEF(UShort, Int16)
+DECL_NEW_UNDEF(Int, Int32)
+DECL_NEW_UNDEF(UInt, Int32)
+DECL_NEW_UNDEF(Long, Int64)
+DECL_NEW_UNDEF(ULong, Int64)
+DECL_NEW_UNDEF(Float, Float)
+
+DECL_NEW_VEC_UNDEF(Byte2, Int8, 2)
+DECL_NEW_VEC_UNDEF(Byte4, Int8, 4)
+DECL_NEW_VEC_UNDEF(SByte2, Int8, 2)
+DECL_NEW_VEC_UNDEF(SByte4, Int8, 4)
+DECL_NEW_VEC_UNDEF(Short2, Int16, 2)
+DECL_NEW_VEC_UNDEF(Short4, Int16, 4)
+DECL_NEW_VEC_UNDEF(UShort2, Int16, 2)
+DECL_NEW_VEC_UNDEF(UShort4, Int16, 4)
+DECL_NEW_VEC_UNDEF(Int2, Int32, 2)
+DECL_NEW_VEC_UNDEF(Int4, Int32, 4)
+DECL_NEW_VEC_UNDEF(UInt2, Int32, 2)
+DECL_NEW_VEC_UNDEF(UInt4, Int32, 4)
+DECL_NEW_VEC_UNDEF(Long2, Int64, 2)
+DECL_NEW_VEC_UNDEF(Long4, Int64, 4)
+DECL_NEW_VEC_UNDEF(ULong2, Int64, 2)
+DECL_NEW_VEC_UNDEF(ULong4, Int64, 4)
+DECL_NEW_VEC_UNDEF(Float2, Float, 2)
+DECL_NEW_VEC_UNDEF(Float4, Float, 4)
+
+#undef DECL_NEW_UNDEF
+#undef DECL_NEW_VEC_UNDEF
 
 void GShaderBuilder::MainTestCodeGen()
 {
     using namespace llvm;
-
-    BasicBlock *bb = BasicBlock::Create(*context_, "", main_function_);
-    IRBuilder<> builder(bb);
-
-    CreateBuiltinV8FunctionCall(bb, "test");
-
-    builder.CreateRetVoid();
 }
 
 REACTOR_NAMESPACE_END

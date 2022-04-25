@@ -1,4 +1,5 @@
 #include "uv.h"
+#include "fmt/format.h"
 #include "Core/EventLoop.h"
 #include "Reactor/Reactor.h"
 #include "Gallium/bindings/reactor/Exports.h"
@@ -17,6 +18,7 @@ struct AsyncCompileClosure
     std::shared_ptr<reactor::GShaderBuilder> builder;
     std::shared_ptr<reactor::GShaderModule> artifact;
     v8::Global<v8::Promise::Resolver> resolver;
+    std::string error_info;
 };
 
 void on_compilation_task(uv_work_t *work)
@@ -24,7 +26,11 @@ void on_compilation_task(uv_work_t *work)
     auto *closure = reinterpret_cast<AsyncCompileClosure*>(
             uv_handle_get_data(reinterpret_cast<uv_handle_t*>(work)));
     CHECK(closure);
-    closure->artifact = reactor::GShaderModule::Compile(*closure->builder);
+    try {
+        closure->artifact = reactor::GShaderModule::Compile(*closure->builder);
+    } catch (const std::exception& e) {
+        closure->error_info = e.what();
+    }
     closure->builder.reset();
 }
 
@@ -41,7 +47,8 @@ void after_compilation_task(uv_work_t *work, int status)
     v8::Local<v8::Promise::Resolver> r = closure->resolver.Get(isolate);
     if (!closure->artifact)
     {
-        v8::Local<v8::String> msg = binder::to_v8(isolate, "Failed to compile GShader module");
+        v8::Local<v8::String> msg = binder::to_v8(isolate,
+            fmt::format("Failed to compile GShader module: {}", closure->error_info));
         r->Reject(ctx, v8::Exception::Error(msg)).Check();
     }
     else

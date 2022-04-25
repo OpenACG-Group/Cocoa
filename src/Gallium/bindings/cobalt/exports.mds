@@ -6,3 +6,4 @@
 %class CobaltBinding
 
 %export RenderHost (*render_host_wrap_)
+%export VGIRCompiler (*vgir_compiler_class_)

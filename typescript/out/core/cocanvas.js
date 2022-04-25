@@ -1,38 +1,182 @@
-var DrawRecordingOp;
-(function (DrawRecordingOp) {
-    DrawRecordingOp[DrawRecordingOp["kNoop"] = 0] = "kNoop";
-    DrawRecordingOp[DrawRecordingOp["kClipPath"] = 1] = "kClipPath";
-    DrawRecordingOp[DrawRecordingOp["kClipRegion"] = 2] = "kClipRegion";
-    DrawRecordingOp[DrawRecordingOp["kClipRect"] = 3] = "kClipRect";
-    DrawRecordingOp[DrawRecordingOp["kClipRRect"] = 4] = "kClipRRect";
-    DrawRecordingOp[DrawRecordingOp["kClipShaderInPaint"] = 5] = "kClipShaderInPaint";
-    DrawRecordingOp[DrawRecordingOp["kResetClip"] = 6] = "kResetClip";
-    DrawRecordingOp[DrawRecordingOp["kConcat"] = 7] = "kConcat";
-    DrawRecordingOp[DrawRecordingOp["kDrawAnnotation"] = 8] = "kDrawAnnotation";
-    DrawRecordingOp[DrawRecordingOp["kDrawArc"] = 9] = "kDrawArc";
-    DrawRecordingOp[DrawRecordingOp["kDrawAtlas"] = 10] = "kDrawAtlas";
-    DrawRecordingOp[DrawRecordingOp["kDrawClear"] = 11] = "kDrawClear";
-    DrawRecordingOp[DrawRecordingOp["kDrawRRect"] = 12] = "kDrawRRect";
-    DrawRecordingOp[DrawRecordingOp["kDrawImage"] = 13] = "kDrawImage";
-    DrawRecordingOp[DrawRecordingOp["kDrawImageLattice"] = 14] = "kDrawImageLattice";
-    DrawRecordingOp[DrawRecordingOp["kDrawImageNine"] = 15] = "kDrawImageNine";
-    DrawRecordingOp[DrawRecordingOp["kDrawImageRect"] = 16] = "kDrawImageRect";
-    DrawRecordingOp[DrawRecordingOp["kDrawOval"] = 17] = "kDrawOval";
-    DrawRecordingOp[DrawRecordingOp["kDrawPaint"] = 18] = "kDrawPaint";
-    DrawRecordingOp[DrawRecordingOp["kDrawPatch"] = 19] = "kDrawPatch";
-    DrawRecordingOp[DrawRecordingOp["kDrawPicture"] = 20] = "kDrawPicture";
-    DrawRecordingOp[DrawRecordingOp["kDrawPoints"] = 21] = "kDrawPoints";
-    DrawRecordingOp[DrawRecordingOp["kDrawRect"] = 22] = "kDrawRect";
-    DrawRecordingOp[DrawRecordingOp["kDrawRegion"] = 23] = "kDrawRegion";
-    DrawRecordingOp[DrawRecordingOp["kDrawTextBlob"] = 24] = "kDrawTextBlob";
-    DrawRecordingOp[DrawRecordingOp["kDrawVertices"] = 25] = "kDrawVertices";
-    DrawRecordingOp[DrawRecordingOp["kRestore"] = 26] = "kRestore";
-    DrawRecordingOp[DrawRecordingOp["kRotate"] = 27] = "kRotate";
-    DrawRecordingOp[DrawRecordingOp["kSave"] = 28] = "kSave";
-    DrawRecordingOp[DrawRecordingOp["kSaveLayer"] = 29] = "kSaveLayer";
-    DrawRecordingOp[DrawRecordingOp["kScale"] = 30] = "kScale";
-    DrawRecordingOp[DrawRecordingOp["kSetMatrix"] = 31] = "kSetMatrix";
-    DrawRecordingOp[DrawRecordingOp["kSkew"] = 32] = "kSkew";
-    DrawRecordingOp[DrawRecordingOp["kTranslate"] = 33] = "kTranslate";
-})(DrawRecordingOp || (DrawRecordingOp = {}));
-export {};
+/**
+ * This module generates VGIR (Vector Graphics Intermediate Representation) bytecode
+ * and submit it to native rendering engine, who executes the submitted bytecode and
+ * generates drawing instructions. Those instructions will be performed by CPU or GPU
+ * asynchronously depending on whether the hardware-acceleration is available.
+ */
+import * as std from 'core';
+import * as render from 'cobalt';
+import { LinkedList } from './linked_list';
+const PROTO_BUFFER_UNIT_BUFFER_SIZE = 512;
+const PROTO_BUFFER_MAX_UNUSED_ALLOCATION_CYCLES = 8;
+const PROTO_OPCODE_BYTE_SIZE = 2;
+export var Opcode;
+(function (Opcode) {
+    Opcode[Opcode["kSwitchNextBuffer"] = 2] = "kSwitchNextBuffer";
+    Opcode[Opcode["kCommandPoolEnd"] = 3] = "kCommandPoolEnd";
+    Opcode[Opcode["kDrawBounds"] = 4] = "kDrawBounds";
+})(Opcode || (Opcode = {}));
+export function encodeOpcode(opcode, operandsCount) {
+    return (opcode | ((operandsCount | 0) << 8));
+}
+class ProtoBufferCell {
+    constructor(buffer, unusedAllocationCycles = 0) {
+        this.buffer = buffer;
+        this.unusedAllocationCycles = unusedAllocationCycles;
+    }
+    static EqualComparator(a, b) {
+        return (a.buffer == b.buffer);
+    }
+}
+class ProtoBufferPool {
+    constructor() {
+        this.freeBufferList = new LinkedList(ProtoBufferCell.EqualComparator);
+        this.acquiredBufferList = new LinkedList(ProtoBufferCell.EqualComparator);
+    }
+    cleanBuffersReachedMaxUnusedAllocationCycle() {
+        this.freeBufferList.removeIf((value) => {
+            if (value.unusedAllocationCycles >= PROTO_BUFFER_MAX_UNUSED_ALLOCATION_CYCLES) {
+                value.buffer = null;
+                return true;
+            }
+            return false;
+        });
+    }
+    acquireNewBuffer(size) {
+        let bestFitCell = {
+            sizeDiff: size,
+            cell: null
+        };
+        for (let cell of this.freeBufferList) {
+            let diff = cell.buffer.length - size;
+            if (diff >= 0 && diff < bestFitCell.sizeDiff) {
+                bestFitCell.sizeDiff = diff;
+                bestFitCell.cell = cell;
+            }
+            cell.unusedAllocationCycles++;
+        }
+        let cell = bestFitCell.cell;
+        if (cell == null) {
+            cell = new ProtoBufferCell(new std.Buffer(size));
+        }
+        else {
+            cell.unusedAllocationCycles = 0;
+            this.freeBufferList.remove(cell);
+        }
+        this.acquiredBufferList.push(cell);
+        return cell.buffer;
+    }
+    releaseAcquiredBuffer(buffer) {
+        let foundCell = null;
+        for (let cell of this.acquiredBufferList) {
+            if (cell.buffer == buffer) {
+                foundCell = cell;
+                break;
+            }
+        }
+        if (foundCell == null) {
+            throw Error('Buffer is not acquired or not managed by current pool');
+        }
+        this.acquiredBufferList.remove(foundCell);
+        this.freeBufferList.push(foundCell);
+        this.cleanBuffersReachedMaxUnusedAllocationCycle();
+    }
+}
+export class ProtoBufferWriter {
+    constructor(context) {
+        this.context = context;
+        let buf = context.getBufferPool().acquireNewBuffer(PROTO_BUFFER_UNIT_BUFFER_SIZE);
+        this.buffersVector = [buf];
+        this.currentBuffer = buf;
+        this.currentBufferPos = 0;
+        this.dataView = this.currentBuffer.toDataView();
+    }
+    dispose() {
+        this.currentBuffer = null;
+        this.currentBufferPos = 0;
+        for (let buffer of this.buffersVector) {
+            this.context.getBufferPool().releaseAcquiredBuffer(buffer);
+        }
+        this.buffersVector = [];
+        this.dataView = null;
+    }
+    switchToNextBuffer() {
+        let buf = this.context.getBufferPool()
+            .acquireNewBuffer(PROTO_BUFFER_UNIT_BUFFER_SIZE);
+        this.buffersVector.push(buf);
+        this.currentBuffer = buf;
+        this.currentBufferPos = 0;
+        this.dataView = this.currentBuffer.toDataView();
+    }
+    performPossibleBufferSwitching(requireSize) {
+        let size = requireSize + PROTO_OPCODE_BYTE_SIZE;
+        let remaining = this.currentBuffer.length - this.currentBufferPos;
+        if (size >= remaining) {
+            this.writeUint16Unsafe(encodeOpcode(Opcode.kSwitchNextBuffer, 0));
+            this.switchToNextBuffer();
+        }
+    }
+    writeInt8Unsafe(x) {
+        this.dataView.setInt8(this.currentBufferPos, x | 0);
+        this.currentBufferPos += 1;
+    }
+    writeUint8Unsafe(x) {
+        this.dataView.setUint8(this.currentBufferPos, x | 0);
+        this.currentBufferPos += 1;
+    }
+    writeInt16Unsafe(x) {
+        this.dataView.setInt16(this.currentBufferPos, x | 0, true);
+        this.currentBufferPos += 2;
+    }
+    writeUint16Unsafe(x) {
+        this.dataView.setUint16(this.currentBufferPos, x | 0, true);
+        this.currentBufferPos += 2;
+    }
+    writeInt32Unsafe(x) {
+        this.dataView.setInt32(this.currentBufferPos, x | 0, true);
+        this.currentBufferPos += 4;
+    }
+    writeUint32Unsafe(x) {
+        this.dataView.setUint32(this.currentBufferPos, x | 0, true);
+        this.currentBufferPos += 4;
+    }
+    writeFloat32Unsafe(x) {
+        this.dataView.setFloat32(this.currentBufferPos, x, true);
+        this.currentBufferPos += 4;
+    }
+    writeFloat64Unsafe(x) {
+        this.dataView.setFloat64(this.currentBufferPos, x, true);
+        this.currentBufferPos += 8;
+    }
+    writeInt64Unsafe(x) {
+        this.dataView.setBigInt64(this.currentBufferPos, x, true);
+        this.currentBufferPos += 8;
+    }
+    writeUint64Unsafe(x) {
+        this.dataView.setBigUint64(this.currentBufferPos, x, true);
+        this.currentBufferPos += 8;
+    }
+    /**
+     * Submit the constructed buffers.
+     * @returns A number which is a reference to the translated SkPicture object.
+     */
+    submit() {
+        if (this.currentBufferPos > 0) {
+            this.writeUint16Unsafe(encodeOpcode(Opcode.kCommandPoolEnd, 0));
+        }
+        let result = render.VGIRCompiler.Compile(this.buffersVector);
+        if (result.hasError) {
+            throw Error(`VGIR Compilation Error: ${result.error}`);
+        }
+        this.dispose();
+        return result.artifact;
+    }
+}
+export class DrawingContext {
+    constructor() {
+        this.bufferPool = new ProtoBufferPool();
+    }
+    getBufferPool() {
+        return this.bufferPool;
+    }
+}

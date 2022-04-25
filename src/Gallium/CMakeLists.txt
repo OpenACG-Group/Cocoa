@@ -67,21 +67,16 @@ add_library(Gallium STATIC
         bindings/cobalt/RenderHost.cc
         bindings/cobalt/DisplayWrap.cc
         bindings/cobalt/SurfaceWrap.cc
+        bindings/cobalt/VGIRCompilerWrap.cc
         ${CMAKE_CURRENT_BINARY_DIR}/CobaltBindingGen.cc
-
-        bindings/reactor/Exports.h
-        bindings/reactor/Exports.cc
-        bindings/reactor/GShaderBuilderWrap.cc
-        bindings/reactor/GShaderModuleWrap.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/ReactorBindingGen.cc
 )
 
 target_link_libraries(
         Gallium
         tinyxml2
-        ${COCOA_THIRDPARTY_DIR}/v8/out/release/obj/libv8_monolith.a
+        v8
+        v8_libplatform
 )
 
 add_binding_exports_getter(CoreBindingGen.cc bindings/core/exports.mds)
 add_binding_exports_getter(CobaltBindingGen.cc bindings/cobalt/exports.mds)
-add_binding_exports_getter(ReactorBindingGen.cc bindings/reactor/exports.mds)

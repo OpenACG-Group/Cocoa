@@ -133,11 +133,13 @@ public:
 
     v8::Local<v8::Module> compileModule(const ModuleImportURL::SharedPtr& referer,
                                         const std::string& url,
-                                        bool isImport);
+                                        bool isImport,
+                                        bool isSysInvoke);
     v8::MaybeLocal<v8::Value> evaluateModule(const std::string& url,
                                              v8::Local<v8::Module> *outModule = nullptr,
                                              const std::shared_ptr<ModuleImportURL> &referer = nullptr,
-                                             bool isImport = false);
+                                             bool isImport = false,
+                                             bool isSysInvoke = false);
 
     bindings::BindingBase *getSyntheticModuleBinding(v8::Local<v8::Module> module);
     v8::Local<v8::Object> getSyntheticModuleExportObject(v8::Local<v8::Module> module);
