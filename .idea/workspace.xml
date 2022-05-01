@@ -61,83 +61,43 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="625018aa-1ca1-4995-ae3f-94e4e8743e1f" name="Default Changelist" comment="Default Changelist">
-      <change afterPath="$PROJECT_DIR$/literature/Rendering Pipeline.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/literature/cocanvas.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/qresource/org.cocoa.internal.v8/gallium/bootstrap.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/res/hello.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Cobalt/VGIR/IRPersistentHeap.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Cobalt/VGIR/IRPersistentHeap.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Gallium/bindings/cobalt/VGIRCompilerWrap.cc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/typescript/core/linked_list.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/typescript/core/traint_utils.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/typescript/out/core/linked_list.js" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/typescript/out/core/traint_utils.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/literature/Renpy Code Generating.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/literature/deprecated/LAPS Language.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/literature/deprecated/VGIR.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/literature/komorebi/ACG_Love_and_Childhood.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/res/gc-test.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/script/renpy-codegen-vrir-opcode.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Gallium/bindings/cobalt/vrir-opcode-codegen.renpy" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/typescript/core/cocanvas_iface.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/typescript/core/generated/cocanvas_code_emitter.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/typescript/out/core/cocanvas_iface.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/typescript/out/core/generated/cocanvas_code_emitter.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/literature/VGIR.md" beforeDir="false" afterPath="$PROJECT_DIR$/literature/VGIR.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/qresource/compiled/org.cocoa.internal.v8.crpkg" beforeDir="false" afterPath="$PROJECT_DIR$/qresource/compiled/org.cocoa.internal.v8.crpkg" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/res/cobalt.js" beforeDir="false" afterPath="$PROJECT_DIR$/res/cobalt.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/res/reactor.js" beforeDir="false" afterPath="$PROJECT_DIR$/res/reactor.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/Blender.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/Blender.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/Blender.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/Blender.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/RenderTarget.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/RenderTarget.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/VGIR/IREvaluationStack.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/VGIR/IREvaluationStack.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/VGIR/IREvaluationStack.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/VGIR/IREvaluationStack.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/VGIR/IRExecutionEngine.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/VGIR/IRExecutionEngine.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/VGIR/IRExecutionEngine.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/VGIR/IRExecutionEngine.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/VGIR/IRInstruction.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/VGIR/IRInstruction.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Cobalt/VGIR/IRInstruction.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Cobalt/VGIR/IRInstruction.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Core/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/BindingManager.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/BindingManager.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/literature/LAPS Language.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/literature/VGIR.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/literature/cocanvas.md" beforeDir="false" afterPath="$PROJECT_DIR$/literature/cocanvas.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/compress-internal-scripts.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/script/generate-binding-exports-getter.py" beforeDir="false" afterPath="$PROJECT_DIR$/script/renpy-codegen-module-descriptor.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Gallium/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/Runtime.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/Runtime.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/Runtime.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/Runtime.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/cobalt/Exports.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/bindings/cobalt/Exports.cc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/cobalt/Exports.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/bindings/cobalt/Exports.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/cobalt/IRExecutorWrap.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/cobalt/exports.mds" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/bindings/cobalt/exports.mds" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/core/Buffer.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/bindings/core/Buffer.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/core/CoreBinding.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/bindings/core/CoreBinding.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/core/Exports.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/bindings/core/Exports.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/reactor/Exports.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/bindings/reactor/Exports.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/reactor/Exports.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/bindings/reactor/Exports.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/reactor/GShaderBuilderWrap.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/bindings/reactor/GShaderBuilderWrap.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/reactor/GShaderModuleWrap.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/bindings/reactor/GShaderModuleWrap.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/internals/bootstrap.hello_world.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Gallium/internals/context.refvalue.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reactor/GShaderBuilder.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reactor/GShaderBuilder.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reactor/GShaderExternals.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reactor/GShaderExternals.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reactor/GShaderExternals.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reactor/GShaderExternals.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reactor/GShaderModule.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reactor/GShaderModule.cc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Reactor/Reactor.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Reactor/Reactor.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/reactor_generated.ll" beforeDir="false" afterPath="$PROJECT_DIR$/test/reactor_generated.ll" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/cobalt/VGIRCompilerWrap.cc" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/bindings/cobalt/VRIRCompilerWrap.cc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/cobalt/exports.mds" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/bindings/cobalt/module-descriptor.renpy" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Gallium/bindings/core/exports.mds" beforeDir="false" afterPath="$PROJECT_DIR$/src/Gallium/bindings/core/module-descriptor.renpy" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/LuaJIT/src/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/LuaJIT/src/Makefile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/libsquash/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libsquash/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/libsquash/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/libsquash/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/third_party/v8/third_party/googletest/BUILD.gn" beforeDir="false" afterPath="$PROJECT_DIR$/third_party/v8/third_party/googletest/BUILD.gn" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/CSSSpecifier.in" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/CSSSpecifierStr.in" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/CSSSpecifierStringGenerator" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/CSSSpecifierStringGenerator.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/convert_css_properties_to_enum_class.sh" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/hello.lua" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/malloc_replace.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/save_skp_file" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/save_skp_file.cc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/skia_logo.skp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/tools/tmp.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/core/assert.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/core/assert.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/copy_test.txt" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/typescript/core/cocanvas.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/core/cocanvas.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/core/comath.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/core/comath.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/dump.txt" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/typescript/index.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/index.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/out/core/assert.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/core/assert.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/libArtifact.so" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/typescript/out/core/cocanvas.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/core/cocanvas.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/out/core/comath.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/core/comath.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/typescript/out/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/out/index.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/typescript/synthetics/cobalt.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/synthetics/cobalt.d.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/synthetics/core.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/synthetics/core.d.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/typescript/synthetics/reactor.d.ts" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/synthetics/reactor.d.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/typescript/tsconfig.json" beforeDir="false" afterPath="$PROJECT_DIR$/typescript/tsconfig.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/typescript/user-synthetics/artifact.d.ts" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -200,23 +160,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;cf.advertisement.text.has.clang-format&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;cmake.loaded.for.project&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;/opt/clion/plugins/JavaScriptLanguage/jsLanguageServicesImpl/external&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "cf.advertisement.text.has.clang-format": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "cmake.loaded.for.project": "true",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.lookFeel",
+    "structure.view.defaults.are.configured": "true",
+    "ts.external.directory.path": "/opt/clion/plugins/JavaScriptLanguage/jsLanguageServicesImpl/external"
   }
-}</component>
+}]]></component>
   <component name="ReaderModeSettings">
     <option name="showRenderedDocs" value="false" />
   </component>
@@ -273,6 +234,11 @@
       </method>
     </configuration>
     <configuration name="Reactor" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Cocoa" TARGET_NAME="Reactor" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -931,7 +897,12 @@
       <workItem from="1650682982863" duration="9795000" />
       <workItem from="1650723196215" duration="6282000" />
       <workItem from="1650809083971" duration="5325000" />
-      <workItem from="1650895646240" duration="2519000" />
+      <workItem from="1650895646240" duration="3114000" />
+      <workItem from="1650967800826" duration="11600000" />
+      <workItem from="1651154886283" duration="3563000" />
+      <workItem from="1651223139386" duration="13152000" />
+      <workItem from="1651293219380" duration="25907000" />
+      <workItem from="1651374285817" duration="36302000" />
     </task>
     <servers />
   </component>

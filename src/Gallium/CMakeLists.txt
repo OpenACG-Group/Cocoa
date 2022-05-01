@@ -8,11 +8,19 @@
 macro(add_binding_exports_getter generated mdspath)
     add_custom_command(
             OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${generated}
-            COMMAND ${CMAKE_HOME_DIRECTORY}/script/generate-binding-exports-getter.py
+            COMMAND ${CMAKE_HOME_DIRECTORY}/script/renpy-codegen-module-descriptor.py
                     ${CMAKE_CURRENT_SOURCE_DIR}/${mdspath} > ${CMAKE_CURRENT_BINARY_DIR}/${generated}
             DEPENDS ${mdspath}
     )
 endmacro()
+
+add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/VRIROpcodeGenerated.hpp
+        COMMAND ${CMAKE_HOME_DIRECTORY}/script/renpy-codegen-vrir-opcode.py cpp
+                ${CMAKE_CURRENT_SOURCE_DIR}/bindings/cobalt/vrir-opcode-codegen.renpy
+                > ${CMAKE_CURRENT_BINARY_DIR}/VRIROpcodeGenerated.hpp
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bindings/cobalt/vrir-opcode-codegen.renpy
+)
 
 add_library(Gallium STATIC
         Gallium.h
@@ -67,9 +75,13 @@ add_library(Gallium STATIC
         bindings/cobalt/RenderHost.cc
         bindings/cobalt/DisplayWrap.cc
         bindings/cobalt/SurfaceWrap.cc
-        bindings/cobalt/VGIRCompilerWrap.cc
+        bindings/cobalt/VRIRCompilerWrap.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/VRIROpcodeGenerated.hpp
         ${CMAKE_CURRENT_BINARY_DIR}/CobaltBindingGen.cc
 )
+
+## VRIROpcodeGenerated.hpp is generated in ${CMAKE_CURRENT_BINARY_DIR}
+target_include_directories(Gallium PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(
         Gallium
@@ -78,5 +90,5 @@ target_link_libraries(
         v8_libplatform
 )
 
-add_binding_exports_getter(CoreBindingGen.cc bindings/core/exports.mds)
-add_binding_exports_getter(CobaltBindingGen.cc bindings/cobalt/exports.mds)
+add_binding_exports_getter(CoreBindingGen.cc bindings/core/module-descriptor.renpy)
+add_binding_exports_getter(CobaltBindingGen.cc bindings/cobalt/module-descriptor.renpy)

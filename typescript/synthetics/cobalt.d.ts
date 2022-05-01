@@ -43,12 +43,7 @@ export class Surface extends RenderClientObject {
 export class RecordedPicture {
 }
 
-export interface VGIRCompileResult {
-    hasError: boolean;
-    error: string;
-    artifact: RecordedPicture;
-}
-
-export class VGIRCompiler {
-    static Compile(buffers: Array<Buffer>): VGIRCompileResult;
+export class VRIRCompiler {
+    static Compile(buffers: Array<Buffer>): void;
+    static Disassemble(buffers: Array<Buffer>): string;
 }

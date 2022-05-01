@@ -15,7 +15,7 @@ class RenderClientObjectWrap;
 class RenderHostWrap;
 class DisplayWrap;
 class SurfaceWrap;
-class VGIRCompilerWrap;
+class VRIRCompilerWrap;
 
 struct SlotClosure;
 
@@ -33,7 +33,7 @@ public:
     ClassExport<RenderClientObjectWrap> render_client_object_wrap_class_;
     ClassExport<DisplayWrap>            display_wrap_class_;
     ClassExport<SurfaceWrap>            surface_wrap_class_;
-    ClassExport<VGIRCompilerWrap>       vgir_compiler_class_;
+    ClassExport<VRIRCompilerWrap>       vrir_compiler_class_;
 };
 
 using InfoAcceptorResult = std::optional<std::vector<v8::Local<v8::Value>>>;
@@ -133,8 +133,8 @@ public:
     gal_nodiscard v8::Local<v8::Value> getBuffersDescriptor();
 };
 
-/* JSDecl: class VGIRCompiler */
-class VGIRCompilerWrap
+/* JSDecl: class VRIRCompiler */
+class VRIRCompilerWrap
 {
 public:
     /**
@@ -148,6 +148,9 @@ public:
 
     /* JSDecl: function Compile(array: Array<core.Buffer>): CompileResult */
     static v8::Local<v8::Value> Compile(v8::Local<v8::Value> array);
+
+    /* JSDecl: function Disassemble(array: Array<core.Buffer>): string */
+    static v8::Local<v8::Value> Disassemble(v8::Local<v8::Value> array);
 };
 
 GALLIUM_BINDINGS_COBALT_NS_END

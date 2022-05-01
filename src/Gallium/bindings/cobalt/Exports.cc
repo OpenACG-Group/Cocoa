@@ -48,9 +48,10 @@ void CobaltBinding::onRegisterClasses(v8::Isolate *isolate)
         .set("setTitle", &SurfaceWrap::setTitle)
         .set("getBuffersDescriptor", &SurfaceWrap::getBuffersDescriptor);
 
-    vgir_compiler_class_ = NewClassExport<VGIRCompilerWrap>(isolate);
-    (*vgir_compiler_class_)
-        .set_static_func("Compile", VGIRCompilerWrap::Compile);
+    vrir_compiler_class_ = NewClassExport<VRIRCompilerWrap>(isolate);
+    (*vrir_compiler_class_)
+        .set_static_func("Compile", VRIRCompilerWrap::Compile)
+        .set_static_func("Disassemble", VRIRCompilerWrap::Disassemble);
 }
 
 void CobaltBinding::onSetInstanceProperties(v8::Local<v8::Object> instance)

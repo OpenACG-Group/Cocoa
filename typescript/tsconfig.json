@@ -21,6 +21,8 @@
         "./core/format.ts",
         "./core/comath.ts",
         "./core/cocanvas.ts",
+        "./core/cocanvas_iface.ts",
+        "./core/generated/cocanvas_code_emitter.ts",
         "./core/assert.ts",
         "./core/linked_list.ts",
         "./index.ts"

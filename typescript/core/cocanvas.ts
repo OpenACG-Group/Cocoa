@@ -8,20 +8,13 @@
 import * as std from 'core';
 import * as render from 'cobalt';
 import { LinkedList } from './linked_list';
+import { IProtoBufferWriter } from "./cocanvas_iface";
+import { Opcode, Constants, ProtoCodeEmitter } from "./generated/cocanvas_code_emitter";
 
 const PROTO_BUFFER_UNIT_BUFFER_SIZE = 512;
 const PROTO_BUFFER_MAX_UNUSED_ALLOCATION_CYCLES = 8;
+
 const PROTO_OPCODE_BYTE_SIZE = 2;
-
-export enum Opcode {
-    kSwitchNextBuffer = 0x02,
-    kCommandPoolEnd   = 0x03,
-    kDrawBounds       = 0x04
-}
-
-export function encodeOpcode(opcode: Opcode, operandsCount: number): number {
-    return (opcode | ((operandsCount | 0) << 8));
-}
 
 class ProtoBufferCell {
     constructor(public buffer: std.Buffer, public unusedAllocationCycles: number = 0) {
@@ -33,8 +26,8 @@ class ProtoBufferCell {
 }
 
 class ProtoBufferPool {
-    private freeBufferList: LinkedList<ProtoBufferCell>;
-    private acquiredBufferList: LinkedList<ProtoBufferCell>;
+    private readonly freeBufferList: LinkedList<ProtoBufferCell>;
+    private readonly acquiredBufferList: LinkedList<ProtoBufferCell>;
 
     constructor() {
         this.freeBufferList = new LinkedList<ProtoBufferCell>(ProtoBufferCell.EqualComparator);
@@ -96,7 +89,7 @@ class ProtoBufferPool {
     }
 }
 
-export class ProtoBufferWriter {
+class ProtoBufferWriter implements IProtoBufferWriter {
     private context: DrawingContext;
     private buffersVector: std.Buffer[];
     private currentBuffer: std.Buffer;
@@ -113,7 +106,7 @@ export class ProtoBufferWriter {
         this.dataView = this.currentBuffer.toDataView();
     }
 
-    private dispose(): void {
+    public dispose(): void {
         this.currentBuffer = null;
         this.currentBufferPos = 0;
         for (let buffer of this.buffersVector) {
@@ -121,6 +114,10 @@ export class ProtoBufferWriter {
         }
         this.buffersVector = [];
         this.dataView = null;
+    }
+
+    public getBuffers(): std.Buffer[] {
+        return this.buffersVector;
     }
 
     private switchToNextBuffer(): void {
@@ -132,11 +129,11 @@ export class ProtoBufferWriter {
         this.dataView = this.currentBuffer.toDataView();
     }
 
-    private performPossibleBufferSwitching(requireSize: number): void {
+    public performPossibleBufferSwitching(requireSize: number): void {
         let size = requireSize + PROTO_OPCODE_BYTE_SIZE;
         let remaining = this.currentBuffer.length - this.currentBufferPos;
         if (size >= remaining) {
-            this.writeUint16Unsafe(encodeOpcode(Opcode.kSwitchNextBuffer, 0));
+            this.writeUint16Unsafe(Opcode.kSwitchNextBuffer | 0x0);
             this.switchToNextBuffer();
         }
     }
@@ -190,27 +187,10 @@ export class ProtoBufferWriter {
         this.dataView.setBigUint64(this.currentBufferPos, x, true);
         this.currentBufferPos += 8;
     }
-
-    /**
-     * Submit the constructed buffers.
-     * @returns A number which is a reference to the translated SkPicture object.
-     */
-    public submit(): render.RecordedPicture {
-        if (this.currentBufferPos > 0) {
-            this.writeUint16Unsafe(encodeOpcode(Opcode.kCommandPoolEnd, 0));
-        }
-
-        let result = render.VGIRCompiler.Compile(this.buffersVector);
-        if (result.hasError) {
-            throw Error(`VGIR Compilation Error: ${result.error}`);
-        }
-        this.dispose();
-        return result.artifact;
-    }
 }
 
 export class DrawingContext {
-    private bufferPool: ProtoBufferPool;
+    private readonly bufferPool: ProtoBufferPool;
 
     constructor() {
         this.bufferPool = new ProtoBufferPool();
@@ -218,5 +198,54 @@ export class DrawingContext {
 
     public getBufferPool(): ProtoBufferPool {
         return this.bufferPool;
+    }
+}
+
+export class Canvas {
+    private writer: ProtoBufferWriter;
+    private emitter: ProtoCodeEmitter;
+    private hasFinished: boolean = false;
+    private finishedBuffersVector: std.Buffer[] = null;
+
+    constructor(ctx: DrawingContext, width: number, height: number) {
+        this.writer = new ProtoBufferWriter(ctx);
+        this.emitter = new ProtoCodeEmitter(this.writer);
+        this.emitter.emitDrawBounds(width, height);
+    }
+
+    public finish(): void {
+        this.emitter.emitCommandPoolEnd();
+        this.hasFinished = true;
+        this.finishedBuffersVector = this.writer.getBuffers();
+        this.writer.dispose();
+        this.writer = null;
+    }
+
+    public submit(): void {
+        if (!this.hasFinished)
+            throw Error('Canvas must be finished by finish() before submitting or disassembling');
+        return render.VRIRCompiler.Compile(this.finishedBuffersVector);
+    }
+
+    public disassemble(): string {
+        if (!this.hasFinished)
+            throw Error('Canvas must be finished by finish() before submitting or disassembling');
+        return render.VRIRCompiler.Disassemble(this.finishedBuffersVector);
+    }
+
+    public test(): void {
+        this.emitter.emitHeapCreateVector2(1, 10, 10);
+        this.emitter.emitHeapCreateVector2(2, 100, 100);
+        this.emitter.emitHeapCreateU32Array(3, 4);
+        this.emitter.emitHeapU32ArrayStore(3, 0, 0x0066cc00);
+        this.emitter.emitHeapU32ArrayStore(3, 1, 0x0066cc80);
+        this.emitter.emitHeapU32ArrayStore(3, 2, 0x0066cc70);
+        this.emitter.emitHeapU32ArrayStore(3, 3, 0x0066ccff);
+        this.emitter.emitHeapCreateLinearGradientShader(4, 1, 2, 3, Constants.TILEMODE_CLAMP);
+        this.emitter.emitHeapFree(1);
+        this.emitter.emitHeapFree(2);
+        this.emitter.emitHeapFree(3);
+        this.emitter.emitHeapCreatePaint(5);
+        this.emitter.emitPaintSetShader(5, 4);
     }
 }

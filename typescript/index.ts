@@ -1,14 +1,17 @@
 import * as std from 'core';
 import * as cocanvas from 'core/cocanvas';
+import {print} from "core";
 
 let ctx = new cocanvas.DrawingContext();
-let writer = new cocanvas.ProtoBufferWriter(ctx);
+let canvas = new cocanvas.Canvas(ctx, 800, 600);
 
-writer.writeUint16Unsafe(cocanvas.encodeOpcode(cocanvas.Opcode.kDrawBounds, 2));
-writer.writeFloat32Unsafe(800);
-writer.writeFloat32Unsafe(600);
-writer.writeUint16Unsafe(0x66cc);
-writer.writeUint16Unsafe(0x232a);
-writer.writeUint16Unsafe(cocanvas.encodeOpcode(cocanvas.Opcode.kCommandPoolEnd, 0));
-writer.submit();
+canvas.test();
+canvas.finish();
+// std.print(canvas.disassemble());
+
+let s = getMillisecondTimeCounter();
+canvas.submit();
+let e = getMillisecondTimeCounter();
+print(`time: ${e - s} ms\n`);
+
 std.print('Done\n');

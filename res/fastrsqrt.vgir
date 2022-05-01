@@ -1,8 +1,0 @@
-push $1
-push $2
-fastrsqrt
-div
-pop
-push $2
-sqrt
-
