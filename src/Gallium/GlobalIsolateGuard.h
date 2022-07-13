@@ -17,11 +17,11 @@ public:
     explicit GlobalIsolateGuard(const std::shared_ptr<Runtime>& rt);
     ~GlobalIsolateGuard();
 
-    gal_nodiscard inline v8::Isolate *getIsolate() const {
+    g_nodiscard inline v8::Isolate *getIsolate() const {
         return fIsolate;
     }
 
-    gal_nodiscard inline std::shared_ptr<Runtime> getRuntime() const {
+    g_nodiscard inline std::shared_ptr<Runtime> getRuntime() const {
         return fRuntime.lock();
     }
 

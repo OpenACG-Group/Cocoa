@@ -170,7 +170,7 @@ bool parse_objects(XMLElement *node, QResource::Package *pack)
 QResource::Package *parse_document_package(XMLDocument *document)
 {
     auto *pack = new QResource::Package;
-    ScopeEpilogue scope([pack] { delete pack; });
+    ScopeExitAutoInvoker scope([pack] { delete pack; });
 
     XMLElement *root = document->FirstChildElement("qresource");
     ret_if_failed(root, nullptr, "{} missing <qresource> element", QRESOURCE_XML_FILE);
@@ -213,7 +213,7 @@ QResource::Package *parse_document_package(XMLDocument *document)
     if (!parse_objects(element, pack))
         return nullptr;
 
-    scope.abolish();
+    scope.cancel();
     return pack;
 }
 
@@ -229,7 +229,7 @@ std::string read_checksum_file(const std::shared_ptr<CrpkgImage>& image)
     }
     size_t size = file->stat()->size;
     char *buffer = new char[size + 8];
-    ScopeEpilogue scope([buffer] { delete[] buffer; });
+    ScopeExitAutoInvoker scope([buffer] { delete[] buffer; });
 
     memset(buffer, '\0', size + 8);
     file->read(buffer, static_cast<ssize_t>(size));
@@ -270,7 +270,7 @@ bool QResource::Load(const std::shared_ptr<Data>& data)
     }
 
     char *buffer = new char[xmlFileSize + 8];
-    ScopeEpilogue scope([buffer] { delete[] buffer; });
+    ScopeExitAutoInvoker scope([buffer] { delete[] buffer; });
 
     memset(buffer, '\0', xmlFileSize + 8);
     xmlFile->read(buffer, static_cast<ssize_t>(xmlFileSize));
@@ -285,7 +285,7 @@ bool QResource::Load(const std::shared_ptr<Data>& data)
     Package *package = parse_document_package(&document);
     if (!package)
         return false;
-    ScopeEpilogue scope2([package] { delete package; });
+    ScopeExitAutoInvoker scope2([package] { delete package; });
 
     if (fPackagesHashTable.count(package->name) > 0)
     {
@@ -302,7 +302,7 @@ bool QResource::Load(const std::shared_ptr<Data>& data)
 
     package->image = image;
     fPackagesHashTable[package->name] = package;
-    scope2.abolish();
+    scope2.cancel();
     return true;
 }
 

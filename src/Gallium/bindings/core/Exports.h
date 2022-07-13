@@ -18,25 +18,7 @@ class FileWrap;
 class PropertyWrap;
 class Buffer;
 
-class CoreBinding : public BindingBase
-{
-    GALLIUM_BINDING_OBJECT
-
-public:
-    CoreBinding();
-    ~CoreBinding() override;
-    void onSetInstanceProperties(v8::Local<v8::Object> instance) override;
-    void onRegisterClasses(v8::Isolate *isolate) override;
-
-    ClassExport<StreamWeakBuffer>       class_stream_weak_buffer_;
-    ClassExport<StreamReadIterator>     class_stream_read_iterator_;
-    ClassExport<StreamWrap>             class_stream_wrap_;
-    ClassExport<PipeStreamWrap>         class_pipe_stream_wrap_;
-    ClassExport<ProcessWrap>            class_process_wrap_;
-    ClassExport<PropertyWrap>           class_property_wrap_;
-    ClassExport<Buffer>                 class_buffer_;
-    ClassExport<FileWrap>               class_file_wrap_;
-};
+void CoreSetInstanceProperties(v8::Local<v8::Object> instance);
 
 // =========================================
 // Stream-based I/O
@@ -49,10 +31,10 @@ public:
     ~StreamWeakBuffer();
 
     /* JSDecl: readonly expired: boolean */
-    gal_nodiscard bool isExpired() const;
+    g_nodiscard bool isExpired() const;
 
     /* JSDecl: function toStrongOwnership(): Buffer */
-    gal_nodiscard v8::Local<v8::Value> toStrongOwnership();
+    g_nodiscard v8::Local<v8::Value> toStrongOwnership();
 
     v8::Global<v8::Object>   stream_wrap_ref_;
     uv_buf_t                *weak_buf_;
@@ -74,13 +56,13 @@ public:
      */
 
     /* JSDecl: function next(): Promise<IteratorResult> */
-    gal_nodiscard v8::Local<v8::Value> next() const;
+    g_nodiscard v8::Local<v8::Value> next() const;
 
     /* JSDecl: function return(): Promise<IteratorResult */
-    gal_nodiscard v8::Local<v8::Value> return_() const;
+    g_nodiscard v8::Local<v8::Value> return_() const;
 
     /* JSDecl: function throw(): Promise<IteratorResult> */
-    gal_nodiscard v8::Local<v8::Value> throw_();
+    g_nodiscard v8::Local<v8::Value> throw_();
 
     v8::Global<v8::Object>  stream_wrap_ref_;
     StreamWrap             *stream_;
@@ -102,13 +84,13 @@ public:
     ~StreamWrap();
 
     /* JSDecl: readonly writable: boolean */
-    gal_nodiscard bool isWritable() const;
+    g_nodiscard bool isWritable() const;
 
     /* JSDecl: readonly readable: boolean */
-    gal_nodiscard bool isReadable() const;
+    g_nodiscard bool isReadable() const;
 
     /* JSDecl: function [Symbol.asyncIterator](): StreamReadIterator */
-    gal_nodiscard v8::Local<v8::Value> asyncIterator();
+    g_nodiscard v8::Local<v8::Value> asyncIterator();
 
     void clearIterationState();
 
@@ -170,16 +152,16 @@ public:
      */
 
     /* JSDecl: function promiseOnExit(): Promise<ProcessExitStatus> */
-    gal_nodiscard v8::Local<v8::Value> promiseOnExit();
+    g_nodiscard v8::Local<v8::Value> promiseOnExit();
 
     /* JSDecl: function kill(signum: number): void */
     void kill(int32_t signum) const;
 
     /* JSDecl: readonly pid: number */
-    gal_nodiscard int32_t getPid() const;
+    g_nodiscard int32_t getPid() const;
 
     /* JSDecl: function getPipeStream(stream: number): PipeStream */
-    gal_nodiscard v8::Local<v8::Object> getPipeStream(uint32_t stream);
+    g_nodiscard v8::Local<v8::Object> getPipeStream(uint32_t stream);
 
     void detachHandle();
 
@@ -203,20 +185,20 @@ public:
     ~FileWrap();
 
     /* JSDecl: function close(): Promise<void> */
-    gal_nodiscard v8::Local<v8::Value> close();
+    g_nodiscard v8::Local<v8::Value> close();
 
     /* JSDecl: function isClosed(): boolean */
-    gal_nodiscard bool isClosed() const;
+    g_nodiscard bool isClosed() const;
 
     /* JSDecl: function isClosing(): boolean */
-    gal_nodiscard bool isClosing() const;
+    g_nodiscard bool isClosing() const;
 
     /* JSDecl: function read(dst: Buffer, dstOffset: number, size: number, offset: number): Promise<number> */
-    gal_nodiscard v8::Local<v8::Value> read(v8::Local<v8::Value> dst, int64_t dstOffset,
+    g_nodiscard v8::Local<v8::Value> read(v8::Local<v8::Value> dst, int64_t dstOffset,
                                             size_t size, int64_t offset);
 
     /* JSDecl: function write(src: Buffer, srcOffset: number, size: number, offset: number): Promise<number> */
-    gal_nodiscard v8::Local<v8::Value> write(v8::Local<v8::Value> src, int64_t srcOffset,
+    g_nodiscard v8::Local<v8::Value> write(v8::Local<v8::Value> src, int64_t srcOffset,
                                              size_t size, int64_t offset);
 
     /**
@@ -245,19 +227,19 @@ public:
     static v8::Local<v8::Value> Open(const std::string& path, int32_t flags, int32_t mode);
 
     /* JSDecl: function fstat(): Promise<Stat> */
-    gal_nodiscard v8::Local<v8::Value> fstat();
+    g_nodiscard v8::Local<v8::Value> fstat();
 
     /* JSDecl: function fsync(): Promise<void> */
-    gal_nodiscard v8::Local<v8::Value> fsync();
+    g_nodiscard v8::Local<v8::Value> fsync();
 
     /* JSDecl: function fdatasync(): Promise<void> */
-    gal_nodiscard v8::Local<v8::Value> fdatasync();
+    g_nodiscard v8::Local<v8::Value> fdatasync();
 
     /* JSDecl: function ftruncate(length: number): Promise<void> */
-    gal_nodiscard v8::Local<v8::Value> ftruncate(off_t length);
+    g_nodiscard v8::Local<v8::Value> ftruncate(off_t length);
 
     /* JSDecl: function fchmod(mode: number): Promise<void> */
-    gal_nodiscard v8::Local<v8::Value> fchmod(int32_t mode);
+    g_nodiscard v8::Local<v8::Value> fchmod(int32_t mode);
 
     /* JSDecl: function futime(atime: number, mtime: number): Promise<void> */
     v8::Local<v8::Value> futime(double atime, double mtime);
@@ -364,52 +346,52 @@ public:
     static void InstallProperties();
     static v8::Local<v8::Object> GetWrap(v8::Isolate *isolate, const std::shared_ptr<PropertyNode>& node);
 
-    gal_nodiscard std::shared_ptr<PropertyNode> lockNode() const {
+    g_nodiscard std::shared_ptr<PropertyNode> lockNode() const {
         return fNode.lock();
     }
 
     /* JSDecl: const type: number */
-    gal_nodiscard v8::Local<v8::Value> getType() const;
+    g_nodiscard v8::Local<v8::Value> getType() const;
 
     /* JSDecl: const parent: Property */
-    gal_nodiscard v8::Local<v8::Value> getParent() const;
+    g_nodiscard v8::Local<v8::Value> getParent() const;
 
     /* JSDecl: name: string */
-    gal_nodiscard v8::Local<v8::Value> getName() const;
+    g_nodiscard v8::Local<v8::Value> getName() const;
     void setName(v8::Local<v8::Value> name) const;
 
     /* JSDecl: const protection: number */
-    gal_nodiscard v8::Local<v8::Value> getProtection() const;
+    g_nodiscard v8::Local<v8::Value> getProtection() const;
 
     /* JSDecl: const numberOfChildren: number */
-    gal_nodiscard v8::Local<v8::Value> getNumberOfChildren() const;
+    g_nodiscard v8::Local<v8::Value> getNumberOfChildren() const;
 
     /* JSDecl: function foreachChild(func: (child: Property) => void): void */
     void foreachChild(v8::Local<v8::Value> callback) const;
 
     /* JSDecl: function findChild(name: string): Property */
-    gal_nodiscard v8::Local<v8::Value> findChild(const std::string& name) const;
+    g_nodiscard v8::Local<v8::Value> findChild(const std::string& name) const;
 
     /* JSDecl: function insertChild(type: number, name: string): Property */
-    gal_nodiscard v8::Local<v8::Value> insertChild(int32_t type, const std::string& name) const;
+    g_nodiscard v8::Local<v8::Value> insertChild(int32_t type, const std::string& name) const;
 
     /* JSDecl: function pushbackChild(type: number): Property */
-    gal_nodiscard v8::Local<v8::Value> pushbackChild(int32_t type) const;
+    g_nodiscard v8::Local<v8::Value> pushbackChild(int32_t type) const;
 
     /* JSDecl: function detachFromParent(): void */
     void detachFromParent();
 
     /* JSDecl: function extract(): any (maybe undefined) */
-    gal_nodiscard v8::Local<v8::Value> extract() const;
+    g_nodiscard v8::Local<v8::Value> extract() const;
 
     /* JSDecl: function resetData(value?: any): void */
     void resetData(const v8::FunctionCallbackInfo<v8::Value>& value) const;
 
     /* JSDecl: function hasData(): boolean */
-    gal_nodiscard bool hasData() const;
+    g_nodiscard bool hasData() const;
 
     /* JSDecl: function dataValueRTTI(): string */
-    gal_nodiscard std::string dataTypeinfo() const;
+    g_nodiscard std::string dataTypeinfo() const;
 
 private:
     void checkNodeProtectionForJSWriting() const;
@@ -439,7 +421,7 @@ public:
 
     static v8::Local<v8::Object> MakeFromCopy(Buffer *other, off_t offset, ssize_t size = -1);
     static v8::Local<v8::Object> MakeFromSize(size_t size);
-    static v8::Local<v8::Object> MakeFromPtrCopy(void *data, size_t size);
+    static v8::Local<v8::Object> MakeFromPtrCopy(const void *data, size_t size);
     static v8::Local<v8::Object> MakeFromPtrWithoutCopy(void *data, size_t size,
                                                         v8::BackingStore::DeleterCallback deleter, void *closure);
 

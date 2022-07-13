@@ -373,12 +373,12 @@ std::string PropertyWrap::dataTypeinfo() const
     int status;
     const char *demangled = abi::__cxa_demangle(info.name(), nullptr, nullptr, &status);
 
-    ScopeEpilogue epi([demangled] { std::free(const_cast<char*>(demangled)); });
+    ScopeExitAutoInvoker epi([demangled] { std::free(const_cast<char*>(demangled)); });
 
     if (status != 0)
     {
         demangled = info.name();
-        epi.abolish();
+        epi.cancel();
     }
 
     bool is_pointer_p = __typeinfo_is_pointer(info);

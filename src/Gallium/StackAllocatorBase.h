@@ -21,7 +21,7 @@ public:
 
     ~StackAllocatorBase() = default;
 
-    gal_nodiscard std::size_t size() const {
+    g_nodiscard std::size_t size() const {
         return stack_pos_;
     }
 

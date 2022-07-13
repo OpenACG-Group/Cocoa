@@ -33,7 +33,10 @@ using __voidptr__ = void*;
  * @endcode
  */
 #define GALLIUM_BINDING_LOADER_HOOK     gal_clinkage gal_export __voidptr__ __g_cocoa_hook ()
-#define GALLIUM_HOOK_RET(instance)      return static_cast<BindingBase*>(instance)
+
+#define TYPE_PTR(T)                     T*
+#define GALLIUM_HOOK_RET(instance)      return static_cast<TYPE_PTR(BindinBase)>(instance)
+#undef TYPE_PTR
 
 #define GALLIUM_BINDING_OBJECT                          \
 public:                                                 \
@@ -57,9 +60,9 @@ public:
           fDescription(std::move(desc)) {}
     virtual ~BindingBase() = default;
 
-    gal_nodiscard inline const std::string& name() const
+    g_nodiscard inline const std::string& name() const
     { return fName; }
-    gal_nodiscard inline const std::string& description() const
+    g_nodiscard inline const std::string& description() const
     { return fDescription; }
 
     virtual const char *onGetUniqueId() { return nullptr; }

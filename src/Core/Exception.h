@@ -13,13 +13,25 @@
 
 namespace cocoa {
 
-class ScopeEpilogue
+/**
+ * A helper class to implement RAII (Resource Acquisition Is Initialization).
+ * Constructing a `ScopeExitAutoInvoker` on stack with a callable object
+ * (functor, function pointer, or lambda expression), it will be called when
+ * program exits current scope.
+ * Typically, `ScopeExitAutoInvoker` is used as a helper class to release resources.
+ * Like:
+ * @code
+ * auto ptr = new uint8_t[size];
+ * ScopeExitAutoInvoker scope([ptr]() { delete[] ptr; });
+ * @endcode
+ */
+class ScopeExitAutoInvoker
 {
 public:
-    explicit ScopeEpilogue(std::function<void(void)> func);
-    ~ScopeEpilogue();
+    explicit ScopeExitAutoInvoker(std::function<void(void)> func);
+    ~ScopeExitAutoInvoker();
 
-    void abolish();
+    void cancel();
 
 private:
     std::function<void(void)>   fFunction;
@@ -72,10 +84,10 @@ public:
         explicit FrameIterable(std::shared_ptr<Frames> frames) : frames_(std::move(frames)) {}
         ~FrameIterable() = default;
 
-        co_nodiscard inline Frames::const_iterator begin() const noexcept {
+        g_nodiscard inline Frames::const_iterator begin() const noexcept {
             return frames_->cbegin();
         }
-        co_nodiscard inline Frames::const_iterator end() const noexcept {
+        g_nodiscard inline Frames::const_iterator end() const noexcept {
             return frames_->cend();
         }
 
@@ -86,9 +98,9 @@ public:
     RuntimeException(std::string who, std::string what);
     RuntimeException(const RuntimeException& other);
 
-    co_nodiscard const char *what() const noexcept override;
-    co_nodiscard const char *who() const noexcept;
-    co_nodiscard FrameIterable frames() const noexcept;
+    g_nodiscard const char *what() const noexcept override;
+    g_nodiscard const char *who() const noexcept;
+    g_nodiscard FrameIterable frames() const noexcept;
 
 private:
     void recordFrames();

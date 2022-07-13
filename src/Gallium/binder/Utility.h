@@ -251,7 +251,7 @@ is_callable_impl<F, std::is_class<F>::value>::value>;
 class type_info
 {
 public:
-    gal_nodiscard std::string_view name() const { return name_; }
+    g_nodiscard std::string_view name() const { return name_; }
     bool operator==(type_info const& other) const { return name_ == other.name_; }
     bool operator!=(type_info const& other) const { return name_ != other.name_; }
 private:

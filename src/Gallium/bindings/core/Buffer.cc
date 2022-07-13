@@ -312,7 +312,7 @@ v8::Local<v8::Object> Buffer::MakeFromSize(size_t size)
     return buf;
 }
 
-v8::Local<v8::Object> Buffer::MakeFromPtrCopy(void *data, size_t size)
+v8::Local<v8::Object> Buffer::MakeFromPtrCopy(const void *data, size_t size)
 {
     CHECK(data && size > 0);
     v8::Isolate *isolate = v8::Isolate::GetCurrent();

@@ -50,9 +50,9 @@ add_compile_definitions(COCOA_PROJECT=1 V8_COMPRESS_POINTERS SK_VULKAN)
 add_compile_options(-Wall -mrdrnd)
 
 add_subdirectory(src/Core)
-add_subdirectory(src/Cobalt)
+add_subdirectory(src/Glamor)
 add_subdirectory(src/Gallium)
-add_subdirectory(src/Reactor)
+# add_subdirectory(src/Reactor)
 add_subdirectory(qresource/qresourcekit)
 
 add_executable(Cocoa src/Main.cc)
@@ -60,8 +60,8 @@ add_executable(Cocoa src/Main.cc)
 target_link_libraries(
         Cocoa
         Gallium
-        Cobalt
-        Reactor
+        Glamor
+        # Reactor
         Core
         ${COCOA_THIRDPARTY_DIR}/jsoncpp/out/lib/libjsoncpp.a
         ${COCOA_THIRDPARTY_DIR}/build/lib/libjemalloc_pic.a

@@ -4,7 +4,6 @@
 #include "Core/EventLoop.h"
 #include "Core/Properties.h"
 #include "Gallium/bindings/core/Exports.h"
-#include "Gallium/bindings/core/FdRandomize.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.bindings.core)
 
@@ -19,10 +18,7 @@ void Print(const std::string& str)
 
 void Dump(const std::string& what)
 {
-    if (what == "descriptors-info")
-        FDLRDumpMappingInfo();
-    else
-        g_throw(Error, "Invalid dump target");
+    // TODO: implement this.
 }
 
 ProcessWrap::ProcessWrap(uv_process_t *handle, v8::Local<v8::Object> streams[3])
@@ -205,7 +201,7 @@ v8::Local<v8::Value> ProcessWrap::Fork(v8::Local<v8::Object> options)
     else
         proc_opts.env = nullptr;
 
-    ScopeEpilogue epi([&proc_opts] {
+    ScopeExitAutoInvoker epi([&proc_opts] {
         std::free(proc_opts.env);
         std::free(proc_opts.args);
     });
@@ -232,7 +228,7 @@ v8::Local<v8::Value> ProcessWrap::Fork(v8::Local<v8::Object> options)
     proc_opts.stdio[0].flags = UV_IGNORE;
     proc_opts.stdio[1].flags = UV_IGNORE;
     proc_opts.stdio[2].flags = UV_IGNORE;
-    ScopeEpilogue stdio_epi([&proc_opts] {
+    ScopeExitAutoInvoker stdio_epi([&proc_opts] {
         delete[] proc_opts.stdio;
     });
 #define Tp std::make_pair
@@ -289,7 +285,7 @@ v8::Local<v8::Value> GetEnviron()
     if (ret < 0)
         g_throw(Error, fmt::format("Failed in getting environments: {}", uv_strerror(ret)));
 
-    ScopeEpilogue epi([envItems, count] {
+    ScopeExitAutoInvoker epi([envItems, count] {
         uv_os_free_environ(envItems, count);
     });
 

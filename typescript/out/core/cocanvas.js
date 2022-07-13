@@ -11,6 +11,15 @@ import { Opcode, Constants, ProtoCodeEmitter } from "./generated/cocanvas_code_e
 const PROTO_BUFFER_UNIT_BUFFER_SIZE = 512;
 const PROTO_BUFFER_MAX_UNUSED_ALLOCATION_CYCLES = 8;
 const PROTO_OPCODE_BYTE_SIZE = 2;
+let _features = new Map([
+    ['ir-heap-profiling', false],
+    ['ir-optimization-heapleak-elimination', false]
+]);
+export function setCanvasFeature(name, value) {
+    if (!_features.has(name))
+        throw Error('Invalid canvas feature \'' + name + '\'');
+    _features.set(name, value);
+}
 class ProtoBufferCell {
     constructor(buffer, unusedAllocationCycles = 0) {
         this.buffer = buffer;
@@ -152,7 +161,7 @@ class ProtoBufferWriter {
         this.currentBufferPos += 8;
     }
 }
-export class DrawingContext {
+export class MemoryResourceGroup {
     constructor() {
         this.bufferPool = new ProtoBufferPool();
     }
@@ -178,26 +187,36 @@ export class Canvas {
     submit() {
         if (!this.hasFinished)
             throw Error('Canvas must be finished by finish() before submitting or disassembling');
-        return render.VRIRCompiler.Compile(this.finishedBuffersVector);
+        return render.GskIRCompiler.Compile(this.finishedBuffersVector, null, _features.get('ir-heap-profiling'));
     }
     disassemble() {
         if (!this.hasFinished)
             throw Error('Canvas must be finished by finish() before submitting or disassembling');
-        return render.VRIRCompiler.Disassemble(this.finishedBuffersVector);
+        return render.GskIRCompiler.Disassemble(this.finishedBuffersVector);
     }
-    test() {
-        this.emitter.emitHeapCreateVector2(1, 10, 10);
-        this.emitter.emitHeapCreateVector2(2, 100, 100);
-        this.emitter.emitHeapCreateU32Array(3, 4);
-        this.emitter.emitHeapU32ArrayStore(3, 0, 0x0066cc00);
-        this.emitter.emitHeapU32ArrayStore(3, 1, 0x0066cc80);
-        this.emitter.emitHeapU32ArrayStore(3, 2, 0x0066cc70);
-        this.emitter.emitHeapU32ArrayStore(3, 3, 0x0066ccff);
-        this.emitter.emitHeapCreateLinearGradientShader(4, 1, 2, 3, Constants.TILEMODE_CLAMP);
-        this.emitter.emitHeapFree(1);
-        this.emitter.emitHeapFree(2);
-        this.emitter.emitHeapFree(3);
-        this.emitter.emitHeapCreatePaint(5);
-        this.emitter.emitPaintSetShader(5, 4);
+    test(x, y, z) {
+        // this.emitter.emitDrawImage(1, 0, 0, 0, 0);
+        let R = 60.0, C = 128.0;
+        this.emitter.emitHeapCreatePath(7);
+        this.emitter.emitPathMoveTo(7, C + R, C);
+        for (let i = 1; i < 15; i++) {
+            let a = 0.44879895 * i;
+            let r = R + R * (i % 2);
+            this.emitter.emitPathLineTo(7, C + r * Math.cos(a), C + r * Math.sin(a));
+        }
+        this.emitter.emitHeapCreateVector2(2, 0, 0);
+        this.emitter.emitHeapCreateVector2(3, 256, 256);
+        this.emitter.emitHeapCreateU32Array(4, 2);
+        this.emitter.emitHeapU32ArrayStore(4, 0, 0xff4285f4);
+        this.emitter.emitHeapU32ArrayStore(4, 1, 0xff0f9d58);
+        this.emitter.emitHeapCreateLinearGradientShader(5, 2, 3, 4, 0, Constants.TILEMODE_CLAMP);
+        this.emitter.emitHeapCreatePaint(6);
+        this.emitter.emitPaintSetShader(6, 5);
+        this.emitter.emitPaintSetAntialias(6, 1);
+        this.emitter.emitClear(0xffffffff);
+        this.emitter.emitHeapCreateM44(8);
+        this.emitter.emitM44SetTranslate(8, x, y, z);
+        this.emitter.emitSetMatrix(8);
+        this.emitter.emitDrawPath(7, 6);
     }
 }

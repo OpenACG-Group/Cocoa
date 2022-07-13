@@ -120,7 +120,7 @@ public:
 
     static Runtime *GetBareFromIsolate(v8::Isolate *isolate);
 
-    gal_nodiscard inline const Options& getOptions() const
+    g_nodiscard inline const Options& getOptions() const
     { return fOptions; }
 
     inline v8::Local<v8::Context> context()
@@ -146,7 +146,7 @@ public:
 
     ModuleCacheMap& getModuleCache();
 
-    gal_nodiscard inline const std::unique_ptr<VMIntrospect>& getIntrospect() const {
+    g_nodiscard inline const std::unique_ptr<VMIntrospect>& getIntrospect() const {
         return fIntrospect;
     }
 

@@ -43,3 +43,4 @@ global.useBootstrapDefaultHandlers = function() {
 };
 
 useBootstrapDefaultHandlers();
+

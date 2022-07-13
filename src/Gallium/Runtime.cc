@@ -138,7 +138,7 @@ std::shared_ptr<Runtime> Runtime::Make(EventLoop *loop, const Options& options)
     if (!startupData)
         return nullptr;
 
-    ScopeEpilogue startupDataReleaser([startupData] {
+    ScopeExitAutoInvoker startupDataReleaser([startupData] {
         delete[] startupData->data;
         delete startupData;
     });
@@ -172,7 +172,7 @@ std::shared_ptr<Runtime> Runtime::Make(EventLoop *loop, const Options& options)
                                             isolate,
                                             v8::Global<v8::Context>(isolate, context),
                                             options);
-        startupDataReleaser.abolish();
+        startupDataReleaser.cancel();
 
         auto isolateGuard = std::make_unique<GlobalIsolateGuard>(runtime);
         runtime->setGlobalIsolateGuard(std::move(isolateGuard));
@@ -375,7 +375,7 @@ namespace {
 
 v8::MaybeLocal<v8::Module> instantiateModuleCallback(v8::Local<v8::Context> context,
                                                      v8::Local<v8::String> specifier,
-                                                     gal_maybe_unsed v8::Local<v8::FixedArray> assertions,
+                                                     g_maybe_unused v8::Local<v8::FixedArray> assertions,
                                                      v8::Local<v8::Module> referer)
 {
     auto *pRT = reinterpret_cast<Runtime*>(context->GetIsolate()->GetData(ISOLATE_DATA_SLOT_RUNTIME_PTR));
@@ -431,10 +431,10 @@ v8::MaybeLocal<v8::Value> Runtime::evaluateModule(const std::string& url,
 
 v8::MaybeLocal<v8::Promise>
 Runtime::DynamicImportHostCallback(v8::Local<v8::Context> context,
-                                   gal_maybe_unsed v8::Local<v8::Data> host_defined_options,
+                                   g_maybe_unused v8::Local<v8::Data> host_defined_options,
                                    v8::Local<v8::Value> resource_name,
                                    v8::Local<v8::String> specifier,
-                                   gal_maybe_unsed v8::Local<v8::FixedArray> import_assertions)
+                                   g_maybe_unused v8::Local<v8::FixedArray> import_assertions)
 {
     v8::Isolate *isolate = context->GetIsolate();
     v8::EscapableHandleScope scope(isolate);
@@ -534,8 +534,14 @@ KeepInLoop Runtime::checkDispatch()
 void Runtime::performTasksCheckpoint()
 {
     while (v8::platform::PumpMessageLoop(fPlatform.get(), fIsolate));
-    fIsolate->PerformMicrotaskCheckpoint();
+
+    /**
+     * We must set `fResolvedPromises` counter to zero before `PerformMicrotaskCheckpoint`
+     * instead of setting it after that function, because `PerformMicrotaskCheckpoint`
+     * may resolve some pending promises.
+     */
     fResolvedPromises = 0;
+    fIsolate->PerformMicrotaskCheckpoint();
     fIsolateGuard->performUnhandledRejectPromiseCheck();
 
     // TODO(Important): Where should it be placed?

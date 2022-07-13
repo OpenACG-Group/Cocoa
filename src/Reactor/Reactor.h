@@ -133,7 +133,7 @@ public:
 
     void MainTestCodeGen();
 
-    co_nodiscard inline llvm::BasicBlock *GetMainEntrypointBasicBlock() {
+    g_nodiscard inline llvm::BasicBlock *GetMainEntrypointBasicBlock() {
         return main_basic_block_;
     }
 
@@ -167,7 +167,7 @@ public:
                   HostContext *hostContext);
     ~GShaderModule();
 
-    co_nodiscard static std::shared_ptr<GShaderModule> Compile(GShaderBuilder& builder);
+    g_nodiscard static std::shared_ptr<GShaderModule> Compile(GShaderBuilder& builder);
 
     bool Execute();
 

@@ -192,12 +192,12 @@ findFromCompressed(const std::string& name, InternalScript::ScopeAttr scope)
     script->content = new char[script->contentSize + 1];
     script->contentSize = data->read(script->content, script->contentSize);
     script->content[script->contentSize] = '\0';
-    ScopeEpilogue epi([script] { delete script; });
+    ScopeExitAutoInvoker epi([script] { delete script; });
 
     if (!parseScriptAttribute(script))
         return {nullptr, InternalScript::Error::kNotFound};
 
-    epi.abolish();
+    epi.cancel();
     iCachedScripts.push_back(script);
 
     if (!checkScriptScope(script, scope))

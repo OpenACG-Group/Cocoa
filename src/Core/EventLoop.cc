@@ -46,6 +46,47 @@ void EventLoop::walk(std::function<void(uv_handle_t *)> function)
     }, &function);
 }
 
+namespace {
+
+struct TaskClosure
+{
+    uv_work_t   task_work;
+    EventLoop::TaskRoutineVoid task_routine;
+    EventLoop::PostTaskRoutineVoid post_task_routine;
+};
+
+// This function will be executed in the thread pool asynchronously
+void thread_pool_task_routine(uv_work_t *work)
+{
+    auto *closure = reinterpret_cast<TaskClosure*>(work->data);
+    CHECK(closure);
+    closure->task_routine();
+}
+
+// This function will be executed in main thread locally
+// to notify us that a task have been finished.
+void thread_pool_post_task_routine(uv_work_t *work, int status)
+{
+    auto *closure = reinterpret_cast<TaskClosure*>(work->data);
+    CHECK(closure);
+    closure->post_task_routine();
+    delete closure;
+}
+
+} // namespace anonymous
+
+void EventLoop::enqueueThreadPoolTrivialTask(const TaskRoutineVoid& task, const PostTaskRoutineVoid& post_task)
+{
+    auto *closure = new TaskClosure{
+        .task_routine = task,
+        .post_task_routine = post_task
+    };
+    closure->task_work.data = closure;
+
+    uv_queue_work(fLoop, &closure->task_work, thread_pool_task_routine,
+                  thread_pool_post_task_routine);
+}
+
 PollSource::PollSource(EventLoop *loop, int fd)
     : EventSource(loop)
 {

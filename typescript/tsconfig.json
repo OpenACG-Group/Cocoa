@@ -5,26 +5,31 @@
         "moduleResolution": "Classic",
         "outDir": "./out",
         "isolatedModules": false,
-
         "baseUrl": ".",
         "paths": {
-            "*": [ "synthetics/*", "user-synthetics/*" ]
+            "*": [ "synthetics/*" ]
         }
     },
     "include": [
         "./global/infrastructure.d.ts",
-        "./global/introspect.d.ts",
+        "./global/introspect.d.ts"
     ],
     "files": [
         "./synthetics/core.d.ts",
-        "./synthetics/cobalt.d.ts",
+        "./synthetics/glamor.d.ts",
         "./core/format.ts",
-        "./core/comath.ts",
-        "./core/cocanvas.ts",
-        "./core/cocanvas_iface.ts",
-        "./core/generated/cocanvas_code_emitter.ts",
         "./core/assert.ts",
         "./core/linked_list.ts",
-        "./index.ts"
+        "./core/pretty_printer.ts",
+
+        "canvaskit/comath.ts",
+        "canvaskit/canvaskit.ts",
+        "canvaskit/canvaskit_iface.ts",
+        "canvaskit/generated/code_emitter.ts",
+        "canvaskit/render_object.ts",
+        "canvaskit/compositor.ts",
+
+        "samples/scene.ts",
+        "samples/gla_rco_inspect_test.ts"
     ]
 }

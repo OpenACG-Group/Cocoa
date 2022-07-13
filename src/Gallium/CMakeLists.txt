@@ -1,25 +1,18 @@
-#add_subdirectory(StaticTextCompiler)
-
-#add_custom_command(OUTPUT StaticTextCompiled.cc
-#                   COMMAND ./StaticTextCompiler/compiler ${CMAKE_CURRENT_SOURCE_DIR}
-#                   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-#                   DEPENDS compiler)
-
-macro(add_binding_exports_getter generated mdspath)
-    add_custom_command(
-            OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${generated}
-            COMMAND ${CMAKE_HOME_DIRECTORY}/script/renpy-codegen-module-descriptor.py
-                    ${CMAKE_CURRENT_SOURCE_DIR}/${mdspath} > ${CMAKE_CURRENT_BINARY_DIR}/${generated}
-            DEPENDS ${mdspath}
-    )
-endmacro()
+set(CIB_SCRIPT ${CMAKE_HOME_DIRECTORY}/script/collect-internal-bindings.py)
+set(CIB_SUBSCRIPT ${CMAKE_HOME_DIRECTORY}/script/modulec.py)
+set(CIB_MODULE_LISTS ${CMAKE_CURRENT_SOURCE_DIR}/bindings/ModuleLists.txt)
+set(CIB_MODULE_XML
+        bindings/core/Module.xml
+        bindings/glamor/Module.xml)
+set(CIB_OUTPUT_FILE
+        ${CMAKE_CURRENT_BINARY_DIR}/internal_bindings.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/module_core.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/module_glamor.cc)
 
 add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/VRIROpcodeGenerated.hpp
-        COMMAND ${CMAKE_HOME_DIRECTORY}/script/renpy-codegen-vrir-opcode.py cpp
-                ${CMAKE_CURRENT_SOURCE_DIR}/bindings/cobalt/vrir-opcode-codegen.renpy
-                > ${CMAKE_CURRENT_BINARY_DIR}/VRIROpcodeGenerated.hpp
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/bindings/cobalt/vrir-opcode-codegen.renpy
+        OUTPUT ${CIB_OUTPUT_FILE}
+        DEPENDS ${CIB_MODULE_LISTS} ${CIB_MODULE_XML} ${CIB_SCRIPT} ${CIB_SUBSCRIPT}
+        COMMAND ${CIB_SCRIPT} ${CIB_MODULE_LISTS} ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 add_library(Gallium STATIC
@@ -56,31 +49,31 @@ add_library(Gallium STATIC
         binder/Module.h
         binder/CallV8.h
         bindings/Base.h
+        ${CIB_OUTPUT_FILE}
 
         bindings/core/Exports.h
-        bindings/core/CoreBinding.cc
+        bindings/core/Exports.cc
         bindings/core/Property.cc
-        bindings/core/FdRandomize.h
-        bindings/core/FdRandomize.cc
         bindings/core/Filesystem.cc
         bindings/core/Buffer.cc
         bindings/core/Process.cc
         bindings/core/Stream.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/CoreBindingGen.cc
 
-        bindings/cobalt/Exports.h
-        bindings/cobalt/Exports.cc
-        bindings/cobalt/PromiseHelper.h
-        bindings/cobalt/PromiseHelper.cc
-        bindings/cobalt/RenderHost.cc
-        bindings/cobalt/DisplayWrap.cc
-        bindings/cobalt/SurfaceWrap.cc
-        bindings/cobalt/VRIRCompilerWrap.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/VRIROpcodeGenerated.hpp
-        ${CMAKE_CURRENT_BINARY_DIR}/CobaltBindingGen.cc
+        bindings/glamor/Exports.h
+        bindings/glamor/Exports.cc
+        bindings/glamor/PromiseHelper.h
+        bindings/glamor/PromiseHelper.cc
+        bindings/glamor/RenderHost.cc
+        bindings/glamor/DisplayWrap.cc
+        bindings/glamor/SurfaceWrap.cc
+        bindings/glamor/BlenderWrap.cc
+        bindings/glamor/MoeTranslationToolchainWrap.cc
+        bindings/glamor/CkObjectWraps.cc
+        bindings/glamor/Scene.h
+        bindings/glamor/Scene.cc
+        bindings/glamor/SceneBuilder.h
+        bindings/glamor/SceneBuilder.cc
 )
-
-## VRIROpcodeGenerated.hpp is generated in ${CMAKE_CURRENT_BINARY_DIR}
 target_include_directories(Gallium PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(
@@ -89,6 +82,3 @@ target_link_libraries(
         v8
         v8_libplatform
 )
-
-add_binding_exports_getter(CoreBindingGen.cc bindings/core/module-descriptor.renpy)
-add_binding_exports_getter(CobaltBindingGen.cc bindings/cobalt/module-descriptor.renpy)

@@ -79,7 +79,7 @@ v8::Local<v8::Value> StreamWeakBuffer::toStrongOwnership()
     if (weak_buf_->len != read_bytes_)
         pb = ::realloc(weak_buf_->base, read_bytes_);
     v8::Local<v8::Object> buf = Buffer::MakeFromPtrWithoutCopy(pb, read_bytes_,
-        [](void *ptr, gal_maybe_unsed size_t len, gal_maybe_unsed void *d) {
+        [](void *ptr, g_maybe_unused size_t len, g_maybe_unused void *d) {
             ::free(ptr);
         }, nullptr);
 

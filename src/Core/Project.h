@@ -26,9 +26,19 @@ T& operator=(const T&) = delete;
 
 #define COCOA_COPYRIGHT_YEAR    "2022"
 
-#define co_nodiscard    [[nodiscard]]
-#define co_cdecl_begin  extern "C" {
-#define co_cdecl_end    }
+#define g_private_api
+#define g_nodiscard     [[nodiscard]]
+#define g_noreturn      [[noreturn]]
+#define g_inline        inline
+#define g_maybe_unused  [[maybe_unused]]
+#define g_async_api
+#define g_sync_api
+
+#define CO_NONCOPYABLE(T) \
+    T(const T&) = delete;
+
+#define CO_NONASSIGNABLE(T) \
+    T& operator=(const T&) = delete;
 
 namespace cocoa
 {

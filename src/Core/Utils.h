@@ -20,6 +20,8 @@ size_t GetMemPageSize();
 size_t GetMemTotalSize();
 std::vector<std::string_view> SplitString(const std::string& str, std::string::value_type delimiter);
 
+void SetThreadName(const char *name);
+
 enum class Endian
 {
     kLittle,

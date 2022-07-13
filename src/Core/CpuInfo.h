@@ -13,7 +13,7 @@ public:
     CpuInfo();
     ~CpuInfo() = default;
 
-    co_nodiscard const cpu_features::X86Info& getX86Info() {
+    g_nodiscard const cpu_features::X86Info& getX86Info() {
         return fInfo;
     }
 

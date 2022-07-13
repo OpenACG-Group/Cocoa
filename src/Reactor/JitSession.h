@@ -18,11 +18,11 @@ public:
                llvm::DataLayout&& dataLayout);
     ~JitSession() = default;
 
-    co_nodiscard const llvm::orc::JITTargetMachineBuilder& GetTargetMachineBuilder();
-    co_nodiscard const llvm::DataLayout& GetDataLayout() const;
-    co_nodiscard const llvm::Triple& GetTargetTriple() const;
+    g_nodiscard const llvm::orc::JITTargetMachineBuilder& GetTargetMachineBuilder();
+    g_nodiscard const llvm::DataLayout& GetDataLayout() const;
+    g_nodiscard const llvm::Triple& GetTargetTriple() const;
 
-    co_nodiscard const Options& GetOptions() const {
+    g_nodiscard const Options& GetOptions() const {
         return options_;
     }
 

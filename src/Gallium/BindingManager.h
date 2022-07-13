@@ -16,7 +16,7 @@ public:
     explicit BindingManager(const Runtime::Options& options);
     ~BindingManager();
 
-    gal_nodiscard inline bool isAllowOverride() const {
+    g_nodiscard inline bool isAllowOverride() const {
         return fAllowOverride;
     }
 

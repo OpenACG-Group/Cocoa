@@ -196,4 +196,10 @@ std::vector<std::string_view> SplitString(const std::string& str, std::string::v
     return result;
 }
 
+void SetThreadName(const char *name)
+{
+    pthread_t self = ::pthread_self();
+    ::pthread_setname_np(self, name);
+}
+
 } // namespace cocoa::utils

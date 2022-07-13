@@ -51,13 +51,13 @@ public:
     CrpkgFile(int32_t vfd, std::shared_ptr<CrpkgImage> image);
     ~CrpkgFile();
 
-    co_nodiscard inline std::shared_ptr<CrpkgImage> getImage() const {
+    g_nodiscard inline std::shared_ptr<CrpkgImage> getImage() const {
         return fImage;
     }
 
     ssize_t read(void *buffer, ssize_t size) const;
     off_t seek(vfs::SeekWhence whence, off_t offset);
-    co_nodiscard std::optional<vfs::Stat> stat() const;
+    g_nodiscard std::optional<vfs::Stat> stat() const;
 
 private:
     int32_t                     fFile;
@@ -96,11 +96,11 @@ public:
     CrpkgDirectory(SQUASH_DIR *dirp, std::shared_ptr<CrpkgImage> image);
     ~CrpkgDirectory();
 
-    co_nodiscard inline std::shared_ptr<CrpkgImage> getImage() const {
+    g_nodiscard inline std::shared_ptr<CrpkgImage> getImage() const {
         return fImage;
     }
 
-    co_nodiscard bool contains(const std::string& name,
+    g_nodiscard bool contains(const std::string& name,
                                Bitfield<NameFilterMode> filter = {NameFilterMode::kAny});
 
     using ElementForeachFunc = std::function<void(const std::string&, NameFilterMode)>;

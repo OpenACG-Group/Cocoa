@@ -24,7 +24,7 @@ struct ClassInfo
 
     virtual ~ClassInfo() = default; // make virtual to delete derived object_registry
 
-    gal_nodiscard std::string class_name() const;
+    g_nodiscard std::string class_name() const;
 };
 
 template<typename Traits>
@@ -63,7 +63,7 @@ public:
     void set_auto_wrap_objects(bool auto_wrap)
     { auto_wrap_objects_ = auto_wrap; }
 
-    gal_nodiscard bool auto_wrap_objects() const
+    g_nodiscard bool auto_wrap_objects() const
     { return auto_wrap_objects_; }
 
     void set_ctor(ctor_function&& ctor)
@@ -393,7 +393,7 @@ public:
 
     /// As reference_external but delete memory for C++ object
     /// when JavaScript object is deleted. You must use `factory<T>::create()`
-    /// to allocate `ext`
+    /// to Allocate `ext`
     static v8::Local<v8::Object> import_external(v8::Isolate *isolate, object_pointer_type const& ext)
     {
         using namespace detail;

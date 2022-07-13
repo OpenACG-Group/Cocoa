@@ -40,6 +40,10 @@ add_library(
         EnumClassBitfield.h
         QResource.h
         QResource.cc
+        OutOfLoopThreadPool.h
+        OutOfLoopThreadPool.cc
+        ProcessSignalHandler.h
+        ProcessSignalHandler.cc
         ${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
 )
 

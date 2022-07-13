@@ -90,5 +90,6 @@
         "bool_set": "cpp"
     },
     "restructuredtext.confPath": "${workspaceFolder}/docs/source",
-    "python.defaultInterpreterPath": "/usr/bin/python3.10"
+    "python.defaultInterpreterPath": "/usr/bin/python3.10",
+    "esbonio.sphinx.confDir": "${workspaceFolder}/docs/source"
 }

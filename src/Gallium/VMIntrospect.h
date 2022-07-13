@@ -70,7 +70,7 @@ public:
      */
     static std::unique_ptr<VMIntrospect> InstallGlobal(v8::Isolate *isolate);
 
-    gal_nodiscard inline v8::Isolate *getIsolate() const {
+    g_nodiscard inline v8::Isolate *getIsolate() const {
         return fIsolate;
     }
 

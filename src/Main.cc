@@ -14,13 +14,14 @@
 #include "Core/EventLoop.h"
 #include "Core/Filesystem.h"
 #include "Core/QResource.h"
+#include "Core/ProcessSignalHandler.h"
 #include "fmt/format.h"
 #include "include/core/SkTypes.h"
 
 #include "Gallium/Runtime.h"
 #include "Gallium/BindingManager.h"
 
-#include "Cobalt/Cobalt.h"
+#include "Glamor/Glamor.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Main)
 
@@ -44,10 +45,10 @@ struct Template
         kOptional
     };
 
-    const char                 *longName = nullptr;
-    std::optional<char>         shortName;
-    RequireValue                hasValue = RequireValue::kEmpty;
-    std::optional<ValueType>    valueType;
+    const char                 *long_name = nullptr;
+    std::optional<char>         short_name;
+    RequireValue                has_value = RequireValue::kEmpty;
+    std::optional<ValueType>    value_type;
     const char                 *desc = nullptr;
 };
 
@@ -70,7 +71,7 @@ struct ParseResult
             float           v_float;
             bool            v_bool;
         };
-        const Template          *matchedTemplate = nullptr;
+        const Template          *matched_template = nullptr;
         std::string              origin;
         std::optional<Value>     value;
     };
@@ -79,136 +80,147 @@ struct ParseResult
     std::vector<Option>      options;
 };
 
-const Template gTemplates[] = {
+const Template g_templates[] = {
         {
-            .longName = "help",
-            .shortName = 'h',
+            .long_name = "help",
+            .short_name = 'h',
             .desc = "Display available options"
         },
         {
-            .longName = "version",
-            .shortName = 'v',
+            .long_name = "version",
+            .short_name = 'v',
             .desc = "Display version information"
         },
         {
-            .longName = "log-file",
-            .shortName = 'o',
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kString,
+            .long_name = "log-file",
+            .short_name = 'o',
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kString,
             .desc = "Specify a file to print logs"
         },
         {
-            .longName = "log-stderr",
+            .long_name = "log-stderr",
             .desc = "Print logs to standard error"
         },
         {
-            .longName = "log-level",
-            .shortName = 'L',
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kString,
+            .long_name = "log-level",
+            .short_name = 'L',
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kString,
             .desc = "Specify log level. Valid arguments: debug|normal|quiet|silent|disabled"
         },
         {
-            .longName = "disable-log-decoration",
+            .long_name = "disable-log-decoration",
             .desc = "Don't print logs with colors through ANSI escape code"
         },
         {
-            .longName = "just-initialize",
+            .long_name = "just-initialize",
             .desc = "Exit immediately after finishing all the initialization steps (not running script)"
         },
         {
-            .longName = "vm-thread-pool-size",
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kInteger,
-            .desc = "Specify the number of worker threads to allocate for background jobs for V8"
+            .long_name = "vm-thread-pool-size",
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kInteger,
+            .desc = "Specify the number of worker threads to Allocate for background jobs for V8"
         },
         {
-            .longName = "vm-options",
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kString,
+            .long_name = "vm-options",
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kString,
             .desc = "Pass the comma separated arguments to V8"
         },
         {
-            .longName = "rt-blacklist",
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kString,
+            .long_name = "runtime-blacklist",
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kString,
             .desc = "Specify a comma separated blacklist of language bindings"
         },
         {
-            .longName = "rt-preload",
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kString,
+            .long_name = "runtime-preload",
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kString,
             .desc = "Specify a path of a dynamic library to load it as language bindings"
         },
         {
-            .longName = "rt-allow-override",
-            .hasValue = Template::RequireValue::kEmpty,
+            .long_name = "runtime-allow-override",
+            .has_value = Template::RequireValue::kEmpty,
             .desc = "Language bindings with the same name can override each other"
         },
         {
-            .longName = "rt-expose-introspect",
-            .hasValue = Template::RequireValue::kOptional,
-            .valueType = ValueType::kBoolean,
+            .long_name = "runtime-expose-introspect",
+            .has_value = Template::RequireValue::kOptional,
+            .value_type = ValueType::kBoolean,
             .desc = "Specify whether VM expose 'introspect' global object to JavaScript land"
         },
         {
-            .longName = "introspect-policy",
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kString,
+            .long_name = "introspect-policy",
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kString,
             .desc = "Enable/disable functions in 'introspect' global object"
         },
         {
-            .longName = "pass",
-            .shortName = 'A',
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kString,
+            .long_name = "pass",
+            .short_name = 'A',
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kString,
             .desc = "Specify a delimiter separated list passed to JavaScript"
         },
         {
-            .longName = "pass-delimiter",
-            .shortName = 'D',
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kString,
+            .long_name = "pass-delimiter",
+            .short_name = 'D',
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kString,
             .desc = "Specify a character as delimiter. Default is ','"
         },
         {
-            .longName = "startup",
-            .shortName = 's',
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kString,
+            .long_name = "startup",
+            .short_name = 's',
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kString,
             .desc = "Specify a JavaScript file to run. (index.js for default)"
         },
         {
-            .longName = "renderhost-transfer-profile",
-            .hasValue = Template::RequireValue::kEmpty,
+            .long_name = "glamor-transfer-queue-profile",
+            .has_value = Template::RequireValue::kEmpty,
             .desc = "Enable profiling on RenderHost's message queue"
         },
         {
-            .longName = "cobalt-use-jit",
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kBoolean,
+            .long_name = "glamor-use-jit",
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kBoolean,
             .desc = "Use JIT to accelerate CPU-bound operations while rendering (true by default)"
         },
         {
-            .longName = "disable-hwcompose",
-            .hasValue = Template::RequireValue::kEmpty,
+            .long_name = "glamor-concurrent-workers",
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kInteger,
+            .desc = "Specify the number of worker threads for tile rendering, rasterization, etc."
+        },
+        {
+            .long_name = "glamor-show-tile-boundaries",
+            .has_value = Template::RequireValue::kEmpty,
+            .desc = "Draw tile boundaries if tiled rendering is available"
+        },
+        {
+            .long_name = "glamor-disable-hwcompose",
+            .has_value = Template::RequireValue::kEmpty,
             .desc = "Disable Vulkan-based hardware acceleration (disable HWCompose surfaces)"
         },
         {
-            .longName = "hwcompose-enable-vkdbg",
-            .hasValue = Template::RequireValue::kEmpty,
+            .long_name = "glamor-hwcompose-enable-vkdbg",
+            .has_value = Template::RequireValue::kEmpty,
             .desc = "Enable Vulkan debug utils to generate detailed Vulkan logs"
         },
         {
-            .longName = "hwcompose-vkdbg-severities",
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kString,
+            .long_name = "glamor-hwcompose-vkdbg-severities",
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kString,
             .desc = "Specify a comma separated list of allowed message severities for Vulkan debug utils"
         },
         {
-            .longName = "hwcompose-vkdbg-levels",
-            .hasValue = Template::RequireValue::kNecessary,
-            .valueType = ValueType::kString,
+            .long_name = "glamor-hwcompose-vkdbg-levels",
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kString,
             .desc = "Specify a comma separated list of allowed message types for Vulkan debug utils"
         }
 };
@@ -217,9 +229,9 @@ namespace {
 
 const Template *match_template(const std::string_view& longOpt)
 {
-    for (const Template& t : gTemplates)
+    for (const Template& t : g_templates)
     {
-        if (longOpt == t.longName)
+        if (longOpt == t.long_name)
             return &t;
     }
     return nullptr;
@@ -227,9 +239,9 @@ const Template *match_template(const std::string_view& longOpt)
 
 const Template *match_template(char shortOpt)
 {
-    for (const Template& t : gTemplates)
+    for (const Template& t : g_templates)
     {
-        if (t.shortName.has_value() && shortOpt == t.shortName)
+        if (t.short_name.has_value() && shortOpt == t.short_name)
             return &t;
     }
     return nullptr;
@@ -239,7 +251,7 @@ bool interpret_and_set_option_value(ParseResult::Option& opt, const std::string_
 {
     std::string stored(str);
 
-    switch (opt.matchedTemplate->valueType.value())
+    switch (opt.matched_template->value_type.value())
     {
     case ValueType::kString:
         opt.value = ParseResult::Option::Value{.v_str = stored};
@@ -250,8 +262,7 @@ bool interpret_and_set_option_value(ParseResult::Option& opt, const std::string_
         long n = std::strtol(stored.c_str(), &endptr, 10);
         if (endptr != stored.c_str() + stored.length())
         {
-            std::cerr << "Couldn't interpret the argument of option \""
-                      << opt.origin << "\" as an integer" << std::endl;
+            fmt::print(std::cerr, "Couldn't interpret the argument of option \"{}\" as an integer\n", opt.origin);
             return false;
         }
         opt.value = ParseResult::Option::Value{.v_int = static_cast<int32_t>(n)};
@@ -264,8 +275,7 @@ bool interpret_and_set_option_value(ParseResult::Option& opt, const std::string_
         float n = std::strtof(stored.c_str(), &endptr);
         if (endptr != stored.c_str() + stored.length())
         {
-            std::cerr << "Couldn't interpret the argument of option \""
-                      << opt.origin << "\" as a number" << std::endl;
+            fmt::print(std::cerr, "Couldn't interpret the argument of option \"{}\" as a number\n", opt.origin);
             return false;
         }
         opt.value = ParseResult::Option::Value{.v_float = n};
@@ -281,8 +291,7 @@ bool interpret_and_set_option_value(ParseResult::Option& opt, const std::string_
             v = false;
         else
         {
-            std::cerr << "Couldn't interpret the argument of option \""
-                      << opt.origin << "\" as a boolean value" << std::endl;
+            fmt::print(std::cerr, "Couldn't interpret the argument of option \"{}\" as a boolean\n", opt.origin);
             return false;
         }
         opt.value = ParseResult::Option::Value{.v_bool = v};
@@ -295,6 +304,12 @@ bool interpret_and_set_option_value(ParseResult::Option& opt, const std::string_
 
 /* size = 2^7 * 2^7 * sizeof(int) = 2^16 bytes = 64KB */
 int dp[128][128];
+
+// If user gives an unrecognized option name due to spelling mistake, we try guessing
+// the most possibly right option name by calculating Levenshtein Distance.
+// Supposing `s1` and `s2` are two strings, their Levenshtein Distance `lev(s1, s2)`
+// is a number N which represents that `s1` can be changed into `s2` after N times' single-character
+// edits (insertions, deletions, substitutions) at least.
 int solve_levenshtein_distance(const std::string_view& a, const std::string_view& b)
 {
     CHECK(a.size() < 128 && b.size() < 128);
@@ -323,13 +338,13 @@ const char *most_possible_long_option_spell(const std::string_view& opt)
 {
     int minDis = INT_MAX;
     const char *minOpt;
-    for (const auto& t : gTemplates)
+    for (const auto& t : g_templates)
     {
-        int dis = solve_levenshtein_distance(opt, t.longName);
+        int dis = solve_levenshtein_distance(opt, t.long_name);
         if (dis < minDis)
         {
             minDis = dis;
-            minOpt = t.longName;
+            minOpt = t.long_name;
         }
     }
 
@@ -349,8 +364,7 @@ bool interpret_and_set_long_option(ParseResult::Option& opt, const std::string_v
     {
         if (equalPos + 1 == str.length())
         {
-            std::cerr << R"(Unnecessary "=" in option ")"
-                      << std::string(str) << '\"' << std::endl;
+            fmt::print(std::cerr, "Unnecessary \"=\" in option \"{}\"\n", str);
             return false;
         }
         optionView.remove_suffix(str.length() - equalPos);
@@ -358,33 +372,30 @@ bool interpret_and_set_long_option(ParseResult::Option& opt, const std::string_v
         valueView.remove_prefix(equalPos + 1);
     }
 
-    opt.matchedTemplate = match_template(optionView);
-    if (!opt.matchedTemplate)
+    opt.matched_template = match_template(optionView);
+    if (!opt.matched_template)
     {
-        std::cerr << "Unrecognized long option \""
-                  << std::string(str) << '\"';
         const char *possible = most_possible_long_option_spell(optionView);
         if (possible)
-            std::cerr << ", did you mean \"--" << possible << "\"?";
-        std::cerr << std::endl;
+            fmt::print(std::cerr, "Unrecognized long options \"{}\", did you mean \"--{}\"?\n", str, possible);
+        else
+            fmt::print(std::cerr, "Unrecognized long option \"{}\"\n", str);
         return false;
     }
 
-    if (opt.matchedTemplate->hasValue == Template::RequireValue::kEmpty &&
+    if (opt.matched_template->has_value == Template::RequireValue::kEmpty &&
         !valueView.empty())
     {
-        std::cerr << "Unnecessary argument in option \""
-                  << std::string(str) << '\"' << std::endl;
+        fmt::print(std::cerr, "Unnecessary argument in option \"{}\"\n", str);
         return false;
     }
 
     opt.origin = str;
     if (!valueView.empty())
         return interpret_and_set_option_value(opt, valueView);
-    else if (opt.matchedTemplate->hasValue == Template::RequireValue::kNecessary)
+    else if (opt.matched_template->has_value == Template::RequireValue::kNecessary)
     {
-        std::cerr << "Expecting an argument for option \"" << std::string(str)
-                  << "\"" << std::endl;
+        fmt::print(std::cerr, "Expecting an argument for option \"{}\"\n", str);
         return false;
     }
     return true;
@@ -397,27 +408,25 @@ bool interpret_and_set_short_options(ParseResult& result, const std::string_view
 
     if (p.empty())
     {
-        std::cerr << "Empty short option is not allowed" << std::endl;
+        fmt::print(std::cerr, "Empty short option is not allowed\n");
         return false;
     }
 
     for (auto i = p.begin(); i != p.end(); i++)
     {
         ParseResult::Option opt;
-        opt.matchedTemplate = match_template(*i);
-        if (!opt.matchedTemplate)
+        opt.matched_template = match_template(*i);
+        if (!opt.matched_template)
         {
-            std::cerr << "Unrecognized short option \"-" << *i
-                      << "\" in the short option sequence \"" << std::string(str) << "\""
-                      << std::endl;
+            fmt::print(std::cerr, "Unrecognized short option \"-{}\" in the short option sequence \"{}\"\n", *i, str);
             return false;
         }
 
-        if (opt.matchedTemplate->hasValue == Template::RequireValue::kNecessary &&
+        if (opt.matched_template->has_value == Template::RequireValue::kNecessary &&
             i != p.end() - 1)
         {
-            std::cerr << "Short option \"-" << *i << "\" which requires an argument can only "
-                      << "be the last option in the short option sequence" << std::endl;
+            fmt::print(std::cerr, "Short option \"-{}\" which requires an argument can only "
+                       "be the last option in the short option sequence\n", *i);
             return false;
         }
         opt.origin = std::string("-") + *i;
@@ -439,8 +448,7 @@ ParseState Parse(int argc, const char **argv, ParseResult& result)
         {
             if (pendingOption.has_value())
             {
-                std::cerr << "Option " << pendingOption.value()->origin
-                          << " expects an argument" << std::endl;
+                fmt::print(std::cerr, "Option {} expects an argument\n", pendingOption.value()->origin);
                 return ParseState::kError;
             }
 
@@ -453,7 +461,7 @@ ParseState Parse(int argc, const char **argv, ParseResult& result)
             ParseResult::Option opt;
             if (!interpret_and_set_long_option(opt, current))
             {
-                std::cerr << "Illegal option \"" << current << "\"" << std::endl;
+                fmt::print(std::cerr, "Illegal option \"{}\"\n", current);
                 return ParseState::kError;
             }
             result.options.push_back(opt);
@@ -462,10 +470,10 @@ ParseState Parse(int argc, const char **argv, ParseResult& result)
         {
             if (!interpret_and_set_short_options(result, current))
             {
-                std::cerr << "Illegal option \"" << current << "\"" << std::endl;
+                fmt::print(std::cerr, "Illegal option \"{}\"\n", current);
                 return ParseState::kError;
             }
-            auto hasValue = result.options.back().matchedTemplate->hasValue;
+            auto hasValue = result.options.back().matched_template->has_value;
             if (hasValue == Template::RequireValue::kOptional ||
                 hasValue == Template::RequireValue::kNecessary)
             {
@@ -477,8 +485,8 @@ ParseState Parse(int argc, const char **argv, ParseResult& result)
         {
             if (!interpret_and_set_option_value(*pendingOption.value(), current))
             {
-                std::cerr << "Bad argument \"" << current << "\" for option "
-                          << pendingOption.value()->origin << std::endl;
+                fmt::print(std::cerr, "Bad argument \"{}\" for option {}\n", current,
+                           pendingOption.value()->origin);
                 return ParseState::kError;
             }
             pendingOption.reset();
@@ -490,10 +498,9 @@ ParseState Parse(int argc, const char **argv, ParseResult& result)
 
         if (pendingOption.has_value())
         {
-            if (pendingOption.value()->matchedTemplate->hasValue == Template::RequireValue::kNecessary)
+            if (pendingOption.value()->matched_template->has_value == Template::RequireValue::kNecessary)
             {
-                std::cerr << "Option " << pendingOption.value()->origin
-                          << " expects an argument" << std::endl;
+                fmt::print(std::cerr, "Option {} expects an argument\n", pendingOption.value()->origin);
                 return ParseState::kError;
             }
             pendingOption.reset();
@@ -503,7 +510,7 @@ ParseState Parse(int argc, const char **argv, ParseResult& result)
     return ParseState::kSuccess;
 }
 
-void PrintHelp(const char *program)
+void startup_print_help(const char *program)
 {
     fmt::print(
 R"(Cocoa 2D Rendering Framework, version {}
@@ -514,30 +521,30 @@ AVAILABLE OPTIONS:
     COCOA_VERSION, program);
 
     MeasuredTable table;
-    for (const auto& p : gTemplates)
+    for (const auto& p : g_templates)
     {
         std::string hdr("--");
-        hdr.append(p.longName);
-        if (p.shortName.has_value())
+        hdr.append(p.long_name);
+        if (p.short_name.has_value())
         {
             hdr.append(", -");
-            hdr.push_back(p.shortName.value());
+            hdr.push_back(p.short_name.value());
         }
 
-        if (p.hasValue != Template::RequireValue::kEmpty)
+        if (p.has_value != Template::RequireValue::kEmpty)
         {
             const char *close = "";
-            if (p.hasValue == Template::RequireValue::kNecessary)
+            if (p.has_value == Template::RequireValue::kNecessary)
             {
                 close = ">";
                 hdr.append(" <");
             }
-            else if (p.hasValue == Template::RequireValue::kOptional)
+            else if (p.has_value == Template::RequireValue::kOptional)
             {
                 close = ">]";
                 hdr.append(" [<");
             }
-            switch (p.valueType.value())
+            switch (p.value_type.value())
             {
             case ValueType::kString:    hdr.append("string"); break;
             case ValueType::kInteger:   hdr.append("int");    break;
@@ -555,13 +562,13 @@ AVAILABLE OPTIONS:
     });
 }
 
-void PrintVersion()
+void startup_print_version()
 {
     fmt::print("Cocoa 2D Rendering Framework Version {}\n", COCOA_VERSION);
     fmt::print("Copyright (C) " COCOA_COPYRIGHT_YEAR " OpenACG Group | GPLv3 License\n");
 }
 
-void PrintGreeting(const gallium::Runtime::Options& opts)
+void startup_print_greeting(const gallium::Runtime::Options& opts)
 {
     QLOG(LOG_INFO, "%fg<hl>Cocoa 2D Rendering Framework, version {}%reset", COCOA_VERSION);
     QLOG(LOG_INFO, "  %fg<hl>Copyright (C) " COCOA_COPYRIGHT_YEAR " OpenACG Group | GPLv3 License%reset");
@@ -573,7 +580,7 @@ void PrintGreeting(const gallium::Runtime::Options& opts)
 
 } // namespace cmd
 
-#define arg_longopt_match(s) (!std::strcmp(arg.matchedTemplate->longName, s))
+#define arg_longopt_match(s) (!std::strcmp(arg.matched_template->long_name, s))
 
 cmd::ParseState InitializeLogger(cmd::ParseResult& args)
 {
@@ -600,8 +607,7 @@ cmd::ParseState InitializeLogger(cmd::ParseResult& args)
             else if (arg.value->v_str == "disabled") level = LOG_LEVEL_DISABLED;
             else
             {
-                std::cerr << "Illegal specifier for log level: " << arg.value->v_str
-                          << std::endl;
+                fmt::print(std::cerr, "Illegal specifier for log level: {}\n", arg.value->v_str);
                 return cmd::ParseState::kError;
             }
         }
@@ -711,19 +717,18 @@ cmd::ParseState initialize_path_table_properties()
     return cmd::ParseState::kSuccess;
 }
 
-cmd::ParseState InitializeProperties(int argc, const char **argv, cmd::ParseResult& args)
+cmd::ParseState initialize_properties(int argc, const char **argv, cmd::ParseResult& args)
 {
     if (args.orphans.size() > 1)
     {
-        std::cerr << "Too many arguments" << std::endl;
+        fmt::print(std::cerr, "Too many arguments\n");
         return cmd::ParseState::kError;
     }
     else if (!args.orphans.empty())
     {
         if (vfs::Chdir(args.orphans[0]) < 0)
         {
-            std::cerr << "Failed to chdir to \'" << args.orphans[0]
-                      << "\': " << ::strerror(errno) << std::endl;
+            fmt::print(std::cerr, "Failed to chdir to \"{}\": {}\n", args.orphans[0], strerror(errno));
             return cmd::ParseState::kError;
         }
     }
@@ -778,9 +783,9 @@ std::shared_ptr<PropertyArrayNode> splitStringStoreToArrayNode(const std::string
     return array;
 }
 
-cmd::ParseState Initialize(int argc, char const **argv,
-                           gallium::Runtime::Options& koiOptions,
-                           cobalt::ContextOptions& cobaltOptions)
+cmd::ParseState startup_initialize(int argc, char const **argv,
+                                   gallium::Runtime::Options& gallium_options,
+                                   glamor::ContextOptions& glamor_options)
 {
     cmd::ParseResult args;
     cmd::ParseState state = cmd::Parse(argc, argv, args);
@@ -791,12 +796,12 @@ cmd::ParseState Initialize(int argc, char const **argv,
     {
         if arg_longopt_match("help")
         {
-            cmd::PrintHelp(argv[0]);
+            cmd::startup_print_help(argv[0]);
             return cmd::ParseState::kExit;
         }
         else if arg_longopt_match("version")
         {
-            cmd::PrintVersion();
+            cmd::startup_print_version();
             return cmd::ParseState::kExit;
         }
     }
@@ -807,7 +812,7 @@ cmd::ParseState Initialize(int argc, char const **argv,
         return cmd::ParseState::kError;
 
     /* Initialize necessary properties */
-    state = InitializeProperties(argc, argv, args);
+    state = initialize_properties(argc, argv, args);
     if (state == cmd::ParseState::kError)
         return cmd::ParseState::kError;
 
@@ -836,34 +841,34 @@ cmd::ParseState Initialize(int argc, char const **argv,
         {
             if (arg.value->v_int < 0)
             {
-                std::cerr << "vm-thread-pool-size should ba a positive integer" << std::endl;
+                fmt::print(std::cerr, "vm-thread-pool-size should ba a positive integer\n");
                 return cmd::ParseState::kError;
             }
-            koiOptions.v8_platform_thread_pool = arg.value->v_int;
+            gallium_options.v8_platform_thread_pool = arg.value->v_int;
         }
         else if arg_longopt_match("vm-options")
         {
             auto list = utils::SplitString(arg.value->v_str, ',');
             for (const auto& view : list)
-                koiOptions.v8_options.emplace_back(view);
+                gallium_options.v8_options.emplace_back(view);
         }
-        else if arg_longopt_match("rt-blacklist")
+        else if arg_longopt_match("runtime-blacklist")
         {
             std::vector<std::string_view> list = utils::SplitString(arg.value->v_str, ',');
             for (const auto& p : list)
             {
-                koiOptions.bindings_blacklist.emplace_back(p);
+                gallium_options.bindings_blacklist.emplace_back(p);
                 lbpBlacklist->append(prop::New<PropertyDataNode>(std::string(p)));
             }
         }
-        else if arg_longopt_match("rt-preload")
+        else if arg_longopt_match("runtime-preload")
         {
             lbpPreloads->append(prop::New<PropertyDataNode>(arg.value->v_str));
         }
-        else if arg_longopt_match("rt-allow-override")
+        else if arg_longopt_match("runtime-allow-override")
         {
-            koiOptions.rt_allow_override = true;
-            report_vulnerability_option("--rt-allow-override");
+            gallium_options.rt_allow_override = true;
+            report_vulnerability_option("--runtime-allow-override");
         }
         else if arg_longopt_match("pass")
         {
@@ -877,14 +882,14 @@ cmd::ParseState Initialize(int argc, char const **argv,
         {
             if (arg.value->v_str.size() > 1)
             {
-                std::cerr << "Delimiter is considered to be a single character" << std::endl;
+                fmt::print(std::cerr, "Delimiter must be a single character\n");
                 return cmd::ParseState::kError;
             }
             delimiter = arg.value->v_str[0];
         }
-        else if arg_longopt_match("rt-expose-introspect")
+        else if arg_longopt_match("runtime-expose-introspect")
         {
-            koiOptions.rt_expose_introspect = !arg.value || arg.value->v_bool;
+            gallium_options.rt_expose_introspect = !arg.value || arg.value->v_bool;
         }
         else if arg_longopt_match("introspect-policy")
         {
@@ -892,13 +897,13 @@ cmd::ParseState Initialize(int argc, char const **argv,
             for (auto& policy : split)
             {
                 if (policy == "AllowLoadingSharedObject")
-                    koiOptions.introspect_allow_loading_shared_object = true;
+                    gallium_options.introspect_allow_loading_shared_object = true;
                 else if (policy == "AllowWritingToJournal")
-                    koiOptions.introspect_allow_write_journal = true;
+                    gallium_options.introspect_allow_write_journal = true;
                 else if (policy == "ForbidLoadingSharedObject")
-                    koiOptions.introspect_allow_loading_shared_object = false;
+                    gallium_options.introspect_allow_loading_shared_object = false;
                 else if (policy == "ForbidWritingToJournal")
-                    koiOptions.introspect_allow_write_journal = false;
+                    gallium_options.introspect_allow_write_journal = false;
                 else
                 {
                     fmt::print(std::cerr, "Error: Unrecognized introspect policy: {}\n", policy);
@@ -908,31 +913,39 @@ cmd::ParseState Initialize(int argc, char const **argv,
         }
         else if arg_longopt_match("startup")
         {
-            koiOptions.startup = arg.value->v_str;
+            gallium_options.startup = arg.value->v_str;
         }
-        else if arg_longopt_match("cobalt-use-jit")
+        else if arg_longopt_match("glamor-use-jit")
         {
-            cobaltOptions.SetSkiaJIT(arg.value->v_bool);
+            glamor_options.SetSkiaJIT(arg.value->v_bool);
         }
-        else if arg_longopt_match("disable-hwcompose")
+        else if arg_longopt_match("glamor-concurrent-workers")
+        {
+            glamor_options.SetRenderWorkersConcurrencyCount(arg.value->v_int);
+        }
+        else if arg_longopt_match("glamor-show-tile-boundaries")
+        {
+            glamor_options.SetShowTileBoundaries(true);
+        }
+        else if arg_longopt_match("glamor-disable-hwcompose")
         {
             hwComposeNode->setMember("Disabled", prop::New<PropertyDataNode>(true));
         }
-        else if arg_longopt_match("hwcompose-enable-vkdbg")
+        else if arg_longopt_match("glamor-hwcompose-enable-vkdbg")
         {
             hwComposeNode->setMember("EnableVkDBG", prop::New<PropertyDataNode>(true));
         }
-        else if arg_longopt_match("hwcompose-vkdbg-severities")
+        else if arg_longopt_match("glamor-hwcompose-vkdbg-severities")
         {
             hwComposeNode->setMember("VkDBGFilterSeverities", splitStringStoreToArrayNode(arg.value->v_str, ','));
         }
-        else if arg_longopt_match("hwcompose-vkdbg-levels")
+        else if arg_longopt_match("glamor-hwcompose-vkdbg-levels")
         {
             hwComposeNode->setMember("VkDBGFilterLevels", splitStringStoreToArrayNode(arg.value->v_str, ','));
         }
-        else if arg_longopt_match("renderhost-transfer-profile")
+        else if arg_longopt_match("glamor-transfer-queue-profile")
         {
-            cobaltOptions.SetProfileRenderHostTransfer(true);
+            glamor_options.SetProfileRenderHostTransfer(true);
         }
     }
 
@@ -954,21 +967,21 @@ cmd::ParseState Initialize(int argc, char const **argv,
 
 #undef arg_longopt_match
 
-void Finalize()
+void mainloop_finalize()
 {
     Journal::Delete();
     CpuInfo::Delete();
 }
 
-void Execute(bool justInitialize,
-             const gallium::Runtime::Options& options,
-             const cobalt::ContextOptions& cobaltOptions)
+void mainloop_execute(bool justInitialize,
+                      const gallium::Runtime::Options& options,
+                      const glamor::ContextOptions& glamorOptions)
 {
     QResource::New();
 
     prop::SerializeToJournal(prop::Get());
 
-    cobalt::GlobalScope::New(cobaltOptions, EventLoop::Instance());
+    glamor::GlobalScope::New(glamorOptions, EventLoop::Instance());
     gallium::BindingManager::New(options);
 
     auto preloads = prop::Get()
@@ -981,6 +994,7 @@ void Execute(bool justInitialize,
         gallium::BindingManager::Ref().loadDynamicObject(val);
     }
 
+    BeforeEventLoopEntrypointHook();
     if (!justInitialize)
     {
         auto runtime = gallium::Runtime::Make(EventLoop::Instance(), options);
@@ -992,7 +1006,10 @@ void Execute(bool justInitialize,
         v8::Local<v8::Value> result;
         if (!runtime->evaluateModule(options.startup).ToLocal(&result))
             return;
+
+        InstallSecondarySignalHandler();
         EventLoop::Ref().run();
+
         gallium::BindingManager::Delete();
 
         runtime->notifyRuntimeWillExit();
@@ -1004,29 +1021,33 @@ void Execute(bool justInitialize,
     }
 
 
-    /* No matter whether these UniquePersistent objects are created,
-     * deleting them is safe. */
-    cobalt::GlobalScope::Delete();
+    // No matter whether these UniquePersistent objects are created,
+    // deleting them is safe.
+    glamor::GlobalScope::Delete();
 
-    /* RenderHost message queue profiler may register a threadpool work.
-     * To make sure the task performed properly, we run event loop again. */
+    // RenderHost message queue profiler may register a threadpool work.
+    // To make sure the task performed properly, we run event loop again.
     EventLoop::Ref().run();
 
     QResource::Delete();
     EventLoop::Delete();
 }
 
-int Main(int argc, char const **argv)
+int startup_main(int argc, char const **argv)
 {
-    CpuInfo::New();
-    ScopeEpilogue epilogue([]() -> void { Finalize(); });
+    InstallPrimarySignalHandler();
 
-    gallium::Runtime::Options koiOptions;
-    cobalt::ContextOptions cobaltOptions;
-    bool justInitialize = false;
+    CpuInfo::New();
+    ScopeExitAutoInvoker epilogue([]() -> void {
+        mainloop_finalize();
+    });
+
+    gallium::Runtime::Options gallium_options;
+    glamor::ContextOptions glamor_options;
+    bool only_initialize = false;
 
     try {
-        switch (Initialize(argc, argv, koiOptions, cobaltOptions))
+        switch (startup_initialize(argc, argv, gallium_options, glamor_options))
         {
         case cmd::ParseState::kError:
             return EXIT_FAILURE;
@@ -1035,13 +1056,13 @@ int Main(int argc, char const **argv)
         case cmd::ParseState::kSuccess:
             break;
         case cmd::ParseState::kJustInitialize:
-            justInitialize = true;
+            only_initialize = true;
             break;
         }
 
-        gallium::Runtime::AdoptV8CommandOptions(koiOptions);
-        cmd::PrintGreeting(koiOptions);
-        Execute(justInitialize, koiOptions, cobaltOptions);
+        gallium::Runtime::AdoptV8CommandOptions(gallium_options);
+        cmd::startup_print_greeting(gallium_options);
+        mainloop_execute(only_initialize, gallium_options, glamor_options);
     } catch (const RuntimeException& e) {
         utils::SerializeException(e);
         return EXIT_FAILURE;
@@ -1056,5 +1077,5 @@ int Main(int argc, char const **argv)
 
 int main(int argc, char const *argv[])
 {
-    return cocoa::Main(argc, argv);
+    return cocoa::startup_main(argc, argv);
 }

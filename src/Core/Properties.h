@@ -35,7 +35,7 @@ public:
     virtual ~PropertyNode() = default;
 
     template<typename T, typename std::enable_if<std::is_base_of_v<PropertyNode, T>>::type* = nullptr>
-    co_nodiscard inline std::shared_ptr<T> as() {
+    g_nodiscard inline std::shared_ptr<T> as() {
         return std::dynamic_pointer_cast<T>(shared_from_this());
     }
 
@@ -54,9 +54,9 @@ public:
         fProtection = prot;
     }
 
-    co_nodiscard inline Protection protection() const
+    g_nodiscard inline Protection protection() const
     { return fProtection; }
-    co_nodiscard std::string getName();
+    g_nodiscard std::string getName();
 
     virtual std::string toQLogString() = 0;
     virtual void forEachChild(ForEachChildCb cb) = 0;
@@ -80,10 +80,10 @@ public:
     void unsetMember(const std::string& name);
     bool hasMember(const std::string& name);
 
-    co_nodiscard inline auto begin()
+    g_nodiscard inline auto begin()
     { return fMembers.begin(); }
 
-    co_nodiscard inline auto end()
+    g_nodiscard inline auto end()
     { return fMembers.end(); }
 
     std::string toQLogString() override;
@@ -112,7 +112,7 @@ public:
     const std::type_info& type();
     void reset(std::any&& value);
 
-    co_nodiscard inline bool hasValue() const {
+    g_nodiscard inline bool hasValue() const {
         return fData.has_value();
     }
 
@@ -140,13 +140,13 @@ public:
     void erase(uint32_t i0);
     std::shared_ptr<PropertyNode> at(uint32_t i0);
 
-    co_nodiscard inline auto begin()
+    g_nodiscard inline auto begin()
     { return fSubscripts.begin(); }
 
-    co_nodiscard inline auto end()
+    g_nodiscard inline auto end()
     { return fSubscripts.end(); }
 
-    co_nodiscard inline size_t size() const
+    g_nodiscard inline size_t size() const
     { return fSubscripts.size(); }
 
     std::string toQLogString() override;

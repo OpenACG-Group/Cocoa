@@ -179,7 +179,7 @@ std::shared_ptr<Data> Data::MakeFromFileMapped(const std::string& path,
     if (fd < 0)
         return nullptr;
     size_t size = vfs::FileSize(fd);
-    ScopeEpilogue scope([fd] { vfs::Close(fd); });
+    ScopeExitAutoInvoker scope([fd] { vfs::Close(fd); });
 
     Bitfield<vfs::MapProtection> mapprot;
     if (flags & vfs::OpenFlags::kReadonly)

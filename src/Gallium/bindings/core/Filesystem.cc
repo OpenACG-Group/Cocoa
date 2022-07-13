@@ -6,7 +6,6 @@
 #include "Core/EventLoop.h"
 #include "Core/Exception.h"
 #include "Gallium/bindings/core/Exports.h"
-#include "Gallium/bindings/core/FdRandomize.h"
 GALLIUM_BINDINGS_NS_BEGIN
 
 struct FsRequest
@@ -83,13 +82,13 @@ void callback_reject_error_code(FsRequest *req, ssize_t err, const char *syscall
     FsRequest *req = FsRequest::Cast(ptr); \
     v8::Isolate *i = req->isolate_;        \
     v8::HandleScope __scope(i);            \
-    ScopeEpilogue __deleter([req] {        \
+    ScopeExitAutoInvoker __deleter([req] {        \
         delete req;                        \
     });
 
 #define FILE_CALLBACK_PROLOGUE \
     CALLBACK_PROLOGUE                                                \
-    ScopeEpilogue __pop([req] {                                      \
+    ScopeExitAutoInvoker __pop([req] {                                      \
         if (!req->closure_collected_ && req->closure_) {             \
             auto *wrap = reinterpret_cast<FileWrap*>(req->closure_); \
             wrap->pending_requests_.remove(req);                     \

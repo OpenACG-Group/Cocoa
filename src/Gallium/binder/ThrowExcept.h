@@ -38,18 +38,18 @@ public:
      * Binder will convert it to the corresponding JavaScript exception by `TakeOver()`
      * and rethrow the converted exception after catching a JSException (C++ native exception).
      */
-    gal_noreturn static void Throw(Category category, const std::string& what,
+    g_noreturn static void Throw(Category category, const std::string& what,
                                    v8::Isolate *isolate = nullptr);
 
     static v8::Local<v8::Value> TakeOver(const JSException& except);
 
-    gal_nodiscard inline Category getCategory() const {
+    g_nodiscard inline Category getCategory() const {
         return category_;
     }
-    gal_nodiscard inline v8::Isolate *getIsolate() const {
+    g_nodiscard inline v8::Isolate *getIsolate() const {
         return isolate_;
     }
-    gal_nodiscard v8::Local<v8::Value> asException() const;
+    g_nodiscard v8::Local<v8::Value> asException() const;
 
 private:
     JSException(v8::Isolate *isolate, const std::string& what, Category category)

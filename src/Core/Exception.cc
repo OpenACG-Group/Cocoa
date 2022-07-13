@@ -33,17 +33,17 @@ std::string demangle_cpp_symbol(char const *sym)
 
 namespace cocoa {
 
-ScopeEpilogue::ScopeEpilogue(std::function<void()> func)
+ScopeExitAutoInvoker::ScopeExitAutoInvoker(std::function<void()> func)
     : fFunction(std::move(func))
 {
 }
 
-ScopeEpilogue::~ScopeEpilogue()
+ScopeExitAutoInvoker::~ScopeExitAutoInvoker()
 {
     fFunction();
 }
 
-void ScopeEpilogue::abolish()
+void ScopeExitAutoInvoker::cancel()
 {
     fFunction = []() -> void {};
 }
@@ -93,6 +93,11 @@ void RuntimeException::recordFrames()
     unw_getcontext(&context);
     unw_init_local(&cursor, &context);
 
+    char proc_name[1024];
+    unw_proc_info_t proc_info;
+    unw_word_t offset;
+    Dl_info dyn_linker_info;
+
     while (unw_step(&cursor) > 0)
     {
         Frame frame;
@@ -103,30 +108,20 @@ void RuntimeException::recordFrames()
         if (pc == 0)
             break;
 
-        frame.pc = reinterpret_cast<void*>(pc);
-        frame.file = "<Unknown>";
-        frame.symbol = "<Unknown>";
-        frame.procAddress = nullptr;
+        unw_get_proc_name(&cursor, proc_name, sizeof(proc_name), &offset);
+        unw_get_proc_info(&cursor, &proc_info);
+        frame.pc = reinterpret_cast<void *>(pc);
+        frame.symbol = demangle_cpp_symbol(proc_name);
+        frame.procAddress = reinterpret_cast<void *>(proc_info.start_ip);
+        frame.offset = static_cast<off64_t>(offset);
+        frame.file = "Unknown";
 
         /* Get symbol information by dynamic linker */
-        Dl_info dynLinkerInfo;
-        if (dladdr(reinterpret_cast<const void*>(pc), &dynLinkerInfo) == 0)
+        if (dladdr(reinterpret_cast<const void*>(pc), &dyn_linker_info) != 0)
         {
-            fFrames->push_back(frame);
-            continue;
+            frame.file = dyn_linker_info.dli_fname;
         }
 
-        if (dynLinkerInfo.dli_saddr == nullptr)
-        {
-            unw_word_t sp;
-            unw_get_reg(&cursor, UNW_REG_SP, &sp);
-        }
-
-        frame.file = dynLinkerInfo.dli_fname;
-        frame.symbol = demangle_cpp_symbol(dynLinkerInfo.dli_sname);
-        frame.procAddress = dynLinkerInfo.dli_saddr;
-        frame.offset = static_cast<off64_t>(reinterpret_cast<uint64_t>(frame.pc)
-                        - reinterpret_cast<uint64_t>(frame.procAddress));
         fFrames->push_back(frame);
     }
 }

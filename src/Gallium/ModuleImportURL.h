@@ -57,17 +57,17 @@ public:
 
     static void FreeInternalCaches();
 
-    gal_nodiscard inline Protocol getProtocol() const {
+    g_nodiscard inline Protocol getProtocol() const {
         CHECK(fProtocol != Protocol::kInvalid);
         return fProtocol;
     }
 
-    gal_nodiscard inline const std::string& getPath() const {
+    g_nodiscard inline const std::string& getPath() const {
         CHECK(fProtocol != Protocol::kInvalid);
         return fPath;
     }
 
-    gal_nodiscard inline std::string toString() const {
+    g_nodiscard inline std::string toString() const {
         CHECK(fProtocol != Protocol::kInvalid);
         std::string url;
         switch (fProtocol)
@@ -87,7 +87,7 @@ public:
         return (url + fPath);
     }
 
-    gal_nodiscard inline std::optional<std::string> loadResourceText() const {
+    g_nodiscard inline std::optional<std::string> loadResourceText() const {
         CHECK(fProtocol != Protocol::kInvalid);
         if (fPersistentCachedText)
             return fPersistentCachedText;
@@ -96,7 +96,7 @@ public:
                 : std::make_optional<std::string>(onLoadResourceText()));
     }
 
-    gal_nodiscard bindings::BindingBase *getSyntheticBinding() const {
+    g_nodiscard bindings::BindingBase *getSyntheticBinding() const {
         return fBinding;
     }
 
@@ -116,7 +116,7 @@ public:
     }
 
 private:
-    gal_nodiscard std::string onLoadResourceText() const;
+    g_nodiscard std::string onLoadResourceText() const;
 
     Protocol                fProtocol;
     std::string             fPath;

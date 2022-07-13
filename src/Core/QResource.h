@@ -47,7 +47,7 @@ public:
 
     bool Load(const std::shared_ptr<Data>& data);
 
-    co_nodiscard std::shared_ptr<Data> Lookup(const std::string& package,
+    g_nodiscard std::shared_ptr<Data> Lookup(const std::string& package,
                                               const std::string& path);
 
 private:

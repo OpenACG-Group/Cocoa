@@ -5,19 +5,27 @@
 #include "Core/Journal.h"
 #include "Gallium/BindingManager.h"
 #include "Gallium/bindings/Base.h"
-#include "Gallium/bindings/core/Exports.h"
-#include "Gallium/bindings/cobalt/Exports.h"
 
-#define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium)
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.BindingManager)
 
 GALLIUM_NS_BEGIN
+
+// This symbol is defined in generated source file.
+// See `scripts/modulec.py` and `scripts/collect-internal-bindings.py` for details.
+namespace bindings {
+extern std::vector<bindings::BindingBase *> on_register_internal_bindings();
+}
 
 BindingManager::BindingManager(const Runtime::Options& options)
     : fAllowOverride(options.rt_allow_override)
     , fBlacklist(options.bindings_blacklist)
 {
-    appendBinding(new bindings::CoreBinding());
-    appendBinding(new bindings::cobalt_wrap::CobaltBinding());
+    // appendBinding(bindings::on_register_module_core());
+    // appendBinding(new bindings::glamor_wrap::GlamorBinding());
+    for (auto *ptr : bindings::on_register_internal_bindings())
+    {
+        CHECK(appendBinding(ptr) && "Failed in registering bindings");
+    }
 }
 
 BindingManager::~BindingManager()
