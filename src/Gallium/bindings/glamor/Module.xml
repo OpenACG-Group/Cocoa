@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <info name="glamor" description="Cocoa Glamor 2D Rendering Infrastructure"/>
+    <metadata namespace="cocoa::gallium::bindings::glamor_wrap" class="GlamorBinding"/>
+    <include src="Gallium/bindings/glamor/Exports.h"/>
+    <include src="Gallium/bindings/glamor/Scene.h"/>
+    <include src="Gallium/bindings/glamor/SceneBuilder.h"/>
+    <include src="Glamor/Surface.h"/>
+    <include src="Glamor/Monitor.h"/>
+    <hook on="instantiate" call="GlamorSetInstanceProperties"/>
+    <exports>
+        <toplevel type="declaration" name="Constants"/>
+
+        <class name="RenderHost" wrapper="RenderHostWrap">
+            <method static="true" name="Initialize" value="@Initialize"/>
+            <method static="true" name="Dispose" value="@Dispose"/>
+            <method static="true" name="Connect" value="@Connect"/>
+            <method static="true" name="WaitForSyncBarrier" value="@WaitForSyncBarrier"/>
+            <method static="true" name="SleepRendererFor" value="@SleepRendererFor"/>
+            <method static="true" name="TraceGraphicsResources" value="@TraceGraphicsResources"/>
+        </class>
+
+        <class name="RenderClientObject" wrapper="RenderClientObjectWrap" invisible="true">
+            <method name="connect" value="@connect"/>
+            <method name="disconnect" value="@disconnect"/>
+            <method name="inspectObject" value="@inspectObject"/>
+        </class>
+
+        <class name="Display" wrapper="DisplayWrap" inherit="RenderClientObjectWrap">
+            <method name="close" value="@close"/>
+            <method name="createRasterSurface" value="@createRasterSurface"/>
+            <method name="createHWComposeSurface" value="@createHWComposeSurface"/>
+            <method name="requestMonitorList" value="@requestMonitorList"/>
+            <property name="defaultCursorTheme" getter="@getDefaultCursorTheme"/>
+            <method name="loadCursorTheme" value="@loadCursorTheme"/>
+            <method name="createCursor" value="@createCursor"/>
+        </class>
+
+        <class name="Monitor" wrapper="MonitorWrap" inherit="RenderClientObjectWrap">
+            <method name="requestPropertySet" value="@requestPropertySet"/>
+            <property static="true" name="SUBPIXEL_UNKNOWN" value="V_CAST_U32(glamor::MonitorSubpixel::kUnknown)"/>
+            <property static="true" name="SUBPIXEL_NONE" value="V_CAST_U32(glamor::MonitorSubpixel::kNone)"/>
+            <property static="true" name="SUBPIXEL_HORIZONTAL_RGB" value="V_CAST_U32(glamor::MonitorSubpixel::kHorizontalRGB)"/>
+            <property static="true" name="SUBPIXEL_HORIZONTAL_BGR" value="V_CAST_U32(glamor::MonitorSubpixel::kHorizontalBGR)"/>
+            <property static="true" name="SUBPIXEL_VERTICAL_RGB" value="V_CAST_U32(glamor::MonitorSubpixel::kVerticalRGB)"/>
+            <property static="true" name="SUBPIXEL_VERTICAL_BGR" value="V_CAST_U32(glamor::MonitorSubpixel::kVerticalBGR)"/>
+            <property static="true" name="TRANSFORM_NORMAL" value="V_CAST_U32(glamor::MonitorTransform::kNormal)"/>
+            <property static="true" name="TRANSFORM_ROTATE_90" value="V_CAST_U32(glamor::MonitorTransform::kRotate90)"/>
+            <property static="true" name="TRANSFORM_ROTATE_180" value="V_CAST_U32(glamor::MonitorTransform::kRotate180)"/>
+            <property static="true" name="TRANSFORM_ROTATE_270" value="V_CAST_U32(glamor::MonitorTransform::kRotate270)"/>
+            <property static="true" name="TRANSFORM_FLIPPED" value="V_CAST_U32(glamor::MonitorTransform::kFlipped)"/>
+            <property static="true" name="TRANSFORM_FLIPPED_90" value="V_CAST_U32(glamor::MonitorTransform::kFlipped90)"/>
+            <property static="true" name="TRANSFORM_FLIPPED_180" value="V_CAST_U32(glamor::MonitorTransform::kFlipped180)"/>
+            <property static="true" name="TRANSFORM_FLIPPED_270" value="V_CAST_U32(glamor::MonitorTransform::kFlipped270)"/>
+            <property static="true" name="MODE_CURRENT" value="V_CAST_U32(glamor::MonitorMode::kCurrent)"/>
+            <property static="true" name="MODE_PREFERRED" value="V_CAST_U32(glamor::MonitorMode::kPreferred)"/>
+        </class>
+
+        <class name="CursorTheme" wrapper="CursorThemeWrap" inherit="RenderClientObjectWrap">
+            <method name="dispose" value="@dispose"/>
+            <method name="loadCursorFromName" value="@loadCursorFromName"/>
+        </class>
+
+        <class name="Cursor" wrapper="CursorWrap" inherit="RenderClientObjectWrap">
+            <method name="dispose" value="@dispose"/>
+            <method name="getHotspotVector" value="@getHotspotVector"/>
+        </class>
+
+        <class name="Surface" wrapper="SurfaceWrap" inherit="RenderClientObjectWrap">
+            <property name="width" getter="@getWidth"/>
+            <property name="height" getter="@getHeight"/>
+            <method name="createBlender" value="@createBlender"/>
+            <method name="close" value="@close"/>
+            <method name="resize" value="@resize"/>
+            <method name="setTitle" value="@setTitle"/>
+            <method name="getBuffersDescriptor" value="@getBuffersDescriptor"/>
+            <method name="requestNextFrame" value="@requestNextFrame"/>
+            <method name="setMinSize" value="@setMinSize"/>
+            <method name="setMaxSize" value="@setMaxSize"/>
+            <method name="setMaximized" value="@setMaximized"/>
+            <method name="setMinimized" value="@setMinimized"/>
+            <method name="setFullscreen" value="@setFullscreen"/>
+            <method name="setAttachedCursor" value="@setAttachedCursor"/>
+            <property static="true" name="TOPLEVEL_MAXIMIZED" value="V_CAST_U32(glamor::ToplevelStates::kMaximized)"/>
+            <property static="true" name="TOPLEVEL_FULLSCREEN" value="V_CAST_U32(glamor::ToplevelStates::kFullscreen)"/>
+            <property static="true" name="TOPLEVEL_RESIZING" value="V_CAST_U32(glamor::ToplevelStates::kResizing)"/>
+            <property static="true" name="TOPLEVEL_ACTIVATED" value="V_CAST_U32(glamor::ToplevelStates::kActivated)"/>
+            <property static="true" name="TOPLEVEL_TILED_LEFT" value="V_CAST_U32(glamor::ToplevelStates::kTiledLeft)"/>
+            <property static="true" name="TOPLEVEL_TILED_RIGHT" value="V_CAST_U32(glamor::ToplevelStates::kTiledRight)"/>
+            <property static="true" name="TOPLEVEL_TILED_TOP" value="V_CAST_U32(glamor::ToplevelStates::kTiledTop)"/>
+            <property static="true" name="TOPLEVEL_TILED_BOTTOM" value="V_CAST_U32(glamor::ToplevelStates::kTiledBottom)"/>
+        </class>
+
+        <class name="Blender" wrapper="BlenderWrap" inherit="RenderClientObjectWrap">
+            <method name="dispose" value="@dispose"/>
+            <method name="update" value="@update"/>
+            <method name="createTextureFromImage" value="@createTextureFromImage"/>
+            <method name="createTextureFromEncodedData" value="@createTextureFromEncodedData"/>
+            <method name="createTextureFromPixmap" value="@createTextureFromPixmap"/>
+            <method name="deleteTexture" value="@deleteTexture"/>
+            <method name="newTextureDeletionSubscriptionSignal" value="@newTextureDeletionSubscriptionSignal"/>
+        </class>
+
+        <class name="Scene" wrapper="Scene">
+            <method name="dispose" value="@dispose"/>
+            <method name="toImage" value="@toImage"/>
+        </class>
+
+        <class name="SceneBuilder" wrapper="SceneBuilder">
+            <constructor prototype="int32_t, int32_t"/>
+            <method name="pop" value="@pop"/>
+            <method name="build" value="@build"/>
+            <method name="pushOffset" value="@pushOffset"/>
+            <method name="addPicture" value="@addPicture"/>
+            <method name="addTexture" value="@addTexture"/>
+        </class>
+
+        <class name="CkBitmap" wrapper="CkBitmapWrap">
+            <method static="true" name="MakeFromBuffer" value="@MakeFromBuffer"/>
+            <method static="true" name="MakeFromEncodedFile" value="@MakeFromEncodedFile"/>
+            <property name="width" getter="@getWidth"/>
+            <property name="height" getter="@getHeight"/>
+            <property name="alphaType" getter="@getAlphaType"/>
+            <property name="colorType" getter="@getColorType"/>
+            <property name="bytesPerPixel" getter="@getBytesPerPixel"/>
+            <property name="rowBytesAsPixels" getter="@getRowBytesAsPixels"/>
+            <property name="getShiftPerPixel" getter="@getShiftPerPixel"/>
+            <property name="rowBytes" getter="@getRowBytes"/>
+            <method name="computeByteSize" value="@computeByteSize"/>
+            <method name="toImage" value="@toImage"/>
+            <method name="getPixelBuffer" value="@getPixelBuffer"/>
+        </class>
+
+        <class name="CkImage" wrapper="CkImageWrap">
+            <method static="true" name="MakeFromEncodedData" value="@MakeFromEncodedData"/>
+            <method static="true" name="MakeFromEncodedFile" value="@MakeFromEncodedFile"/>
+            <method name="encodeToData" value="@encodeToData"/>
+            <method name="uniqueId" value="@uniqueId"/>
+            <property name="width" getter="@getWidth"/>
+            <property name="height" getter="@getHeight"/>
+            <property name="alphaType" getter="@getAlphaType"/>
+            <property name="colorType" getter="@getColorType"/>
+        </class>
+
+        <class name="CkPicture" wrapper="CkPictureWrap">
+            <method static="true" name="MakeFromData" value="@MakeFromData"/>
+            <method static="true" name="MakeFromFile" value="@MakeFromFile"/>
+            <method name="serialize" value="@serialize"/>
+            <method name="approximateOpCount" value="@approximateOpCount"/>
+            <method name="approximateByteUsed" value="@approximateByteUsed"/>
+            <method name="uniqueId" value="@uniqueId"/>
+        </class>
+
+        <class name="MoeHeapObjectBinder" wrapper="MoeHeapObjectBinderWrap">
+            <constructor prototype=""/>
+            <method name="bindBitmap" value="@bindBitmap"/>
+            <method name="bindImage" value="@bindImage"/>
+            <method name="bindPicture" value="@bindPicture"/>
+            <method name="bindString" value="@bindString"/>
+        </class>
+
+        <class name="MoeTranslationToolchain" wrapper="MoeTranslationToolchainWrap">
+            <method static="true" name="Interpreter" value="@Interpreter"/>
+            <method static="true" name="Disassemble" value="@Disassemble"/>
+            <method static="true" name="Compress" value="@Compress"/>
+        </class>
+    </exports>
+</module>

@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <info name="core" description="Cocoa Core JavaScript Binding"/>
+    <metadata namespace="cocoa::gallium::bindings" class="CoreBinding"/>
+    <include src="Gallium/bindings/core/Exports.h"/>
+    <hook on="instantiate" call="CoreSetInstanceProperties"/>
+    <exports>
+        <toplevel type="function" name="print" value="Print"/>
+        <toplevel type="function" name="getEnviron" value="GetEnviron"/>
+        <toplevel type="function" name="dumpNativeHeapProfile" value="DumpNativeHeapProfile"/>
+
+        <toplevel type="function" name="unlink" value="Unlink"/>
+        <toplevel type="function" name="mkdir" value="Mkdir"/>
+        <toplevel type="function" name="mkdtemp" value="Mkdtemp"/>
+        <toplevel type="function" name="mkstemp" value="Mkstemp"/>
+        <toplevel type="function" name="rmdir" value="Rmdir"/>
+        <toplevel type="function" name="stat" value="Stat"/>
+        <toplevel type="function" name="lstat" value="LStat"/>
+        <toplevel type="function" name="rename" value="Rename"/>
+        <toplevel type="function" name="access" value="Access"/>
+        <toplevel type="function" name="chmod" value="Chmod"/>
+        <toplevel type="function" name="utime" value="UTime"/>
+        <toplevel type="function" name="lutime" value="LUTime"/>
+        <toplevel type="function" name="link" value="Link"/>
+        <toplevel type="function" name="symlink" value="Symlink"/>
+        <toplevel type="function" name="readlink" value="Readlink"/>
+        <toplevel type="function" name="realpath" value="Realpath"/>
+        <toplevel type="function" name="chown" value="Chown"/>
+        <toplevel type="function" name="lchown" value="LChown"/>
+
+        <toplevel type="declaration" name="args"/>
+        <toplevel type="declaration" name="property"/>
+
+        <class name="StreamWeakBuffer" wrapper="StreamWeakBuffer">
+            <method name="toStrongOwnership" value="@toStrongOwnership"/>
+            <property name="expired" getter="@isExpired"/>
+        </class>
+
+        <class name="StreamReadIterator" wrapper="StreamReadIterator">
+            <method name="next" value="@next"/>
+            <method name="return" value="@return_"/>
+            <method name="throw" value="@throw_"/>
+        </class>
+
+        <class name="Stream" wrapper="StreamWrap">
+            <method static="true" name="OpenTTYStdin" value="@OpenTTYStdin"/>
+            <property name="writable" getter="@isWritable"/>
+            <property name="readable" getter="@isReadable"/>
+            <method name="#AsyncIterator" value="@asyncIterator"/>
+        </class>
+
+        <class name="Process" wrapper="ProcessWrap">
+            <method static="true" name="Fork" value="@Fork"/>
+            <property name="pid" getter="@getPid"/>
+            <method name="kill" value="@kill"/>
+            <method name="getPipeStream" value="@getPipeStream"/>
+            <method name="promiseOnExit" value="@promiseOnExit"/>
+            <property static="true" name="STREAM_INHERIT" value="GAL_PROC_STREAM_INHERIT"/>
+            <property static="true" name="STREAM_REDIRECT" value="GAL_PROC_STREAM_REDIRECT"/>
+            <property static="true" name="SIGINT" value="SIGINT"/>
+            <property static="true" name="SIGILL" value="SIGILL"/>
+            <property static="true" name="SIGABRT" value="SIGABRT"/>
+            <property static="true" name="SIGFPE" value="SIGFPE"/>
+            <property static="true" name="SIGSEGV" value="SIGSEGV"/>
+            <property static="true" name="SIGTERM" value="SIGTERM"/>
+            <property static="true" name="SIGHUP" value="SIGHUP"/>
+            <property static="true" name="SIGQUIT" value="SIGQUIT"/>
+            <property static="true" name="SIGTRAP" value="SIGTRAP"/>
+            <property static="true" name="SIGKILL" value="SIGKILL"/>
+            <property static="true" name="SIGPIPE" value="SIGPIPE"/>
+            <property static="true" name="SIGALRM" value="SIGALRM"/>
+            <property static="true" name="SIGSTKFLT" value="SIGSTKFLT"/>
+            <property static="true" name="SIGPWR" value="SIGPWR"/>
+            <property static="true" name="SIGBUS" value="SIGBUS"/>
+            <property static="true" name="SIGSYS" value="SIGSYS"/>
+            <property static="true" name="SIGURG" value="SIGURG"/>
+            <property static="true" name="SIGSTOP" value="SIGSTOP"/>
+            <property static="true" name="SIGTSTP" value="SIGTSTP"/>
+            <property static="true" name="SIGCONT" value="SIGCONT"/>
+            <property static="true" name="SIGCHLD" value="SIGCHLD"/>
+            <property static="true" name="SIGTTIN" value="SIGTTIN"/>
+            <property static="true" name="SIGTTOU" value="SIGTTOU"/>
+            <property static="true" name="SIGPOLL" value="SIGPOLL"/>
+            <property static="true" name="SIGXFSZ" value="SIGXFSZ"/>
+            <property static="true" name="SIGXCPU" value="SIGXCPU"/>
+            <property static="true" name="SIGVTALRM" value="SIGVTALRM"/>
+            <property static="true" name="SIGPROF" value="SIGPROF"/>
+            <property static="true" name="SIGUSR1" value="SIGUSR1"/>
+            <property static="true" name="SIGUSR2" value="SIGUSR2"/>
+        </class>
+
+        <class name="File" wrapper="FileWrap">
+            <method static="true" name="Open" value="@Open"/>
+            <method name="close" value="@close"/>
+            <method name="isClosed" value="@isClosed"/>
+            <method name="isClosing" value="@isClosing"/>
+            <method name="read" value="@read"/>
+            <method name="write" value="@write"/>
+            <method name="fstat" value="@fstat"/>
+            <method name="fsync" value="@fsync"/>
+            <method name="fdatasync" value="@fdatasync"/>
+            <method name="ftruncate" value="@ftruncate"/>
+            <method name="fchmod" value="@fchmod"/>
+            <method name="futime" value="@futime"/>
+            <method name="fchown" value="@fchown"/>
+            <property static="true" name="O_FILEMAP" value="UV_FS_O_FILEMAP"/>
+            <property static="true" name="O_RANDOM" value="UV_FS_O_RANDOM"/>
+            <property static="true" name="O_SHORT_LIVED" value="UV_FS_O_SHORT_LIVED"/>
+            <property static="true" name="O_SEQUENTIAL" value="UV_FS_O_SEQUENTIAL"/>
+            <property static="true" name="O_TEMPORARY" value="UV_FS_O_TEMPORARY"/>
+            <property static="true" name="O_APPEND" value="UV_FS_O_APPEND"/>
+            <property static="true" name="O_CREAT" value="UV_FS_O_CREAT"/>
+            <property static="true" name="O_DIRECT" value="UV_FS_O_DIRECT"/>
+            <property static="true" name="O_DIRECTORY" value="UV_FS_O_DIRECTORY"/>
+            <property static="true" name="O_DSYNC" value="UV_FS_O_DSYNC"/>
+            <property static="true" name="O_EXCL" value="UV_FS_O_EXCL"/>
+            <property static="true" name="O_EXLOCK" value="UV_FS_O_EXLOCK"/>
+            <property static="true" name="O_NOATIME" value="UV_FS_O_NOATIME"/>
+            <property static="true" name="O_NOCTTY" value="UV_FS_O_NOCTTY"/>
+            <property static="true" name="O_NOFOLLOW" value="UV_FS_O_NOFOLLOW"/>
+            <property static="true" name="O_NONBLOCK" value="UV_FS_O_NONBLOCK"/>
+            <property static="true" name="O_RDONLY" value="UV_FS_O_RDONLY"/>
+            <property static="true" name="O_RDWR" value="UV_FS_O_RDWR"/>
+            <property static="true" name="O_SYMLINK" value="UV_FS_O_SYMLINK"/>
+            <property static="true" name="O_SYNC" value="UV_FS_O_SYNC"/>
+            <property static="true" name="O_TRUNC" value="UV_FS_O_TRUNC"/>
+            <property static="true" name="O_WRONLY" value="UV_FS_O_WRONLY"/>
+            <property static="true" name="S_IRWXU" value="S_IRWXU"/>
+            <property static="true" name="S_IRUSR" value="S_IRUSR"/>
+            <property static="true" name="S_IWUSR" value="S_IWUSR"/>
+            <property static="true" name="S_IXUSR" value="S_IXUSR"/>
+            <property static="true" name="S_IRWXG" value="S_IRWXG"/>
+            <property static="true" name="S_IRGRP" value="S_IRGRP"/>
+            <property static="true" name="S_IWGRP" value="S_IWGRP"/>
+            <property static="true" name="S_IXGRP" value="S_IXGRP"/>
+            <property static="true" name="S_IRWXO" value="S_IRWXO"/>
+            <property static="true" name="S_IROTH" value="S_IROTH"/>
+            <property static="true" name="S_IWOTH" value="S_IWOTH"/>
+            <property static="true" name="S_IXOTH" value="S_IXOTH"/>
+            <property static="true" name="S_IFMT" value="S_IFMT"/>
+            <property static="true" name="S_IFREG" value="S_IFREG"/>
+            <property static="true" name="S_IFDIR" value="S_IFDIR"/>
+            <property static="true" name="S_IFCHR" value="S_IFCHR"/>
+            <property static="true" name="S_IFBLK" value="S_IFBLK"/>
+            <property static="true" name="S_IFIFO" value="S_IFIFO"/>
+            <property static="true" name="S_IFLNK" value="S_IFLNK"/>
+            <property static="true" name="S_IFSOCK" value="S_IFSOCK"/>
+            <property static="true" name="F_OK" value="F_OK"/>
+            <property static="true" name="R_OK" value="R_OK"/>
+            <property static="true" name="W_OK" value="W_OK"/>
+            <property static="true" name="X_OK" value="X_OK"/>
+            <property static="true" name="SYMLINK_DIR" value="UV_FS_SYMLINK_DIR"/>
+            <property static="true" name="SYMLINK_JUNCTION" value="UV_FS_SYMLINK_JUNCTION"/>
+        </class>
+
+        <class name="Property" wrapper="PropertyWrap">
+            <property name="type" getter="@getType"/>
+            <property name="parent" getter="@getParent"/>
+            <property name="name" getter="@getName" setter="@setName"/>
+            <property name="protection" getter="@getProtection"/>
+            <property name="numberOfChildren" getter="@getNumberOfChildren"/>
+            <method name="foreachChild" value="@foreachChild"/>
+            <method name="findChild" value="@findChild"/>
+            <method name="insertChild" value="@insertChild"/>
+            <method name="pushbackChild" value="@pushbackChild"/>
+            <method name="detachFromParent" value="@detachFromParent"/>
+            <method name="extract" value="@extract"/>
+            <method name="hasData" value="@hasData"/>
+            <method name="resetData" value="@resetData"/>
+            <method name="dataTypeinfo" value="@dataTypeinfo"/>
+            <property static="true" name="PROT_PUBLIC" value="V_CAST_U32(@Prot::kPublic)"/>
+            <property static="true" name="PROT_PRIVATE" value="V_CAST_U32(@Prot::kPrivate)"/>
+            <property static="true" name="TYPE_OBJECT" value="V_CAST_U32(@Type::kObject)"/>
+            <property static="true" name="TYPE_ARRAY" value="V_CAST_U32(@Type::kArray)"/>
+            <property static="true" name="TYPE_DATA" value="V_CAST_U32(@Type::kData)"/>
+        </class>
+
+        <class name="Buffer" wrapper="Buffer">
+            <method static="true" name="MakeFromSize" value="@MakeFromSize"/>
+            <method static="true" name="MakeFromString" value="@MakeFromString"/>
+            <method static="true" name="MakeFromFile" value="@MakeFromFile"/>
+            <method static="true" name="MakeFromAdoptBuffer" value="@MakeFromAdoptBuffer"/>
+            <method static="true" name="MakeFromPackageFile" value="@MakeFromPackageFile"/>
+            <property name="length" getter="@length"/>
+            <property name="byteArray" getter="@getByteArray"/>
+            <method name="byteAt" value="@byteAt"/>
+            <method name="copy" value="@copy"/>
+            <method name="toDataView" value="@toDataView"/>
+            <method name="toString" value="@toString"/>
+            <method name="memsetZero" value="@memsetZero"/>
+            <property static="true" name="ENCODE_LATIN1" value="V_CAST_U32(@Encoding::kLatin1)"/>
+            <property static="true" name="ENCODE_ASCII" value="V_CAST_U32(@Encoding::kLatin1)"/>
+            <property static="true" name="ENCODE_UTF8" value="V_CAST_U32(@Encoding::kUtf8)"/>
+            <property static="true" name="ENCODE_HEX" value="V_CAST_U32(@Encoding::kHex)"/>
+        </class>
+    </exports>
+</module>

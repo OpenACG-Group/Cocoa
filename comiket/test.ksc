@@ -1,0 +1,23 @@
+[scene name=test_scene]
+
+[umi:]
+这是 UMI 的台词部分，
+换行也没问题。
+[end]
+
+[::]
+这是独白部分
+[end]
+
+[audiopush file="/path/to/file.mp3"]
+[audioplay]
+
+[ao:]
+有 BGM 的台词部分。
+转义字符强制\n换行。
+[end]
+
+[audiostop]
+[audiopop]
+
+[evaluate script=123 1.2 "string" pro=1>2+3 2 * 2]

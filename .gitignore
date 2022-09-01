@@ -1,0 +1,17 @@
+# Deprecated
+/deprecated
+
+# External sources
+/third_party/*
+/res/*
+
+# Building directories
+/cmake-build-*
+/build
+/typescript/out
+
+/tools
+
+/.idea
+/.vscode
+

@@ -1,0 +1,33 @@
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "target": "ES2021",
+        "moduleResolution": "Classic",
+        "outDir": "./out",
+        "isolatedModules": false,
+        "baseUrl": ".",
+        "paths": {
+            "internal://*": [ "internal/*" ],
+            "synthetic://*": [ "synthetics/*" ],
+            "*": [ "synthetics/*" ]
+        }
+    },
+    "include": [
+        "./global/infrastructure.d.ts",
+        "./global/introspect.d.ts"
+    ],
+    "files": [
+        "./synthetics/core.d.ts",
+        "./synthetics/glamor.d.ts",
+        "./core/format.ts",
+        "./core/assert.ts",
+        "./core/linked_list.ts",
+        "./core/pretty_printer.ts",
+
+        "samples/canvaskit_offscreen_picture.ts",
+        "samples/canvaskit_offscreen_image.ts",
+        "samples/canvaskit_window.ts",
+        "samples/canvaskit_window_lottie.ts",
+        "samples/canvaskit_window_shader.ts"
+    ]
+}
