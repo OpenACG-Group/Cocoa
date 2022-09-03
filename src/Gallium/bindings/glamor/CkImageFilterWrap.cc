@@ -228,129 +228,6 @@ private:
     Location                current_loc_;
 };
 
-class Parser
-{
-public:
-    class MaybeError
-    {
-    public:
-        MaybeError()
-            : error_(nullptr), location_{} {}
-        MaybeError(const char *error, const Location& location)
-            : error_(error), location_(location) {}
-
-        static MaybeError MakeSuccess() {
-            return MaybeError();
-        }
-
-        static MaybeError Make(const char *error, const Location& location) {
-            return MaybeError(error, location);
-        }
-
-        g_nodiscard bool HasError() const {
-            return error_;
-        }
-
-        explicit operator bool() const {
-            return HasError();
-        }
-
-    private:
-        const char *error_;
-        Location    location_;
-    };
-
-    explicit Parser(const std::string& input)
-        : source_(input), token_list_(RefStringLexer::Tokenize(input))
-        , current_token_itr_(token_list_.begin()) {}
-    ~Parser() = default;
-
-    // filter := IDENT '(' param_list* ')'
-    MaybeError ParseFilter()
-    {
-        Token& token = GetToken();
-        if (token.type != Token::kIdentifier)
-            return {"Unexpected token, expecting an identifier here", token.location};
-        std::string filter_name = std::move(token.lexeme);
-
-        token = GetToken();
-        if (token.type != Token::kLPar)
-            return {"Unexpected token, expecting a '(' here", token.location};
-
-        if (auto error = ParseParamList())
-            return error;
-
-        token = GetToken();
-        if (token.type != Token::kRPar)
-        {
-            return {"Unexpected token, expecting a ')' here", token.location};
-        }
-
-        fmt::print("Filter: {}\n", token.lexeme);
-
-        return MaybeError::MakeSuccess();
-    }
-
-    // param_list := param | param_list ',' param
-    MaybeError ParseParamList()
-    {
-        Save();
-        MaybeError error = ParseParam();
-        while (!error)
-        {
-            // Accept a `param` non-terminator successfully, and discard
-            // the save recording.
-            Discard();
-
-            Save();
-            error = ParseParam();
-            if (error)
-            {
-                Restore();
-                return MaybeError::MakeSuccess();
-            }
-        }
-        Restore();
-    }
-
-    MaybeError ParseParam()
-    {
-    }
-
-private:
-    void Save()
-    {
-        iterator_stack_.push(current_token_itr_);
-    }
-
-    void Restore()
-    {
-        current_token_itr_ = iterator_stack_.top();
-        iterator_stack_.pop();
-    }
-
-    void Discard()
-    {
-        iterator_stack_.pop();
-    }
-
-    Token& GetToken()
-    {
-        CHECK(current_token_itr_ != token_list_.end());
-        return *current_token_itr_++;
-    }
-
-    const std::string&                  source_;
-    TokenList                           token_list_;
-    TokenList::iterator                 current_token_itr_;
-    std::stack<TokenList::iterator>     iterator_stack_;
-};
-
-void parse_descriptor(const std::string& descriptor)
-{
-    TokenList token_list = RefStringLexer::Tokenize(descriptor);
-}
-
 } // namespace anonymous
 
 v8::Local<v8::Value> CkImageFilterWrap::MakeFromDescriptor(const std::string& descriptor,
@@ -360,8 +237,7 @@ v8::Local<v8::Value> CkImageFilterWrap::MakeFromDescriptor(const std::string& de
     if (!params->IsArray())
         g_throw(TypeError, "`params` must be an array contains parameters of descriptor");
 
-    parse_descriptor(descriptor);
-
+    // TODO(sora): implement this.
     return v8::Undefined(isolate);
 }
 

@@ -41,9 +41,6 @@ public:
     //! TSDecl: function pushOffset(x: number, y: number): SceneBuilder
     v8::Local<v8::Value> pushOffset(SkScalar x, SkScalar y);
 
-    //! TSDecl: function pushImageFilter(imageFilter: CkImageFilter): SceneBuilder
-    v8::Local<v8::Value> pushImageFilter(v8::Local<v8::Value> imageFilter);
-
     //! TSDecl: function addPicture(picture: CkPicture): SceneBuilder
     v8::Local<v8::Value> addPicture(v8::Local<v8::Value> picture, SkScalar dx, SkScalar dy);
 
