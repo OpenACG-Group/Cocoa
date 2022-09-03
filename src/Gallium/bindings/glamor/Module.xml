@@ -115,6 +115,10 @@
             <method name="addTexture" value="@addTexture"/>
         </class>
 
+        <class name="CkImageFilter" wrapper="CkImageFilterWrap">
+            <method static="true" name="MakeFromDescriptor" value="@MakeFromDescriptor"/>
+        </class>
+
         <class name="CkBitmap" wrapper="CkBitmapWrap">
             <method static="true" name="MakeFromBuffer" value="@MakeFromBuffer"/>
             <method static="true" name="MakeFromEncodedFile" value="@MakeFromEncodedFile"/>

@@ -126,7 +126,10 @@ Shared<Blender> Blender::Make(const Shared<Surface>& surface)
     }
     else
     {
-        // TODO(sora): implement raster texture factory
+        SkColorInfo info{surface->GetColorType(),
+                         SkAlphaType::kPremul_SkAlphaType,
+                         nullptr};
+        texture_factory = std::make_unique<RasterTextureFactory>(info);
     }
 
     // `TextureManager` is only owned by `Blender` and will be released when the

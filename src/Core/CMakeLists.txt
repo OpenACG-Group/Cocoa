@@ -58,7 +58,6 @@ add_library(
 )
 
 target_link_libraries(Core
-        PRIVATE
         pthread
         dl
         unwind

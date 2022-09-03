@@ -73,6 +73,7 @@ add_library(Gallium STATIC
         bindings/glamor/CkPictureWrap.cc
         bindings/glamor/CkImageWrap.cc
         bindings/glamor/CkBitmapWrap.cc
+        bindings/glamor/CkImageFilterWrap.cc
         bindings/glamor/Scene.h
         bindings/glamor/Scene.cc
         bindings/glamor/SceneBuilder.h

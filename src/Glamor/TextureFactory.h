@@ -56,7 +56,16 @@ protected:
 
 class RasterTextureFactory : public TextureFactory
 {
-    // TODO(sora): implement this.
+public:
+    explicit RasterTextureFactory(SkColorInfo color_info)
+        : color_info_(std::move(color_info)) {}
+    ~RasterTextureFactory() override = default;
+
+    Shared<Texture> OnMakeFromImage(const sk_sp<SkImage> &image) override;
+    Shared<Texture> OnMakeFromRawData(const void *pixels, const SkImageInfo &info) override;
+
+private:
+    SkColorInfo     color_info_;
 };
 
 class HWComposeTextureFactory : public TextureFactory

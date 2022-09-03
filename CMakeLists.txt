@@ -28,6 +28,12 @@ link_directories(third_party/build/lib)
 add_compile_definitions(COCOA_PROJECT=1 V8_COMPRESS_POINTERS SK_VULKAN)
 add_compile_options(-Wall)
 
+if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+    ## LLDB cannot inspect std::string object without this compilation option.
+    ## See: https://bugs.llvm.org/show_bug.cgi?id=24202
+    add_compile_options(-fstandalone-debug)
+endif()
+
 add_subdirectory(src/Core)
 add_subdirectory(src/Glamor)
 add_subdirectory(src/Gallium)

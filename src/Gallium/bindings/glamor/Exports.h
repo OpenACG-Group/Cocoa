@@ -26,6 +26,7 @@
 #include "Glamor/RenderClientObject.h"
 #include "Glamor/RenderHostCallbackInfo.h"
 
+#include "include/core/SkImageFilter.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkImage.h"
 #include "include/core/SkPicture.h"
@@ -314,6 +315,37 @@ public:
 
 SkRect CkRectToSkRectCast(v8::Isolate *isolate, v8::Local<v8::Value> object);
 SkIRect CkRectToSkIRectCast(v8::Isolate *isolate, v8::Local<v8::Value> object);
+
+//! TSDecl: class CkImageFilter
+class CkImageFilterWrap
+{
+public:
+    explicit CkImageFilterWrap(sk_sp<SkImageFilter> filter);
+    ~CkImageFilterWrap() = default;
+
+    g_nodiscard sk_sp<SkImageFilter> getImageFilter() const;
+
+    // Descriptor syntax:
+    //   filter_expr    := IDENT '(' param_list ')'
+    //   param_list     := param | param_list ',' param
+    //   param          := filter | literal | replacement
+    //   literal        := NUMBERS | 'null'
+    //   replacement    := '%' TYPE
+    //
+    // Examples:
+    //   blur(3.0, 3.0, %tilemode, null)
+    //   compose(blur(3.0, 3.0, %tilemode, null), image(%image, %sampling, %rect, %rect))
+
+    //! TSDecl: function MakeFromDescriptor(descriptor: string,
+    //!                                     params: object[] | null): CkImageFilter
+    static v8::Local<v8::Value> MakeFromDescriptor(const std::string& descriptor,
+                                                   v8::Local<v8::Value> params);
+
+    // TODO(sora): apply other functions on the wrapper
+
+private:
+    sk_sp<SkImageFilter> image_filter_;
+};
 
 //! TSDecl: class CkPicture
 class CkPictureWrap

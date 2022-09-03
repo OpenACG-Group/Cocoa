@@ -19,12 +19,16 @@
 #include "include/codec/SkCodec.h"
 #include "include/core/SkSurface.h"
 #include "include/core/SkCanvas.h"
+#include "include/core/SkBitmap.h"
 
 #include "Core/Errors.h"
+#include "Core/Journal.h"
 #include "Glamor/TextureFactory.h"
 #include "Glamor/Texture.h"
 #include "Glamor/HWComposeSwapchain.h"
 GLAMOR_NAMESPACE_BEGIN
+
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.TextureFactory)
 
 // `Texture` implementation
 
@@ -81,6 +85,75 @@ namespace {
 // so no mutex lock or thread_local attribute are applied.
 Texture::TextureId g_texture_id_counter = 0;
 } // namespace anonymous
+
+Shared<Texture> RasterTextureFactory::OnMakeFromImage(const sk_sp<SkImage>& image)
+{
+    sk_sp<SkImage> source_image = image;
+    if (image->isTextureBacked())
+    {
+        source_image = image->makeRasterImage();
+        if (!source_image)
+        {
+            QLOG(LOG_ERROR, "Failed to create a raster texture from a GPU image");
+            return nullptr;
+        }
+    }
+
+    // Now `source_image` must be a raster-backed image
+
+    sk_sp<SkImage> texture_image;
+
+    SkColorType color_type = color_info_.colorType();
+    SkAlphaType alpha_type = color_info_.alphaType();
+    if (source_image->imageInfo().colorType() == color_type &&
+        source_image->imageInfo().alphaType() == alpha_type)
+    {
+        // No color conversion should be performed.
+        // `makeSubset` clones the source image and copies pixels into a new image
+        texture_image = source_image->makeSubset(source_image->bounds());
+    }
+    else
+    {
+        auto image_info = SkImageInfo::Make(source_image->imageInfo().dimensions(),
+                                            color_type,
+                                            alpha_type,
+                                            SkColorSpace::MakeSRGB());
+
+        SkPixmap pixels;
+        if (!source_image->peekPixels(&pixels))
+        {
+            QLOG(LOG_ERROR, "Failed to peek pixels in the source image");
+            return nullptr;
+        }
+
+        SkBitmap dst;
+        dst.allocPixels(image_info, image_info.minRowBytes());
+        // `writePixels` performs color conversion
+        dst.writePixels(pixels);
+
+        dst.setImmutable();
+        // `setImmutable` makes `asImage` returns an image object which shares the pixels
+        // with the bitmap, which means no pixels duplication is performed.
+        texture_image = dst.asImage();
+    }
+
+    return std::make_shared<Texture>(++g_texture_id_counter,
+                                     texture_image->imageInfo(),
+                                     false,
+                                     texture_image);
+}
+
+Shared<Texture> RasterTextureFactory::OnMakeFromRawData(const void *pixels, const SkImageInfo& info)
+{
+    CHECK(pixels);
+    SkPixmap pixmap(info, pixels, info.minRowBytes());
+
+    // The created image shares the same pixel memory with `pixmap`,
+    // which means no memory copying will be performed.
+    sk_sp<SkImage> image = SkImage::MakeFromRaster(pixmap, nullptr, nullptr);
+
+    return OnMakeFromImage(image);
+}
 
 Shared<Texture> HWComposeTextureFactory::OnMakeFromImage(const sk_sp<SkImage>& image)
 {
