@@ -84,6 +84,10 @@ public:
         return result;
     }
 
+    explicit operator T() const {
+        return fValue;
+    }
+
     [[nodiscard]] bool isEmpty() const {
         return fValue == 0;
     }

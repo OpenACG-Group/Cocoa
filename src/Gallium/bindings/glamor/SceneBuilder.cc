@@ -43,7 +43,7 @@ v8::Local<v8::Object> SceneBuilder::getSelfHandle()
     return self_handle_.Get(v8::Isolate::GetCurrent());
 }
 
-void SceneBuilder::pushLayer(const std::shared_ptr<glamor::ContainerLayer>& layer)
+void SceneBuilder::pushLayer(const std::shared_ptr<gl::ContainerLayer>& layer)
 {
     CHECK(layer && "Invalid layer");
 
@@ -57,7 +57,7 @@ void SceneBuilder::pushLayer(const std::shared_ptr<glamor::ContainerLayer>& laye
         layer_tree_ = layer;
 }
 
-void SceneBuilder::addLayer(const std::shared_ptr<glamor::Layer>& layer)
+void SceneBuilder::addLayer(const std::shared_ptr<gl::Layer>& layer)
 {
     CHECK(layer && "Invalid layer");
     if (layer_stack_.empty())
@@ -91,7 +91,7 @@ v8::Local<v8::Value> SceneBuilder::pop()
 
 v8::Local<v8::Value> SceneBuilder::pushOffset(SkScalar x, SkScalar y)
 {
-    pushLayer(std::make_shared<glamor::TransformLayer>(SkMatrix::Translate(x, y)));
+    pushLayer(std::make_shared<gl::TransformLayer>(SkMatrix::Translate(x, y)));
     return getSelfHandle();
 }
 
@@ -102,7 +102,7 @@ v8::Local<v8::Value> SceneBuilder::addPicture(v8::Local<v8::Value> picture, SkSc
     if (unwrapped == nullptr)
         g_throw(TypeError, "\'picture\' must be an instance of CkPicture");
 
-    addLayer(std::make_shared<glamor::PictureLayer>(SkPoint::Make(dx, dy), unwrapped->getPicture()));
+    addLayer(std::make_shared<gl::PictureLayer>(SkPoint::Make(dx, dy), unwrapped->getPicture()));
     return getSelfHandle();
 }
 
@@ -141,7 +141,7 @@ v8::Local<v8::Value> SceneBuilder::addTexture(int64_t textureId,
         g_throw(RangeError, "Invalid enumeration value for `sampling`");
     }
 
-    addLayer(std::make_shared<glamor::TextureLayer>(textureId, offset,
+    addLayer(std::make_shared<gl::TextureLayer>(textureId, offset,
                                                     size, sampling_options));
 
     return getSelfHandle();

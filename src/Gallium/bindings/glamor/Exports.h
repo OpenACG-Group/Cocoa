@@ -55,8 +55,8 @@ struct SlotClosure;
 void GlamorSetInstanceProperties(v8::Local<v8::Object> instance);
 
 using InfoAcceptorResult = std::optional<std::vector<v8::Local<v8::Value>>>;
-// using InfoAcceptor = InfoAcceptorResult(*)(v8::Isolate*, ::cocoa::glamor::RenderHostSlotCallbackInfo&);
-using InfoAcceptor = std::function<InfoAcceptorResult(v8::Isolate*, glamor::RenderHostSlotCallbackInfo&)>;
+// using InfoAcceptor = InfoAcceptorResult(*)(v8::Isolate*, ::cocoa::gl::RenderHostSlotCallbackInfo&);
+using InfoAcceptor = std::function<InfoAcceptorResult(v8::Isolate*, gl::RenderHostSlotCallbackInfo&)>;
 
 enum class Sampling : uint32_t
 {
@@ -101,10 +101,10 @@ public:
 class RenderClientObjectWrap
 {
 public:
-    explicit RenderClientObjectWrap(glamor::Shared<glamor::RenderClientObject> object);
+    explicit RenderClientObjectWrap(gl::Shared<gl::RenderClientObject> object);
     virtual ~RenderClientObjectWrap();
 
-    g_nodiscard const glamor::Shared<glamor::RenderClientObject>& getObject() {
+    g_nodiscard const gl::Shared<gl::RenderClientObject>& getObject() {
         return object_;
     }
 
@@ -132,7 +132,7 @@ public:
     int32_t getSignalCodeByName(const std::string& name);
 
 private:
-    glamor::Shared<glamor::RenderClientObject> object_;
+    gl::Shared<gl::RenderClientObject> object_;
     std::map<std::string, int32_t>            signal_name_map_;
     std::map<uint32_t, InfoAcceptor>          acceptors_map_;
     std::map<uint32_t, std::unique_ptr<SlotClosure>> slot_closures_map_;
@@ -142,7 +142,7 @@ private:
 class DisplayWrap : public RenderClientObjectWrap
 {
 public:
-    explicit DisplayWrap(glamor::Shared<glamor::RenderClientObject> object);
+    explicit DisplayWrap(gl::Shared<gl::RenderClientObject> object);
     ~DisplayWrap() override;
 
     //! TSDecl: function close(): Promise<void>
@@ -167,7 +167,7 @@ public:
     v8::Local<v8::Value> createCursor(v8::Local<v8::Value> bitmap, int hotspotX, int hotspotY);
 
 private:
-    std::map<glamor::Shared<glamor::Monitor>, v8::Global<v8::Object>> monitor_objects_map_;
+    std::map<gl::Shared<gl::Monitor>, v8::Global<v8::Object>> monitor_objects_map_;
     v8::Global<v8::Object> default_cursor_theme_;
 };
 
@@ -175,7 +175,7 @@ private:
 class MonitorWrap : public RenderClientObjectWrap
 {
 public:
-    explicit MonitorWrap(glamor::Shared<glamor::RenderClientObject> object);
+    explicit MonitorWrap(gl::Shared<gl::RenderClientObject> object);
     ~MonitorWrap() override = default;
 
     //! TSDecl: function requestPropertySet(): Promise<void>
@@ -186,7 +186,7 @@ public:
 class CursorThemeWrap : public RenderClientObjectWrap
 {
 public:
-    explicit CursorThemeWrap(const std::shared_ptr<glamor::CursorTheme>& theme);
+    explicit CursorThemeWrap(const std::shared_ptr<gl::CursorTheme>& theme);
     ~CursorThemeWrap() override = default;
 
     //! TSDecl: function dispose(): Promise<void>;
@@ -200,7 +200,7 @@ public:
 class CursorWrap : public RenderClientObjectWrap
 {
 public:
-    explicit CursorWrap(const std::shared_ptr<glamor::Cursor>& cursor);
+    explicit CursorWrap(const std::shared_ptr<gl::Cursor>& cursor);
     ~CursorWrap() override = default;
 
     //! TSDecl: function dispose(): Promise<void>;
@@ -214,7 +214,7 @@ public:
 class SurfaceWrap : public RenderClientObjectWrap
 {
 public:
-    explicit SurfaceWrap(glamor::Shared<glamor::RenderClientObject> object);
+    explicit SurfaceWrap(gl::Shared<gl::RenderClientObject> object);
     ~SurfaceWrap() override;
 
     //! TSDecl: readonly width: number
@@ -264,7 +264,7 @@ public:
 class BlenderWrap : public RenderClientObjectWrap
 {
 public:
-    explicit BlenderWrap(glamor::Shared<glamor::RenderClientObject> object);
+    explicit BlenderWrap(gl::Shared<gl::RenderClientObject> object);
     ~BlenderWrap() override;
 
     //! TSDecl: function dispose(): Promise<void>

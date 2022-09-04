@@ -18,8 +18,23 @@
 #ifndef COCOA_GLAMOR_TYPES_H
 #define COCOA_GLAMOR_TYPES_H
 
-#include "Glamor/Glamor.h"
+#define GLAMOR_NAMESPACE_BEGIN  namespace cocoa::gl {
+#define GLAMOR_NAMESPACE_END    }
+
 GLAMOR_NAMESPACE_BEGIN
+
+enum class PointerButton : uint8_t
+{
+    /* Mouse buttons */
+    kLeft,
+    kRight,
+    kMiddle,
+    kSide,
+    kExtra,
+    kForward,
+    kBack,
+    kTask
+};
 
 GLAMOR_NAMESPACE_END
 #endif //COCOA_GLAMOR_TYPES_H

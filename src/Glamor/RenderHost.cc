@@ -209,7 +209,7 @@ RenderHost::WaitResult RenderHost::WaitForSyncBarrier(int64_t timeout_ms)
     return result;
 }
 
-void RenderHost::SetRenderClient(cocoa::glamor::RenderClient *pClient)
+void RenderHost::SetRenderClient(RenderClient *pClient)
 {
     CHECK(pClient && !render_client_);
     render_client_ = pClient;

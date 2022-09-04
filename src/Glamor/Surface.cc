@@ -258,7 +258,7 @@ Shared<Blender> Surface::CreateBlender()
     return blender;
 }
 
-void Surface::SetAttachedCursor(const Shared<cocoa::glamor::Cursor>& cursor)
+void Surface::SetAttachedCursor(const Shared<Cursor>& cursor)
 {
     CHECK(cursor);
 

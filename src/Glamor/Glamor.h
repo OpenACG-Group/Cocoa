@@ -26,8 +26,7 @@
 #include "Core/UniquePersistent.h"
 #include "Core/EventLoop.h"
 
-#define GLAMOR_NAMESPACE_BEGIN  namespace cocoa::glamor {
-#define GLAMOR_NAMESPACE_END    }
+#include "Glamor/Types.h"
 
 namespace cocoa {
 class StandaloneThreadPool;

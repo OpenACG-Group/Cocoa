@@ -23,7 +23,7 @@
 #include "Gallium/bindings/glamor/Scene.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-BlenderWrap::BlenderWrap(glamor::Shared<glamor::RenderClientObject> object)
+BlenderWrap::BlenderWrap(gl::Shared<gl::RenderClientObject> object)
     : RenderClientObjectWrap(std::move(object))
 {
 }
@@ -50,7 +50,7 @@ v8::Local<v8::Value> invoke_primitive_type_return(v8::Isolate *isolate,
                                                   RenderClientObjectWrap *wrap,
                                                   ArgsT&&...args)
 {
-    auto acceptor = [](v8::Isolate *i, glamor::RenderHostCallbackInfo& info) {
+    auto acceptor = [](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
         return binder::to_v8(i, info.GetReturnValue<Ret>());
     };
 
@@ -76,7 +76,7 @@ v8::Local<v8::Value> BlenderWrap::update(v8::Local<v8::Value> sceneObject)
     if (scene == nullptr)
         g_throw(TypeError, "Argument 'scene' must be an instance of Scene");
 
-    std::shared_ptr<glamor::LayerTree> layer_tree(scene->takeLayerTree());
+    std::shared_ptr<gl::LayerTree> layer_tree(scene->takeLayerTree());
 
     auto closure = PromiseClosure::New(isolate, nullptr);
     getObject()->Invoke(GLOP_BLENDER_UPDATE, closure, PromiseClosure::HostCallback, layer_tree);
@@ -98,7 +98,7 @@ BlenderWrap::newTextureDeletionSubscriptionSignal(int64_t id,
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    auto acceptor = [this, sigName](v8::Isolate *i, glamor::RenderHostCallbackInfo& info) {
+    auto acceptor = [this, sigName](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
         int32_t signal_num = info.GetReturnValue<int32_t>();
 
         // Register a named signal on the `RenderClientObjectWrap` interface.
@@ -168,7 +168,7 @@ BlenderWrap::createTextureFromEncodedData(v8::Local<v8::Value> buffer,
     // We use the persistent handle to prevent `buffer` from being destroyed
     // by V8's garbage collector.
     auto persistent_buffer = std::make_shared<v8::Global<v8::Value>>(isolate, buffer);
-    using InfoT = glamor::RenderHostCallbackInfo;
+    using InfoT = gl::RenderHostCallbackInfo;
     auto acceptor = [persistent_buffer](v8::Isolate *i, InfoT& info) {
         persistent_buffer->Reset();
         return binder::to_v8(i, info.GetReturnValue<int64_t>());
@@ -219,7 +219,7 @@ BlenderWrap::createTextureFromPixmap(v8::Local<v8::Value> buffer,
     // We use the persistent handle to prevent `buffer` from being destroyed
     // by V8's garbage collector.
     auto persistent_buffer = std::make_shared<v8::Global<v8::Value>>(isolate, buffer);
-    using InfoT = glamor::RenderHostCallbackInfo;
+    using InfoT = gl::RenderHostCallbackInfo;
     auto acceptor = [persistent_buffer](v8::Isolate *i, InfoT& info) {
         persistent_buffer->Reset();
         return binder::to_v8(i, info.GetReturnValue<int64_t>());

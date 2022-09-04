@@ -34,8 +34,6 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.bindings.Glamor)
 
-namespace i = ::cocoa::glamor;
-
 void RenderHostWrap::Initialize(v8::Local<v8::Object> info)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
@@ -47,7 +45,7 @@ void RenderHostWrap::Initialize(v8::Local<v8::Object> info)
             g_throw(TypeError, fmt::format("Missing \"{}\" field in ApplicationInfo", field));
     }
 
-    i::GlobalScope::ApplicationInfo appInfo{};
+    gl::GlobalScope::ApplicationInfo appInfo{};
     appInfo.name =
         binder::from_v8<std::string>(isolate, info->Get(ctx, binder::to_v8(isolate, "name")).ToLocalChecked());
     std::get<0>(appInfo.version_triple) =
@@ -57,13 +55,13 @@ void RenderHostWrap::Initialize(v8::Local<v8::Object> info)
     std::get<2>(appInfo.version_triple) =
             binder::from_v8<int32_t>(isolate, info->Get(ctx, binder::to_v8(isolate, "patch")).ToLocalChecked());
 
-    i::GlobalScope::Ref().Initialize(appInfo);
+    gl::GlobalScope::Ref().Initialize(appInfo);
     QLOG(LOG_INFO, "RenderHost is initialized, application name %fg<gr>\"{}\"%reset", appInfo.name);
 }
 
 void RenderHostWrap::Dispose()
 {
-    i::GlobalScope::Ref().Dispose();
+    gl::GlobalScope::Ref().Dispose();
     QLOG(LOG_INFO, "RenderHost is disposed");
 }
 
@@ -80,10 +78,10 @@ v8::Local<v8::Value> RenderHostWrap::Connect(const v8::FunctionCallbackInfo<v8::
     if (info.Length() == 1)
         name = binder::from_v8<std::string>(isolate, info[0]);
 
-    auto creator = i::GlobalScope::Ref().GetRenderHost()->GetRenderHostCreator();
+    auto creator = gl::GlobalScope::Ref().GetRenderHost()->GetRenderHostCreator();
 
     using W = DisplayWrap;
-    using T = i::Shared<i::RenderClientObject>;
+    using T = gl::Shared<gl::RenderClientObject>;
     auto pack = PromiseClosure::New(isolate, PromiseClosure::CreateObjectConverter<W, T>);
 
     creator->Invoke(GLOP_RENDERHOSTCREATOR_CREATE_DISPLAY,
@@ -96,7 +94,7 @@ v8::Local<v8::Value> RenderHostWrap::Connect(const v8::FunctionCallbackInfo<v8::
 
 void RenderHostWrap::WaitForSyncBarrier(int64_t timeout)
 {
-    i::GlobalScope::Ref().GetRenderHost()->WaitForSyncBarrier(timeout);
+    gl::GlobalScope::Ref().GetRenderHost()->WaitForSyncBarrier(timeout);
 }
 
 v8::Local<v8::Value> RenderHostWrap::SleepRendererFor(int64_t timeout)
@@ -104,10 +102,10 @@ v8::Local<v8::Value> RenderHostWrap::SleepRendererFor(int64_t timeout)
     if (timeout < 0)
         g_throw(Error, fmt::format("Invalid time for argument \'timeout\': {}", timeout));
 
-    i::RenderHost *host = i::GlobalScope::Ref().GetRenderHost();
+    gl::RenderHost *host = gl::GlobalScope::Ref().GetRenderHost();
     auto runner = host->GetRenderHostTaskRunner();
 
-    i::RenderHostTaskRunner::Task task = [timeout]() {
+    gl::RenderHostTaskRunner::Task task = [timeout]() {
         std::this_thread::sleep_for(std::chrono::milliseconds(timeout));
     };
 
@@ -130,11 +128,11 @@ struct TraceResult
 
 v8::Local<v8::Value> RenderHostWrap::TraceGraphicsResources()
 {
-    i::RenderHost *host = i::GlobalScope::Ref().GetRenderHost();
+    gl::RenderHost *host = gl::GlobalScope::Ref().GetRenderHost();
 
     auto trace_result = std::make_shared<TraceResult>();
-    i::RenderHostTaskRunner::Task task = [trace_result]() {
-        auto maybe = i::GlobalScope::Ref().TraceResourcesToJson();
+    gl::RenderHostTaskRunner::Task task = [trace_result]() {
+        auto maybe = gl::GlobalScope::Ref().TraceResourcesToJson();
         if (!maybe)
         {
             // TaskRunner will catch and handle the thrown exception
@@ -147,7 +145,7 @@ v8::Local<v8::Value> RenderHostWrap::TraceGraphicsResources()
     };
 
     auto acceptor = [trace_result](v8::Isolate *isolate,
-                                   i::RenderHostCallbackInfo& info) {
+                                   gl::RenderHostCallbackInfo& info) {
         return binder::to_v8(isolate, trace_result->str);
     };
 
@@ -164,7 +162,7 @@ v8::Local<v8::Value> RenderHostWrap::TraceGraphicsResources()
 // RenderClientObjectWrap
 // ============================
 
-RenderClientObjectWrap::RenderClientObjectWrap(i::Shared<i::RenderClientObject> object)
+RenderClientObjectWrap::RenderClientObjectWrap(gl::Shared<gl::RenderClientObject> object)
     : object_(std::move(object))
 {
 }
@@ -217,7 +215,7 @@ v8::Local<v8::Value> RenderClientObjectWrap::inspectObject()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    using RCO = glamor::RenderClientObject;
+    using RCO = gl::RenderClientObject;
 
     std::vector<v8::Local<v8::Object>> signals_array;
     for (const auto& signal : signal_name_map_)

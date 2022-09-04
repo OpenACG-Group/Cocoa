@@ -22,14 +22,14 @@
 #include "Glamor/Monitor.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-DisplayWrap::DisplayWrap(glamor::Shared<glamor::RenderClientObject> object)
+DisplayWrap::DisplayWrap(gl::Shared<gl::RenderClientObject> object)
         : RenderClientObjectWrap(std::move(object))
 {
     defineSignal("closed", GLSI_DISPLAY_CLOSED, nullptr);
     defineSignal("monitor-added", GLSI_DISPLAY_MONITOR_ADDED,
-                 [this](v8::Isolate *i, glamor::RenderHostSlotCallbackInfo& info) -> InfoAcceptorResult {
+                 [this](v8::Isolate *i, gl::RenderHostSlotCallbackInfo& info) -> InfoAcceptorResult {
         v8::HandleScope scope(i);
-        auto monitor = info.Get<glamor::Shared<glamor::Monitor>>(0);
+        auto monitor = info.Get<gl::Shared<gl::Monitor>>(0);
 
         v8::Local<v8::Object> result = binder::Class<MonitorWrap>::create_object(i, monitor);
         this->monitor_objects_map_[monitor].Reset(i, result);
@@ -37,9 +37,9 @@ DisplayWrap::DisplayWrap(glamor::Shared<glamor::RenderClientObject> object)
         return {std::vector<v8::Local<v8::Value>>{result}};
     });
     defineSignal("monitor-removed", GLSI_DISPLAY_MONITOR_REMOVED,
-                 [this](v8::Isolate *i, glamor::RenderHostSlotCallbackInfo& info) -> InfoAcceptorResult {
+                 [this](v8::Isolate *i, gl::RenderHostSlotCallbackInfo& info) -> InfoAcceptorResult {
         v8::HandleScope scope(i);
-        auto monitor = info.Get<glamor::Shared<glamor::Monitor>>(0);
+        auto monitor = info.Get<gl::Shared<gl::Monitor>>(0);
 
         v8::Local<v8::Object> result;
         if (LIKELY(this->monitor_objects_map_.count(monitor) > 0))
@@ -73,14 +73,14 @@ v8::Local<v8::Value> DisplayWrap::close()
 
 namespace {
 
-v8::Local<v8::Value> create_surface_invoke(const i::Shared<i::RenderClientObject>& display,
+v8::Local<v8::Value> create_surface_invoke(const gl::Shared<gl::RenderClientObject>& display,
                                            bool hwCompose,
                                            v8::Isolate *isolate, int32_t width, int32_t height)
 {
     if (width <= 0 || height <= 0)
         g_throw(RangeError, "Surface width and height must be positive integers");
 
-    using Sp = i::Shared<i::RenderClientObject>;
+    using Sp = gl::Shared<gl::RenderClientObject>;
     auto closure = PromiseClosure::New(isolate,
                                        PromiseClosure::CreateObjectConverter<SurfaceWrap, Sp>);
 
@@ -112,11 +112,11 @@ v8::Local<v8::Value> DisplayWrap::requestMonitorList()
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
     auto closure = PromiseClosure::New(isolate, [this](v8::Isolate *i,
-            glamor::RenderHostCallbackInfo& info) -> v8::Local<v8::Value> {
+            gl::RenderHostCallbackInfo& info) -> v8::Local<v8::Value> {
         // Receive responded monitor objects and add them to local `monitor_objects_map_`
         v8::EscapableHandleScope scope(i);
 
-        auto list = info.GetReturnValue<glamor::Display::MonitorList>();
+        auto list = info.GetReturnValue<gl::Display::MonitorList>();
         std::vector<v8::Local<v8::Object>> objects;
 
         for (const auto& monitor : list)
@@ -149,7 +149,7 @@ v8::Local<v8::Value> DisplayWrap::loadCursorTheme(const std::string& name, int s
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     using W = CursorThemeWrap;
-    using T = glamor::Shared<glamor::CursorTheme>;
+    using T = gl::Shared<gl::CursorTheme>;
     auto closure = PromiseClosure::New(isolate, PromiseClosure::CreateObjectConverter<W, T>);
     getObject()->Invoke(GLOP_DISPLAY_LOAD_CURSOR_THEME, closure,
                         PromiseClosure::HostCallback, name, size);
@@ -166,7 +166,7 @@ v8::Local<v8::Value> DisplayWrap::createCursor(v8::Local<v8::Value> bitmap, int 
 
     std::shared_ptr<SkBitmap> bitmap_extracted = unwrapped->getBitmap();
     using W = CursorWrap;
-    using T = glamor::Shared<glamor::Cursor>;
+    using T = gl::Shared<gl::Cursor>;
     auto closure = PromiseClosure::New(isolate, PromiseClosure::CreateObjectConverter<W, T>);
     getObject()->Invoke(GLOP_DISPLAY_CREATE_CURSOR, closure,
                         PromiseClosure::HostCallback, bitmap_extracted,
@@ -181,7 +181,7 @@ v8::Local<v8::Value> DisplayWrap::getDefaultCursorTheme()
     if (!default_cursor_theme_.IsEmpty())
         return default_cursor_theme_.Get(isolate);
 
-    auto theme = getObject()->As<glamor::Display>()->GetDefaultCursorTheme();
+    auto theme = getObject()->As<gl::Display>()->GetDefaultCursorTheme();
     CHECK(theme);
 
     auto obj = binder::Class<CursorThemeWrap>::create_object(isolate, theme);
@@ -193,9 +193,9 @@ v8::Local<v8::Value> DisplayWrap::getDefaultCursorTheme()
 namespace {
 
 InfoAcceptorResult monitor_property_set_transcription(v8::Isolate *isolate,
-                                                      glamor::RenderHostSlotCallbackInfo& info)
+                                                      gl::RenderHostSlotCallbackInfo& info)
 {
-    auto props = info.Get<glamor::Shared<glamor::Monitor::PropertySet>>(0);
+    auto props = info.Get<gl::Shared<gl::Monitor::PropertySet>>(0);
     std::map<std::string_view, v8::Local<v8::Value>> fields_map = {
         { "logicalX", binder::to_v8(isolate, props->logical_position.x()) },
         { "logicalY", binder::to_v8(isolate, props->logical_position.y()) },
@@ -218,7 +218,7 @@ InfoAcceptorResult monitor_property_set_transcription(v8::Isolate *isolate,
 
 } // namespace anonymous
 
-MonitorWrap::MonitorWrap(glamor::Shared<glamor::RenderClientObject> object)
+MonitorWrap::MonitorWrap(gl::Shared<gl::RenderClientObject> object)
     : RenderClientObjectWrap(std::move(object))
 {
     defineSignal("properties-changed", GLSI_MONITOR_PROPERTIES_CHANGED, monitor_property_set_transcription);

@@ -127,7 +127,7 @@ constexpr struct
 } kGSSwizzleComp;
 
 // NOLINTNEXTLINE
-#define __SWC(P)    (cocoa::glamor::kGSSwizzleComp.P)
+#define __SWC(P)    (cocoa::gl::kGSSwizzleComp.P)
 
 #define GS_SWIZZLE2_ID(x, y)            (__SWC(x) | (__SWC(y) << 2))
 #define GS_SWIZZLE3_ID(x, y, z)         (__SWC(X) | (__SWC(y) << 2) | (__SWC(z) << 4))

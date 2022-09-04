@@ -25,11 +25,11 @@
 #include "Glamor/Layers/LayerTree.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-Scene::Scene(const std::shared_ptr<glamor::ContainerLayer>& rootLayer,
+Scene::Scene(const std::shared_ptr<gl::ContainerLayer>& rootLayer,
              const SkISize& frameSize)
     : disposed_(false)
 {
-    layer_tree_ = std::make_unique<glamor::LayerTree>(frameSize);
+    layer_tree_ = std::make_unique<gl::LayerTree>(frameSize);
     layer_tree_->SetRootLayer(rootLayer);
 }
 
@@ -56,7 +56,7 @@ v8::Local<v8::Value> Scene::toImage(int32_t width, int32_t height)
 
     // Flatten the layer tree and do an asynchronized rasterization.
     SkRect bounds = SkRect::MakeWH(static_cast<SkScalar>(width), static_cast<SkScalar>(height));
-    glamor::MaybeGpuObject<SkPicture> picture = layer_tree_->Flatten(bounds);
+    gl::MaybeGpuObject<SkPicture> picture = layer_tree_->Flatten(bounds);
 
     if (picture == nullptr)
         g_throw(Error, "Failed in flattening layer tree to generate a SkPicture recording");

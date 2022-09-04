@@ -46,7 +46,7 @@ public:
     void OnSetMaximized(bool value) override;
     void OnSetFullscreen(bool value, const Shared<Monitor>& monitor) override;
 
-    void OnSetCursor(const Shared<cocoa::glamor::Cursor> &cursor) override;
+    void OnSetCursor(const Shared<Cursor> &cursor) override;
 
     g_private_api g_inline void SetLatestPointerEnterEventSerial(uint32_t serial) {
         latest_pointer_enter_serial_ = serial;
@@ -58,6 +58,10 @@ public:
 
     g_private_api g_nodiscard g_inline uint32_t GetLatestPointerEnterEventSerial() const {
         return latest_pointer_enter_serial_;
+    }
+
+    g_private_api g_nodiscard g_inline wl_pointer *GetEnteredPointerDevice() const {
+        return entered_pointer_device_;
     }
 
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;

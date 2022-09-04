@@ -32,7 +32,7 @@
 #include "Glamor/Moe/MoeCodeCompressor.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-class JSMoeCodeHolder : public glamor::MoeCodeHolder
+class JSMoeCodeHolder : public gl::MoeCodeHolder
 {
 public:
     explicit JSMoeCodeHolder(Buffer *buffer) : buffer_(buffer) {}
@@ -50,11 +50,11 @@ private:
     Buffer  *buffer_;
 };
 
-glamor::MoeByteStreamReader::CodeHolderVector get_ir_stream_reader(v8::Local<v8::Value> array)
+gl::MoeByteStreamReader::CodeHolderVector get_ir_stream_reader(v8::Local<v8::Value> array)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     auto values = binder::from_v8<std::vector<v8::Local<v8::Value>>>(isolate, array);
-    glamor::MoeByteStreamReader::CodeHolderVector unwrapped(values.size());
+    gl::MoeByteStreamReader::CodeHolderVector unwrapped(values.size());
 
     for (uint32_t i = 0; i < values.size(); i++)
     {
@@ -68,7 +68,7 @@ glamor::MoeByteStreamReader::CodeHolderVector get_ir_stream_reader(v8::Local<v8:
 }
 
 void heap_load_bound_objects(v8::Isolate *isolate,
-                             glamor::MoeInterpreterEngine& engine,
+                             gl::MoeInterpreterEngine& engine,
                              MoeHeapObjectBinderWrap *binder)
 {
     for (const auto& pair : binder->getBoundObjects())
@@ -127,9 +127,9 @@ v8::Local<v8::Value> MoeTranslationToolchainWrap::Interpreter(v8::Local<v8::Valu
             g_throw(TypeError, "'binder' must be an instance of MoeHeapObjectBinder");
     }
 
-    glamor::MoeByteStreamReader::CodeHolderVector codeHolderVector = get_ir_stream_reader(array);
-    glamor::MoeInterpreterEngine engine(
-            std::make_unique<glamor::MoeByteStreamReader>(std::move(codeHolderVector)));
+    gl::MoeByteStreamReader::CodeHolderVector codeHolderVector = get_ir_stream_reader(array);
+    gl::MoeInterpreterEngine engine(
+            std::make_unique<gl::MoeByteStreamReader>(std::move(codeHolderVector)));
 
     if (binder)
         heap_load_bound_objects(isolate, engine, binder);
@@ -142,7 +142,7 @@ v8::Local<v8::Value> MoeTranslationToolchainWrap::Interpreter(v8::Local<v8::Valu
 
     if (heapProfiling)
     {
-        glamor::MoeHeap::Profile prof{};
+        gl::MoeHeap::Profile prof{};
         engine.GetLastHeapProfile(prof);
 
         std::map<std::string_view, uint32_t> profiling{
@@ -162,9 +162,9 @@ v8::Local<v8::Value> MoeTranslationToolchainWrap::Interpreter(v8::Local<v8::Valu
 v8::Local<v8::Value> MoeTranslationToolchainWrap::Disassemble(v8::Local<v8::Value> array)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    glamor::MoeByteStreamReader::CodeHolderVector codeHolderVector = get_ir_stream_reader(array);
-    auto str = glamor::MoeCodeDisassembler::Disassemble(
-            std::make_unique<glamor::MoeByteStreamReader>(std::move(codeHolderVector)));
+    gl::MoeByteStreamReader::CodeHolderVector codeHolderVector = get_ir_stream_reader(array);
+    auto str = gl::MoeCodeDisassembler::Disassemble(
+            std::make_unique<gl::MoeByteStreamReader>(std::move(codeHolderVector)));
 
     return binder::to_v8(isolate, str);
 }
@@ -172,10 +172,10 @@ v8::Local<v8::Value> MoeTranslationToolchainWrap::Disassemble(v8::Local<v8::Valu
 v8::Local<v8::Value> MoeTranslationToolchainWrap::Compress(v8::Local<v8::Value> array)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    glamor::MoeByteStreamReader::CodeHolderVector codeHolderVector = get_ir_stream_reader(array);
-    auto reader = std::make_unique<glamor::MoeByteStreamReader>(std::move(codeHolderVector));
+    gl::MoeByteStreamReader::CodeHolderVector codeHolderVector = get_ir_stream_reader(array);
+    auto reader = std::make_unique<gl::MoeByteStreamReader>(std::move(codeHolderVector));
 
-    glamor::MoeCodeCompressor::Compress(std::move(reader));
+    gl::MoeCodeCompressor::Compress(std::move(reader));
 
     // TODO: implement this.
     return v8::Undefined(isolate);

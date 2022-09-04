@@ -41,28 +41,38 @@ GLAMOR_NAMESPACE_BEGIN
 #define GLOP_SURFACE_CREATE_BLENDER                 11
 #define GLOP_SURFACE_SET_ATTACHED_CURSOR            12
 
-// Emitted when window is actually closed.
+//! Emitted when the window is actually closed.
+//! @prototype (void) -> void
 #define GLSI_SURFACE_CLOSED             1
 
-// Emitted after resizing is completed during `Surface::Resize` invocation.
+//! Emitted after resizing is completed during `Surface::Resize` invocation.
+//! @prototype (i32 width, i32 height) -> void
 #define GLSI_SURFACE_RESIZE             2
 
-// Emitted when window manager notifies us the window should be reconfigured.
+//! Emitted when window manager notifies us the window should be reconfigured.
+//! @prototype (i32 width, i32 height, ToplevelStates status) -> void
 #define GLSI_SURFACE_CONFIGURE          3
 
-// Emitted when window manager notifies us the window should be closed.
+//! Emitted when window manager notifies us the window should be closed.
+//! @prototype (void) -> void
 #define GLSI_SURFACE_CLOSE              4
 
-/**
- * Emitted when it is a good time to start submitting a new frame.
- * This signal is actually emitted by the implementation of RenderTarget,
- * for example, in Wayland/WaylandSHMRenderTarget.cc.
- */
+//! Emitted when it is a good time to start submitting a new frame.
+//! This signal is actually emitted by the implementation of RenderTarget.
+//! @prototype (void) -> void
 #define GLSI_SURFACE_FRAME              5
 
-// Emitted when a pointer device enters the window area.
-// prototype: (bool hovered) -> void
-#define GLSI_SURFACE_HOVERED            6
+//! Emitted when a pointer device enters the window area.
+//! @prototype (bool hovered) -> void
+#define GLSI_SURFACE_POINTER_HOVERING   6
+
+//! Emitted when a pointer moves on the corresponding surface
+//! @prototype (double x, double y) -> void
+#define GLSI_SURFACE_POINTER_MOTION     7
+
+//! Emitted when a button of the hovering pointer device is pressed or released
+//! @prototype (PointerButton button, bool pressed) -> void
+#define GLSI_SURFACE_POINTER_BUTTON     8
 
 class RenderTarget;
 class Display;

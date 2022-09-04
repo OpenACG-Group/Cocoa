@@ -271,12 +271,12 @@ Shared<HWComposeContext> RenderClient::GetHWComposeContext()
     return hw_compose_context_;
 }
 
-void RenderClient::RegisterDisplay(cocoa::glamor::Display *display)
+void RenderClient::RegisterDisplay(Display *display)
 {
     display_registry_.push_back(display);
 }
 
-void RenderClient::UnregisterDisplay(cocoa::glamor::Display *display)
+void RenderClient::UnregisterDisplay(Display *display)
 {
     auto itr = std::find(display_registry_.begin(),
                          display_registry_.end(),

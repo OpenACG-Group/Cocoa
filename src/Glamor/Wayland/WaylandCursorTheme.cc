@@ -70,8 +70,7 @@ Shared<WaylandCursorTheme> WaylandCursorTheme::MakeFromName(const Shared<Wayland
     return std::make_shared<WaylandCursorTheme>(display.get(), theme, size);
 }
 
-WaylandCursorTheme::WaylandCursorTheme(cocoa::glamor::WaylandDisplay *display,
-                                       wl_cursor_theme *theme, int size)
+WaylandCursorTheme::WaylandCursorTheme(WaylandDisplay *display, wl_cursor_theme *theme, int size)
     : display_(display)
     , cursor_theme_(theme)
     , cursor_size_(size)

@@ -807,7 +807,7 @@ std::shared_ptr<PropertyArrayNode> splitStringStoreToArrayNode(const std::string
 
 cmd::ParseState startup_initialize(int argc, char const **argv,
                                    gallium::Runtime::Options& gallium_options,
-                                   glamor::ContextOptions& glamor_options)
+                                   gl::ContextOptions& glamor_options)
 {
     cmd::ParseResult args;
     cmd::ParseState state = cmd::Parse(argc, argv, args);
@@ -1000,13 +1000,13 @@ void mainloop_finalize()
 
 void mainloop_execute(bool justInitialize,
                       const gallium::Runtime::Options& options,
-                      const glamor::ContextOptions& glamorOptions)
+                      const gl::ContextOptions& glamorOptions)
 {
     QResource::New();
 
     prop::SerializeToJournal(prop::Get());
 
-    glamor::GlobalScope::New(glamorOptions, EventLoop::Instance());
+    gl::GlobalScope::New(glamorOptions, EventLoop::Instance());
     gallium::BindingManager::New(options);
 
     subproc::SubprocessHostRegistry::New();
@@ -1053,7 +1053,7 @@ void mainloop_execute(bool justInitialize,
 
     // No matter whether these UniquePersistent objects are created,
     // deleting them is safe.
-    glamor::GlobalScope::Delete();
+    gl::GlobalScope::Delete();
 
     // RenderHost message queue profiler may register a threadpool work.
     // To make sure the task performed properly, we run event loop again.
@@ -1073,7 +1073,7 @@ int startup_main(int argc, char const **argv)
     });
 
     gallium::Runtime::Options gallium_options;
-    glamor::ContextOptions glamor_options;
+    gl::ContextOptions glamor_options;
     bool only_initialize = false;
 
     try {

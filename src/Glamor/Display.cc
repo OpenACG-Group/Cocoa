@@ -283,7 +283,7 @@ Shared<Cursor> Display::OnCreateCursor(g_maybe_unused const Shared<SkBitmap>& bi
     return nullptr;
 }
 
-void Display::AppendDefaultCursorTheme(const Shared<cocoa::glamor::CursorTheme>& theme)
+void Display::AppendDefaultCursorTheme(const Shared<CursorTheme>& theme)
 {
     CHECK(cursor_themes_list_.empty() &&
           "Default theme only can be appended into empty list");

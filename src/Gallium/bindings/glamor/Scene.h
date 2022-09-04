@@ -30,7 +30,7 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 class Scene
 {
 public:
-    Scene(const std::shared_ptr<glamor::ContainerLayer>& rootLayer,
+    Scene(const std::shared_ptr<gl::ContainerLayer>& rootLayer,
           const SkISize& frameSize);
     ~Scene();
 
@@ -46,13 +46,13 @@ public:
     /* TSDecl: function dispose(): void */
     void dispose();
 
-    g_nodiscard std::unique_ptr<glamor::LayerTree> takeLayerTree() {
+    g_nodiscard std::unique_ptr<gl::LayerTree> takeLayerTree() {
         return std::move(layer_tree_);
     }
 
 private:
     bool disposed_;
-    std::unique_ptr<glamor::LayerTree> layer_tree_;
+    std::unique_ptr<gl::LayerTree> layer_tree_;
 };
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

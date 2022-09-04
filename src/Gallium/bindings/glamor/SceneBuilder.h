@@ -59,14 +59,14 @@ public:
 
 private:
     v8::Local<v8::Object> getSelfHandle();
-    void pushLayer(const std::shared_ptr<glamor::ContainerLayer>& layer);
-    void addLayer(const std::shared_ptr<glamor::Layer>& layer);
+    void pushLayer(const std::shared_ptr<gl::ContainerLayer>& layer);
+    void addLayer(const std::shared_ptr<gl::Layer>& layer);
 
     v8::Global<v8::Object> self_handle_;
     int32_t     width_;
     int32_t     height_;
-    std::shared_ptr<glamor::ContainerLayer> layer_tree_;
-    std::stack<std::shared_ptr<glamor::ContainerLayer>> layer_stack_;
+    std::shared_ptr<gl::ContainerLayer> layer_tree_;
+    std::stack<std::shared_ptr<gl::ContainerLayer>> layer_stack_;
 };
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

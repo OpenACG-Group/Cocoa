@@ -23,26 +23,24 @@
 #include "Gallium/bindings/glamor/Exports.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-namespace i = ::cocoa::glamor;
-
 /* A helper structure for asynchronous operations on RenderClient objects */
 struct PromiseClosure
 {
-    using InfoConverter = std::function<v8::Local<v8::Value>(v8::Isolate*, i::RenderHostCallbackInfo&)>;
+    using InfoConverter = std::function<v8::Local<v8::Value>(v8::Isolate*, gl::RenderHostCallbackInfo&)>;
 
     PromiseClosure(v8::Isolate *isolate, InfoConverter conv);
     ~PromiseClosure();
 
     static std::shared_ptr<PromiseClosure> New(v8::Isolate *isolate, const InfoConverter& converter);
-    static void HostCallback(i::RenderHostCallbackInfo& info);
+    static void HostCallback(gl::RenderHostCallbackInfo& info);
 
-    bool rejectIfEssential(i::RenderHostCallbackInfo& info);
+    bool rejectIfEssential(gl::RenderHostCallbackInfo& info);
 
     v8::Local<v8::Promise> getPromise();
 
     template<typename Wrapper, typename T>
     static v8::Local<v8::Value> CreateObjectConverter(v8::Isolate *isolate,
-                                                      i::RenderHostCallbackInfo& info)
+                                                      gl::RenderHostCallbackInfo& info)
     {
         return binder::Class<Wrapper>::create_object(isolate, info.GetReturnValue<T>());
     }
@@ -56,7 +54,7 @@ struct SlotClosure
 {
     static std::unique_ptr<SlotClosure> New(v8::Isolate *isolate,
                                             int32_t signal,
-                                            const i::Shared<i::RenderClientObject>& client,
+                                            const gl::Shared<gl::RenderClientObject>& client,
                                             v8::Local<v8::Function> callback,
                                             InfoAcceptor acceptor);
 
@@ -64,11 +62,53 @@ struct SlotClosure
 
     v8::Isolate *isolate_;
     v8::Global<v8::Function> callback_;
-    i::Shared<i::RenderClientObject> client_;
+    gl::Shared<gl::RenderClientObject> client_;
     InfoAcceptor acceptor_;
     uint32_t slot_id_;
     int32_t signal_code_;
 };
+
+template<typename RealT, typename CastT>
+struct InfoAcceptorCast
+{
+    using real_type = RealT;
+    using cast_type = CastT;
+};
+
+template<typename T>
+using NoCast = InfoAcceptorCast<T, T>;
+
+template<typename T>
+using AutoEnumCast = InfoAcceptorCast<T, typename std::underlying_type<T>::type>;
+
+namespace acceptor_traits {
+
+template<typename T>
+v8::Local<v8::Value> ConvertGeneric(v8::Isolate *isolate,
+                                    gl::RenderHostSlotCallbackInfo& info,
+                                    size_t index)
+{
+    if constexpr (std::is_same<typename T::real_type, typename T::cast_type>::value) {
+        return binder::to_v8(isolate, info.Get<typename T::real_type>(index));
+    } else {
+        return binder::to_v8(isolate,
+            static_cast<typename T::cast_type>(info.Get<typename T::real_type>(index)));
+    }
+}
+
+} // namespace acceptor_traits
+
+template<typename...ArgsT>
+InfoAcceptorResult GenericInfoAcceptor(v8::Isolate *isolate,
+                                       gl::RenderHostSlotCallbackInfo& info)
+{
+    size_t i = 0;
+    InfoAcceptorResult::value_type result{
+        acceptor_traits::ConvertGeneric<ArgsT>(isolate, info, i++)...
+    };
+
+    return std::move(result);
+}
 
 GALLIUM_BINDINGS_GLAMOR_NS_END
 #endif //COCOA_GALLIUM_BINDINGS_GLAMOR_PROMISEHELPER_H

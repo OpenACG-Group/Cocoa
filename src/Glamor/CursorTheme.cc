@@ -84,7 +84,7 @@ Shared<Cursor> CursorTheme::LoadCursorFromName(const std::string& name)
     return cursor;
 }
 
-void CursorTheme::RemoveCursorFromCache(const Shared<cocoa::glamor::Cursor>& cursor)
+void CursorTheme::RemoveCursorFromCache(const Shared<Cursor>& cursor)
 {
     auto itr = cached_cursors_.begin();
     for (; itr != cached_cursors_.end(); itr++)

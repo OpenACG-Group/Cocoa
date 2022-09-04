@@ -21,7 +21,7 @@
 #include "Glamor/CursorTheme.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-CursorThemeWrap::CursorThemeWrap(const std::shared_ptr<glamor::CursorTheme>& theme)
+CursorThemeWrap::CursorThemeWrap(const std::shared_ptr<gl::CursorTheme>& theme)
     : RenderClientObjectWrap(theme)
 {
 }
@@ -39,7 +39,7 @@ v8::Local<v8::Value> CursorThemeWrap::loadCursorFromName(const std::string& name
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
     using W = CursorWrap;
-    using T = glamor::Shared<glamor::Cursor>;
+    using T = gl::Shared<gl::Cursor>;
     auto closure = PromiseClosure::New(isolate,
                                        PromiseClosure::CreateObjectConverter<W, T>);
 
@@ -49,7 +49,7 @@ v8::Local<v8::Value> CursorThemeWrap::loadCursorFromName(const std::string& name
     return closure->getPromise();
 }
 
-CursorWrap::CursorWrap(const std::shared_ptr<glamor::Cursor>& cursor)
+CursorWrap::CursorWrap(const std::shared_ptr<gl::Cursor>& cursor)
     : RenderClientObjectWrap(cursor)
 {
 }
@@ -66,7 +66,7 @@ v8::Local<v8::Value> CursorWrap::getHotspotVector()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    auto converter = [](v8::Isolate *i, glamor::RenderHostCallbackInfo& info) -> v8::Local<v8::Value> {
+    auto converter = [](v8::Isolate *i, gl::RenderHostCallbackInfo& info) -> v8::Local<v8::Value> {
         v8::EscapableHandleScope scope(i);
         auto v = info.GetReturnValue<SkIVector>();
         std::map<std::string_view, v8::Local<v8::Value>> bound_keys{

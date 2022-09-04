@@ -67,6 +67,10 @@ public:
         return touch_device_;
     }
 
+    g_nodiscard g_inline Shared<WaylandDisplay> GetDisplay() {
+        return display_.lock();
+    }
+
 private:
     std::unique_ptr<WaylandSeatListener> listener_;
     std::weak_ptr<WaylandDisplay>   display_;

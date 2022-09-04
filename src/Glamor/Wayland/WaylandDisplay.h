@@ -31,6 +31,7 @@ GLAMOR_NAMESPACE_BEGIN
 
 class WaylandRoundtripScope;
 class WaylandSeat;
+class WaylandSurface;
 
 class WaylandDisplay : public Display
 {
@@ -78,6 +79,8 @@ public:
     }
 
     bool HasPointerDeviceInSeats();
+
+    g_nodiscard Shared<WaylandSurface> GetPointerEnteredSurface(wl_pointer *pointer);
 
     /**
      * Try to remove a seat specified by the wayland global ID.

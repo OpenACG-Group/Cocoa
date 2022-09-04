@@ -58,61 +58,40 @@ SkIRect CkRectToSkIRectCast(v8::Isolate *isolate, v8::Local<v8::Value> object)
                              static_cast<int32_t>(rect.bottom()));
 }
 
-SurfaceWrap::SurfaceWrap(glamor::Shared<glamor::RenderClientObject> object)
+SurfaceWrap::SurfaceWrap(gl::Shared<gl::RenderClientObject> object)
     : RenderClientObjectWrap(std::move(object))
 {
     defineSignal("closed", GLSI_SURFACE_CLOSED, nullptr);
-    defineSignal("resize", GLSI_SURFACE_RESIZE,
-                 [](v8::Isolate *isolate, i::RenderHostSlotCallbackInfo& info) -> InfoAcceptorResult {
-        std::vector<v8::Local<v8::Value>> ret{
-            binder::to_v8(isolate, info.Get<int32_t>(0)),
-            binder::to_v8(isolate, info.Get<int32_t>(1))
-        };
-        return std::move(ret);
-    });
+    defineSignal("resize", GLSI_SURFACE_RESIZE, GenericInfoAcceptor<NoCast<int32_t>, NoCast<int32_t>>);
     defineSignal("close", GLSI_SURFACE_CLOSE, nullptr);
     defineSignal("configure", GLSI_SURFACE_CONFIGURE,
-                 [](v8::Isolate *isolate, i::RenderHostSlotCallbackInfo& info) -> InfoAcceptorResult {
-        std::vector<v8::Local<v8::Value>> ret{
-            binder::to_v8(isolate, info.Get<int32_t>(0)),
-            binder::to_v8(isolate, info.Get<int32_t>(1)),
-            binder::to_v8(isolate, info.Get<Bitfield<i::ToplevelStates>>(2).value())
-        };
-        return std::move(ret);
-    });
-    defineSignal("frame", GLSI_SURFACE_FRAME,
-                 [](v8::Isolate *isolate, i::RenderHostSlotCallbackInfo& info) -> InfoAcceptorResult {
-        std::vector<v8::Local<v8::Value>> ret{
-            binder::to_v8(isolate, info.Get<uint32_t>(0))
-        };
-        return std::move(ret);
-    });
-    defineSignal("hovered", GLSI_SURFACE_HOVERED,
-                 [](v8::Isolate *isolate, i::RenderHostSlotCallbackInfo& info) -> InfoAcceptorResult {
-        std::vector<v8::Local<v8::Value>> ret{
-            binder::to_v8(isolate, info.Get<bool>(0))
-        };
-        return std::move(ret);
-    });
+                 GenericInfoAcceptor<NoCast<int32_t>, NoCast<int32_t>,
+                         InfoAcceptorCast<Bitfield<gl::ToplevelStates>, uint32_t>>);
+    defineSignal("frame", GLSI_SURFACE_FRAME, GenericInfoAcceptor<NoCast<uint32_t>>);
+    defineSignal("pointer-hovering", GLSI_SURFACE_POINTER_HOVERING, GenericInfoAcceptor<NoCast<bool>>);
+    defineSignal("pointer-motion", GLSI_SURFACE_POINTER_MOTION,
+                 GenericInfoAcceptor<NoCast<double>, NoCast<double>>);
+    defineSignal("pointer-button", GLSI_SURFACE_POINTER_BUTTON,
+                 GenericInfoAcceptor<AutoEnumCast<gl::PointerButton>, NoCast<bool>>);
 }
 
 SurfaceWrap::~SurfaceWrap() = default;
 
 int32_t SurfaceWrap::getWidth()
 {
-    return getObject()->Cast<i::Surface>()->GetWidth();
+    return getObject()->Cast<gl::Surface>()->GetWidth();
 }
 
 int32_t SurfaceWrap::getHeight()
 {
-    return getObject()->Cast<i::Surface>()->GetHeight();
+    return getObject()->Cast<gl::Surface>()->GetHeight();
 }
 
 v8::Local<v8::Value> SurfaceWrap::createBlender()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     using W = BlenderWrap;
-    using T = glamor::Shared<glamor::Blender>;
+    using T = gl::Shared<gl::Blender>;
     auto closure = PromiseClosure::New(isolate, PromiseClosure::CreateObjectConverter<W, T>);
     getObject()->Invoke(GLOP_SURFACE_CREATE_BLENDER, closure, PromiseClosure::HostCallback);
     return closure->getPromise();
@@ -139,7 +118,7 @@ v8::Local<v8::Value> SurfaceWrap::resize(int32_t width, int32_t height)
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     using LV = v8::Local<v8::Value>;
     auto closure = PromiseClosure::New(isolate,
-        [](v8::Isolate *isolate, i::RenderHostCallbackInfo& info) -> LV {
+        [](v8::Isolate *isolate, gl::RenderHostCallbackInfo& info) -> LV {
             return v8::Boolean::New(isolate, info.GetReturnValue<bool>());
     });
 
@@ -153,7 +132,7 @@ v8::Local<v8::Value> SurfaceWrap::getBuffersDescriptor()
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     using LV = v8::Local<v8::Value>;
     auto closure = PromiseClosure::New(isolate,
-        [](v8::Isolate *isolate, i::RenderHostCallbackInfo& info) -> LV {
+        [](v8::Isolate *isolate, gl::RenderHostCallbackInfo& info) -> LV {
         return binder::to_v8(isolate, info.GetReturnValue<std::string>());
     });
 
@@ -168,7 +147,7 @@ v8::Local<v8::Value> SurfaceWrap::requestNextFrame()
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     using LV = v8::Local<v8::Value>;
     auto closure = PromiseClosure::New(isolate,
-        [](v8::Isolate *isolate, i::RenderHostCallbackInfo& info) -> LV {
+        [](v8::Isolate *isolate, gl::RenderHostCallbackInfo& info) -> LV {
             return binder::to_v8(isolate, info.GetReturnValue<uint32_t>());
     });
 
@@ -213,7 +192,7 @@ v8::Local<v8::Value> SurfaceWrap::setFullscreen(bool value, v8::Local<v8::Value>
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    glamor::Shared<glamor::Monitor> monitor_ptr;
+    gl::Shared<gl::Monitor> monitor_ptr;
 
     if (!monitor->IsNullOrUndefined())
     {
@@ -240,7 +219,7 @@ v8::Local<v8::Value> SurfaceWrap::setAttachedCursor(v8::Local<v8::Value> cursor)
     if (!unwrapped)
         g_throw(TypeError, "Argument \'cursor\' must be an instance of Cursor");
 
-    glamor::Shared<glamor::Cursor> extracted_cursor = unwrapped->getObject()->As<glamor::Cursor>();
+    gl::Shared<gl::Cursor> extracted_cursor = unwrapped->getObject()->As<gl::Cursor>();
     CHECK(extracted_cursor);
 
     auto closure = PromiseClosure::New(isolate, nullptr);

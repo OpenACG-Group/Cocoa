@@ -15,6 +15,8 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <linux/input-event-codes.h>
+
 #include <sstream>
 
 #include <wayland-client.h>
@@ -29,6 +31,8 @@
 GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.Wayland.Seat)
+
+#define LISTENER(ptr)   (reinterpret_cast<WaylandSeatListener*>(ptr))
 
 class WaylandSeatListener
 {
@@ -55,13 +59,13 @@ public:
                           wl_pointer *pointer,
                           uint32_t time,
                           wl_fixed_t surface_x,
-                          wl_fixed_t surface_y) {}
+                          wl_fixed_t surface_y);
     static void on_button(void *data,
                           wl_pointer *pointer,
                           uint32_t serial,
                           uint32_t time,
                           uint32_t button,
-                          uint32_t state) {}
+                          uint32_t state);
     static void on_axis(void *data,
                         wl_pointer *pointer,
                         uint32_t time,
@@ -78,7 +82,7 @@ public:
     static void on_axis_discrete(void *data,
                                  wl_pointer *pointer,
                                  uint32_t axis,
-                                 int32_t discrete) {}
+                                 int32_t discrete);
     static void on_axis_value120(void *data,
                                  wl_pointer *pointer,
                                  uint32_t axis,
@@ -107,11 +111,20 @@ const wl_pointer_listener g_pointer_listener = {
     .axis_value120 = WaylandSeatListener::on_axis_value120
 };
 
+Shared<WaylandSurface> extract_surface_from_pointer(void *data, wl_pointer *pointer)
+{
+    CHECK(data);
+    auto *listener = LISTENER(data);
+
+    auto display = listener->seat_->GetDisplay();
+    return display->GetPointerEnteredSurface(pointer);
+}
+
 } // namespace anonymous
 
 void WaylandSeatListener::on_capabilities(void *data, wl_seat *seat, uint32_t caps)
 {
-    auto *listener = reinterpret_cast<WaylandSeatListener*>(data);
+    auto *listener = LISTENER(data);
     uint32_t seat_id = listener->seat_->registry_id_;
 
     bool has_caps;
@@ -162,7 +175,7 @@ void WaylandSeatListener::on_capabilities(void *data, wl_seat *seat, uint32_t ca
 
 void WaylandSeatListener::on_name(void *data, g_maybe_unused wl_seat *seat, const char *name)
 {
-    auto *listener = reinterpret_cast<WaylandSeatListener*>(data);
+    auto *listener = LISTENER(data);
     uint32_t seat_id = listener->seat_->registry_id_;
 
     QLOG(LOG_INFO, "Wayland seat {} updates name \"{}\"", seat_id, name);
@@ -170,9 +183,11 @@ void WaylandSeatListener::on_name(void *data, g_maybe_unused wl_seat *seat, cons
 }
 
 void WaylandSeatListener::on_enter(void *data, wl_pointer *pointer, uint32_t serial,
-                                   wl_surface *surface, wl_fixed_t surface_x, wl_fixed_t surface_y)
+                                   wl_surface *surface,
+                                   g_maybe_unused wl_fixed_t surface_x,
+                                   g_maybe_unused wl_fixed_t surface_y)
 {
-    auto *listener = reinterpret_cast<WaylandSeatListener*>(data);
+    auto *listener = LISTENER(data);
     auto display = listener->seat_->display_.lock();
     CHECK(display);
 
@@ -210,13 +225,15 @@ void WaylandSeatListener::on_enter(void *data, wl_pointer *pointer, uint32_t ser
     // This invocation emits a `GLSI_SURFACE_HOVERED` signal to user.
     RenderClientEmitterInfo info;
     info.EmplaceBack<bool>(true);
-    surface_object->Emit(GLSI_SURFACE_HOVERED, std::move(info));
+    surface_object->Emit(GLSI_SURFACE_POINTER_HOVERING, std::move(info));
 }
 
-void WaylandSeatListener::on_leave(void *data, wl_pointer *pointer,
-                                   uint32_t serial, wl_surface *surface)
+void WaylandSeatListener::on_leave(void *data,
+                                   g_maybe_unused wl_pointer *pointer,
+                                   g_maybe_unused uint32_t serial,
+                                   wl_surface *surface)
 {
-    auto *listener = reinterpret_cast<WaylandSeatListener*>(data);
+    auto *listener = LISTENER(data);
     auto display = listener->seat_->display_.lock();
     CHECK(display);
 
@@ -243,7 +260,79 @@ void WaylandSeatListener::on_leave(void *data, wl_pointer *pointer,
 
     RenderClientEmitterInfo info;
     info.EmplaceBack<bool>(false);
-    surface_object->Emit(GLSI_SURFACE_HOVERED, std::move(info));
+    surface_object->Emit(GLSI_SURFACE_POINTER_HOVERING, std::move(info));
+}
+
+void WaylandSeatListener::on_motion(void *data,
+                                    wl_pointer *pointer,
+                                    g_maybe_unused uint32_t time,
+                                    wl_fixed_t surface_x,
+                                    wl_fixed_t surface_y)
+{
+    CHECK(data && pointer);
+
+    Shared<WaylandSurface> surface = extract_surface_from_pointer(data, pointer);
+    if (!surface)
+    {
+        QLOG(LOG_ERROR, "Compositor notified us a motion event of a pointer "
+                        "which is not hovering on any surfaces");
+        return;
+    }
+
+    RenderClientEmitterInfo info;
+    info.EmplaceBack<double>(wl_fixed_to_double(surface_x));
+    info.EmplaceBack<double>(wl_fixed_to_double(surface_y));
+    surface->Emit(GLSI_SURFACE_POINTER_MOTION, std::move(info));
+}
+
+void WaylandSeatListener::on_button(void *data,
+                                    wl_pointer *pointer,
+                                    g_maybe_unused uint32_t serial,
+                                    g_maybe_unused uint32_t time,
+                                    uint32_t button,
+                                    uint32_t state)
+{
+    static std::map<uint32_t, PointerButton> button_map = {
+        { BTN_LEFT,    PointerButton::kLeft    },
+        { BTN_RIGHT,   PointerButton::kRight   },
+        { BTN_MIDDLE,  PointerButton::kMiddle  },
+        { BTN_SIDE,    PointerButton::kSide    },
+        { BTN_FORWARD, PointerButton::kForward },
+        { BTN_BACK,    PointerButton::kBack    },
+        { BTN_EXTRA,   PointerButton::kExtra   },
+        { BTN_TASK,    PointerButton::kTask    }
+    };
+
+    CHECK(data && pointer);
+
+    if (button_map.count(button) == 0)
+    {
+        QLOG(LOG_WARNING, "Unrecognized button of pointer device: 0x{:x}", button);
+        return;
+    }
+
+    Shared<WaylandSurface> surface = extract_surface_from_pointer(data, pointer);
+    if (!surface)
+    {
+        QLOG(LOG_ERROR, "Compositor notified us a button event of a pointer "
+                        "which is not hovering on any surfaces");
+        return;
+    }
+
+    bool pressed = WL_POINTER_BUTTON_STATE_PRESSED == state;
+
+    RenderClientEmitterInfo info;
+    info.EmplaceBack<PointerButton>(button_map[button]);
+    info.EmplaceBack<bool>(pressed);
+    surface->Emit(GLSI_SURFACE_POINTER_BUTTON, std::move(info));
+}
+
+void WaylandSeatListener::on_axis_discrete(g_maybe_unused void *data,
+                                           g_maybe_unused wl_pointer *pointer,
+                                           g_maybe_unused uint32_t axis,
+                                           g_maybe_unused int32_t discrete)
+{
+    // Deprecated event (since version 8).
 }
 
 Shared<WaylandSeat> WaylandSeat::Make(const std::shared_ptr<WaylandDisplay>& display,
@@ -285,10 +374,10 @@ WaylandSeat::~WaylandSeat()
 
 Shared<WaylandSurface> WaylandSeat::FindSurfaceByNativeHandle(wl_surface *surface)
 {
-    // The userdata field of `surface` is pointer to an uncertain type of `WaylandRenderTarget`.
+    // The userdata field of `surface` points to `WaylandRenderTarget` object with an uncertain type.
     // It may be `WaylandHWComposeRenderTarget` or `WaylandSHMRenderTarget`,
     // so getting the associated `Surface` object through the userdata field of `surface`
-    // is completely unreliable. We just try to iterate match here.
+    // is completely unreliable. We just try to iterate and match here.
     for (const auto& window : display_.lock()->GetSurfacesList())
     {
         wl_surface *search_surface = window->Cast<WaylandSurface>()->GetWaylandSurface();

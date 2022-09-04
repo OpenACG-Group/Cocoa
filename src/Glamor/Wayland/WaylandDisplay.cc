@@ -535,6 +535,24 @@ bool WaylandDisplay::HasPointerDeviceInSeats()
     return (itr != seats_list_.end());
 }
 
+Shared<WaylandSurface> WaylandDisplay::GetPointerEnteredSurface(wl_pointer *pointer)
+{
+    CHECK(pointer);
+
+    if (!HasPointerDeviceInSeats())
+        return nullptr;
+
+    auto itr = std::find_if(surfaces_list_.begin(), surfaces_list_.end(),
+                            [pointer](const Shared<Surface>& surface) -> bool {
+        wl_pointer *hover_pointer = surface->As<WaylandSurface>()->GetEnteredPointerDevice();
+        return (hover_pointer == pointer);
+    });
+
+    if (itr == surfaces_list_.end())
+        return nullptr;
+    return (*itr)->As<WaylandSurface>();
+}
+
 Shared<CursorTheme> WaylandDisplay::OnLoadCursorTheme(const std::string& name, int size)
 {
     return WaylandCursorTheme::MakeFromName(Self()->As<WaylandDisplay>(), name, size);
