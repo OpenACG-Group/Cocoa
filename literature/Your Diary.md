@@ -82,7 +82,7 @@ v8::Local<v8::Value> method()
     // converter_callback is a function (usually a lambda expression)
     // to convert a RenderHostCallbackInfo to the corresponding JS value to resolve the promise.
     // converter_callback can be nullptr, which means the promise will be resolved as 'undefined'.
-    auto closure = PromiseClosure::New(isolate, converter_callback);
+    auto closure = PromiseClosure::New(GetIsolate, converter_callback);
 
     // obj is a RenderClientObject
     obj->Invoke(opcode, closure, PromiseClosure::HostCallback /* other arguments... */);

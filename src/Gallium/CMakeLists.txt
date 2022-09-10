@@ -36,6 +36,14 @@ add_library(Gallium STATIC
         UnixPathTools.cc
         Infrastructures.h
         Infrastructures.cc
+        Inspector.h
+        Inspector.cc
+        InspectorChannel.h
+        InspectorChannel.cc
+        InspectorClient.h
+        InspectorClient.cc
+        InspectorThread.h
+        InspectorThread.cc
         binder/PtrTraits.h
         binder/Utility.h
         binder/Convert.h
@@ -87,4 +95,5 @@ target_link_libraries(
         tinyxml2
         v8
         v8_libplatform
+        websockets
 )

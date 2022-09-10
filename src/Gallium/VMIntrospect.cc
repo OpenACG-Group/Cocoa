@@ -206,7 +206,7 @@ void introspect_stacktrace(const v8::FunctionCallbackInfo<v8::Value>& args)
     JS_THROW_IF(trace.IsEmpty(), "Failed to capture stacktrace", v8::Exception::Error);
 
     v8::Local<v8::Array> result = v8::Array::New(isolate, trace->GetFrameCount());
-    v8::Local<v8::Context> context = Runtime::GetBareFromIsolate(isolate)->context();
+    v8::Local<v8::Context> context = Runtime::GetBareFromIsolate(isolate)->GetContext();
 
     constexpr auto kNL = v8::Message::kNoLineNumberInfo;
     constexpr auto kNC = v8::Message::kNoColumnInfo;
@@ -335,7 +335,7 @@ bool introspect_invoke_callback(VMIntrospect *this_, ArgsT&&...args)
                    isolate->GetCurrentContext()->Global(), std::forward<ArgsT>(args)...);
     if (tryCatch.HasCaught())
     {
-        Runtime::GetBareFromIsolate(this_->getIsolate())->reportUncaughtExceptionInCallback(tryCatch);
+        Runtime::GetBareFromIsolate(this_->getIsolate())->ReportUncaughtExceptionInCallback(tryCatch);
         return false;
     }
     return true;
@@ -391,13 +391,13 @@ VMIntrospect::PerformCheckpointResult VMIntrospect::performScheduledTasksCheckpo
             v8::TryCatch tryCatch(fIsolate);
             if (task.type == ScheduledTask::Type::kEvalScript)
             {
-                value = rt->execute("<anonymous@scheduled>", task.param.c_str())
+                value = rt->ExecuteScript("<anonymous@scheduled>", task.param.c_str())
                         .FromMaybe(v8::Local<v8::Value>());
             }
             else if (task.type == ScheduledTask::Type::kEvalModuleUrl)
             {
                 try {
-                    value = rt->evaluateModule(task.param).FromMaybe(v8::Local<v8::Value>());
+                    value = rt->EvaluateModule(task.param).FromMaybe(v8::Local<v8::Value>());
                 } catch (const std::exception& e) {
                     binder::throw_(fIsolate, e.what(), v8::Exception::Error);
                 }

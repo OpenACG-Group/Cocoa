@@ -48,7 +48,7 @@ struct AssertionInfo
 
 #define CHECK(expr)                             \
     do {                                        \
-        if (UNLIKELY(!(expr))) {                \
+        if (!(expr)) [[unlikely]] {             \
             CHECK_FAILED(expr);                 \
         }                                       \
     } while (false)

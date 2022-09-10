@@ -129,7 +129,7 @@ void slot_closure_callback(SlotClosure *closure, gl::RenderHostSlotCallbackInfo&
     if (catchBlock.HasCaught())
     {
         Runtime *rt = Runtime::GetBareFromIsolate(closure->isolate_);
-        rt->reportUncaughtExceptionInCallback(catchBlock);
+        rt->ReportUncaughtExceptionInCallback(catchBlock);
     }
 }
 

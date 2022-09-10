@@ -69,7 +69,7 @@ void setTimeoutCallback(uv_timer_t *timer)
     CHECK(runtime);
 
     v8::HandleScope scope(pack->isolate);
-    runtime->performTasksCheckpoint();
+    runtime->PerformTasksCheckpoint();
 
     v8::Local<v8::Function> func = pack->callback.Get(pack->isolate);
     std::vector<v8::Local<v8::Value>> args;

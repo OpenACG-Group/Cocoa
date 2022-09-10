@@ -73,8 +73,8 @@ void uncaughtException(v8::Local<v8::Message> message, v8::Local<v8::Value> exce
         QLOG(LOG_ERROR, "    {}", line);
     });
 
-    if (rt->getIntrospect())
-        rt->getIntrospect()->notifyUncaughtException(except);
+    if (rt->GetIntrospect())
+        rt->GetIntrospect()->notifyUncaughtException(except);
 }
 
 void perIsolateMessageListener(v8::Local<v8::Message> message,
@@ -92,7 +92,7 @@ void perIsolateMessageListener(v8::Local<v8::Message> message,
         auto script = binder::from_v8<std::string>(isolate, message->GetScriptResourceName());
         auto content = binder::from_v8<std::string>(isolate, message->Get());
         QLOG(LOG_WARNING, "%fg<hl>(Isolate)%reset Warning from script {} line {}:", script,
-             message->GetLineNumber(rt->context()).FromMaybe(-1));
+             message->GetLineNumber(rt->GetContext()).FromMaybe(-1));
         QLOG(LOG_WARNING, "  {}", content);
         break;
     }
@@ -117,7 +117,7 @@ void perIsolatePromiseRejectionHandler(v8::PromiseRejectMessage message)
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     Runtime *pRuntime = Runtime::GetBareFromIsolate(isolate);
-    auto& guard = pRuntime->getUniqueGlobalIsolateGuard();
+    auto& guard = pRuntime->GetUniqueGlobalIsolateGuard();
 
     VMIntrospect::MultipleResolveAction multipleResolveAction;
     switch (message.GetEvent())
@@ -135,8 +135,8 @@ void perIsolatePromiseRejectionHandler(v8::PromiseRejectMessage message)
         multipleResolveAction = VMIntrospect::MultipleResolveAction::kResolve;
         break;
     }
-    if (pRuntime->getIntrospect())
-        pRuntime->getIntrospect()->notifyPromiseMultipleResolve(message.GetPromise(),
+    if (pRuntime->GetIntrospect())
+        pRuntime->GetIntrospect()->notifyPromiseMultipleResolve(message.GetPromise(),
                                                                 multipleResolveAction);
 }
 
@@ -144,7 +144,7 @@ void perIsolatePromiseRejectionHandler(v8::PromiseRejectMessage message)
 
 GlobalIsolateGuard::GlobalIsolateGuard(const std::shared_ptr<Runtime>& rt)
     : fRuntime(rt)
-    , fIsolate(rt->isolate())
+    , fIsolate(rt->GetIsolate())
 {
     fIsolate->SetCaptureStackTraceForUncaughtExceptions(true);
     fIsolate->AddMessageListenerWithErrorLevel(perIsolateMessageListener,
@@ -181,7 +181,7 @@ void GlobalIsolateGuard::removeMaybeUnhandledRejectPromise(v8::Local<v8::Promise
 
 void GlobalIsolateGuard::performUnhandledRejectPromiseCheck()
 {
-    auto& introspect = getRuntime()->getIntrospect();
+    auto& introspect = getRuntime()->GetIntrospect();
     if (!introspect)
     {
         QLOG(LOG_WARNING, "{} promise(s) was rejected but not handled (introspect not available)",

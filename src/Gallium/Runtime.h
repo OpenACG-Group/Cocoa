@@ -37,6 +37,17 @@ GALLIUM_NS_BEGIN
 
 #define ISOLATE_DATA_SLOT_RUNTIME_PTR       0
 
+/**
+ * `JS_THROW_IF` macro throws a JavaScript exception and make current function
+ * return. It does NOT throw a C++ exception which can be caught by `try`
+ * statement. After we have returned to the JavaScript land, V8 will handle
+ * the exception correctly.
+ *
+ * For the native callbacks in synthetic module (language binding), use `g_throw`
+ * macro provided in the `binder/ThrowExcept.h` to throw a C++ exception which contains
+ * a JavaScript exception. Binder will catch the thrown exceptions and convert them
+ * to a regular JavaScript exception.
+ */
 #define JS_THROW_IF(cond, msg, ...)                                                     \
     do {                                                                                \
         if ((cond)) {                                                                   \
@@ -56,6 +67,7 @@ GALLIUM_NS_BEGIN
 namespace bindings { class BindingBase; }
 
 class Platform;
+class Inspector;
 
 class Runtime : public PrepareSource,
                 public CheckSource
@@ -77,6 +89,7 @@ public:
         bool        start_with_inspector = false;
         int32_t     inspector_port = 9005;
         std::string inspector_address = "127.0.0.1";
+        bool        inspector_no_script = false;
     };
 
     struct ESModuleCache
@@ -129,6 +142,7 @@ public:
             v8::ArrayBuffer::Allocator *allocator,
             v8::Isolate *isolate,
             v8::Global<v8::Context> context,
+            std::unique_ptr<Inspector> inspector,
             Options opts);
     Runtime(const Runtime&) = delete;
     Runtime& operator=(const Runtime&) = delete;
@@ -143,61 +157,66 @@ public:
     g_nodiscard inline const Options& getOptions() const
     { return options_; }
 
-    inline v8::Local<v8::Context> context()
+    inline v8::Local<v8::Context> GetContext()
     { return context_.Get(isolate_); }
 
-    inline v8::Isolate *isolate()
+    inline v8::Isolate *GetIsolate()
     { return isolate_; }
 
-    v8::MaybeLocal<v8::Value> execute(const char *scriptName, const char *str);
+    v8::MaybeLocal<v8::Value> ExecuteScript(const char *scriptName, const char *str);
 
-    v8::Local<v8::Module> compileModule(const ModuleImportURL::SharedPtr& referer,
+    v8::Local<v8::Module> CompileModule(const ModuleImportURL::SharedPtr& referer,
                                         const std::string& url,
                                         bool isImport,
                                         bool isSysInvoke);
-    v8::MaybeLocal<v8::Value> evaluateModule(const std::string& url,
+    v8::MaybeLocal<v8::Value> EvaluateModule(const std::string& url,
                                              v8::Local<v8::Module> *outModule = nullptr,
                                              const std::shared_ptr<ModuleImportURL> &referer = nullptr,
                                              bool isImport = false,
                                              bool isSysInvoke = false);
 
-    bindings::BindingBase *getSyntheticModuleBinding(v8::Local<v8::Module> module);
+    bindings::BindingBase *GetSyntheticModuleBinding(v8::Local<v8::Module> module);
+
+    // TODO(sora): deprecate this.
     v8::Local<v8::Object> getSyntheticModuleExportObject(v8::Local<v8::Module> module);
 
-    ModuleCacheMap& getModuleCache();
+    ModuleCacheMap& GetModuleCache();
 
-    g_nodiscard inline const std::unique_ptr<VMIntrospect>& getIntrospect() const {
+    g_nodiscard inline const std::unique_ptr<VMIntrospect>& GetIntrospect() const {
         return introspect_;
     }
 
-    std::unique_ptr<GlobalIsolateGuard>& getUniqueGlobalIsolateGuard() {
+    std::unique_ptr<GlobalIsolateGuard>& GetUniqueGlobalIsolateGuard() {
         return isolate_guard_;
     }
 
-    void performTasksCheckpoint();
+    void RunWithMainLoop();
 
-    void reportUncaughtExceptionInCallback(const v8::TryCatch& catchBlock);
+    void PerformTasksCheckpoint();
 
-    void notifyRuntimeWillExit();
+    void ReportUncaughtExceptionInCallback(const v8::TryCatch& catchBlock);
 
-    void drainPlatformTasks();
+    void NotifyRuntimeWillExit();
+
+    void DrainPlatformTasks();
 
 private:
     static void PromiseHookCallback(v8::PromiseHookType type, v8::Local<v8::Promise> promise,
                                     v8::Local<v8::Value> parent);
 
-    static v8::MaybeLocal<v8::Promise>DynamicImportHostCallback(v8::Local<v8::Context> context,
-                                                                v8::Local<v8::Data> host_defined_options,
-                                                                v8::Local<v8::Value> resource_name,
-                                                                v8::Local<v8::String> specifier,
-                                                                v8::Local<v8::FixedArray> import_assertions);
+    static v8::MaybeLocal<v8::Promise> DynamicImportHostCallback(v8::Local<v8::Context> context,
+                                                                 v8::Local<v8::Data> host_defined_options,
+                                                                 v8::Local<v8::Value> resource_name,
+                                                                 v8::Local<v8::String> specifier,
+                                                                 v8::Local<v8::FixedArray> import_assertions);
 
-    inline void setGlobalIsolateGuard(std::unique_ptr<GlobalIsolateGuard> ptr) {
+    inline void SetGlobalIsolateGuard(std::unique_ptr<GlobalIsolateGuard> ptr) {
         isolate_guard_ = std::move(ptr);
     }
-    v8::MaybeLocal<v8::Module> getAndCacheSyntheticModule(const ModuleImportURL::SharedPtr& url);
+    v8::MaybeLocal<v8::Module> GetAndCacheSyntheticModule(const ModuleImportURL::SharedPtr& url);
 
-    void updateIdleRequirementByPromiseCounter();
+    void UpdateIdleRequirementByPromiseCounter();
+
     KeepInLoop prepareDispatch() override;
     KeepInLoop checkDispatch() override;
 
@@ -207,6 +226,7 @@ private:
     std::unique_ptr<Platform>       platform_;
     v8::ArrayBuffer::Allocator     *array_buffer_allocator_;
     v8::Isolate                    *isolate_;
+    std::unique_ptr<Inspector>      inspector_;
     std::unique_ptr<GlobalIsolateGuard>
                                     isolate_guard_;
     v8::Global<v8::Context>         context_;

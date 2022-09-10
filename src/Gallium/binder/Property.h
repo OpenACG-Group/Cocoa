@@ -142,12 +142,15 @@ struct r_property_impl<Get, Set, true>
     try
     {
         auto obj = Class<class_type, Traits>::unwrap_object(info.GetIsolate(), info.This());
-        CHECK(obj);
+        if (!obj)
+        {
+            g_throw(TypeError, "Internal: Could not unwrap the JS object for property getting");
+        }
 
         property_type const& prop = detail::external_data::get<property_type>(info.Data());
         CHECK(prop.getter);
 
-        if (obj && prop.getter)
+        if (prop.getter)
         {
             get_impl(*obj, prop.getter, name, info, select_getter_tag<Get>());
         }
@@ -165,7 +168,6 @@ struct r_property_impl<Get, Set, true>
     static void set(v8::Local<v8::String> name, v8::Local<v8::Value>,
                     v8::PropertyCallbackInfo<void> const& info)
     {
-        CHECK(false && "read-only property");
         info.GetReturnValue().Set(throw_(info.GetIsolate(),
                                            "read-only property " + from_v8<std::string>(info.GetIsolate(), name)));
     }

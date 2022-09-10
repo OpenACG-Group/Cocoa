@@ -152,6 +152,19 @@ const Template g_templates[] = {
             .desc = "Pass the comma separated arguments to V8"
         },
         {
+            .long_name = "runtime-inspector",
+            .has_value = Template::RequireValue::kOptional,
+            .value_type = ValueType::kInteger,
+            .desc = "Start with V8 inspector to debug JavaScript. "
+                    "Optionally specify a port number to listen on (9005 by default)"
+        },
+        {
+            .long_name = "runtime-inspector-no-script",
+            .has_value = Template::RequireValue::kEmpty,
+            .desc = "Do NOT run startup script after connecting to debugger; "
+                    "Code snippets can be executed in the REPL interface of debugger"
+        },
+        {
             .long_name = "runtime-blacklist",
             .has_value = Template::RequireValue::kNecessary,
             .value_type = ValueType::kString,
@@ -878,6 +891,16 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
             for (const auto& view : list)
                 gallium_options.v8_options.emplace_back(view);
         }
+        else if arg_longopt_match("runtime-inspector")
+        {
+            gallium_options.start_with_inspector = true;
+            if (arg.value)
+                gallium_options.inspector_port = arg.value->v_int;
+        }
+        else if arg_longopt_match("runtime-inspector-no-script")
+        {
+            gallium_options.inspector_no_script = true;
+        }
         else if arg_longopt_match("runtime-blacklist")
         {
             std::vector<std::string_view> list = utils::SplitString(arg.value->v_str, ',');
@@ -1021,33 +1044,24 @@ void mainloop_execute(bool justInitialize,
         gallium::BindingManager::Ref().loadDynamicObject(val);
     }
 
-    BeforeEventLoopEntrypointHook();
     if (!justInitialize)
     {
         auto runtime = gallium::Runtime::Make(EventLoop::Instance(), options);
-        CHECK(runtime != nullptr);
-        v8::Isolate::Scope isolateScope(runtime->isolate());
-        v8::HandleScope handleScope(runtime->isolate());
-        v8::Context::Scope contextScope(runtime->context());
 
-        v8::Local<v8::Value> result;
-        if (!runtime->evaluateModule(options.startup).ToLocal(&result))
-            return;
+        v8::Isolate::Scope isolateScope(runtime->GetIsolate());
+        v8::HandleScope handleScope(runtime->GetIsolate());
+        v8::Context::Scope contextScope(runtime->GetContext());
 
-        InstallSecondarySignalHandler();
-        EventLoop::Ref().spin([&runtime] {
-            // This will also perform the microtask queue checkpoint
-            runtime->drainPlatformTasks();
-        });
+        runtime->RunWithMainLoop();
 
         gallium::BindingManager::Delete();
 
-        runtime->notifyRuntimeWillExit();
+        runtime->NotifyRuntimeWillExit();
         CHECK(runtime.unique() && "Runtime is referenced by other scopes");
     }
     else
     {
-        fmt::print(std::cerr, "[TESTRUN] Cocoa exits after finishing initialization steps.\n");
+        QLOG(LOG_INFO, "[TESTRUN] Cocoa exits after finishing initialization steps");
     }
 
 

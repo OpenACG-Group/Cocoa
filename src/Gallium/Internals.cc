@@ -237,10 +237,17 @@ findFromCompressed(const std::string& name, InternalScript::ScopeAttr scope)
     script->name = file_name;
     ScopeExitAutoInvoker epi([script] { delete script; });
 
+    // Initialize by default values
+    using i = InternalScript::ScopeAttr;
+    using v = InternalScript::ScopeAttrValue;
+    script->scope[i::kUserExecute] = v::kForbidden;
+    script->scope[i::kUserImport] = v::kAllowed;
+    script->scope[i::kSysExecute] = v::kAllowed;
+    script->scope[i::kSysImport] = v::kAllowed;
+    script->scope[i::kUnknown] = v::kEmpty;
+
     if (!parseScriptAttribute(script))
     {
-        using i = InternalScript::ScopeAttr;
-        using v = InternalScript::ScopeAttrValue;
         // Fallback to default values
         script->scope[i::kUserExecute] = v::kForbidden;
         script->scope[i::kUserImport] = v::kAllowed;

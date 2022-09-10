@@ -289,10 +289,10 @@ type_info type_id()
 	#define BINDER_PRETTY_FUNCTION __PRETTY_FUNCTION__
 	#if !defined(__clang__)
 		#define BINDER_PRETTY_FUNCTION_PREFIX \
-		"cocoa::koi::binder::detail::type_info cocoa::koi::binder::detail::type_id() [with T = "
+		"cocoa::gallium::binder::detail::type_info cocoa::gallium::binder::detail::type_id() [with T = "
 	#else
 		#define BINDER_PRETTY_FUNCTION_PREFIX \
-		"cocoa::koi::binder::detail::type_info cocoa::koi::binder::detail::type_id() [T = "
+		"cocoa::gallium::binder::detail::type_info cocoa::gallium::binder::detail::type_id() [T = "
 	#endif
 	#define BINDER_PRETTY_FUNCTION_SUFFIX "]"
 #else
