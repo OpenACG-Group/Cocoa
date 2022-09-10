@@ -31,13 +31,13 @@ class Class;
 class Module
 {
 public:
-    /// Create new module in the specified V8 GetIsolate
+    /// Create new module in the specified V8 isolate
     explicit Module(v8::Isolate *isolate)
             : isolate_(isolate), obj_(v8::ObjectTemplate::New(isolate))
     {
     }
 
-    /// Create new module in the specified V8 GetIsolate for existing ObjectTemplate
+    /// Create new module in the specified V8 isolate for existing ObjectTemplate
     explicit Module(v8::Isolate *isolate, v8::Local<v8::ObjectTemplate> obj)
             : isolate_(isolate), obj_(obj)
     {

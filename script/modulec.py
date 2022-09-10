@@ -259,7 +259,7 @@ def modifier_replace(content: str) -> str:
     if len(content) == 0:
         return content
     if content[0] == '#':
-        return f'v8::Symbol::Get{content[1:]}(GetIsolate)'
+        return f'v8::Symbol::Get{content[1:]}(isolate)'
     return f'\"{content}\"'
 
 
@@ -298,7 +298,7 @@ public:
     {module.classname}();
     ~{module.classname}() override;
     void onSetInstanceProperties(v8::Local<v8::Object> instance) override;
-    void onRegisterClasses(v8::Isolate *GetIsolate) override;
+    void onRegisterClasses(v8::Isolate *isolate) override;
     
 ''')
     for cl in module.class_exports:
@@ -338,9 +338,9 @@ void {module.classname}::onGetModule(cocoa::gallium::binder::Module& mod) {{''')
 
     out('}\n')
 
-    out(f'void {module.classname}::onRegisterClasses(v8::Isolate *GetIsolate) {{')
+    out(f'void {module.classname}::onRegisterClasses(v8::Isolate *isolate) {{')
     for class_ in module.class_exports:
-        out(f'    class_{class_.name}_ = NewClassExport<{class_.wrapper}>(GetIsolate);')
+        out(f'    class_{class_.name}_ = NewClassExport<{class_.wrapper}>(isolate);')
         out(f'    (*class_{class_.name}_)')
         if len(class_.inherit_wrapper_name) > 0:
             out(f'    .inherit<{class_.inherit_wrapper_name}>()')

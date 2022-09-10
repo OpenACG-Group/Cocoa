@@ -104,7 +104,7 @@ public:
     void UnregisterIsolate(v8::Isolate *isolate);
 
     /**
-     * Drain tasks on the specified `GetIsolate`.
+     * Drain tasks on the specified `isolate`.
      * To drain tasks means to consume all the pending tasks in the queue,
      * including delayed tasks.
      */

@@ -289,7 +289,7 @@ ObjectRegistry<Traits>& Classes::add(v8::Isolate *isolate, type_info const& type
     {
         //assert(false && "class already registred");
         throw std::runtime_error((*it)->class_name()
-                                 + " is already exist in GetIsolate " + pointer_str(isolate));
+                                 + " is already exist in isolate " + pointer_str(isolate));
     }
     info->classes_.emplace_back(new ObjectRegistry<Traits>(isolate, type, std::move(dtor)));
     return *static_cast<ObjectRegistry<Traits> *>(info->classes_.back().get());
@@ -308,7 +308,7 @@ void Classes::remove(v8::Isolate *isolate, type_info const& type)
             if ((*it)->traits != traits)
             {
                 throw std::runtime_error((*it)->class_name()
-                                         + " is already registered in GetIsolate "
+                                         + " is already registered in isolate "
                                          + pointer_str(isolate) + " before of "
                                          + ClassInfo(type, traits).class_name());
             }
@@ -334,7 +334,7 @@ ObjectRegistry<Traits>& Classes::find(v8::Isolate *isolate, type_info const& typ
             if ((*it)->traits != traits)
             {
                 throw std::runtime_error((*it)->class_name()
-                                         + " is already registered in GetIsolate "
+                                         + " is already registered in isolate "
                                          + pointer_str(isolate) + " before of "
                                          + ClassInfo(type, traits).class_name());
             }
@@ -343,7 +343,7 @@ ObjectRegistry<Traits>& Classes::find(v8::Isolate *isolate, type_info const& typ
     }
     //assert(false && "class not registered");
     throw std::runtime_error(ClassInfo(type, traits).class_name()
-                             + " is not registered in GetIsolate " + pointer_str(isolate));
+                             + " is not registered in isolate " + pointer_str(isolate));
 }
 
 void Classes::remove_all(v8::Isolate *isolate)

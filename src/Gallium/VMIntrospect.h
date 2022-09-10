@@ -83,7 +83,7 @@ public:
 
     /**
      * Install global 'introspect' object to current context.
-     * @note `GetIsolate` must have an entered context scope.
+     * @note `isolate` must have an entered context scope.
      */
     static std::unique_ptr<VMIntrospect> InstallGlobal(v8::Isolate *isolate);
 

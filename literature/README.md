@@ -4,7 +4,6 @@ Cocoa Documentation for Users and Developers
 Cocoa 项目文档索引
 
 ## 日志与杂文（不含文档内容）
-* [Cocoa 开发日志](./Your%20Diary.md)
 * [Cocoa 第三方库缺陷与修复日志](./elegia.md)
 * [随笔：ACG，爱，与童年](./komorebi/ACG%20Love%20and%20Childhood.md)
 
@@ -38,5 +37,6 @@ Cocoa 项目文档索引
 * [2D 渲染流水线：平台相关抽象（窗口系统集成）](./pipeline/window_system_integration.md)
 
 ## 构建系统与工具脚本
-* [Renpy 代码生成：Moe（CanvasKit）指令集](./Renpy%20Code%20Generating.md)
-* [Renpy 代码生成：JS 语言绑定](./Renpy%20Code%20Generating.md)
+* 用 `modulec.py` 来创建自定义语言绑定
+* 依赖部署
+
