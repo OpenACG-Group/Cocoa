@@ -14,6 +14,8 @@ add_custom_command(
 
 add_library(
         Core STATIC
+        CmdParser.h
+        CmdParser.cc
         Journal.h
         Journal.cc
         Exception.h

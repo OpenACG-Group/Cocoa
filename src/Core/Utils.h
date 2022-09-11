@@ -35,7 +35,22 @@ std::string GetExecutablePath();
 std::string GetCpuModel();
 size_t GetMemPageSize();
 size_t GetMemTotalSize();
-std::vector<std::string_view> SplitString(const std::string& str, std::string::value_type delimiter);
+
+//! Bugfix note:
+//! Pass the origin string with `const std::string_view&` type instead of `const std::string&`
+//! to avoid the implicit copy construction which is unsafe.
+//! For example, consider the code (if we use `const std::string&` for the `str` parameter):
+//! @code
+//!   const char *str = "content1.content2";
+//!   auto sv = SplitString(str, '.');
+//! @endcode
+//! The `str` points to a persistent string literal, but it is copied by `std::string`
+//! when passing it to the `SplitString`. The copied `std::string` is a temporary object
+//! which will be destructed after `SplitString` returns. `sv` is a vector containing
+//! `std::string_view` objects which is constructed from that temporary `std::string`,
+//! so the string pointers stored in `sv` is completely dangling pointers.
+std::vector<std::string_view> SplitString(const std::string_view& str,
+                                          std::string::value_type delimiter);
 
 void SetThreadName(const char *name);
 

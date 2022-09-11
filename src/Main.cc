@@ -24,6 +24,7 @@
 #include "fmt/ostream.h"
 
 #include "Core/Project.h"
+#include "Core/CmdParser.h"
 #include "Core/Properties.h"
 #include "Core/Errors.h"
 #include "Core/Utils.h"
@@ -46,578 +47,11 @@
 namespace cocoa {
 namespace cmd {
 
-enum class ValueType
-{
-    kString,
-    kInteger,
-    kFloat,
-    kBoolean
-};
-
-struct Template
-{
-    enum class RequireValue
-    {
-        kEmpty,
-        kNecessary,
-        kOptional
-    };
-
-    const char                 *long_name = nullptr;
-    std::optional<char>         short_name;
-    RequireValue                has_value = RequireValue::kEmpty;
-    std::optional<ValueType>    value_type;
-    const char                 *desc = nullptr;
-};
-
-enum class ParseState
-{
-    kExit,
-    kSuccess,
-    kError,
-    kJustInitialize
-};
-
-struct ParseResult
-{
-    struct Option
-    {
-        struct Value
-        {
-            std::string     v_str;
-            int32_t         v_int;
-            float           v_float;
-            bool            v_bool;
-        };
-        const Template          *matched_template = nullptr;
-        std::string              origin;
-        std::optional<Value>     value;
-    };
-
-    std::vector<const char*> orphans;
-    std::vector<Option>      options;
-};
-
-const Template g_templates[] = {
-        {
-            .long_name = "help",
-            .short_name = 'h',
-            .desc = "Display available options"
-        },
-        {
-            .long_name = "version",
-            .short_name = 'v',
-            .desc = "Display version information"
-        },
-        {
-            .long_name = "log-file",
-            .short_name = 'o',
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kString,
-            .desc = "Specify a file to print logs"
-        },
-        {
-            .long_name = "log-stderr",
-            .desc = "Print logs to standard error"
-        },
-        {
-            .long_name = "log-level",
-            .short_name = 'L',
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kString,
-            .desc = "Specify log level. Valid arguments: debug|normal|quiet|silent|disabled"
-        },
-        {
-            .long_name = "disable-log-decoration",
-            .desc = "Don't print logs with colors through ANSI escape code"
-        },
-        {
-            .long_name = "initialize-only",
-            .desc = "Exit immediately after finishing all the initialization steps (not running script)"
-        },
-        {
-            .long_name = "disable-traceback-symbol-folding",
-            .desc = "Do not fold symbols of traceback information in exception report"
-        },
-        {
-            .long_name = "v8-concurrent-workers",
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kInteger,
-            .desc = "Specify the number of worker threads to Allocate for background jobs for V8"
-        },
-        {
-            .long_name = "v8-options",
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kString,
-            .desc = "Pass the comma separated arguments to V8"
-        },
-        {
-            .long_name = "runtime-inspector",
-            .has_value = Template::RequireValue::kOptional,
-            .value_type = ValueType::kInteger,
-            .desc = "Start with V8 inspector to debug JavaScript. "
-                    "Optionally specify a port number to listen on (9005 by default)"
-        },
-        {
-            .long_name = "runtime-inspector-no-script",
-            .has_value = Template::RequireValue::kEmpty,
-            .desc = "Do NOT run startup script after connecting to debugger; "
-                    "Code snippets can be executed in the REPL interface of debugger"
-        },
-        {
-            .long_name = "runtime-blacklist",
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kString,
-            .desc = "Specify a comma separated blacklist of language bindings"
-        },
-        {
-            .long_name = "runtime-preload",
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kString,
-            .desc = "Specify a path of a dynamic library to load it as language bindings"
-        },
-        {
-            .long_name = "runtime-allow-override",
-            .has_value = Template::RequireValue::kEmpty,
-            .desc = "Language bindings with the same name can override each other"
-        },
-        {
-            .long_name = "runtime-expose-introspect",
-            .has_value = Template::RequireValue::kOptional,
-            .value_type = ValueType::kBoolean,
-            .desc = "Specify whether VM expose 'introspect' global object to JavaScript land"
-        },
-        {
-            .long_name = "introspect-policy",
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kString,
-            .desc = "Enable/disable functions in 'introspect' global object"
-        },
-        {
-            .long_name = "pass",
-            .short_name = 'A',
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kString,
-            .desc = "Specify a delimiter separated list passed to JavaScript"
-        },
-        {
-            .long_name = "pass-delimiter",
-            .short_name = 'D',
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kString,
-            .desc = "Specify a character as delimiter. Default is ','"
-        },
-        {
-            .long_name = "startup",
-            .short_name = 's',
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kString,
-            .desc = "Specify a JavaScript file to run. (index.js for default)"
-        },
-        {
-            .long_name = "gl-transfer-queue-profile",
-            .has_value = Template::RequireValue::kEmpty,
-            .desc = "Enable profiling on RenderHost's message queue"
-        },
-        {
-            .long_name = "gl-use-jit",
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kBoolean,
-            .desc = "Use JIT to accelerate CPU-bound operations while rendering (true by default)"
-        },
-        {
-            .long_name = "gl-concurrent-workers",
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kInteger,
-            .desc = "Specify the number of worker threads for tile rendering, rasterization, etc."
-        },
-        {
-            .long_name = "gl-show-tile-boundaries",
-            .has_value = Template::RequireValue::kEmpty,
-            .desc = "Draw tile boundaries if tiled rendering is available"
-        },
-        {
-            .long_name = "gl-disable-hwcompose",
-            .has_value = Template::RequireValue::kEmpty,
-            .desc = "Disable Vulkan-based hardware acceleration (disable HWCompose surfaces)"
-        },
-        {
-            .long_name = "gl-hwcompose-enable-vkdbg",
-            .has_value = Template::RequireValue::kEmpty,
-            .desc = "Enable Vulkan debug utils to generate detailed Vulkan logs"
-        },
-        {
-            .long_name = "gl-hwcompose-vkdbg-severities",
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kString,
-            .desc = "Specify a comma separated list of allowed message severities for Vulkan debug utils"
-        },
-        {
-            .long_name = "gl-hwcompose-vkdbg-levels",
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kString,
-            .desc = "Specify a comma separated list of allowed message types for Vulkan debug utils"
-        }
-};
-
-namespace {
-
-const Template *match_template(const std::string_view& longOpt)
-{
-    for (const Template& t : g_templates)
-    {
-        if (longOpt == t.long_name)
-            return &t;
-    }
-    return nullptr;
-}
-
-const Template *match_template(char shortOpt)
-{
-    for (const Template& t : g_templates)
-    {
-        if (t.short_name.has_value() && shortOpt == t.short_name)
-            return &t;
-    }
-    return nullptr;
-}
-
-bool interpret_and_set_option_value(ParseResult::Option& opt, const std::string_view& str)
-{
-    std::string stored(str);
-
-    switch (opt.matched_template->value_type.value())
-    {
-    case ValueType::kString:
-        opt.value = ParseResult::Option::Value{.v_str = stored};
-        break;
-    case ValueType::kInteger:
-    {
-        char *endptr = nullptr;
-        long n = std::strtol(stored.c_str(), &endptr, 10);
-        if (endptr != stored.c_str() + stored.length())
-        {
-            fmt::print(std::cerr, "Couldn't interpret the argument of option \"{}\" as an integer\n", opt.origin);
-            return false;
-        }
-        opt.value = ParseResult::Option::Value{.v_int = static_cast<int32_t>(n)};
-        break;
-    }
-
-    case ValueType::kFloat:
-    {
-        char *endptr = nullptr;
-        float n = std::strtof(stored.c_str(), &endptr);
-        if (endptr != stored.c_str() + stored.length())
-        {
-            fmt::print(std::cerr, "Couldn't interpret the argument of option \"{}\" as a number\n", opt.origin);
-            return false;
-        }
-        opt.value = ParseResult::Option::Value{.v_float = n};
-        break;
-    }
-
-    case ValueType::kBoolean:
-    {
-        bool v;
-        if (str == "true" || str == "TRUE")
-            v = true;
-        else if (str == "false" || str == "FALSE")
-            v = false;
-        else
-        {
-            fmt::print(std::cerr, "Couldn't interpret the argument of option \"{}\" as a boolean\n", opt.origin);
-            return false;
-        }
-        opt.value = ParseResult::Option::Value{.v_bool = v};
-        break;
-    }
-    }
-
-    return true;
-}
-
-/* size = 2^7 * 2^7 * sizeof(int) = 2^16 bytes = 64KB */
-int dp[128][128];
-
-// If user gives an unrecognized option name due to spelling mistake, we try guessing
-// the most possibly right option name by calculating Levenshtein Distance.
-// Supposing `s1` and `s2` are two strings, their Levenshtein Distance `lev(s1, s2)`
-// is a number N which represents that `s1` can be changed into `s2` after N times' single-character
-// edits (insertions, deletions, substitutions) at least.
-int solve_levenshtein_distance(const std::string_view& a, const std::string_view& b)
-{
-    CHECK(a.size() < 128 && b.size() < 128);
-
-    size_t m = a.size(), n = b.size();
-
-    for (int i = 0; i <= m; i++)
-        dp[i][0] = i;
-    for (int j = 0; j <= n; j++)
-        dp[0][j] = j;
-
-    for (int i = 1; i <= m; i++)
-    {
-        for (int j = 1; j <= n; j++)
-        {
-            if (a[i - 1] == b[j - 1])
-                dp[i][j] = dp[i - 1][j - 1];
-            else
-                dp[i][j] = std::min({dp[i][j-1] + 1, dp[i-1][j] + 1, dp[i-1][j-1] + 1});
-        }
-    }
-    return dp[m][n];
-}
-
-const char *most_possible_long_option_spell(const std::string_view& opt)
-{
-    int minDis = INT_MAX;
-    const char *minOpt;
-    for (const auto& t : g_templates)
-    {
-        int dis = solve_levenshtein_distance(opt, t.long_name);
-        if (dis < minDis)
-        {
-            minDis = dis;
-            minOpt = t.long_name;
-        }
-    }
-
-    if (minDis > 4)
-        return nullptr;
-    return minOpt;
-}
-
-bool interpret_and_set_long_option(ParseResult::Option& opt, const std::string_view& str)
-{
-    std::string_view optionView(str);
-    std::string_view valueView;
-    optionView.remove_prefix(2);
-
-    size_t equalPos = str.find_first_of('=');
-    if (equalPos != std::string_view::npos)
-    {
-        if (equalPos + 1 == str.length())
-        {
-            fmt::print(std::cerr, "Unnecessary \"=\" in option \"{}\"\n", str);
-            return false;
-        }
-        optionView.remove_suffix(str.length() - equalPos);
-        valueView = str;
-        valueView.remove_prefix(equalPos + 1);
-    }
-
-    opt.matched_template = match_template(optionView);
-    if (!opt.matched_template)
-    {
-        const char *possible = most_possible_long_option_spell(optionView);
-        if (possible)
-            fmt::print(std::cerr, "Unrecognized long options \"{}\", did you mean \"--{}\"?\n", str, possible);
-        else
-            fmt::print(std::cerr, "Unrecognized long option \"{}\"\n", str);
-        return false;
-    }
-
-    if (opt.matched_template->has_value == Template::RequireValue::kEmpty &&
-        !valueView.empty())
-    {
-        fmt::print(std::cerr, "Unnecessary argument in option \"{}\"\n", str);
-        return false;
-    }
-
-    opt.origin = str;
-    if (!valueView.empty())
-        return interpret_and_set_option_value(opt, valueView);
-    else if (opt.matched_template->has_value == Template::RequireValue::kNecessary)
-    {
-        fmt::print(std::cerr, "Expecting an argument for option \"{}\"\n", str);
-        return false;
-    }
-    return true;
-}
-
-bool interpret_and_set_short_options(ParseResult& result, const std::string_view& str)
-{
-    std::string_view p(str);
-    p.remove_prefix(1);
-
-    if (p.empty())
-    {
-        fmt::print(std::cerr, "Empty short option is not allowed\n");
-        return false;
-    }
-
-    for (auto i = p.begin(); i != p.end(); i++)
-    {
-        ParseResult::Option opt;
-        opt.matched_template = match_template(*i);
-        if (!opt.matched_template)
-        {
-            fmt::print(std::cerr, "Unrecognized short option \"-{}\" in the short option sequence \"{}\"\n", *i, str);
-            return false;
-        }
-
-        if (opt.matched_template->has_value == Template::RequireValue::kNecessary &&
-            i != p.end() - 1)
-        {
-            fmt::print(std::cerr, "Short option \"-{}\" which requires an argument can only "
-                       "be the last option in the short option sequence\n", *i);
-            return false;
-        }
-        opt.origin = std::string("-") + *i;
-        result.options.push_back(opt);
-    }
-
-    return true;
-}
-
-} // namespace anonymous
-
-ParseState Parse(int argc, const char **argv, ParseResult& result)
-{
-    std::optional<ParseResult::Option*> pendingOption;
-    for (uint32_t i = 1; i < argc; i++)
-    {
-        std::string current(argv[i]);
-        if (current == "--")
-        {
-            if (pendingOption.has_value())
-            {
-                fmt::print(std::cerr, "Option {} expects an argument\n", pendingOption.value()->origin);
-                return ParseState::kError;
-            }
-
-            for (uint32_t j = i + 1; j < argc; j++)
-                result.orphans.push_back(argv[j]);
-            break;
-        }
-        else if (utils::StrStartsWith(current, "--"))
-        {
-            ParseResult::Option opt;
-            if (!interpret_and_set_long_option(opt, current))
-            {
-                fmt::print(std::cerr, "Illegal option \"{}\"\n", current);
-                return ParseState::kError;
-            }
-            result.options.push_back(opt);
-        }
-        else if (utils::StrStartsWith(current, '-'))
-        {
-            if (!interpret_and_set_short_options(result, current))
-            {
-                fmt::print(std::cerr, "Illegal option \"{}\"\n", current);
-                return ParseState::kError;
-            }
-            auto hasValue = result.options.back().matched_template->has_value;
-            if (hasValue == Template::RequireValue::kOptional ||
-                hasValue == Template::RequireValue::kNecessary)
-            {
-                pendingOption = &result.options.back();
-                continue;
-            }
-        }
-        else if (pendingOption.has_value())
-        {
-            if (!interpret_and_set_option_value(*pendingOption.value(), current))
-            {
-                fmt::print(std::cerr, "Bad argument \"{}\" for option {}\n", current,
-                           pendingOption.value()->origin);
-                return ParseState::kError;
-            }
-            pendingOption.reset();
-        }
-        else
-        {
-            result.orphans.push_back(argv[i]);
-        }
-
-        if (pendingOption.has_value())
-        {
-            if (pendingOption.value()->matched_template->has_value == Template::RequireValue::kNecessary)
-            {
-                fmt::print(std::cerr, "Option {} expects an argument\n", pendingOption.value()->origin);
-                return ParseState::kError;
-            }
-            pendingOption.reset();
-        }
-    }
-
-    return ParseState::kSuccess;
-}
-
-void startup_print_help(const char *program)
-{
-    fmt::print(
-R"(Cocoa 2D Rendering Framework, version {}
-Usage {} [<options>...] [--] [<path>]
-
-AVAILABLE OPTIONS:
-)",
-    COCOA_VERSION, program);
-
-    MeasuredTable table;
-    for (const auto& p : g_templates)
-    {
-        std::string hdr("--");
-        hdr.append(p.long_name);
-        if (p.short_name.has_value())
-        {
-            hdr.append(", -");
-            hdr.push_back(p.short_name.value());
-        }
-
-        if (p.has_value != Template::RequireValue::kEmpty)
-        {
-            const char *close = "";
-            if (p.has_value == Template::RequireValue::kNecessary)
-            {
-                close = ">";
-                hdr.append(" <");
-            }
-            else if (p.has_value == Template::RequireValue::kOptional)
-            {
-                close = ">]";
-                hdr.append(" [<");
-            }
-            switch (p.value_type.value())
-            {
-            case ValueType::kString:    hdr.append("string"); break;
-            case ValueType::kInteger:   hdr.append("int");    break;
-            case ValueType::kFloat:     hdr.append("real");   break;
-            case ValueType::kBoolean:   hdr.append("bool");   break;
-            }
-            hdr.append(close);
-        }
-
-        table.append(hdr, p.desc);
-    }
-
-    table.flush([](const std::string& line) -> void {
-        fmt::print("  {}\n", line);
-    });
-}
-
-void startup_print_version()
-{
-    fmt::print("Cocoa 2D Rendering Framework Version {}\n", COCOA_VERSION);
-    fmt::print("Copyright (C) " COCOA_COPYRIGHT_YEAR " OpenACG Group | GPLv3 License\n");
-}
-
-void startup_print_greeting(const gallium::Runtime::Options& opts)
-{
-    QLOG(LOG_INFO, "%fg<hl>Cocoa 2D Rendering Framework, version {}%reset", COCOA_VERSION);
-    QLOG(LOG_INFO, "  %fg<hl>Copyright (C) " COCOA_COPYRIGHT_YEAR " OpenACG Group | GPLv3 License%reset");
-    QLOG(LOG_INFO, "  %fg<hl>libuv asynchronous I/O, version {}%reset", uv_version_string());
-    QLOG(LOG_INFO, "  %fg<hl>Google V8 JavaScript Engine, version {}.{}%reset", V8_MAJOR_VERSION, V8_MINOR_VERSION);
-    QLOG(LOG_INFO, "  %fg<hl>Google Skia 2D Library%reset");
-    QLOG(LOG_INFO, "Startup script %fg<ye,hl>{}%reset", opts.startup);
-}
-
 } // namespace cmd
 
 #define arg_longopt_match(s) (!std::strcmp(arg.matched_template->long_name, s))
 
-cmd::ParseState InitializeLogger(cmd::ParseResult& args)
+cmd::ParseState initialize_logger(cmd::ParseResult& args)
 {
     const char *file = nullptr;
     LogLevel level = LOG_LEVEL_NORMAL;
@@ -808,6 +242,21 @@ void report_vulnerability_option(const std::string& opt)
                       " may cause fatal security problems", opt);
 }
 
+void startup_print_version()
+{
+    fmt::print("Cocoa 2D Rendering Framework Version {}\n", COCOA_VERSION);
+    fmt::print("Copyright (C) " COCOA_COPYRIGHT_YEAR " OpenACG Group | GPLv3 License\n");
+}
+
+void startup_print_greeting(const gallium::Runtime::Options& opts)
+{
+    QLOG(LOG_INFO, "%fg<hl>Cocoa 2D Rendering Framework, version {}%reset", COCOA_VERSION);
+    QLOG(LOG_INFO, "  %fg<hl>Copyright (C) " COCOA_COPYRIGHT_YEAR " OpenACG Group | GPLv3 License%reset");
+    QLOG(LOG_INFO, "  %fg<hl>libuv asynchronous I/O, version {}%reset", uv_version_string());
+    QLOG(LOG_INFO, "  %fg<hl>Google V8 JavaScript Engine, version {}.{}%reset", V8_MAJOR_VERSION, V8_MINOR_VERSION);
+    QLOG(LOG_INFO, "  %fg<hl>Google Skia 2D Library%reset");
+}
+
 std::shared_ptr<PropertyArrayNode> splitStringStoreToArrayNode(const std::string& str, char delimiter)
 {
     auto array = prop::New<PropertyArrayNode>();
@@ -831,18 +280,18 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
     {
         if arg_longopt_match("help")
         {
-            cmd::startup_print_help(argv[0]);
+            cmd::PrintHelp(argv[0]);
             return cmd::ParseState::kExit;
         }
         else if arg_longopt_match("version")
         {
-            cmd::startup_print_version();
+            startup_print_version();
             return cmd::ParseState::kExit;
         }
     }
 
     /* Initialize logger */
-    state = InitializeLogger(args);
+    state = initialize_logger(args);
     if (state == cmd::ParseState::kError)
         return cmd::ParseState::kError;
 
@@ -935,10 +384,6 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
                 return cmd::ParseState::kError;
             }
             delimiter = arg.value->v_str[0];
-        }
-        else if arg_longopt_match("runtime-expose-introspect")
-        {
-            gallium_options.rt_expose_introspect = !arg.value || arg.value->v_bool;
         }
         else if arg_longopt_match("introspect-policy")
         {
@@ -1090,7 +535,8 @@ int startup_main(int argc, char const **argv)
     gl::ContextOptions glamor_options;
     bool only_initialize = false;
 
-    try {
+    try
+    {
         switch (startup_initialize(argc, argv, gallium_options, glamor_options))
         {
         case cmd::ParseState::kError:
@@ -1105,12 +551,16 @@ int startup_main(int argc, char const **argv)
         }
 
         gallium::Runtime::AdoptV8CommandOptions(gallium_options);
-        cmd::startup_print_greeting(gallium_options);
+        startup_print_greeting(gallium_options);
         mainloop_execute(only_initialize, gallium_options, glamor_options);
-    } catch (const RuntimeException& e) {
+    }
+    catch (const RuntimeException& e)
+    {
         utils::SerializeException(e);
         return EXIT_FAILURE;
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e)
+    {
         std::cout << "Error: " << e.what() << std::endl;
         return EXIT_FAILURE;
     }

@@ -193,7 +193,7 @@ size_t GetMemTotalSize()
 #endif
 }
 
-std::vector<std::string_view> SplitString(const std::string& str, std::string::value_type delimiter)
+std::vector<std::string_view> SplitString(const std::string_view& str, std::string::value_type delimiter)
 {
     std::vector<std::string_view> result;
     size_t p = 0;
