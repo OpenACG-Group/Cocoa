@@ -328,9 +328,8 @@ public:
     // Descriptor syntax:
     //   filter_expr    := IDENT '(' param_list ')'
     //   param_list     := param | param_list ',' param
-    //   param          := filter | literal | replacement
-    //   literal        := NUMBERS | 'null'
-    //   replacement    := '%' TYPE
+    //   param          := filter | literal | REPLACEMENT
+    //   literal        := NUMBERS | '_'
     //
     // Examples:
     //   blur(3.0, 3.0, %tilemode, null)

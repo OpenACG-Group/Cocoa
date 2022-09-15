@@ -33,8 +33,6 @@
 #include "Gallium/VMIntrospect.h"
 GALLIUM_NS_BEGIN
 
-#define CHECKED(E)  E.ToLocalChecked()
-
 #define ISOLATE_DATA_SLOT_RUNTIME_PTR       0
 
 /**

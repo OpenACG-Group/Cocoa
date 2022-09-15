@@ -22,6 +22,8 @@
 
 #include "Core/Project.h"
 
+#define CHECKED(E)  E.ToLocalChecked()
+
 #define GALLIUM_NS_BEGIN   namespace cocoa::gallium {
 #define GALLIUM_NS_END     }
 
