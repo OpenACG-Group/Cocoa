@@ -43,8 +43,8 @@ void TextureLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
 
 void TextureLayer::Paint(PaintContext *context) const
 {
-    SkAutoCanvasRestore restore(context->composed_canvas, true);
-    context->composed_canvas->translate(offset_.x(), offset_.y());
+    SkAutoCanvasRestore restore(context->multiplexer_canvas, true);
+    context->multiplexer_canvas->translate(offset_.x(), offset_.y());
 
     TextureManager::ScopedTextureAcquire acquire(*context->texture_manager, texture_id_);
     Texture *texture = acquire.Get();
@@ -54,17 +54,22 @@ void TextureLayer::Paint(PaintContext *context) const
     if (image_info.width() == size_.width() && image_info.height() == size_.height())
     {
         // No rescales are needed
-        context->composed_canvas->drawImage(texture->GetImage(), offset_.x(), offset_.y());
+        context->multiplexer_canvas->drawImage(texture->GetImage(),
+                                               offset_.x(),
+                                               offset_.y(),
+                                               sampling_options_,
+                                               context->GetCurrentPaintPtr());
     }
     else
     {
         auto rect = SkRect::MakeWH(static_cast<SkScalar>(size_.width()),
-                                   static_cast<SkScalar>(size_.height()))
-                .makeOffset(offset_);
-        context->composed_canvas->drawImageRect(texture->GetImage(),
-                                                rect,
-                                                sampling_options_,
-                                                context->paint);
+                                   static_cast<SkScalar>(size_.height()));
+        rect = rect.makeOffset(offset_);
+
+        context->multiplexer_canvas->drawImageRect(texture->GetImage(),
+                                                   rect,
+                                                   sampling_options_,
+                                                   context->GetCurrentPaintPtr());
     }
 
     context->has_gpu_retained_resource = texture->IsHWComposeTexture();

@@ -21,6 +21,7 @@
 #include "Glamor/Layers/TransformLayer.h"
 #include "Glamor/Layers/PictureLayer.h"
 #include "Glamor/Layers/TextureLayer.h"
+#include "Glamor/Layers/ImageFilterLayer.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 SceneBuilder::SceneBuilder(int32_t width, int32_t height)
@@ -95,6 +96,19 @@ v8::Local<v8::Value> SceneBuilder::pushOffset(SkScalar x, SkScalar y)
     return getSelfHandle();
 }
 
+v8::Local<v8::Value> SceneBuilder::pushImageFilter(v8::Local<v8::Value> filter)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    auto *wrapper = binder::Class<CkImageFilterWrap>::unwrap_object(isolate, filter);
+    if (!wrapper)
+        g_throw(TypeError, "Argument 'filter' must be an instance of `CkImageFilter`");
+
+    CHECK(wrapper->getImageFilter());
+    pushLayer(std::make_shared<gl::ImageFilterLayer>(wrapper->getImageFilter()));
+
+    return getSelfHandle();
+}
+
 v8::Local<v8::Value> SceneBuilder::addPicture(v8::Local<v8::Value> picture, SkScalar dx, SkScalar dy)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
@@ -116,7 +130,7 @@ v8::Local<v8::Value> SceneBuilder::addTexture(int64_t textureId,
                                               int32_t sampling)
 {
     SkPoint offset = SkPoint::Make(dx, dy);
-    SkISize size = SkISize::Make(width_, height_);
+    SkISize size = SkSize::Make(width, height).toRound();
     SkSamplingOptions sampling_options;
 
     switch (sampling)
@@ -141,9 +155,7 @@ v8::Local<v8::Value> SceneBuilder::addTexture(int64_t textureId,
         g_throw(RangeError, "Invalid enumeration value for `sampling`");
     }
 
-    addLayer(std::make_shared<gl::TextureLayer>(textureId, offset,
-                                                    size, sampling_options));
-
+    addLayer(std::make_shared<gl::TextureLayer>(textureId, offset, size, sampling_options));
     return getSelfHandle();
 }
 

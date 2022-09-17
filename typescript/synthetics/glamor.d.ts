@@ -331,35 +331,3 @@ export class CkPicture {
     public approximateByteUsed(): number;
     public uniqueId(): number;
 }
-
-
-export interface MoeHeapProfiling {
-    heapSingleCellSize: number;
-    heapTotalSize: number;
-    heapAllocationsCount: number;
-    heapExtractionsCount: number;
-    heapLeakedCellsCount: number;
-}
-
-export interface MoeTranslationResult {
-    artifact?: CkPicture;
-    heapProfiling?: MoeHeapProfiling;
-}
-
-export class MoeHeapObjectBinder {
-    constructor();
-
-    public bindBitmap(key: number, bitmap: CkBitmap): void;
-    public bindImage(key: number, image: CkImage): void;
-    public bindPicture(key: number, picture: CkPicture): void;
-    public bindString(key: number, string: string): void;
-}
-
-export class MoeTranslationToolchain {
-    public static Interpreter(buffers: Array<Buffer>,
-                              binder: MoeHeapObjectBinder,
-                              breakpointHandler: (id: number) => void,
-                              heapProfiling: boolean): MoeTranslationResult;
-    public static Disassemble(buffers: Array<Buffer>): string;
-    public static Compress(buffer: Array<Buffer>): Buffer;
-}

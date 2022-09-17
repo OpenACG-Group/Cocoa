@@ -453,6 +453,15 @@ public:
     static v8::Local<v8::Object> MakeFromPackageFile(const std::string& package,
                                                      const std::string& path);
 
+    /**
+     * Similar to `MakeFromPtrWithoutCopy`, but the caller can use lambda expression
+     * as the deleter to capture the ownership of external resource.
+     * `closure_captured_external` will be called when the buffer is destructed.
+     */
+    static v8::Local<v8::Object> MakeFromExternal(void *data,
+                                                  size_t size,
+                                                  std::function<void()> closure_captured_external);
+
     static v8::Local<v8::Object> MakeFromPtrCopy(const void *data, size_t size);
     static v8::Local<v8::Object> MakeFromPtrWithoutCopy(void *data,
                                                         size_t size,
@@ -470,6 +479,7 @@ public:
     g_private_api uint8_t *addressU8();
 
 private:
+    std::function<void()>               closure_captured_external_;
     v8::Global<v8::Uint8Array>          array_;
     std::shared_ptr<v8::BackingStore>   backing_store_;
 };

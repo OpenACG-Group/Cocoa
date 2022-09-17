@@ -204,18 +204,41 @@ $ make install
 的解复用、解码、硬件加速解码部分。`configure` 执行时不会产生详尽的日志输出，并且会耗费约 15s 左右的时间，
 耐心等待即可。FFmpeg 代码量较多，建议在 `make` 时可以添加 `-jN` 参数开启并行编译，`N` 可以是 CPU 核心数。
 
+最后，回到 `third_party` 目录，准备下一个依赖的构建。
+
+### 1.9. 构建 WebSockets 及网络支持库 libwebsockets
+克隆 libwebsockets 的 Git 仓库：
+```shell
+$ git clone https://libwebsockets.org/repo/libwebsockets
+```
+
+进入目录，然后用 CMake 配置项目并编译：
+```shell
+$ cd libwebsockets
+$ mkdir out
+$ cd out
+$ cmake -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=$BUILD_DIR \
+        -DLWS_WITH_LIBUV=ON \
+        -DLWS_WITH_STATIC=OFF \
+        -DLWS_WITH_JSONRPC=OFF \
+        -DLWS_WITHOUT_TESTAPPS=ON \
+        -G Ninja \
+        ..
+$ ninja
+$ ninja install
+```
+
 完成后，回到 `third_party` 目录，准备善后工作。
 
-### 1.9. 善后工作
+### 1.10. 善后工作
 至此，所有的基本依赖已经编译完成，由于解包而产生的各种源文件目录已经可以删去，
 只需保留 `build` 目录即可，`build` 目录中已经存放了所有的编译产物。
 
 ## 2. 构建 Google Skia 和 V8
 ~~（这位更是重量级）~~
 
-2D 绘图库 Skia 和 JavaScript 引擎 V8 是 Cocoa 最重要、最庞杂、也是最难以构建的两个依赖。
-
-下列命令大多数需要连接到外网，这一点请用户自行解决。
+下列命令大多数需要连接到 Google 服务器，这一点请用户自行解决。
 
 首先，参照 [Google 官方的指示](https://commondatastorage.googleapis.com/chrome-infra-docs/flat/depot_tools/docs/html/depot_tools_tutorial.html#_setting_up)，
 部署 depot_tools：
@@ -240,8 +263,8 @@ $ fetch skia
 ```shell
 $ cd skia
 $ mkdir out
-$ gn gen out/Shared --args='is_component_build=true skia_use_vulkan=true skia_use_gl=false is_official_build=true cc="clang" cxx="clang++" is_debug=false skia_use_system_icu=true'
-$ ninja -C out/Shared
+$ gn gen out/release.shared --args='is_component_build=true skia_use_vulkan=true skia_use_gl=false is_official_build=true cc="clang" cxx="clang++" is_debug=false skia_use_system_icu=true'
+$ ninja -C out/release.shared
 ```
 编译耗时较长（ninja 已经自动开启并行编译），会占用较多的内存和 CPU 资源。
 
@@ -250,8 +273,8 @@ $ ninja -C out/Shared
 $ cd ../v8
 $ git checkout -b 9.9 -t branch-heads/9.9
 $ mkdir out
-$ gn gen out/shared --args="use_custom_libcxx=false is_debug=false is_component_build=true cc='clang' cxx='clang++'"
-$ ninja -C out/shared
+$ gn gen out/release.shared --args="use_custom_libcxx=false is_debug=false is_component_build=true cc='clang' cxx='clang++'"
+$ ninja -C out/release.shared
 ```
 V8 编译耗时比 Skia 还要更长一些。
 
@@ -262,5 +285,106 @@ $ ../script/deploy-v8-skia-artifacts.sh
 ```
 
 V8 和 Skia 编译完成。
+
+## 3. 构建 CanvasKit (WASM)
+CanvasKit 是 Skia 项目的一部分，其编译产物是 WebAssembly 和 JavaScript，
+而不是 ELF 二进制文件。
+
+您可能是已经十分了解 WebAssembly 工具链的开发者，也可能完全没有使用过，
+无论如何，本文尽可能详细地写出用 Emscripten 编译 CanvasKit 的步骤，
+并假设您已经事先对 WebAssembly 有所了解。
+
+### 3.1. 准备环境
+为了编译 CanvasKit，需要事先准备 Emscripten SDK，Skia 已经准备了对应的下载脚本：
+```shell
+$ ./bin/activate-emsdk
+```
+若使用 HTTP 代理，可设置环境变量 `https_proxy` 指向对应的代理服务器地址。
+
+执行完后，检查 `third_party/externals/emsdk` 目录下是否出现 `upstream` 目录，若出现则证明下载成功。
+
+### 3.2. 配置环境并验证工具链
+在 `third_party/externals/emsdk/upstream/emscripten` 下创建 `.emscripten` 文件，
+写入如下配置，__复制前注意阅读注释__：
+```python
+# Note: If you put paths relative to the home directory, do not forget
+# os.path.expanduser
+#
+# Any config setting <KEY> in this file can be overridden by setting the
+# EM_<KEY> environment variable. For example, settings EM_LLVM_ROOT override
+# the setting in this file.
+#
+# Note: On Windows, remember to escape backslashes! I.e. LLVM='c:\llvm\'
+# is not valid, but LLVM='c:\\llvm\\' and LLVM='c:/llvm/'
+# are.
+
+# !!! 用真实的目录替换 /path/to/Cocoa
+emsdk_base_dir = '/path/to/Cocoa/third_party/skia/third_party/externals/emsdk'
+
+# This is used by external projects in order to find emscripten.  It is not used
+# by emscripten itself.
+EMSCRIPTEN_ROOT = emsdk_base_dir + '/upstream/emscripten' # directory
+LLVM_ROOT = emsdk_base_dir + '/upstream/bin' # directory
+BINARYEN_ROOT = emsdk_base_dir + '/upstream' # directory
+
+# Location of the node binary to use for running the JS parts of the compiler.
+# This engine must exist, or nothing can be compiled.
+NODE_JS = '/usr/bin/node' # executable
+
+JAVA = 'java' # executable
+```
+
+接下来，设定一个指向 emsdk 编译器目录的环境变量，以便我们接下来的测试：
+```shell
+$ export EMCC_BIN_DIR=${THIRDPARTY_DIR}/skia/third_party/externals/emsdk/upstream/emscripten
+```
+
+创建一个临时目录（例如 `/tmp/sketch`），进入该目录，编写一个 C 测试程序（Hello World），
+这里提供一个参考示例：
+```c
+#include <stdio.h>
+int main(int argc, const char **argv)
+{
+    printf("Hello, World!\n");
+    return 0;
+}
+```
+保存为 `test.c` 文件，然后使用如下命令尝试将该文件编译为 WebAssembly 程序：
+```shell
+$ ${EMCC_BIN_DIR}/emcc test.c
+```
+如果编译成功，应该会出现 `a.out.js` 和 `a.out.wasm` 两个文件，其中 JavaScript
+文件保存有运行 WASM 需要的胶水代码。如果编译失败，请检查 Emscripten 工具链的配置是否正确。
+
+用 Node 运行该 JavaScript，若得到 Hello World 输出，则证明 Emscripten 工具链配置成功：
+```shell
+$ node a.out.js
+Hello, World!
+```
+
+离开临时目录，清理文件，进入 `${THIRDPARTY_DIR}/skia` 目录，正式开始构建 CanvasKit。
+
+### 3.3. 构建 CanvasKit
+配置并验证工具链可用后，使用下列命令构建 CanvasKit：
+```shell
+$ cd modules/canvaskit
+$ ./compile.sh cpu no_canvas
+```
+
+最后，复制编译产物到正确的位置：
+```shell
+$ cd ${THIRDPARTY_DIR}
+$ cp skia/out/canvaskit_wasm/canvaskit.js build
+$ cp skia/out/canvaskit_wasm/canvaskit.wasm build
+```
+
+### 3.4. 注意事项
+在编译完 skia 和 v8 后，不要移除它们的目录，因为 Cocoa 需要使用其中的头文件。
+
+## 4. 后记 - 依赖如何被使用
+对于编译出静态链接库的依赖，Cocoa 会将它们作为自身的一部分直接链接进可执行文件；
+对于动态链接库，Cocoa 会以运行时动态链接的方式引入它们；
+对于 CanvasKit 的 WebAssembly 和 JavaScript 文件，Cocoa 会将其打包进内置资源包，
+并作为内置模块暴露给用户使用。
 
 至此，所有的 Cocoa 依赖编译完成。

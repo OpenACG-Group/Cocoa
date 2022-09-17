@@ -56,13 +56,15 @@ void LayerTree::Paint(Layer::PaintContext *context)
     // buffer with a certain "damage region" which indicates the dirty region
     // that should be updated. However, the HWCompose implementation does not
     // support that yet, so we do an explicit clipping here.
-    context->composed_canvas->clipRect(context->cull_rect);
+    context->multiplexer_canvas->clipRect(context->cull_rect);
 
     root_layer_->Paint(context);
 }
 
 MaybeGpuObject<SkPicture> LayerTree::Flatten(const SkRect& bounds)
 {
+    // TODO(sora): implement this.
+
 #if 0
     if (root_layer_ == nullptr)
         return nullptr;

@@ -101,7 +101,7 @@ void GlobalScope::Initialize(const ApplicationInfo& info)
 {
     if (render_host_ || render_client_)
     {
-        QLOG(LOG_WARNING, "Initialize GlobalScope two or more times");
+        QLOG(LOG_WARNING, "Initialize GlobalScope multiple times");
         return;
     }
 

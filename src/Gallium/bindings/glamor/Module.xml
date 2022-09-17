@@ -129,12 +129,15 @@
             <method name="pop" value="@pop"/>
             <method name="build" value="@build"/>
             <method name="pushOffset" value="@pushOffset"/>
+            <method name="pushImageFilter" value="@pushImageFilter"/>
             <method name="addPicture" value="@addPicture"/>
             <method name="addTexture" value="@addTexture"/>
         </class>
 
         <class name="CkImageFilter" wrapper="CkImageFilterWrap">
             <method static="true" name="MakeFromDescriptor" value="@MakeFromDescriptor"/>
+            <method static="true" name="Deserialize" value="@Deserialize"/>
+            <method name="serialize" value="@serialize"/>
         </class>
 
         <class name="CkBitmap" wrapper="CkBitmapWrap">

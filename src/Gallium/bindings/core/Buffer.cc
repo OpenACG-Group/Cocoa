@@ -16,6 +16,7 @@
  */
 
 #include <cstring>
+#include <utility>
 
 #include "include/v8.h"
 
@@ -395,9 +396,10 @@ v8::Local<v8::Object> Buffer::MakeFromPtrCopy(const void *data, size_t size)
     return buf;
 }
 
-v8::Local<v8::Object> Buffer::MakeFromPtrWithoutCopy(void *data, size_t size,
-                                                     v8::BackingStore::DeleterCallback deleter,
-                                                     void *closure)
+v8::Local<v8::Object>
+Buffer::MakeFromPtrWithoutCopy(void *data, size_t size,
+                               v8::BackingStore::DeleterCallback deleter,
+                               void *closure)
 {
     CHECK(data && size > 0);
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
@@ -406,6 +408,34 @@ v8::Local<v8::Object> Buffer::MakeFromPtrWithoutCopy(void *data, size_t size,
     v8::Local<v8::Uint8Array> arr = newBuffer(data, size, deleter, closure);
     self->array_.Reset(isolate, arr);
     self->backing_store_ = arr->Buffer()->GetBackingStore();
+    return buf;
+}
+
+v8::Local<v8::Object>
+Buffer::MakeFromExternal(void *data, size_t size,
+                         std::function<void()> closure_captured_external)
+{
+    CHECK(data && size > 0);
+    CHECK(closure_captured_external);
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
+
+    Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
+    self->closure_captured_external_ = std::move(closure_captured_external);
+
+    auto external_deleter = +[](void *data, size_t size, void *closure) {
+        auto *self = reinterpret_cast<Buffer*>(closure);
+        CHECK(self->closure_captured_external_);
+        self->closure_captured_external_();
+        std::function<void()> empty_capture;
+        self->closure_captured_external_.swap(empty_capture);
+    };
+
+    v8::Local<v8::Uint8Array> array = newBuffer(data, size, external_deleter, self);
+    self->array_.Reset(isolate, array);
+    self->backing_store_ = array->Buffer()->GetBackingStore();
+
     return buf;
 }
 

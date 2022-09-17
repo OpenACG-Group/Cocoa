@@ -1,0 +1,11 @@
+{
+    "configurations": [
+        {
+            "name": "inspector",
+            "port": 9005,
+            "request": "attach",
+            "type": "node",
+            "websocketAddress": "ws://127.0.0.1:9005"
+        }
+    ]
+}

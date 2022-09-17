@@ -89,6 +89,8 @@ add_library(
         Layers/TransformLayer.cc
         Layers/TextureLayer.h
         Layers/TextureLayer.cc
+        Layers/ImageFilterLayer.h
+        Layers/ImageFilterLayer.cc
 
         Wayland/protos/xdg-shell-client-protocol.h
         Wayland/protos/xdg-shell-client-protocol.c

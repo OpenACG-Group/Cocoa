@@ -327,20 +327,38 @@ public:
 
     // Descriptor syntax:
     //   filter_expr    := IDENT '(' param_list ')'
-    //   param_list     := param | param_list ',' param
-    //   param          := filter | literal | REPLACEMENT
-    //   literal        := NUMBERS | '_'
+    //   param_list     := expr
+    //                   | param_list ',' expr
+    //
+    //   array_expr     := '[' array_list ']'
+    //   array_list     := expr
+    //                   | array_list ',' expr
+    //
+    //   expr           := INTEGER
+    //                   | FLOAT
+    //                   | NULL
+    //                   | ARGUMENT
+    //                   | filter_expr
+    //                   | array_expr
+    //   INTEGER        := <decimal integer>
+    //   FLOAT          := <decimal float>
+    //   ARGUMENT       := %IDENT
+    //   NULL           := '_'
     //
     // Examples:
-    //   blur(3.0, 3.0, %tilemode, null)
-    //   compose(blur(3.0, 3.0, %tilemode, null), image(%image, %sampling, %rect, %rect))
+    //   blur(3.0, 3.0, %tile, _)
+    //   compose(blur(3.0, 3.0, %tile, _), image(%image, %sampling, _, _))
 
     //! TSDecl: function MakeFromDescriptor(descriptor: string,
-    //!                                     params: object[] | null): CkImageFilter
+    //!                                     params: object): CkImageFilter
     static v8::Local<v8::Value> MakeFromDescriptor(const std::string& descriptor,
                                                    v8::Local<v8::Value> params);
 
-    // TODO(sora): apply other functions on the wrapper
+    //! TSDecl: function Deserialize(buffer: core.Buffer): CkImageFilter
+    static v8::Local<v8::Value> Deserialize(v8::Local<v8::Value> buffer);
+
+    //! TSDecl: function serialize(): core.Buffer
+    v8::Local<v8::Value> serialize();
 
 private:
     sk_sp<SkImageFilter> image_filter_;

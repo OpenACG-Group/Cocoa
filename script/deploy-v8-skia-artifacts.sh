@@ -14,11 +14,15 @@ function copy_file() {
 lib_directory='./build/lib'
 
 v8_build_type='release.shared'
+skia_build_type='release.shared'
 
 for arg in "$@"; do
     case $arg in
         '--use-debug-v8')
             v8_build_type='debug.shared'
+            ;;
+        '--use-debug-skia')
+            skia_build_type='debug.shared'
             ;;
         *)
             echo "Unrecognized argument $arg"
@@ -33,13 +37,13 @@ so_library_files=(
     "v8/out/${v8_build_type}/libchrome_zlib.so"
     "v8/out/${v8_build_type}/libicuuc.so"
     "v8/out/${v8_build_type}/libicui18n.so"
-    'skia/out/Shared/libskia.so'
-    'skia/out/Shared/libskottie.so'
-    'skia/out/Shared/libskparagraph.so'
-    'skia/out/Shared/libsksg.so'
-    'skia/out/Shared/libskshaper.so'
-    'skia/out/Shared/libsktext.so'
-    'skia/out/Shared/libskunicode.so'
+    "skia/out/${skia_build_type}/libskia.so"
+    "skia/out/${skia_build_type}/libskottie.so"
+    "skia/out/${skia_build_type}/libskparagraph.so"
+    "skia/out/${skia_build_type}/libsksg.so"
+    "skia/out/${skia_build_type}/libskshaper.so"
+    "skia/out/${skia_build_type}/libsktext.so"
+    "skia/out/${skia_build_type}/libskunicode.so"
 )
 
 v8_resource_files=(

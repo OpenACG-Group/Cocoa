@@ -19,6 +19,7 @@
 
 #include "include/core/SkImageInfo.h"
 #include "include/core/SkBitmap.h"
+#include "include/core/SkStream.h"
 #include "include/codec/SkCodec.h"
 
 #include "fmt/format.h"

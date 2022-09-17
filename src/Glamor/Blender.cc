@@ -272,10 +272,9 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
         .gr_context = gr_context,
         .root_surface_transformation = output_surface_->GetRootTransformation(),
         .frame_canvas = frame_surface->getCanvas(),
-        .composed_canvas = &composed_canvas,
+        .multiplexer_canvas = &composed_canvas,
         .cull_rect = context.cull_rect,
         .texture_manager = texture_manager_,
-        .paint = nullptr,
         .has_gpu_retained_resource = false
     };
 

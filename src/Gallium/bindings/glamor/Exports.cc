@@ -65,7 +65,12 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
         { "SAMPLING_FILTER_NEAREST", EV(Sampling::kNearest) },
         { "SAMPLING_FILTER_LINEAR", EV(Sampling::kLinear) },
         { "SAMPLING_CUBIC_MITCHELL", EV(Sampling::kCubicMitchell) },
-        { "SAMPLING_CUBIC_CATMULL_ROM", EV(Sampling::kCubicCatmullRom) }
+        { "SAMPLING_CUBIC_CATMULL_ROM", EV(Sampling::kCubicCatmullRom) },
+
+        { "TILE_MODE_CLAMP", EV(SkTileMode::kClamp) },
+        { "TILE_MODE_REPEAT", EV(SkTileMode::kRepeat) },
+        { "TILE_MODE_MIRROR", EV(SkTileMode::kMirror) },
+        { "TILE_MODE_DECAL", EV(SkTileMode::kDecal) }
     };
 
     instance->Set(ctx, binder::to_v8(isolate, "Constants"),

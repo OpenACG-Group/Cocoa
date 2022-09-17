@@ -65,8 +65,8 @@ void TransformLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
 
 void TransformLayer::Paint(PaintContext *context) const
 {
-    SkAutoCanvasRestore scopedRestore(context->composed_canvas, true);
-    context->composed_canvas->concat(transform_);
+    SkAutoCanvasRestore scopedRestore(context->multiplexer_canvas, true);
+    context->multiplexer_canvas->concat(transform_);
 
     PaintChildren(context);
 }

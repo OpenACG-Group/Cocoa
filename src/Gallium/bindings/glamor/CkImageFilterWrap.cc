@@ -21,9 +21,11 @@
 #include <unordered_map>
 #include <vector>
 
+#include "include/core/SkData.h"
 #include "include/effects/SkImageFilters.h"
 #include "fmt/format.h"
 
+#include "Gallium/bindings/core/Exports.h"
 #include "Gallium/bindings/glamor/Exports.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
@@ -533,7 +535,7 @@ DEF_BUILDER(compose)
     return SkImageFilters::Compose(*outer, *inner);
 }
 
-// TODO(sora); implement more filter builders.
+// TODO(sora): implement more filter builders.
 
 using ImageFilterBuilder = std::function<sk_sp<SkImageFilter>(OperandStack&, int)>;
 std::unordered_map<std::string_view, ImageFilterBuilder> g_image_filter_builders_map = {
@@ -599,8 +601,6 @@ public:
         operand->filter = filter;
         operand_stack_.push(std::move(operand));
 
-        fmt::print("consume {} => {}\n", args_count, filter_name);
-
         return filter;
     }
 
@@ -613,25 +613,21 @@ public:
         switch (type)
         {
         case Token::kReplacement:
-            fmt::print("push_arg {}\n", current_itr_->lexeme);
             operand->type = StackOperand::kKWArgs;
             operand->kwarg_pair.first = current_itr_->lexeme;
             operand->kwarg_pair.second = FindValueInKWArgs(current_itr_->lexeme);
             break;
 
         case Token::kNull:
-            fmt::print("push_null\n");
             operand->type = StackOperand::kNull;
             break;
 
         case Token::kInteger:
-            fmt::print("push_int {}\n", current_itr_->integer_value);
             operand->type = StackOperand::kInt;
             operand->numeric.vi = current_itr_->integer_value;
             break;
 
         case Token::kFloat:
-            fmt::print("push_float {}\n", current_itr_->double_value);
             operand->type = StackOperand::kFloat;
             operand->numeric.vf = static_cast<SkScalar>(current_itr_->double_value);
             break;
@@ -687,8 +683,6 @@ public:
         // Operands are pushed in the correct order into stack and popped
         // in a reverse order. Reverse them again to get the correct order.
         std::reverse(operand->array.begin(), operand->array.end());
-
-        fmt::print("pack {}\n", elements_count);
     }
 
 private:
@@ -766,6 +760,30 @@ CkImageFilterWrap::CkImageFilterWrap(sk_sp<SkImageFilter> filter)
 sk_sp<SkImageFilter> CkImageFilterWrap::getImageFilter() const
 {
     return image_filter_;
+}
+
+v8::Local<v8::Value> CkImageFilterWrap::serialize()
+{
+    sk_sp<SkData> data = image_filter_->serialize();
+    if (!data)
+        g_throw(Error, "Failed to serialize the image filter");
+
+    return Buffer::MakeFromExternal(data->writable_data(), data->size(),
+                                    [data]() { CHECK(data->unique()); });
+}
+
+v8::Local<v8::Value> CkImageFilterWrap::Deserialize(v8::Local<v8::Value> buffer)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    Buffer *wrapper = binder::Class<Buffer>::unwrap_object(isolate, buffer);
+    if (!wrapper)
+        g_throw(TypeError, "Argument `buffer` must be an instance of core:Buffer");
+
+    auto filter = SkImageFilter::Deserialize(wrapper->addressU8(), wrapper->length());
+    if (!filter)
+        g_throw(Error, "Failed to deserialize the given buffer as an image filter");
+
+    return binder::Class<CkImageFilterWrap>::create_object(isolate, filter);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

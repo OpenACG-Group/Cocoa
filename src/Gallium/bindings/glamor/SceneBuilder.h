@@ -44,6 +44,9 @@ public:
     //! TSDecl: function addPicture(picture: CkPicture): SceneBuilder
     v8::Local<v8::Value> addPicture(v8::Local<v8::Value> picture, SkScalar dx, SkScalar dy);
 
+    //! TSDecl: function pushImageFilter(filter: CkImageFilter): SceneBuilder
+    v8::Local<v8::Value> pushImageFilter(v8::Local<v8::Value> filter);
+
     //! TSDecl: function addTexture(textureId: number,
     //!                             dx: number,
     //!                             dy: number,

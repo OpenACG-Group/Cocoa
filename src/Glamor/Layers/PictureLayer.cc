@@ -32,22 +32,22 @@ void PictureLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
 
 void PictureLayer::Paint(PaintContext *context) const
 {
-    SkAutoCanvasRestore scopedRestore(context->composed_canvas, true);
-    context->composed_canvas->translate(offset_.x(), offset_.y());
+    SkAutoCanvasRestore scopedRestore(context->multiplexer_canvas, true);
+    context->multiplexer_canvas->translate(offset_.x(), offset_.y());
 
-    if (!context->paint)
+    if (!context->HasCurrentPaint())
     {
         // If there is no existing paint, send the drawing commands to
         // the canvas separately by `playback` method. Compared with `SkCanvas::drawPicture`,
         // this should be faster because if the paint is non-null,
         // Skia always draws the picture into a temporary layer before it
         // actually landing on the canvas.
-        sk_picture_->playback(context->composed_canvas);
+        sk_picture_->playback(context->multiplexer_canvas);
     }
     else
     {
-        context->composed_canvas->drawPicture(sk_picture_, nullptr,
-                                              context->paint);
+        context->multiplexer_canvas->drawPicture(sk_picture_, nullptr,
+                                                 context->GetCurrentPaintPtr());
     }
 }
 
