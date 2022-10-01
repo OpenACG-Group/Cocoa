@@ -92,6 +92,7 @@ GlobalScope::GlobalScope(const ContextOptions& options, EventLoop *loop)
     , event_loop_(loop)
     , render_host_(nullptr)
     , render_client_(nullptr)
+    , external_data_{nullptr, {}}
 {
     if (options_.GetSkiaJIT())
         SkGraphics::AllowJIT();
@@ -112,6 +113,11 @@ void GlobalScope::Initialize(const ApplicationInfo& info)
 
 void GlobalScope::Dispose()
 {
+    if (external_data_.ptr && external_data_.deleter)
+        external_data_.deleter(external_data_.ptr);
+    external_data_.ptr = nullptr;
+    external_data_.deleter = {};
+
     if (render_host_ && render_client_)
     {
         delete render_client_;
@@ -162,6 +168,56 @@ std::optional<std::string> GlobalScope::TraceResourcesToJson()
     tracer.TraceRootObject("RenderClient", render_client_);
     // TODO(sora): Also trace `RenderHost`
     return tracer.ToJsonString();
+}
+
+namespace {
+
+class SkiaMemoryTracer : public SkTraceMemoryDump
+{
+public:
+    void dumpNumericValue(const char* dumpName,
+                          const char* valueName,
+                          const char* units,
+                          uint64_t value) override
+    {
+        fmt::print("{}: {} = {} {}\n", dumpName, valueName, value, units);
+    }
+
+    void dumpStringValue(const char* dumpName,
+                         const char* valueName,
+                         const char* value) override
+    {
+        fmt::print("{}: {} = \"{}\"\n", dumpName, valueName, value);
+    }
+
+    void setMemoryBacking(const char* dumpName,
+                          const char* backingType,
+                          const char* backingObjectId) override
+    {
+        //fmt::print("{}: [memory backing] type={}, object={}\n", dumpName, backingType,
+        //           backingObjectId);
+    }
+
+
+    void setDiscardableMemoryBacking(const char* dumpName,
+                                     const SkDiscardableMemory& discardableMemoryObject) override
+    {
+    }
+
+    g_nodiscard LevelOfDetail getRequestedDetails() const override
+    {
+        return LevelOfDetail::kObjectsBreakdowns_LevelOfDetail;
+    }
+};
+
+} // namespace anonymous
+
+void GlobalScope::TraceSkiaMemoryResources()
+{
+    SkiaMemoryTracer tracer;
+    fmt::print("===== Dump Begin ====\n");
+    SkGraphics::DumpMemoryStatistics(&tracer);
+    fmt::print("===== Dump End ====\n");
 }
 
 GLAMOR_NAMESPACE_END

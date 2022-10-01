@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+    <package>org.cocoa.internal.v8</package>
+    <description>V8 JavaScript engine external resources, context snapshot</description>
+    <copyright>OpenACG Group - Cocoa Opensource Project</copyright>
+</template>

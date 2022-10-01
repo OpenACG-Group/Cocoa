@@ -19,6 +19,8 @@ export function print(str: string): void;
 
 export function getEnviron(): Map<string, string>;
 
+export function dumpNativeHeapProfile(): void;
+
 export class Stream implements AsyncIterable<any> {
     readonly readable: boolean;
     readonly writable: boolean;
@@ -305,6 +307,8 @@ export class File {
     static readonly SYMLINK_JUNCTION: number;
 
     static Open(path: string, flags: number, mode: number): Promise<File>;
+    static WriteFileSync(path: string, buffer: Buffer): void;
+    static ReadFileSync(path: string): Buffer;
 
     close(): Promise<void>;
     isClosed(): boolean;

@@ -16,11 +16,12 @@
  */
 
 
-#include <exception>
+#include "include/core/SkTypeface.h"
 
 #include "Core/Journal.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/PromiseHelper.h"
+#include "Gallium/bindings/glamor/CanvasKitTransferContext.h"
 #include "Gallium/Runtime.h"
 
 #include "Glamor/RenderHost.h"
@@ -42,7 +43,7 @@ void RenderHostWrap::Initialize(v8::Local<v8::Object> info)
     for (const char *field : {"name", "major", "minor", "patch"})
     {
         if (!info->Has(ctx, binder::to_v8(isolate, field)).FromMaybe(false))
-            g_throw(TypeError, fmt::format("Missing \"{}\" field in ApplicationInfo", field));
+            g_throw(TypeError, fmt::format("Missing \"{}\" property in ApplicationInfo", field));
     }
 
     gl::GlobalScope::ApplicationInfo appInfo{};
@@ -57,6 +58,31 @@ void RenderHostWrap::Initialize(v8::Local<v8::Object> info)
 
     gl::GlobalScope::Ref().Initialize(appInfo);
     QLOG(LOG_INFO, "RenderHost is initialized, application name %fg<gr>\"{}\"%reset", appInfo.name);
+
+    auto canvas_transfer_context = CanvasKitTransferContext::Create(isolate);
+    if (!canvas_transfer_context)
+        g_throw(Error, "Failed to create a CanvasKit transfer context");
+
+    gl::GlobalScope::Ref().SetExternalDataPointer(canvas_transfer_context.release(),
+                                                  [](void *ptr) {
+        std::unique_ptr<CanvasKitTransferContext> adopted(
+                reinterpret_cast<CanvasKitTransferContext*>(ptr));
+    });
+}
+
+void RenderHostWrap::SetTypefaceTransferCallback(v8::Local<v8::Value> func)
+{
+    CHECK(gl::GlobalScope::Instance());
+
+    if (!func->IsFunction())
+        g_throw(TypeError, "Argument `func' must be a callback function");
+
+    auto *transfer_context = reinterpret_cast<CanvasKitTransferContext*>(
+            gl::GlobalScope::Ref().GetExternalDataPointer());
+    CHECK(transfer_context);
+
+    transfer_context->SetReadBackJSFunction(
+            v8::Local<v8::Function>::Cast(func));
 }
 
 void RenderHostWrap::Dispose()

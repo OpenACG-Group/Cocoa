@@ -47,8 +47,7 @@ class Scene;
 class CkPictureWrap;
 class CkImageWrap;
 class CkBitmapWrap;
-class MoeHeapObjectBinderWrap;
-class MoeTranslationToolchainWrap;
+class CanvasKitTransferContext;
 
 struct SlotClosure;
 
@@ -86,6 +85,17 @@ public:
 
     //! TSDecl: function Connect(name?: string): Promise<Display>
     static v8::Local<v8::Value> Connect(const v8::FunctionCallbackInfo<v8::Value>& info);
+
+    //! TSDecl:
+    //! interface TypefaceSignature {
+    //!   family: string;
+    //!   weight: number;
+    //!   width: number;
+    //!   slant: string;
+    //! }
+
+    //! TSDecl: function SetTypefaceTransferCallback(func: (signature: TypefaceSignature) => Uint8Array): void
+    static void SetTypefaceTransferCallback(v8::Local<v8::Value> func);
 
     //! TSDecl: function WaitForSyncBarrier(timeoutInMs: number): void;
     static void WaitForSyncBarrier(int64_t timeout);
@@ -369,10 +379,28 @@ class CkPictureWrap
 {
 public:
     explicit CkPictureWrap(sk_sp<SkPicture> picture);
-    ~CkPictureWrap() = default;
+    ~CkPictureWrap();
 
-    //! TSDecl: function MakeFromData(buffer: core.Buffer): CkPicture
-    static v8::Local<v8::Value> MakeFromData(v8::Local<v8::Value> buffer);
+    /**
+     * Skia caches glyphs that have been used to draw. If the picture
+     * is a BigPicture containing serialized typeface and image datas,
+     * Skia will cache the typeface objects for each provided picture,
+     * respectively, which causes a serious memory pressure (memory usage
+     * increases almost linearly).
+     *
+     * Specifying `kTransfer_Usage` makes the picture decoder identify
+     * typefaces contained in the picture and cache them by itself.
+     * That avoids the memory pressure problem described above.
+     */
+    enum PictureUsage
+    {
+        kTransfer_Usage,
+        kGeneric_Usage
+    };
+
+    //! TSDecl: function MakeFromData(buffer: core.Buffer, usage: number): CkPicture
+    static v8::Local<v8::Value> MakeFromData(v8::Local<v8::Value> buffer,
+                                             PictureUsage usage);
 
 
     /**
@@ -381,8 +409,9 @@ public:
      * It will map the corresponding file instead of doing unnecessary copies.
      */
 
-    //! TSDecl: function MakeFromFile(path: string): CkPicture
-    static v8::Local<v8::Value> MakeFromFile(const std::string& path);
+    //! TSDecl: function MakeFromFile(path: string, usage: number): CkPicture
+    static v8::Local<v8::Value> MakeFromFile(const std::string& path,
+                                             PictureUsage usage);
 
     g_nodiscard const sk_sp<SkPicture>& getPicture() const;
 
@@ -400,6 +429,7 @@ public:
 
 private:
     sk_sp<SkPicture>    picture_;
+    size_t              picture_size_hint_;
 };
 
 //! TSDecl: class CkBitmap
@@ -501,67 +531,6 @@ public:
 
 private:
     sk_sp<SkImage>      image_;
-};
-
-//! TSDecl: class MoeHeapObjectBinder
-class MoeHeapObjectBinderWrap
-{
-public:
-    enum class Type
-    {
-        kString,
-        kBitmap,
-        kImage,
-        kPicture
-    };
-
-    using TypedObjectPair = std::pair<Type, v8::Global<v8::Value>>;
-    using ObjectMap = std::unordered_map<uint32_t, TypedObjectPair>;
-
-    void bindString(uint32_t key, v8::Local<v8::Value> string);
-    void bindBitmap(uint32_t key, v8::Local<v8::Value> bitmap);
-    void bindImage(uint32_t key, v8::Local<v8::Value> image);
-    void bindPicture(uint32_t key, v8::Local<v8::Value> picture);
-
-    g_nodiscard inline auto& getBoundObjects() {
-        return bound_objects_;
-    }
-
-private:
-    ObjectMap   bound_objects_;
-};
-
-//! TSDecl: class MoeTranslationToolchain
-class MoeTranslationToolchainWrap
-{
-public:
-    //! TSDecl:
-    //! interface IHeapProfiling {
-    //!   heapSingleCellSize: number;
-    //!   heapTotalSize: number;
-    //!   heapAllocationsCount: number;
-    //!   heapExtractionsCount: number;
-    //!   heapLeakedCellsCount: number;
-    //! }
-
-    //! TSDecl:
-    //! interface ICompileResult {
-    //!   artifact?: GskPicture;
-    //!   heapProfiling?: IHeapProfiling;
-    //! }
-
-    //! TSDecl:
-    //! function Interpreter(array: Array<core.Buffer>,
-    //!                      binder: IMoeHeapObjectBinder,
-    //!                      heapProfiling: boolean): ICompileResult
-    static v8::Local<v8::Value> Interpreter(v8::Local<v8::Value> array,
-                                            v8::Local<v8::Value> binder,
-                                            bool heapProfiling);
-
-    //! TSDecl: function Disassemble(array: Array<core.Buffer>): string
-    static v8::Local<v8::Value> Disassemble(v8::Local<v8::Value> array);
-
-    static v8::Local<v8::Value> Compress(v8::Local<v8::Value> array);
 };
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

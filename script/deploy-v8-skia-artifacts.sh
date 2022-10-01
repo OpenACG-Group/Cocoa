@@ -11,7 +11,8 @@ function copy_file() {
     cp $src_file $dst_file
 }
 
-lib_directory='./build/lib'
+build_directory='./build'
+lib_directory="${build_directory}/lib"
 
 v8_build_type='release.shared'
 skia_build_type='release.shared'
@@ -46,15 +47,17 @@ so_library_files=(
     "skia/out/${skia_build_type}/libskunicode.so"
 )
 
-v8_resource_files=(
+resource_files=(
     "v8/out/${v8_build_type}/snapshot_blob.bin"
+    "skia/out/canvaskit_wasm/canvaskit.js"
+    "skia/out/canvaskit_wasm/canvaskit.wasm"
 )
 
 for so_file in ${so_library_files[@]}; do
     copy_file ${so_file} ${lib_directory}
 done
 
-for res_file in ${v8_resource_files}; do
-    copy_file ${res_file} ../qresource/org.cocoa.internal.v8
+for res_file in ${resource_files[@]}; do
+    copy_file ${res_file} ${build_directory}
 done
 

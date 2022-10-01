@@ -46,6 +46,9 @@ class TextureManager;
 #define GLOP_BLENDER_CREATE_TEXTURE_FROM_IMAGE          5
 #define GLOP_BLENDER_CREATE_TEXTURE_FROM_ENCODED_DATA   6
 #define GLOP_BLENDER_CREATE_TEXTURE_FROM_PIXMAP         7
+#define GLOP_BLENDER_CAPTURE_NEXT_FRAME_AS_PICTURE      8
+
+#define GLSI_BLENDER_PICTURE_CAPTURED                   8
 
 class Blender : public RenderClientObject,
                 public GraphicsResourcesTrackable
@@ -88,6 +91,7 @@ public:
     g_nodiscard SkColorInfo GetOutputColorInfo() const;
 
     g_async_api void Update(const Shared<LayerTree>& layer_tree);
+    g_async_api int32_t CaptureNextFrameAsPicture();
     g_async_api void Dispose();
 
     using MaybeTextureId = std::optional<Texture::TextureId>;
@@ -121,6 +125,9 @@ private:
     SkIRect                        current_dirty_rect_;
     FrameScheduleState             frame_schedule_state_;
     Unique<TextureManager>         texture_manager_;
+
+    bool                           should_capture_next_frame_;
+    int32_t                        capture_next_frame_serial_;
 };
 
 GLAMOR_NAMESPACE_END

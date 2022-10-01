@@ -22,6 +22,7 @@
 #include "Glamor/Layers/PictureLayer.h"
 #include "Glamor/Layers/TextureLayer.h"
 #include "Glamor/Layers/ImageFilterLayer.h"
+#include "Glamor/Layers/BackdropFilterLayer.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 SceneBuilder::SceneBuilder(int32_t width, int32_t height)
@@ -109,14 +110,36 @@ v8::Local<v8::Value> SceneBuilder::pushImageFilter(v8::Local<v8::Value> filter)
     return getSelfHandle();
 }
 
-v8::Local<v8::Value> SceneBuilder::addPicture(v8::Local<v8::Value> picture, SkScalar dx, SkScalar dy)
+v8::Local<v8::Value> SceneBuilder::pushBackdropFilter(v8::Local<v8::Value> filter, int32_t blendMode)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    auto *wrapper = binder::Class<CkImageFilterWrap>::unwrap_object(isolate, filter);
+    if (!wrapper)
+        g_throw(TypeError, "Argument 'filter' must be an instance of `CkImageFilter`");
+
+    CHECK(wrapper->getImageFilter());
+
+    if (blendMode < 0 || blendMode > static_cast<int>(SkBlendMode::kLastMode))
+        g_throw(RangeError, "Argument 'blendMode' has an invalid enumeration value");
+
+    auto mode = static_cast<SkBlendMode>(blendMode);
+    pushLayer(std::make_shared<gl::BackdropFilterLayer>(wrapper->getImageFilter(), mode));
+
+    return getSelfHandle();
+}
+
+v8::Local<v8::Value> SceneBuilder::addPicture(v8::Local<v8::Value> picture,
+                                              bool autoFastClip,
+                                              SkScalar dx, SkScalar dy)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CkPictureWrap *unwrapped = binder::Class<CkPictureWrap>::unwrap_object(isolate, picture);
     if (unwrapped == nullptr)
         g_throw(TypeError, "\'picture\' must be an instance of CkPicture");
 
-    addLayer(std::make_shared<gl::PictureLayer>(SkPoint::Make(dx, dy), unwrapped->getPicture()));
+    addLayer(std::make_shared<gl::PictureLayer>(SkPoint::Make(dx, dy),
+                                                autoFastClip,
+                                                unwrapped->getPicture()));
     return getSelfHandle();
 }
 

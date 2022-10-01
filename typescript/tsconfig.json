@@ -28,6 +28,8 @@
         "samples/canvaskit_offscreen_image.ts",
         "samples/canvaskit_window.ts",
         "samples/canvaskit_window_lottie.ts",
-        "samples/canvaskit_window_shader.ts"
+        "samples/canvaskit_window_shader.ts",
+        "experimental/canvaskit_window_physics.ts",
+        "experimental/canvaskit_window_vn.ts"
     ]
 }

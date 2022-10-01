@@ -18,7 +18,7 @@
 import {Buffer} from 'core';
 
 /**
- * Error class thrown when a asynchronous operation fails.
+ * Error class thrown when an asynchronous operation fails.
  * Promise may be rejected with its instance.
  * @property opcode     A unique code of the asynchronous operation.
  */
@@ -45,6 +45,16 @@ export interface ApplicationInfo {
     // Patch version number
     patch: number;
 }
+
+// Experimental API (see `RenderHost.SetTypefaceTransferCallback`)
+export interface TypefaceInfo {
+    family: string;
+    weight: number;
+    width: number;
+    slant: string;
+}
+
+type TypefaceTransferCallbackT = (info: TypefaceInfo) => Uint8Array;
 
 /**
  * RenderHost, aka local thread, is an interface to communicate with
@@ -97,6 +107,16 @@ export class RenderHost {
      * [Only used for testing purpose]
      */
     public static SleepRendererFor(timeoutInMs: number): Promise<void>;
+
+    /**
+     * Get tracing information of graphics resources in JSON string format.
+     * The JSON string returned can be written into a file, or be parsed
+     * by `JSON.parse` for analysis purpose.
+     */
+    public static TraceGraphicsResources(): Promise<string>;
+
+    // Experimental API
+    public static SetTypefaceTransferCallback(callback: TypefaceTransferCallbackT): void;
 }
 
 // A unique number to identify a signal slot.
@@ -139,15 +159,16 @@ export class RenderClientObject {
  * An abstracted interface for system's display server (like Wayland, X11, etc.).
  * 
  * @signal [closed] Emitted when the display is closed.
- *         prototype: () -> void
+ *         Prototype: () -> void
  * 
  * @signal [monitor-added] Emitted when a new monitor was plugged into the system.
  *                         Note that the monitors that have existed in the system when the
  *                         display object is created will not cause this signal to be emitted.
- *         prototype: (monitor: Monitor) -> void
+ *         Prototype: (monitor: Monitor) -> void
  * 
  * @signal [monitor-removed] Emitted when an existing monitor was removed.
- *         prototype: (monitor: Monitor) -> void
+ *                           The corresponding `Monitor` object will also be notified by `detached` signal.
+ *         Prototype: (monitor: Monitor) -> void
  */
 export class Display extends RenderClientObject {
     /**
@@ -182,7 +203,26 @@ export class Display extends RenderClientObject {
      * @param h Height of the new created window.
      */
     public createHWComposeSurface(w: number, h: number): Promise<Surface>;
+
+    /**
+     * Get a list of monitors connected to the system.
+     */
     public requestMonitorList(): Promise<Array<Monitor>>;
+
+    readonly defaultCursorTheme: CursorTheme;
+
+    public loadCursorTheme(name: string, size: number): Promise<CursorTheme>;
+    public createCursor(bitmap: CkBitmap, hotspotX: number, hotspotY: number): Promise<Cursor>;
+}
+
+export class CursorTheme extends RenderClientObject {
+    public dispose(): Promise<void>;
+    public loadCursorFromName(name: string): Promise<Cursor>;
+}
+
+export class Cursor extends RenderClientObject {
+    public dispose(): Promise<void>;
+    public getHotspotVector(): Promise<{x: number, y: number}>;
 }
 
 type MonitorSubpixel = number;
@@ -204,6 +244,19 @@ export interface MonitorPropertySet {
     description: string;
 }
 
+/**
+ * Monitor connected to the system.
+ * 
+ * @signal [properties-changed] Notify that the properties of the Monitor has changed.
+ *                              New properties are provided as an argument of the signal.
+ *                              It also can be triggered by call `requestPropertySet` manually.
+ *         Prototype: (properties: MonitorPropertySet) -> void
+ * 
+ * @signal [detached] Monitor has been detached from the `Display` object,
+ *                    which means the corresponding physical monitor has been removed from
+ *                    the system or disabled.
+ *         Prototype: () -> void
+ */
 export class Monitor extends RenderClientObject {
     static readonly SUBPIXEL_UNKNOWN: MonitorSubpixel;
     static readonly SUBPIXEL_NONE: MonitorSubpixel;
@@ -222,11 +275,50 @@ export class Monitor extends RenderClientObject {
     static readonly MODE_CURRENT: MonitorMode;
     static readonly MODE_PREFERRED: MonitorMode;
 
+    /**
+     * Get a set of monitor's properties.
+     * Promise returned by the function will be resolved when the rendering thread
+     * accepts the request. Monitor properties will be sent with signal `properties-changed`
+     * later.
+     */
     public requestPropertySet(): Promise<void>;
 }
 
+/**
+ * An abstraction of a toplevel visual window where the contents can be rendered.
+ * As `Surface` object itself only provides methods to operate the window,
+ * a `Blender` object, which provides methods for rendering and frame scheduling,
+ * should be associated with the `Surface` object.
+ * 
+ * @signal [closed] Emitted when the window has been closed.
+ *                  Prototype: () -> void
+ * 
+ * @signal [resize] Emitted when the window has been resized.
+ *                  Prototype: (width: number, height: number) -> void
+ * 
+ * @signal [configure] Emitted when the Window Manager notified us that the window
+ *                     should be reconfigured (resize, move, etc.)
+ *                  Prototype: (width: number, height: number, state: ToplevelStates) -> void
+ * 
+ * @signal [frame] Emitted when it is a good time to start submitting a new frame.
+ *                 This signal is related to the VSync mechanism where the system will
+ *                 notify us when the monitor will refresh for next frame.
+ *                 There are two ways to schedule this signal: call `Surface.requestNextFrame`
+ *                 explicitly or call `Blender.update`, which also calls `requestNextFrame` implicitly.
+ *                 Prototype: () -> void
+ * 
+ * @signal [pointer-hovering] Emitted when the pointer device enters or leaves the window area.
+ *                            Prototype: (enter: boolean) -> void
+ * 
+ * @signal [pointer-motion] Emitted when a pointer moves on the window.
+ *                          Prototype: (double dx, double dy) -> void
+ * 
+ * @signal [pointer-button] Emitted when a button of pointer device is pressed or released.
+ *                          Prototype: (button: PointerButton, pressed: boolean) -> void
+ */
 export class Surface extends RenderClientObject {
-    static readonly TOPLEVEL_MAXIMZED: number;
+    // ToplevelStates
+    static readonly TOPLEVEL_MAXIMIZED: number;
     static readonly TOPLEVEL_FULLSCREEN: number;
     static readonly TOPLEVEL_RESIZING: number;
     static readonly TOPLEVEL_ACTIVATED: number;
@@ -235,25 +327,124 @@ export class Surface extends RenderClientObject {
     static readonly TOPLEVEL_TILED_TOP: number;
     static readonly TOPLEVEL_TILED_BOTTOM: number;
 
+    // PointerButton
+    static readonly POINTER_BUTTON_LEFT: number;
+    static readonly POINTER_BUTTON_RIGHT: number;
+    static readonly POINTER_BUTTON_MIDDLE: number;
+    static readonly POINTER_BUTTON_SIDE: number;
+    static readonly POINTER_BUTTON_EXTRA: number;
+    static readonly POINTER_BUTTON_FORWARD: number;
+    static readonly POINTER_BUTTON_BACK: number;
+    static readonly POINTER_BUTTON_TASK: number;
+
+    /* Window width in pixels. */
     public readonly width: number;
+    /* Window height in pixels. */
     public readonly height: number;
 
+    /**
+     * Create a `Blender` object and make it associated with the surface.
+     * If the surface has an associated `Blender` object, `Blender.dispose`
+     * must be called before disposing the surface.
+     * 
+     * Note that the surface only can associate a single `Blender` object,
+     * and the `Blender` object also only can be associated with a unique `Surface`.
+     * If the surface already has a `Blender`, this operation will fail and the
+     * promise will be rejected.
+     */
     public createBlender(): Promise<Blender>;
+
+    /**
+     * Close the window immediately.
+     * `close` signal does not indicate that a window is closed, which just means user
+     * has clicked the "close" button on the window decoration.
+     * Only by calling `close` method can we actually close a window.
+     * 
+     * `closed` single will be emitted when the window is actually closed.
+     */
     public close(): Promise<void>;
+
+    /**
+     * Get a string representation about available framebuffers.
+     * There is no any guarantee that the returned string has a specific format.
+     * The format is highly implementation-defined.
+     */
     public getBufferDescriptor(): Promise<string>;
+
+    /**
+     * Schedule next frame to keep VSync.
+     * The resolution of Promise only means the rendering thread has accepted
+     * the request. A `frame` signal will be emitted when it is a good time to display
+     * next frame.
+     */
     public requestNextFrame(): Promise<void>;
+
+    /**
+     * Set a title for the window.
+     */
     public setTitle(title: string): Promise<void>;
+
+    /**
+     * Resize the window.
+     * The resolution of Promise only means the rendering thread has accepted
+     * the request. A `resize` signal will be emitted when the resizing is finished.
+     */
     public resize(width: number, height: number): Promise<void>;
+
+    /**
+     * Set a maximum geometry size of the window in pixels.
+     */
     public setMinSize(width: number, height: number): Promise<void>;
+
+    /**
+     * Set a minimum geometry size of the window in pixels.
+     */
     public setMaxSize(width: number, height: number): Promise<void>;
+
+    /**
+     * Maximize or unmaximize the window if the system Window Manager supports
+     * the operation.
+     */
     public setMaximized(value: boolean): Promise<void>;
+
+    /**
+     * Minimize or unminimize the window if the system Window Manager supports
+     * the operation.
+     */
     public setMinimized(value: boolean): Promise<void>;
+
+    /**
+     * Make the window enter or leave fullscreen state.
+     *
+     * @param value     true to enter the fullscreen state; otherwise, leave the fullscreen state.
+     * @param monitor   A monitor where the fullscreen window should be displayed.
+     */
     public setFullscreen(value: boolean, monitor: Monitor): Promise<void>;
 }
 
+type TextureId = number;
 export class Blender extends RenderClientObject {
     public dispose(): Promise<void>;
     public update(scene: Scene): Promise<void>;
+
+    public createTextureFromImage(image: CkImage,
+                                  annotation: string): Promise<TextureId>;
+
+    public createTextureFromEncodedData(data: Buffer,
+                                        alphaType: number,
+                                        annotation: string): Promise<TextureId>;
+
+    public createTextureFromPixmap(pixels: Buffer,
+                                   width: number,
+                                   height: number,
+                                   colorType: number,
+                                   alphaType: number,
+                                   annotation: string): Promise<TextureId>;
+
+    public deleteTexture(textureId: TextureId): Promise<void>;
+
+    public newTextureDeletionSubscriptionSignal(textureId: TextureId,
+                                                sigName: string): Promise<void>;
 }
 
 export class Scene {
@@ -263,10 +454,27 @@ export class Scene {
 
 export class SceneBuilder {
     public constructor(viewportWidth: number, viewportHeight: number);
+
     public build(): Scene;
+
     public pop(): SceneBuilder;
-    public addPicture(picture: CkPicture, dx: number, dy: number): SceneBuilder;
-    public pushOffset(dx: number, dy: number): SceneBuilder;
+
+    public addPicture(picture: CkPicture,
+                      autoFastClipping: boolean,
+                      dx: number, dy: number): SceneBuilder;
+
+    public addTexture(textureId: TextureId,
+                      offsetX: number,
+                      offsetY: number,
+                      width: number,
+                      height: number,
+                      sampling: number): SceneBuilder;
+
+    public pushOffset(offsetX: number, offsetY: number): SceneBuilder;
+
+    public pushImageFilter(filter: CkImageFilter): SceneBuilder;
+
+    public pushBackdropFilter(filter: CkImageFilter, blendMode: number): SceneBuilder;
 }
 
 // ===============================
@@ -302,6 +510,45 @@ interface Constants {
     readonly FORMAT_PNG: number;
     readonly FORMAT_JPEG: number;
     readonly FORMAT_WEBP: number;
+
+    readonly SAMPLING_FILTER_NEAREST: number;
+    readonly SAMPLING_FILTER_LINEAR: number;
+    readonly SAMPLING_CUBIC_MITCHELL: number;
+    readonly SAMPLING_CUBIC_CATMULL_ROM: number;
+
+    readonly TILE_MODE_CLAMP: number;
+    readonly TILE_MODE_REPEAT: number;
+    readonly TILE_MODE_MIRROR: number;
+    readonly TILE_MODE_DECAL: number;
+
+    readonly BLEND_MODE_CLEAR: number;
+    readonly BLEND_MODE_SRC: number;
+    readonly BLEND_MODE_DST: number;
+    readonly BLEND_MODE_SRC_OVER: number;
+    readonly BLEND_MODE_DST_OVER: number;
+    readonly BLEND_MODE_SRC_IN: number;
+    readonly BLEND_MODE_DST_IN: number;
+    readonly BLEND_MODE_SRC_OUT: number;
+    readonly BLEND_MODE_DST_OUT: number;
+    readonly BLEND_MODE_SRC_ATOP: number;
+    readonly BLEND_MODE_DST_ATOP: number;
+    readonly BLEND_MODE_XOR: number;
+    readonly BLEND_MODE_PLUS: number;
+    readonly BLEND_MODE_MODULATE: number;
+    readonly BLEND_MODE_SCREEN: number;
+    readonly BLEND_MODE_OVERLAY: number;
+    readonly BLEND_MODE_DARKEN: number;
+    readonly BLEND_MODE_LIGHTEN: number;
+    readonly BLEND_MODE_COLOR_DODGE: number;
+    readonly BLEND_MODE_COLOR_BURN: number;
+    readonly BLEND_MODE_HARD_LIGHT: number;
+    readonly BLEND_MODE_SOFT_LIGHT: number;
+    readonly BLEND_MODE_DIFFERENCE: number;
+    readonly BLEND_MODE_EXCLUSION: number;
+    readonly BLEND_MODE_HUE: number;
+    readonly BLEND_MODE_SATURATION: number;
+    readonly BLEND_MODE_COLOR: number;
+    readonly BLEND_MODE_LUMINOSITY: number;
 }
 
 export declare let Constants: Constants;
@@ -314,20 +561,57 @@ export interface CkRect {
 }
 
 export class CkBitmap {
+    public static MakeFromBuffer(buffer: Buffer,
+                                 width: number,
+                                 height: number,
+                                 colorType: number,
+                                 alphaType: number): CkBitmap;
+    
+    public static MakeFromEncodedFile(path: string): CkBitmap;
+
+    readonly width: number;
+    readonly height: number;
+    readonly alphaType: number;
+    readonly colorType: number;
+    readonly bytesPerPixel: number;
+    readonly rowBytesAsPixels: number;
+    readonly shiftPerPixel: number;
+    readonly rowBytes: number;
+    
+    public computeByteSize(): number;
+    public toImage(): CkImage;
+    public getPixelBuffer(): Buffer;
 }
 
 export class CkImage {
     public static MakeFromEncodedData(buffer: Buffer): Promise<CkImage>;
     public static MakeFromEncodedFile(path: string): Promise<CkImage>;
+
+    readonly width: number;
+    readonly height: number;
+    readonly alphaType: number;
+    readonly colorType: number;
+
+    public uniqueId(): number;
     public encodeToData(format: number, quality: number): Buffer;
 }
 
 export class CkPicture {
-    public static MakeFromData(buffer: Buffer): CkPicture;
-    public static MakeFromFile(path: string): CkPicture;
+    static readonly USAGE_GENERIC: number;
+    static readonly USAGE_TRANSFER: number;
+
+    public static MakeFromData(buffer: Buffer, usage: number): CkPicture;
+    public static MakeFromFile(path: string, usage: number): CkPicture;
 
     public serialize(): Buffer;
     public approximateOpCount(nested: boolean): number;
     public approximateByteUsed(): number;
     public uniqueId(): number;
+}
+
+export class CkImageFilter {
+    public static MakeFromDescriptor(descriptor: string, kwargs: object): CkImageFilter;
+    public static Deserialize(buffer: Buffer): CkImageFilter;
+
+    public serialize(): Buffer;
 }

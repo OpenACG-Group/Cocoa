@@ -196,18 +196,20 @@ void Display::Close()
 
 Shared<Surface> Display::CreateRasterSurface(int32_t width, int32_t height, SkColorType format)
 {
-    auto s = this->OnCreateSurface(width, height, format, RenderTarget::RenderDevice::kRaster);
-    if (s != nullptr)
-        surfaces_list_.emplace_back(s);
-    return s;
+    return this->OnCreateSurface(width, height, format, RenderTarget::RenderDevice::kRaster);
 }
 
 Shared<Surface> Display::CreateHWComposeSurface(int32_t width, int32_t height, SkColorType format)
 {
-    auto s = this->OnCreateSurface(width, height, format, RenderTarget::RenderDevice::kHWComposer);
-    if (s != nullptr)
-        surfaces_list_.emplace_back(s);
-    return s;
+    return this->OnCreateSurface(width, height, format, RenderTarget::RenderDevice::kHWComposer);
+}
+
+void Display::AppendSurface(const Shared<Surface>& surface)
+{
+    CHECK(surface);
+    auto itr = std::find(surfaces_list_.begin(), surfaces_list_.end(), surface);
+    if (itr == surfaces_list_.end())
+        surfaces_list_.emplace_back(surface);
 }
 
 void Display::RemoveSurfaceFromList(const Shared<Surface>& s)

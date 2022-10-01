@@ -42,10 +42,15 @@ public:
     v8::Local<v8::Value> pushOffset(SkScalar x, SkScalar y);
 
     //! TSDecl: function addPicture(picture: CkPicture): SceneBuilder
-    v8::Local<v8::Value> addPicture(v8::Local<v8::Value> picture, SkScalar dx, SkScalar dy);
+    v8::Local<v8::Value> addPicture(v8::Local<v8::Value> picture, bool autoFastClip,
+                                    SkScalar dx, SkScalar dy);
 
     //! TSDecl: function pushImageFilter(filter: CkImageFilter): SceneBuilder
     v8::Local<v8::Value> pushImageFilter(v8::Local<v8::Value> filter);
+
+    //! TSDecl: function pushBackdropFilter(filter: CkImageFilter, blendMode: number): SceneBuilder
+    v8::Local<v8::Value> pushBackdropFilter(v8::Local<v8::Value> filter,
+                                            int32_t blendMode);
 
     //! TSDecl: function addTexture(textureId: number,
     //!                             dx: number,

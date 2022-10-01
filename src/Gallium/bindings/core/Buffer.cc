@@ -189,7 +189,7 @@ size_t encodeString(v8::Isolate *isolate, uint8_t *buf, size_t buflen,
     return nbytes;
 }
 
-v8::Local<v8::Uint8Array> newBuffer(std::size_t length)
+v8::Local<v8::Uint8Array> create_u8array_from_size(std::size_t length)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     v8::Local<v8::ArrayBuffer> ab = v8::ArrayBuffer::New(isolate, length);
@@ -198,8 +198,10 @@ v8::Local<v8::Uint8Array> newBuffer(std::size_t length)
     return v8::Uint8Array::New(ab, 0, length);
 }
 
-v8::Local<v8::Uint8Array> newBuffer(void *ptr, size_t length, v8::BackingStore::DeleterCallback deleter,
-                                    void *closure)
+v8::Local<v8::Uint8Array> create_u8array_from_external(void *ptr,
+                                                       size_t length,
+                                                       v8::BackingStore::DeleterCallback deleter,
+                                                       void *closure)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     std::unique_ptr<v8::BackingStore> bs = v8::ArrayBuffer::NewBackingStore(ptr, length, deleter, closure);
@@ -209,7 +211,8 @@ v8::Local<v8::Uint8Array> newBuffer(void *ptr, size_t length, v8::BackingStore::
     return v8::Uint8Array::New(ab, 0, length);
 }
 
-v8::Local<v8::Uint8Array> newBuffer(v8::Local<v8::String> str, Buffer::Encoding encoding)
+v8::Local<v8::Uint8Array> create_u8array_from_string(v8::Local<v8::String> str,
+                                                     Buffer::Encoding encoding)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     size_t length = stringByteLength(isolate, str, encoding);
@@ -241,7 +244,7 @@ v8::Local<v8::Object> Buffer::MakeFromString(v8::Local<v8::String> string, uint3
     v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
     Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
 
-    auto array = newBuffer(string, static_cast<Encoding>(encoding));
+    auto array = create_u8array_from_string(string, static_cast<Encoding>(encoding));
     self->array_.Reset(isolate, array);
     self->backing_store_ = array->Buffer()->GetBackingStore();
 
@@ -309,7 +312,7 @@ v8::Local<v8::Object> Buffer::MakeFromCopy(Buffer *other, off_t offset, ssize_t 
     v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
     Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
 
-    v8::Local<v8::Uint8Array> arr = newBuffer(size);
+    v8::Local<v8::Uint8Array> arr = create_u8array_from_size(size);
     self->array_.Reset(isolate, arr);
     self->backing_store_ = arr->Buffer()->GetBackingStore();
 
@@ -325,7 +328,7 @@ v8::Local<v8::Object> Buffer::MakeFromSize(size_t size)
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
     Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
-    v8::Local<v8::Uint8Array> arr = newBuffer(size);
+    v8::Local<v8::Uint8Array> arr = create_u8array_from_size(size);
     self->array_.Reset(isolate, arr);
     self->backing_store_ = arr->Buffer()->GetBackingStore();
     return buf;
@@ -389,7 +392,7 @@ v8::Local<v8::Object> Buffer::MakeFromPtrCopy(const void *data, size_t size)
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
     Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
-    v8::Local<v8::Uint8Array> arr = newBuffer(size);
+    v8::Local<v8::Uint8Array> arr = create_u8array_from_size(size);
     self->array_.Reset(isolate, arr);
     self->backing_store_ = arr->Buffer()->GetBackingStore();
     std::memcpy(self->addressU8(), data, size);
@@ -405,7 +408,7 @@ Buffer::MakeFromPtrWithoutCopy(void *data, size_t size,
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
     Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
-    v8::Local<v8::Uint8Array> arr = newBuffer(data, size, deleter, closure);
+    v8::Local<v8::Uint8Array> arr = create_u8array_from_external(data, size, deleter, closure);
     self->array_.Reset(isolate, arr);
     self->backing_store_ = arr->Buffer()->GetBackingStore();
     return buf;
@@ -432,17 +435,29 @@ Buffer::MakeFromExternal(void *data, size_t size,
         self->closure_captured_external_.swap(empty_capture);
     };
 
-    v8::Local<v8::Uint8Array> array = newBuffer(data, size, external_deleter, self);
+    v8::Local<v8::Uint8Array> array = create_u8array_from_external(data, size, external_deleter, self);
     self->array_.Reset(isolate, array);
     self->backing_store_ = array->Buffer()->GetBackingStore();
 
     return buf;
 }
 
+Buffer::Buffer()
+    : alloc_size_hint_(0)
+{
+}
+
 Buffer::~Buffer()
 {
     backing_store_.reset();
     array_.Reset();
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (isolate && alloc_size_hint_ > 0)
+    {
+        isolate->AdjustAmountOfExternalAllocatedMemory(
+                static_cast<int64_t>(alloc_size_hint_));
+    }
 }
 
 uint8_t *Buffer::addressU8()

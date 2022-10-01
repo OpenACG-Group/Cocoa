@@ -308,6 +308,9 @@ Shared<HWComposeSwapchain> HWComposeSwapchain::Make(const Shared<HWComposeContex
         return nullptr;
     }
 
+    // Allows resource cache <= 1GB
+    ret->skia_direct_context_->setResourceCacheLimit(1024 * 1024UL);
+
     /* Create swapchain */
     if (!ret->CreateOrRecreateSwapchain(width, height))
         return nullptr;

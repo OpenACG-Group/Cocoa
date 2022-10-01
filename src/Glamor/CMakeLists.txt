@@ -1,17 +1,3 @@
-add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/RenpyMoeOpcodeCodeGen.h
-        COMMAND ${CMAKE_HOME_DIRECTORY}/script/renpy-codegen-moe-opcode.py cpp-header
-                ${CMAKE_CURRENT_SOURCE_DIR}/Moe/moe-opcode-codegen.renpy > ${CMAKE_CURRENT_BINARY_DIR}/RenpyMoeOpcodeCodeGen.h
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Moe/moe-opcode-codegen.renpy
-)
-
-add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/RenpyMoeOpcodeCodeGen.hpp
-        COMMAND ${CMAKE_HOME_DIRECTORY}/script/renpy-codegen-moe-opcode.py cpp-impl
-        ${CMAKE_CURRENT_SOURCE_DIR}/Moe/moe-opcode-codegen.renpy > ${CMAKE_CURRENT_BINARY_DIR}/RenpyMoeOpcodeCodeGen.hpp
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Moe/moe-opcode-codegen.renpy
-)
-
 add_library(
         Glamor STATIC
 
@@ -91,6 +77,9 @@ add_library(
         Layers/TextureLayer.cc
         Layers/ImageFilterLayer.h
         Layers/ImageFilterLayer.cc
+        Layers/BackdropFilterLayer.h
+        Layers/BackdropFilterLayer.cc
+        Layers/ClippingLayerBase.h
 
         Wayland/protos/xdg-shell-client-protocol.h
         Wayland/protos/xdg-shell-client-protocol.c
@@ -122,22 +111,6 @@ add_library(
         Wayland/WaylandBitmapCursor.cc
         Wayland/WaylandSharedMemoryHelper.h
         Wayland/WaylandSharedMemoryHelper.cc
-
-        Moe/MoeInstructionBase.h
-        Moe/MoeHeap.h
-        Moe/MoeHeap.cc
-        Moe/MoeByteStreamReader.h
-        Moe/MoeByteStreamReader.cc
-        Moe/MoeCodeHolder.h
-        Moe/MoeInterpreterEngine.h
-        Moe/MoeInterpreterEngine.cc
-        Moe/MoeCodeDisassembler.h
-        Moe/MoeCodeDisassembler.cc
-        Moe/MoeCodeCompressor.h
-        Moe/MoeCodeCompressor.cc
-        Moe/MoeOpcodeRenpyInterface.h
-        ${CMAKE_CURRENT_BINARY_DIR}/RenpyMoeOpcodeCodeGen.hpp
-        ${CMAKE_CURRENT_BINARY_DIR}/RenpyMoeOpcodeCodeGen.h
 
         GShader/GSAssembly.h
         GShader/GSEnvironment.h

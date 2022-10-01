@@ -133,6 +133,13 @@ public:
         VersionTriple       version_triple;
     };
 
+    struct ExternalData
+    {
+        using Deleter = std::function<void(void*)>;
+        void *ptr;
+        Deleter deleter;
+    };
+
     GlobalScope(const ContextOptions& options, EventLoop *loop);
     ~GlobalScope();
 
@@ -162,12 +169,26 @@ public:
      */
     std::optional<std::string> TraceResourcesToJson();
 
+    void TraceSkiaMemoryResources();
+
+    g_inline void SetExternalDataPointer(void *ptr, ExternalData::Deleter deleter) {
+        if (external_data_.ptr && external_data_.deleter)
+            external_data_.deleter(external_data_.ptr);
+        external_data_.ptr = ptr;
+        external_data_.deleter = std::move(deleter);
+    }
+
+    g_nodiscard g_inline void *GetExternalDataPointer() const {
+        return external_data_.ptr;
+    }
+
 private:
     ContextOptions  options_;
     EventLoop      *event_loop_;
     RenderHost     *render_host_;
     RenderClient   *render_client_;
     Unique<StandaloneThreadPool>  render_workers_;
+    ExternalData    external_data_;
 };
 
 GLAMOR_NAMESPACE_END

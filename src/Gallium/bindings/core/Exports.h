@@ -201,6 +201,16 @@ public:
     explicit FileWrap(uv_file fd);
     ~FileWrap();
 
+    //! TSDecl: function WriteFileSync(path: string, buffer: core:Buffer): void
+    static v8::Local<v8::Value> WriteFileSync(const std::string& path,
+                                              v8::Local<v8::Value> buffer);
+
+    //! TSDecl: function ReadFileSync(path: string): core:Buffer
+    static v8::Local<v8::Value> ReadFileSync(const std::string& path);
+
+    //! TSDecl: function Open(path: string, flags: number, mode: number): Promise<File>
+    static v8::Local<v8::Value> Open(const std::string& path, int32_t flags, int32_t mode);
+
     //! TSDecl: function close(): Promise<void>
     g_nodiscard v8::Local<v8::Value> close();
 
@@ -239,9 +249,6 @@ public:
      *     ctime: Date;
      * }
      */
-
-    //! TSDecl: function open(path: string, flags: number, mode: number): Promise<File>
-    static v8::Local<v8::Value> Open(const std::string& path, int32_t flags, int32_t mode);
 
     //! TSDecl: function fstat(): Promise<Stat>
     g_nodiscard v8::Local<v8::Value> fstat();
@@ -432,7 +439,7 @@ public:
     /**
      * Construct an empty buffer (with @p array_ empty)
      */
-    Buffer() = default;
+    Buffer();
     ~Buffer();
 
     static v8::Local<v8::Object> MakeFromCopy(Buffer *other, off_t offset, ssize_t size = -1);
@@ -479,6 +486,7 @@ public:
     g_private_api uint8_t *addressU8();
 
 private:
+    size_t                              alloc_size_hint_;
     std::function<void()>               closure_captured_external_;
     v8::Global<v8::Uint8Array>          array_;
     std::shared_ptr<v8::BackingStore>   backing_store_;

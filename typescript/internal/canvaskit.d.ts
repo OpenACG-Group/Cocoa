@@ -2,7 +2,18 @@
 
 export const canvaskit: CanvasKit;
 
+export interface TypefaceCacheKey {
+    family: string;
+    weight: number;
+    width: number;
+    slant: string;
+}
+
 export interface CanvasKit {
+    registerRenderableTypeface(face: Typeface): TypefaceCacheKey;
+    getRenderableTypeface(key: TypefaceCacheKey): Typeface;
+    bindWithInitializedRenderHost(renderHost): void;
+
     // Helpers
     /**
      * Constructs a Color with the same API as CSS's rgba(), that is
@@ -2481,6 +2492,8 @@ export interface SkPicture extends EmbindObject<SkPicture> {
      * no promises are made for backwards or forward compatibility.
      */
     serialize(): Uint8Array | null;
+
+    serializeForTransfer(): Uint8Array | null;
 }
 
 export interface PictureRecorder extends EmbindObject<PictureRecorder> {
@@ -2693,6 +2706,8 @@ export interface Typeface extends EmbindObject<Typeface> {
      */
     getGlyphIDs(str: string, numCodePoints?: number,
                 output?: GlyphIDArray): GlyphIDArray;
+
+    serialize(): Uint8Array;
 }
 
 /**

@@ -91,6 +91,9 @@
 
         <class name="File" wrapper="FileWrap">
             <method static="true" name="Open" value="@Open"/>
+            <method static="true" name="ReadFileSync" value="@ReadFileSync"/>
+            <method static="true" name="WriteFileSync" value="@WriteFileSync"/>
+
             <method name="close" value="@close"/>
             <method name="isClosed" value="@isClosed"/>
             <method name="isClosing" value="@isClosing"/>

@@ -1,15 +1,21 @@
-enable_language(C ASM CXX)
+set(BINARY_QRES_DIR ${CMAKE_BINARY_DIR}/qresource)
+file(MAKE_DIRECTORY ${BINARY_QRES_DIR})
+file(MAKE_DIRECTORY ${BINARY_QRES_DIR}/packages)
 
-set(
-        QRESOURCE_AUTOLOAD_IMAGES
-        ${QRESOURCE_COMPILED_DIR}/org.cocoa.internal.v8.crpkg
+set(CRPKG_INTERNAL_V8 ${BINARY_QRES_DIR}/packages/org.cocoa.internal.v8.crpkg)
+
+file(GLOB CRPKG_INTERNAL_V8_FILES ${QRESOURCE_DIR}/packages/internal_v8/*)
+add_custom_command(
+        OUTPUT ${CRPKG_INTERNAL_V8}
+        COMMAND ${CMAKE_BINARY_DIR}/cocoa-qresc ${QRESOURCE_DIR}/packages/internal_v8 ${BINARY_QRES_DIR}/packages
+        DEPENDS cocoa-qresc ${CRPKG_INTERNAL_V8_FILES}
 )
 
 add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
-        COMMAND ${CMAKE_HOME_DIRECTORY}/script/intern-crpkgs.py
-                ${QRESOURCE_AUTOLOAD_IMAGES} >${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
-        DEPENDS ${QRESOURCE_AUTOLOAD_IMAGES}
+        COMMAND ${CMAKE_HOME_DIRECTORY}/script/intern-crpkgs.py ${CRPKG_INTERNAL_V8}
+                >${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
+        DEPENDS ${CRPKG_INTERNAL_V8}
 )
 
 add_library(

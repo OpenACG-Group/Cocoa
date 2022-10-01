@@ -20,6 +20,8 @@
 #include "include/core/SkCanvas.h"
 #include "include/core/SkDeferredDisplayListRecorder.h"
 #include "include/core/SkPicture.h"
+#include "include/core/SkPictureRecorder.h"
+#include "include/core/SkGraphics.h"
 #include "include/utils/SkNWayCanvas.h"
 
 #include "Core/StandaloneThreadPool.h"
@@ -109,6 +111,14 @@ GLAMOR_TRAMPOLINE_IMPL(Blender, CreateTextureFromPixmap)
     info.SetReturnValue(*id);
 }
 
+GLAMOR_TRAMPOLINE_IMPL(Blender, CaptureNextFrameAsPicture)
+{
+    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(0);
+    auto bl = info.GetThis()->As<Blender>();
+    info.SetReturnValue(bl->CaptureNextFrameAsPicture());
+    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+}
+
 Shared<Blender> Blender::Make(const Shared<Surface>& surface)
 {
     CHECK(surface);
@@ -148,6 +158,8 @@ Blender::Blender(const Shared<Surface>& surface, Unique<TextureManager> texture_
     , current_dirty_rect_(SkIRect::MakeEmpty())
     , frame_schedule_state_(FrameScheduleState::kIdle)
     , texture_manager_(std::move(texture_manager))
+    , should_capture_next_frame_(false)
+    , capture_next_frame_serial_(0)
 {
     CHECK(surface);
 
@@ -163,6 +175,8 @@ Blender::Blender(const Shared<Surface>& surface, Unique<TextureManager> texture_
                         Blender_DeleteTexture_Trampoline);
     SetMethodTrampoline(GLOP_BLENDER_NEW_TEXTURE_DELETION_SUBSCRIPTION_SIGNAL,
                         Blender_NewTextureDeletionSubscriptionSignal_Trampoline);
+    SetMethodTrampoline(GLOP_BLENDER_CAPTURE_NEXT_FRAME_AS_PICTURE,
+                        Blender_CaptureNextFrameAsPicture_Trampoline);
 
     surface_resize_slot_id_ = surface->Connect(GLSI_SURFACE_RESIZE, [this](RenderHostSlotCallbackInfo& info) {
         this->SurfaceResizeSlot(info.Get<int32_t>(0), info.Get<int32_t>(1));
@@ -222,6 +236,16 @@ void Blender::SurfaceFrameSlot()
     frame_schedule_state_ = FrameScheduleState::kPresented;
 }
 
+int32_t Blender::CaptureNextFrameAsPicture()
+{
+    if (!should_capture_next_frame_)
+    {
+        should_capture_next_frame_ = true;
+        capture_next_frame_serial_++;
+    }
+    return capture_next_frame_serial_;
+}
+
 void Blender::Update(const Shared<LayerTree> &layer_tree)
 {
     if (frame_schedule_state_ == FrameScheduleState::kPendingFrame)
@@ -254,31 +278,51 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
         return;
     }
 
-    // Now `RasterCache` and paint boundaries of each layer are prepared,
-    // and we start painting (rasterization).
-
+    // Prepare canvases
     SkSurface *frame_surface = rt->BeginFrame();
     frame_surface->getCanvas()->clear(SK_ColorBLACK);
 
-    SkNWayCanvas composed_canvas(GetWidth(), GetHeight());
-    composed_canvas.addCanvas(frame_surface->getCanvas());
+    SkNWayCanvas multiplexer_canvas(GetWidth(), GetHeight());
+    multiplexer_canvas.addCanvas(frame_surface->getCanvas());
     for (const Shared<RasterDrawOpObserver>& observer : layer_tree_->GetObservers())
     {
         observer->BeginFrame();
-        composed_canvas.addCanvas(observer.get());
+        multiplexer_canvas.addCanvas(observer.get());
     }
 
-    Layer::PaintContext paintContext {
+    SkPictureRecorder picture_recorder;
+    if (should_capture_next_frame_)
+    {
+        auto width = static_cast<SkScalar>(GetWidth());
+        auto height = static_cast<SkScalar>(GetHeight());
+        SkCanvas *canvas = picture_recorder.beginRecording(width, height);
+        multiplexer_canvas.addCanvas(canvas);
+    }
+    should_capture_next_frame_ = false;
+
+    Layer::PaintContext paint_context {
         .gr_context = gr_context,
         .root_surface_transformation = output_surface_->GetRootTransformation(),
         .frame_canvas = frame_surface->getCanvas(),
-        .multiplexer_canvas = &composed_canvas,
+        .multiplexer_canvas = &multiplexer_canvas,
         .cull_rect = context.cull_rect,
         .texture_manager = texture_manager_,
         .has_gpu_retained_resource = false
     };
 
-    layer_tree_->Paint(&paintContext);
+    layer_tree_->Paint(&paint_context);
+
+    if (picture_recorder.getRecordingCanvas())
+    {
+        MaybeGpuObject<SkPicture> picture(
+                paint_context.has_gpu_retained_resource,
+                picture_recorder.finishRecordingAsPicture());
+
+        RenderClientEmitterInfo info;
+        info.EmplaceBack<MaybeGpuObject<SkPicture>>(std::move(picture));
+        info.EmplaceBack<int32_t>(capture_next_frame_serial_);
+        Emit(GLSI_BLENDER_PICTURE_CAPTURED, std::move(info));
+    }
 
     // At last, we request a new frame from WSI layer. We will be notified
     // (slot function `SurfaceFrameSlot` will be called) later

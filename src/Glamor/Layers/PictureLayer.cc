@@ -15,14 +15,21 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "fmt/format.h"
+
 #include "Glamor/Layers/PictureLayer.h"
 GLAMOR_NAMESPACE_BEGIN
 
-PictureLayer::PictureLayer(const SkPoint& offset, const sk_sp<SkPicture>& picture)
+PictureLayer::PictureLayer(const SkPoint& offset,
+                           bool auto_fast_clip,
+                           const sk_sp<SkPicture>& picture)
     : sk_picture_(picture)
     , offset_(offset)
+    , auto_fast_clip_(auto_fast_clip)
 {
 }
+
+PictureLayer::~PictureLayer() = default;
 
 void PictureLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
 {
@@ -32,23 +39,15 @@ void PictureLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
 
 void PictureLayer::Paint(PaintContext *context) const
 {
-    SkAutoCanvasRestore scopedRestore(context->multiplexer_canvas, true);
-    context->multiplexer_canvas->translate(offset_.x(), offset_.y());
+    SkCanvas *canvas = context->multiplexer_canvas;
+    CHECK(canvas);
 
-    if (!context->HasCurrentPaint())
-    {
-        // If there is no existing paint, send the drawing commands to
-        // the canvas separately by `playback` method. Compared with `SkCanvas::drawPicture`,
-        // this should be faster because if the paint is non-null,
-        // Skia always draws the picture into a temporary layer before it
-        // actually landing on the canvas.
-        sk_picture_->playback(context->multiplexer_canvas);
-    }
-    else
-    {
-        context->multiplexer_canvas->drawPicture(sk_picture_, nullptr,
-                                                 context->GetCurrentPaintPtr());
-    }
+    SkAutoCanvasRestore canvas_restore(canvas, true);
+    canvas->translate(offset_.x(), offset_.y());
+    if (auto_fast_clip_)
+        canvas->clipRect(sk_picture_->cullRect());
+
+    canvas->drawPicture(sk_picture_, nullptr, context->GetCurrentPaintPtr());
 }
 
 GLAMOR_NAMESPACE_END

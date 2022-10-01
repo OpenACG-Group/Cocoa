@@ -674,7 +674,7 @@ void Runtime::RunWithMainLoop()
 {
     v8::HandleScope handle_scope(isolate_);
 
-    EvaluateModule("internal:///gallium/bootstrap.js", nullptr, nullptr, false, true);
+    EvaluateModule("internal:///bootstrap.js", nullptr, nullptr, false, true);
 
     if (!options_.start_with_inspector)
     {

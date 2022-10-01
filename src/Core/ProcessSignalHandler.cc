@@ -16,6 +16,7 @@
  */
 
 #include <csignal>
+#include <cxxabi.h>
 
 #define UNW_LOCAL_ONLY
 #include "libunwind.h"
@@ -32,6 +33,17 @@
 namespace cocoa {
 
 namespace {
+
+std::string demangle_cpp_symbol(char const *sym)
+{
+    char *demangled = abi::__cxa_demangle(sym, nullptr, nullptr, nullptr);
+    if (demangled == nullptr)
+        return sym;
+
+    std::string ret(demangled);
+    std::free(demangled);
+    return ret;
+}
 
 void primary_signal_handler_entrypoint(int signum, ::siginfo_t *siginfo, void *data)
 {
@@ -50,7 +62,8 @@ void primary_signal_handler_entrypoint(int signum, ::siginfo_t *siginfo, void *d
         {
             unw_word_t poff;
             unw_get_proc_name(&cursor, proc_name, sizeof(proc_name), &poff);
-            fmt::print(stderr, "[interrupt]  #{} {} <+{}>\n", d, proc_name, poff);
+            fmt::print(stderr, "[interrupt]  #{} {} <+{}>\n",
+                       d, demangle_cpp_symbol(proc_name), poff);
         }
     }
 

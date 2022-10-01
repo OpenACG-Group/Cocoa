@@ -27,17 +27,17 @@ GLAMOR_NAMESPACE_BEGIN
 class PictureLayer : public Layer
 {
 public:
-    PictureLayer(const SkPoint& offset, const sk_sp<SkPicture>& picture);
-    ~PictureLayer() override = default;
+    PictureLayer(const SkPoint& offset, bool auto_fast_clip,
+                 const sk_sp<SkPicture>& picture);
+    ~PictureLayer() override;
 
     void Preroll(PrerollContext *context, const SkMatrix &matrix) override;
     void Paint(PaintContext *context) const override;
 
 private:
     sk_sp<SkPicture> sk_picture_;
-
-    // top-left corner of picture in parent's coordinate
-    SkPoint offset_;
+    SkPoint          offset_;
+    bool             auto_fast_clip_;
 };
 
 GLAMOR_NAMESPACE_END

@@ -6,6 +6,12 @@
             "request": "attach",
             "type": "node",
             "websocketAddress": "ws://127.0.0.1:9005"
+        },
+        {
+            "name": "Node default",
+            "request": "attach",
+            "type": "node",
+            "websocketAddress": "ws://127.0.0.1:9229/1c0007a4-95bd-4f3e-9d09-7745d2332cdb"
         }
     ]
 }

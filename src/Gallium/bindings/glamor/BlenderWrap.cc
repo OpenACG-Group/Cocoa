@@ -77,6 +77,7 @@ v8::Local<v8::Value> BlenderWrap::update(v8::Local<v8::Value> sceneObject)
         g_throw(TypeError, "Argument 'scene' must be an instance of Scene");
 
     std::shared_ptr<gl::LayerTree> layer_tree(scene->takeLayerTree());
+    CHECK(layer_tree.unique());
 
     auto closure = PromiseClosure::New(isolate, nullptr);
     getObject()->Invoke(GLOP_BLENDER_UPDATE, closure, PromiseClosure::HostCallback, layer_tree);

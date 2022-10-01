@@ -294,27 +294,6 @@ static std::unordered_map<Token::TokenType,
         { Token::kEOF,         "<EOF>" }
 };
 
-std::string token_list_tostring(const TokenList& list)
-{
-    std::ostringstream os;
-    for (const auto& token : list)
-    {
-        os << g_toktype_names_map[token.type];
-        if (token.type == Token::kIdentifier ||
-            token.type == Token::kReplacement)
-        {
-            os << '{' << token.lexeme << '}';
-        }
-        if (token.type == Token::kFloat)
-            os << '{' << token.double_value << '}';
-        if (token.type == Token::kInteger)
-            os << '{' << token.integer_value << '}';
-        os << ' ';
-    }
-
-    return os.str();
-}
-
 using KWArgsMap = std::unordered_map<std::string, v8::Local<v8::Value>>;
 using KWArgsPair = std::pair<std::string, v8::Local<v8::Value>>;
 

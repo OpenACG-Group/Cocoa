@@ -99,7 +99,7 @@ function playLottie(jsonStr: string) {
         let buffer = std.Buffer.MakeFromAdoptBuffer(recorder.finishRecordingAsPicture().serialize());
         let scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
                     .pushOffset(0, 0)
-                    .addPicture(GL.CkPicture.MakeFromData(buffer), 0, 0)
+                    .addPicture(GL.CkPicture.MakeFromData(buffer, GL.CkPicture.USAGE_GENERIC), 0, 0)
                     .build();
 
         // Finally, submit the constructed `Scene` object to blender, which will rasterize and

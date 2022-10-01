@@ -95,6 +95,8 @@ protected:
 
     virtual void OnDispose() = 0;
 
+    void AppendSurface(const Shared<Surface>& surface);
+
     void AppendMonitor(const Shared<Monitor>& monitor);
     bool RemoveMonitor(const Shared<Monitor>& monitor);
 

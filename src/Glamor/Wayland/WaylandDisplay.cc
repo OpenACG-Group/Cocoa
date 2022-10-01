@@ -520,6 +520,8 @@ Shared<Surface> WaylandDisplay::OnCreateSurface(int32_t width, int32_t height, S
         QLOG(LOG_DEBUG, "New created surface has an associated cursor from default theme");
     }
 
+    if (surface)
+        AppendSurface(surface);
     return surface;
 }
 

@@ -18,6 +18,7 @@
             <method static="true" name="WaitForSyncBarrier" value="@WaitForSyncBarrier"/>
             <method static="true" name="SleepRendererFor" value="@SleepRendererFor"/>
             <method static="true" name="TraceGraphicsResources" value="@TraceGraphicsResources"/>
+            <method static="true" name="SetTypefaceTransferCallback" value="@SetTypefaceTransferCallback"/>
         </class>
 
         <class name="RenderClientObject" wrapper="RenderClientObjectWrap" invisible="true">
@@ -130,6 +131,7 @@
             <method name="build" value="@build"/>
             <method name="pushOffset" value="@pushOffset"/>
             <method name="pushImageFilter" value="@pushImageFilter"/>
+            <method name="pushBackdropFilter" value="@pushBackdropFilter"/>
             <method name="addPicture" value="@addPicture"/>
             <method name="addTexture" value="@addTexture"/>
         </class>
@@ -174,20 +176,10 @@
             <method name="approximateOpCount" value="@approximateOpCount"/>
             <method name="approximateByteUsed" value="@approximateByteUsed"/>
             <method name="uniqueId" value="@uniqueId"/>
-        </class>
 
-        <class name="MoeHeapObjectBinder" wrapper="MoeHeapObjectBinderWrap">
-            <constructor prototype=""/>
-            <method name="bindBitmap" value="@bindBitmap"/>
-            <method name="bindImage" value="@bindImage"/>
-            <method name="bindPicture" value="@bindPicture"/>
-            <method name="bindString" value="@bindString"/>
-        </class>
-
-        <class name="MoeTranslationToolchain" wrapper="MoeTranslationToolchainWrap">
-            <method static="true" name="Interpreter" value="@Interpreter"/>
-            <method static="true" name="Disassemble" value="@Disassemble"/>
-            <method static="true" name="Compress" value="@Compress"/>
+            <!-- Enumeration map for gl::CkPictureWrap::PictureUsage -->
+            <property static="true" name="USAGE_GENERIC" value="V_CAST_U32(@kGeneric_Usage)"/>
+            <property static="true" name="USAGE_TRANSFER" value="V_CAST_U32(@kTransfer_Usage)"/>
         </class>
     </exports>
 </module>

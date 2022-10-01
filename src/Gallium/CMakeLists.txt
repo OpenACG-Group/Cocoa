@@ -65,6 +65,7 @@ add_library(Gallium STATIC
         bindings/core/Exports.cc
         bindings/core/Property.cc
         bindings/core/Filesystem.cc
+        bindings/core/FileSyncOperations.cc
         bindings/core/Buffer.cc
         bindings/core/Process.cc
         bindings/core/Stream.cc
@@ -77,7 +78,6 @@ add_library(Gallium STATIC
         bindings/glamor/DisplayWrap.cc
         bindings/glamor/SurfaceWrap.cc
         bindings/glamor/BlenderWrap.cc
-        bindings/glamor/MoeTranslationToolchainWrap.cc
         bindings/glamor/CkPictureWrap.cc
         bindings/glamor/CkImageWrap.cc
         bindings/glamor/CkBitmapWrap.cc
@@ -87,6 +87,8 @@ add_library(Gallium STATIC
         bindings/glamor/SceneBuilder.h
         bindings/glamor/SceneBuilder.cc
         bindings/glamor/CursorWrap.cc
+        bindings/glamor/CanvasKitTransferContext.h
+        bindings/glamor/CanvasKitTransferContext.cc
 )
 target_include_directories(Gallium PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
