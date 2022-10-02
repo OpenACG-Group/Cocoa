@@ -118,10 +118,7 @@ let buffer = std.Buffer.MakeFromAdoptBuffer(drawPicture().serialize());
 // Then build a scene with a single picture layer and submit it to blender.
 let scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
                 .pushOffset(0, 0)
-                .addPicture(GL.CkPicture.MakeFromData(buffer, GL.CkPicture.USAGE_GENERIC), 0, 0)
+                .addPicture(GL.CkPicture.MakeFromData(buffer, GL.CkPicture.USAGE_GENERIC), false,0, 0)
                 .build();
 
 blender.update(scene).then(() => { scene.dispose(); });
-
-// Finally, we can schedule a new frame and the submitted scene will be displayed.
-surface.requestNextFrame();

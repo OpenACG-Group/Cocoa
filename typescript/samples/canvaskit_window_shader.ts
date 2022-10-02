@@ -85,7 +85,6 @@ function run() {
     }`;
     
     const effect = canvaskit.RuntimeEffect.Make(program);
-    const paint = new canvaskit.Paint();
 
     function drawFrame() {
         let bounds = canvaskit.LTRBRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -100,21 +99,28 @@ function run() {
                                           256, 256,
                                           1, 0, 0, 1,
                                           0, 1, 0, 1]);
-        
+
+        const paint = new canvaskit.Paint();
         paint.setShader(shader);
         canvas.drawRect(bounds, paint);
+
+        paint.delete();
         shader.delete();
  
-        // Post processing:
+        // Post-processing:
         // Get the generated picture object by `recorder.finishRecordingAsPicture`
         // (see Skia's documentations). To convert it to the `GL.CkPicture` object,
         // we should serialize it to a binary buffer and then deserialize it
         // by `GL.CkPicture.MakeFromData` function.
+        const picture = recorder.finishRecordingAsPicture();
         let buffer = std.Buffer.MakeFromAdoptBuffer(recorder.finishRecordingAsPicture().serialize());
         let scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
                     .pushOffset(0, 0)
-                    .addPicture(GL.CkPicture.MakeFromData(buffer, GL.CkPicture.USAGE_GENERIC), 0, 0)
+                    .addPicture(GL.CkPicture.MakeFromData(buffer, GL.CkPicture.USAGE_GENERIC), false, 0, 0)
                     .build();
+
+        recorder.delete();
+        picture.delete();
  
         // Finally, submit the constructed `Scene` object to blender, which will rasterize and
         // represent it on the surface (window).

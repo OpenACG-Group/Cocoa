@@ -52,6 +52,23 @@ in the [quick tutorial (Chinese)](./literature/quick_tutorial.md).
 TypeScript code of that example is like:
 
 ```typescript
+/**
+ * This file is part of Cocoa.
+ *
+ * Cocoa is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * Cocoa is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 import * as std from 'core';
 import * as GL from 'glamor';
 import * as CanvasKit from 'internal://canvaskit';
@@ -111,14 +128,14 @@ function playLottie(jsonStr: string) {
     const animation = canvaskit.MakeAnimation(jsonStr);
     const duration = animation.duration() * 1000;
     const bounds = canvaskit.LTRBRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-  
+
     let firstFrame = new Date().getTime();
-  
+
     function drawFrame() {
         // Create a recording context
         let recorder = new canvaskit.PictureRecorder();
         let canvas = recorder.beginRecording(bounds);
-  
+
         // Seek animation
         let now = new Date().getTime();
         let seek = ((now - firstFrame) / duration) % 1.0;
@@ -128,16 +145,20 @@ function playLottie(jsonStr: string) {
         canvas.clear(canvaskit.WHITE);
         animation.render(canvas, bounds);
 
-        // Post processing:
+        // Post-processing:
         // Get the generated picture object by `recorder.finishRecordingAsPicture`
         // (see Skia's documentations). To convert it to the `GL.CkPicture` object,
         // we should serialize it to a binary buffer and then deserialize it
         // by `GL.CkPicture.MakeFromData` function.
-        let buffer = std.Buffer.MakeFromAdoptBuffer(recorder.finishRecordingAsPicture().serialize());
+        const picture = recorder.finishRecordingAsPicture();
+        let buffer = std.Buffer.MakeFromAdoptBuffer(picture.serialize());
         let scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
-                    .pushOffset(0, 0)
-                    .addPicture(GL.CkPicture.MakeFromData(buffer), 0, 0)
-                    .build();
+            .pushOffset(0, 0)
+            .addPicture(GL.CkPicture.MakeFromData(buffer, GL.CkPicture.USAGE_GENERIC), false,0, 0)
+            .build();
+
+        recorder.delete();
+        picture.delete();
 
         // Finally, submit the constructed `Scene` object to blender, which will rasterize and
         // represent it on the surface (window).
