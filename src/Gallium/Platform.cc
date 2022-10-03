@@ -516,4 +516,17 @@ v8::Platform::StackTracePrinter Platform::GetStackTracePrinter()
     };
 }
 
+std::unique_ptr<v8::JobHandle> Platform::CreateJob(v8::TaskPriority priority,
+                                                   std::unique_ptr<v8::JobTask> job_task)
+{
+    return v8::platform::NewDefaultJobHandle(this, priority,
+                                             std::move(job_task),
+                                             NumberOfWorkerThreads());
+}
+
+v8::PageAllocator *Platform::GetPageAllocator()
+{
+    return nullptr;
+}
+
 GALLIUM_NS_END

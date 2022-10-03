@@ -28,7 +28,7 @@ GALLIUM_NS_BEGIN
 
 namespace {
 
-void uncaughtException(v8::Local<v8::Message> message, v8::Local<v8::Value> except)
+void uncaught_exception(v8::Local<v8::Message> message, v8::Local<v8::Value> except)
 {
     v8::Isolate *isolate = message->GetIsolate();
     v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
@@ -77,8 +77,8 @@ void uncaughtException(v8::Local<v8::Message> message, v8::Local<v8::Value> exce
         rt->GetIntrospect()->notifyUncaughtException(except);
 }
 
-void perIsolateMessageListener(v8::Local<v8::Message> message,
-                               v8::Local<v8::Value> except)
+void per_isolate_message_listener(v8::Local<v8::Message> message,
+                                  v8::Local<v8::Value> except)
 {
     v8::Isolate *isolate = message->GetIsolate();
     Runtime *rt = Runtime::GetBareFromIsolate(isolate);
@@ -97,24 +97,28 @@ void perIsolateMessageListener(v8::Local<v8::Message> message,
         break;
     }
     case v8::Isolate::MessageErrorLevel::kMessageError:
-        uncaughtException(message, except);
+        uncaught_exception(message, except);
         break;
     default:
         MARK_UNREACHABLE();
     }
 }
 
-void perIsolateOutOfMemoryHandler(const char *location, bool isHeapOOM)
+void per_isolate_oom_handler(const char *location, const v8::OOMDetails& details)
 {
-    QLOG(LOG_EXCEPTION, "%fg<re,hl>JavaScriptVM: Out of memory: {}%reset", location);
-    __fatal_oom_error();
+    QLOG(LOG_ERROR, "%fg<re,hl>(V8) Out of memory: {}%reset", location);
+    QLOG(LOG_ERROR, "(V8) OOM detailed information:");
+    QLOG(LOG_ERROR, "  Heap OOM: {}", details.is_heap_oom);
+    QLOG(LOG_ERROR, "  Details: {}", details.detail);
+
+    // Crash the whole program.
+    fatal_oom_error();
+
     MARK_UNREACHABLE();
 }
 
-void perIsolatePromiseRejectionHandler(v8::PromiseRejectMessage message)
+void per_isolate_promise_reject_handler(v8::PromiseRejectMessage message)
 {
-    // QLOG(LOG_ERROR, "Promise reject, event={}", message.GetEvent());
-
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     Runtime *pRuntime = Runtime::GetBareFromIsolate(isolate);
     auto& guard = pRuntime->GetUniqueGlobalIsolateGuard();
@@ -147,18 +151,18 @@ GlobalIsolateGuard::GlobalIsolateGuard(const std::shared_ptr<Runtime>& rt)
     , fIsolate(rt->GetIsolate())
 {
     fIsolate->SetCaptureStackTraceForUncaughtExceptions(true);
-    fIsolate->AddMessageListenerWithErrorLevel(perIsolateMessageListener,
+    fIsolate->AddMessageListenerWithErrorLevel(per_isolate_message_listener,
                                                v8::Isolate::MessageErrorLevel::kMessageError |
                                                v8::Isolate::MessageErrorLevel::kMessageWarning);
-    fIsolate->SetOOMErrorHandler(perIsolateOutOfMemoryHandler);
-    fIsolate->SetPromiseRejectCallback(perIsolatePromiseRejectionHandler);
+    fIsolate->SetOOMErrorHandler(per_isolate_oom_handler);
+    fIsolate->SetPromiseRejectCallback(per_isolate_promise_reject_handler);
 }
 
 GlobalIsolateGuard::~GlobalIsolateGuard()
 {
     fIsolate->SetPromiseRejectCallback(nullptr);
     fIsolate->SetOOMErrorHandler(nullptr);
-    fIsolate->RemoveMessageListeners(perIsolateMessageListener);
+    fIsolate->RemoveMessageListeners(per_isolate_message_listener);
     fIsolate->SetCaptureStackTraceForUncaughtExceptions(false);
 }
 
@@ -204,7 +208,7 @@ void GlobalIsolateGuard::reportUncaughtExceptionFromCallback(const v8::TryCatch&
 {
     if (caught.HasCaught())
     {
-        uncaughtException(caught.Message(), caught.Exception());
+        uncaught_exception(caught.Message(), caught.Exception());
     }
 }
 

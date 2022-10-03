@@ -83,19 +83,19 @@ public:
         return value->data();
     }
 
-    static void destroy_all(v8::Isolate *isolate)
-    {
-        handle_visitor visitor(isolate);
-        isolate->VisitHandlesWithClassIds(&visitor);
-    }
-
-private:
-    static constexpr uint16_t class_id = 0x7bc;
+    static void destroy_all(v8::Isolate *isolate);
 
     struct value_holder_base
     {
+        v8::Isolate *isolate;
+
+        explicit value_holder_base(v8::Isolate *i) : isolate(i) {}
         virtual ~value_holder_base() = default;
     };
+
+private:
+    static void register_external(value_holder_base *value);
+    static void unregister_external(value_holder_base *value);
 
     template<typename T>
     struct value_holder final : value_holder_base
@@ -107,14 +107,16 @@ private:
         { return *static_cast<T *>(static_cast<void *>(&storage)); }
 
         value_holder(v8::Isolate *isolate, T&& data)
+            : value_holder_base(isolate)
         {
             new(&storage) T(std::forward<T>(data));
             pext.Reset(isolate, v8::External::New(isolate, this));
-            pext.SetWrapperClassId(external_data::class_id);
             pext.SetWeak(this,
                          [](v8::WeakCallbackInfo<value_holder> const& info) {
                              delete info.GetParameter();
                          }, v8::WeakCallbackType::kParameter);
+
+            register_external(this);
         }
 
         ~value_holder() override
@@ -124,23 +126,7 @@ private:
                 data().~T();
                 pext.Reset();
             }
-        }
-    };
-
-    struct handle_visitor final : v8::PersistentHandleVisitor
-    {
-        v8::Isolate *isolate;
-
-        explicit handle_visitor(v8::Isolate *isolate) : isolate(isolate) {}
-
-        void VisitPersistentHandle(v8::Persistent<v8::Value> *value, uint16_t value_class_id) override
-        {
-            if (value_class_id != external_data::class_id)
-                return;
-            v8::HandleScope scope(isolate);
-            v8::Local<v8::External> ext = value->Get(isolate).As<v8::External>();
-            if (!ext.IsEmpty())
-                delete static_cast<value_holder_base *>(ext->Value());
+            unregister_external(this);
         }
     };
 };

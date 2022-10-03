@@ -313,7 +313,7 @@ Runtime::~Runtime()
     isolate_->Dispose();
 
     v8::V8::Dispose();
-    v8::V8::ShutdownPlatform();
+    v8::V8::DisposePlatform();
 
     delete array_buffer_allocator_;
 
@@ -699,6 +699,44 @@ void Runtime::RunWithMainLoop()
     // Inspector messages from frontend will also be handled
     // in the event loop.
     EventLoop::Ref().spin([this] { this->DrainPlatformTasks(); });
+}
+
+void Runtime::RegisterExternalValueHolder(BinderExtValueHolderBase *value)
+{
+    CHECK(value);
+
+    auto itr = std::find(binder_external_value_holders_.begin(),
+                         binder_external_value_holders_.end(),
+                         value);
+    if (itr != binder_external_value_holders_.end())
+        return;
+
+    binder_external_value_holders_.emplace_back(value);
+}
+
+void Runtime::UnregisterExternalValueHolder(BinderExtValueHolderBase *value)
+{
+    CHECK(value);
+
+    auto itr = std::find(binder_external_value_holders_.begin(),
+                         binder_external_value_holders_.end(),
+                         value);
+    CHECK(itr != binder_external_value_holders_.end());
+    binder_external_value_holders_.erase(itr);
+}
+
+void Runtime::DeleteExternalValueHolders()
+{
+    // The value holder removes itself when it is destructed (see binder/Function.h)
+    // through `UnregisterExternalValueHolder`. It is essential to copy a list
+    // for iteration.
+    auto list = binder_external_value_holders_;
+
+    for (BinderExtValueHolderBase *value_holder : list)
+    {
+        CHECK(value_holder);
+        delete value_holder;
+    }
 }
 
 GALLIUM_NS_END

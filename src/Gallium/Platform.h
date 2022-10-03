@@ -125,6 +125,11 @@ public:
     StackTracePrinter GetStackTracePrinter() override;
     v8::TracingController *GetTracingController() override;
 
+    std::unique_ptr<v8::JobHandle> CreateJob(v8::TaskPriority priority,
+                                             std::unique_ptr<v8::JobTask> job_task) override;
+
+    v8::PageAllocator * GetPageAllocator() override;
+
 private:
     std::shared_ptr<PerIsolateData>& GetPerIsolateData(v8::Isolate *isolate);
 

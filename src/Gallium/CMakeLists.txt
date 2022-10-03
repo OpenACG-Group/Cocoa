@@ -52,6 +52,7 @@ add_library(Gallium STATIC
         binder/ThrowExcept.h
         binder/ThrowExcept.cc
         binder/Function.h
+        binder/Function.cc
         binder/Property.h
         binder/Factory.h
         binder/Class.h

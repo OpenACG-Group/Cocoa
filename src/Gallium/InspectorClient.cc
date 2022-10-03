@@ -43,7 +43,8 @@ InspectorClient::InspectorClient(v8::Isolate *isolate,
 {
     channel_ = std::make_unique<InspectorChannel>(this);
     v8_inspector_ = v8_inspector::V8Inspector::create(isolate, this);
-    v8_inspector_session_ = v8_inspector_->connect(kContextGroupId, channel_.get(), {});
+    v8_inspector_session_ = v8_inspector_->connect(kContextGroupId, channel_.get(), {},
+                                                   v8_inspector::V8Inspector::kFullyTrusted);
     context->SetAlignedPointerInEmbedderData(1, this);
 
     v8_inspector_->contextCreated(v8_inspector::V8ContextInfo(context, kContextGroupId,

@@ -27,6 +27,7 @@
 #include "Core/EventSource.h"
 #include "Core/Exception.h"
 #include "Gallium/binder/Convert.h"
+#include "Gallium/binder/Function.h"
 #include "Gallium/Gallium.h"
 #include "Gallium/ModuleImportURL.h"
 #include "Gallium/GlobalIsolateGuard.h"
@@ -198,6 +199,12 @@ public:
 
     void DrainPlatformTasks();
 
+    // Binder's memory management
+    using BinderExtValueHolderBase = binder::detail::external_data::value_holder_base;
+    g_private_api void RegisterExternalValueHolder(BinderExtValueHolderBase *value);
+    g_private_api void UnregisterExternalValueHolder(BinderExtValueHolderBase *value);
+    g_private_api void DeleteExternalValueHolders();
+
 private:
     static void PromiseHookCallback(v8::PromiseHookType type, v8::Local<v8::Promise> promise,
                                     v8::Local<v8::Value> parent);
@@ -232,6 +239,9 @@ private:
     ModuleCacheMap                  module_cache_;
     int32_t                         resolved_promises_;
     uv_idle_t                       idle_;
+
+    std::list<BinderExtValueHolderBase*>
+                                    binder_external_value_holders_;
 };
 
 GALLIUM_NS_END

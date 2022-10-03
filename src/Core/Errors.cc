@@ -22,7 +22,7 @@
 
 namespace cocoa {
 
-[[noreturn]] void __fatal_assert(const AssertionInfo& info)
+[[noreturn]] void fatal_assert(const AssertionInfo& info)
 {
     fprintf(stderr,
             "%s:\n  %s%s\n    Assertion `%s' failed.\n",
@@ -34,7 +34,7 @@ namespace cocoa {
     std::abort();
 }
 
-[[noreturn]] void __fatal_oom_error()
+[[noreturn]] void fatal_oom_error()
 {
     fprintf(stderr, "Exited with EXIT_STATUS_OOM[%d]\n", EXIT_STATUS_OOM);
     std::exit(EXIT_STATUS_OOM);

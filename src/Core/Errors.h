@@ -27,8 +27,8 @@ struct AssertionInfo
     const char *message;
 };
 
-[[noreturn]] void __fatal_assert(const AssertionInfo& info); // NOLINT
-[[noreturn]] void __fatal_oom_error(); // NOLINT
+[[noreturn]] void fatal_assert(const AssertionInfo& info);
+[[noreturn]] void fatal_oom_error();
 
 #define STRINGIFY_(x) #x
 #define STRINGIFY(x) STRINGIFY_(x)
@@ -43,7 +43,7 @@ struct AssertionInfo
             __PRETTY_FUNCTION__,                    \
             #message                                \
         };                                          \
-        cocoa::__fatal_assert(__info);              \
+        cocoa::fatal_assert(__info);              \
     } while (false)
 
 #define CHECK(expr)                             \
