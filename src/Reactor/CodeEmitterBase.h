@@ -15,21 +15,23 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COCOA_GALLIUM_BINDINGS_REACTOR_EXPORTS_H
-#define COCOA_GALLIUM_BINDINGS_REACTOR_EXPORTS_H
+#ifndef COCOA_REACTOR_CODEEMITTERBASE_H
+#define COCOA_REACTOR_CODEEMITTERBASE_H
 
-#define GALLIUM_BINDINGS_REACTOR_NS_BEGIN   namespace cocoa::gallium::bindings::reactor_wrap {
-#define GALLIUM_BINDINGS_REACTOR_NS_END     }
+#include "Reactor/Reactor.h"
+REACTOR_NAMESPACE_BEGIN
 
-#include "Gallium/Gallium.h"
-#include "Gallium/binder/Convert.h"
-GALLIUM_BINDINGS_REACTOR_NS_BEGIN
-
-class CanvasWrap
+class CodeEmitterBase
 {
-public:
+    CO_NONCOPYABLE(CodeEmitterBase)
+    CO_NONASSIGNABLE(CodeEmitterBase)
 
+public:
+    CodeEmitterBase() = default;
+    virtual ~CodeEmitterBase() = default;
+
+    virtual void EmitCodeTo(llvm::BasicBlock *block) = 0;
 };
 
-GALLIUM_BINDINGS_REACTOR_NS_END
-#endif //COCOA_GALLIUM_BINDINGS_REACTOR_EXPORTS_H
+REACTOR_NAMESPACE_END
+#endif //COCOA_REACTOR_CODEEMITTERBASE_H

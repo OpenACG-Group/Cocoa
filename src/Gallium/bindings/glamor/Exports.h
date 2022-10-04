@@ -312,6 +312,9 @@ public:
 
     //! TSDecl: function newTextureDeletionSubscriptionSignal(id: number, sigName: string): Promise<void>
     v8::Local<v8::Value> newTextureDeletionSubscriptionSignal(int64_t id, const std::string& sigName);
+
+    //! TSDecl: function purgeRasterCacheResources(): Promise<void>
+    v8::Local<v8::Value> purgeRasterCacheResources();
 };
 
 
@@ -401,7 +404,6 @@ public:
     //! TSDecl: function MakeFromData(buffer: core.Buffer, usage: number): CkPicture
     static v8::Local<v8::Value> MakeFromData(v8::Local<v8::Value> buffer,
                                              PictureUsage usage);
-
 
     /**
      * Compared with `MakeFromData`, `MakeFromFile` is a fastpath if the caller

@@ -118,6 +118,7 @@
             <method name="createTextureFromPixmap" value="@createTextureFromPixmap"/>
             <method name="deleteTexture" value="@deleteTexture"/>
             <method name="newTextureDeletionSubscriptionSignal" value="@newTextureDeletionSubscriptionSignal"/>
+            <method name="purgeRasterCacheResources" value="@purgeRasterCacheResources"/>
         </class>
 
         <class name="Scene" wrapper="Scene">

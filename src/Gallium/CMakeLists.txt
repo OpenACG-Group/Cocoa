@@ -90,6 +90,8 @@ add_library(Gallium STATIC
         bindings/glamor/CursorWrap.cc
         bindings/glamor/CanvasKitTransferContext.h
         bindings/glamor/CanvasKitTransferContext.cc
+
+        bindings/reactor/Exports.h
 )
 target_include_directories(Gallium PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 

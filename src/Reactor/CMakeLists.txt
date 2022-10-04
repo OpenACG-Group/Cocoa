@@ -15,6 +15,7 @@ add_library(
         GShaderExternals.cc
         GShaderBuilder.cc
         GShaderModule.cc
+        CodeEmitterBase.h
 )
 
 target_include_directories(Reactor PUBLIC ${LLVM_INCLUDE_DIRS})
@@ -23,4 +24,4 @@ separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 target_compile_definitions(Reactor PUBLIC ${LLVM_DEFINITIONS_LIST})
 
 # llvm_map_components_to_libnames(llvm_libs support core)
-target_link_libraries(Reactor LLVM-13)
+target_link_libraries(Reactor LLVM-14)

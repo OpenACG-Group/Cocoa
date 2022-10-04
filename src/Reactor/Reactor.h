@@ -140,15 +140,12 @@ public:
     llvm::Value *NewFloat2();
     llvm::Value *NewFloat4();
 
-
     void InsertV8FunctionSymbol(v8::Local<v8::Function> func, const std::string& name);
 
     void CreateBuiltinV8FunctionCall(llvm::BasicBlock *insert, const std::string& name);
     llvm::CallInst *CreateExternalFunctionCall(llvm::BasicBlock *insert, int32_t id,
                                                llvm::ArrayRef<llvm::Value *> args = llvm::None);
     llvm::LoadInst *LoadHostContextGV(llvm::BasicBlock *insert);
-
-    void MainTestCodeGen();
 
     g_nodiscard inline llvm::BasicBlock *GetMainEntrypointBasicBlock() {
         return main_basic_block_;

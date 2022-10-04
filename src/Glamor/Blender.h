@@ -28,6 +28,7 @@
 #include "Glamor/RenderTarget.h"
 #include "Glamor/Texture.h"
 #include "Glamor/GraphicsResourcesTrackable.h"
+#include "Glamor/Layers/RasterCache.h"
 
 class SkSurface;
 
@@ -47,6 +48,7 @@ class TextureManager;
 #define GLOP_BLENDER_CREATE_TEXTURE_FROM_ENCODED_DATA   6
 #define GLOP_BLENDER_CREATE_TEXTURE_FROM_PIXMAP         7
 #define GLOP_BLENDER_CAPTURE_NEXT_FRAME_AS_PICTURE      8
+#define GLOP_BLENDER_PURGE_RASTER_CACHE_RESOURCES       9
 
 #define GLSI_BLENDER_PICTURE_CAPTURED                   8
 
@@ -111,6 +113,8 @@ public:
 
     g_async_api int32_t NewTextureDeletionSubscriptionSignal(Texture::TextureId id);
 
+    g_async_api void PurgeRasterCacheResources();
+
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 
 private:
@@ -125,6 +129,7 @@ private:
     SkIRect                        current_dirty_rect_;
     FrameScheduleState             frame_schedule_state_;
     Unique<TextureManager>         texture_manager_;
+    Unique<RasterCache>            raster_cache_;
 
     bool                           should_capture_next_frame_;
     int32_t                        capture_next_frame_serial_;

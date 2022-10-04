@@ -29,13 +29,14 @@ class BackdropFilterLayer : public ContainerLayer
 {
 public:
     BackdropFilterLayer(const sk_sp<SkImageFilter>& filter,
-                        SkBlendMode blend_mode);
+                        SkBlendMode blend_mode, bool auto_child_clip);
     ~BackdropFilterLayer() override = default;
 
     void Preroll(PrerollContext *context, const SkMatrix &matrix) override;
     void Paint(PaintContext *context) const override;
 
 private:
+    bool                    auto_child_clip_;
     sk_sp<SkImageFilter>    image_filter_;
     SkBlendMode             blend_mode_;
 };

@@ -237,4 +237,10 @@ BlenderWrap::createTextureFromPixmap(v8::Local<v8::Value> buffer,
     return closure->getPromise();
 }
 
+v8::Local<v8::Value> BlenderWrap::purgeRasterCacheResources()
+{
+    return invoke_void_return(v8::Isolate::GetCurrent(),
+                              GLOP_BLENDER_PURGE_RASTER_CACHE_RESOURCES, this);
+}
+
 GALLIUM_BINDINGS_GLAMOR_NS_END

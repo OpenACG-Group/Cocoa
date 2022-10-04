@@ -41,16 +41,22 @@ public:
     //! TSDecl: function pushOffset(x: number, y: number): SceneBuilder
     v8::Local<v8::Value> pushOffset(SkScalar x, SkScalar y);
 
-    //! TSDecl: function addPicture(picture: CkPicture): SceneBuilder
+    //! TSDecl: function addPicture(picture: CkPicture,
+    //!                             autoFastClip: boolean,
+    //!                             dx: number,
+    //!                             dy: number): SceneBuilder
     v8::Local<v8::Value> addPicture(v8::Local<v8::Value> picture, bool autoFastClip,
                                     SkScalar dx, SkScalar dy);
 
     //! TSDecl: function pushImageFilter(filter: CkImageFilter): SceneBuilder
     v8::Local<v8::Value> pushImageFilter(v8::Local<v8::Value> filter);
 
-    //! TSDecl: function pushBackdropFilter(filter: CkImageFilter, blendMode: number): SceneBuilder
+    //! TSDecl: function pushBackdropFilter(filter: CkImageFilter,
+    //!                                     blendMode: number,
+    //!                                     autoChildClip: boolean): SceneBuilder
     v8::Local<v8::Value> pushBackdropFilter(v8::Local<v8::Value> filter,
-                                            int32_t blendMode);
+                                            int32_t blendMode,
+                                            bool autoChildClip);
 
     //! TSDecl: function addTexture(textureId: number,
     //!                             dx: number,

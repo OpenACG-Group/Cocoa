@@ -119,6 +119,14 @@ GLAMOR_TRAMPOLINE_IMPL(Blender, CaptureNextFrameAsPicture)
     info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
 }
 
+GLAMOR_TRAMPOLINE_IMPL(Blender, PurgeRasterCacheResources)
+{
+    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(0);
+    auto bl = info.GetThis()->As<Blender>();
+    bl->PurgeRasterCacheResources();
+    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+}
+
 Shared<Blender> Blender::Make(const Shared<Surface>& surface)
 {
     CHECK(surface);
@@ -158,10 +166,17 @@ Blender::Blender(const Shared<Surface>& surface, Unique<TextureManager> texture_
     , current_dirty_rect_(SkIRect::MakeEmpty())
     , frame_schedule_state_(FrameScheduleState::kIdle)
     , texture_manager_(std::move(texture_manager))
+    , raster_cache_()
     , should_capture_next_frame_(false)
     , capture_next_frame_serial_(0)
 {
     CHECK(surface);
+
+    auto device = surface->GetRenderTarget()->GetRenderDeviceType();
+    GrDirectContext *direct_context = nullptr;
+    if (device == RenderTarget::RenderDevice::kHWComposer)
+        direct_context = surface->GetRenderTarget()->GetHWComposeSwapchain()->GetSkiaDirectContext().get();
+    raster_cache_ = std::make_unique<RasterCache>(direct_context);
 
     SetMethodTrampoline(GLOP_BLENDER_DISPOSE, Blender_Dispose_Trampoline);
     SetMethodTrampoline(GLOP_BLENDER_UPDATE, Blender_Update_Trampoline);
@@ -177,6 +192,8 @@ Blender::Blender(const Shared<Surface>& surface, Unique<TextureManager> texture_
                         Blender_NewTextureDeletionSubscriptionSignal_Trampoline);
     SetMethodTrampoline(GLOP_BLENDER_CAPTURE_NEXT_FRAME_AS_PICTURE,
                         Blender_CaptureNextFrameAsPicture_Trampoline);
+    SetMethodTrampoline(GLOP_BLENDER_PURGE_RASTER_CACHE_RESOURCES,
+                        Blender_PurgeRasterCacheResources_Trampoline);
 
     surface_resize_slot_id_ = surface->Connect(GLSI_SURFACE_RESIZE, [this](RenderHostSlotCallbackInfo& info) {
         this->SurfaceResizeSlot(info.Get<int32_t>(0), info.Get<int32_t>(1));
@@ -254,6 +271,8 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
         return;
     }
 
+    raster_cache_->IncreaseFrameCount();
+
     // TODO: diff & update layer tree
     layer_tree_ = layer_tree;
 
@@ -269,7 +288,8 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
     Layer::PrerollContext context {
         .gr_context = gr_context,
         .root_surface_transformation = output_surface_->GetRootTransformation(),
-        .cull_rect = SkRect::MakeEmpty()
+        .cull_rect = SkRect::MakeEmpty(),
+        .raster_cache = raster_cache_.get()
     };
 
     if (!layer_tree_->Preroll(&context))
@@ -303,11 +323,13 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
     Layer::PaintContext paint_context {
         .gr_context = gr_context,
         .root_surface_transformation = output_surface_->GetRootTransformation(),
+        .frame_surface = frame_surface,
         .frame_canvas = frame_surface->getCanvas(),
         .multiplexer_canvas = &multiplexer_canvas,
         .cull_rect = context.cull_rect,
         .texture_manager = texture_manager_,
-        .has_gpu_retained_resource = false
+        .has_gpu_retained_resource = false,
+        .raster_cache = raster_cache_.get()
     };
 
     layer_tree_->Paint(&paint_context);
@@ -407,6 +429,7 @@ void Blender::Dispose()
     if (frame_schedule_state_ == FrameScheduleState::kPendingFrame)
         SurfaceFrameSlot();
 
+    raster_cache_.reset();
     texture_manager_.reset();
     output_surface_.reset();
 
@@ -423,6 +446,12 @@ void Blender::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept
     // and there is no need to trace them.
 
     tracer->TraceMember("TextureManager", texture_manager_.get());
+    tracer->TraceMember("RasterCache", raster_cache_.get());
+}
+
+void Blender::PurgeRasterCacheResources()
+{
+    raster_cache_->PurgeAllCaches();
 }
 
 GLAMOR_NAMESPACE_END

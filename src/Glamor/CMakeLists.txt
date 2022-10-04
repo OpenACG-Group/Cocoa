@@ -59,6 +59,7 @@ add_library(
         TextureManager.h
         TextureManager.cc
 
+        Layers/RasterCacheKey.h
         Layers/RasterCache.h
         Layers/RasterCache.cc
         Layers/LayerTree.h

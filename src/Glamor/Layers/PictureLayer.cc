@@ -18,6 +18,7 @@
 #include "fmt/format.h"
 
 #include "Glamor/Layers/PictureLayer.h"
+#include "Glamor/Layers/RasterCache.h"
 GLAMOR_NAMESPACE_BEGIN
 
 PictureLayer::PictureLayer(const SkPoint& offset,
@@ -47,7 +48,52 @@ void PictureLayer::Paint(PaintContext *context) const
     if (auto_fast_clip_)
         canvas->clipRect(sk_picture_->cullRect());
 
-    canvas->drawPicture(sk_picture_, nullptr, context->GetCurrentPaintPtr());
+    // We do not care about the transformations applied on the picture
+    // when querying cache, so we always use an identity matrix.
+    auto key = RasterCacheKey(RasterCacheLayerId(sk_picture_->uniqueID()), SkMatrix::I());
+
+    // Pictures which are not specified `auto_fast_clip` have an infinite boundary,
+    // and they cannot be cached.
+    sk_sp<SkImage> cached_image = nullptr;
+
+    if (context->raster_cache && auto_fast_clip_)
+    {
+        bool should_cache = context->raster_cache->MarkPictureUsedInCurrentFrame(sk_picture_);
+
+        auto maybe_item = context->raster_cache->FindCacheItem(key);
+        if (!maybe_item && should_cache)
+        {
+            bool cached =
+                context->raster_cache->GeneratePictureCache(sk_picture_,
+                                                            SkMatrix::I(),
+                                                            context->frame_surface);
+
+            // TODO(sora): Report an error instead of assertion.
+            CHECK(cached);
+        }
+
+        // Find the cache again because the cache item may be newly generated.
+        if (!maybe_item)
+            maybe_item = context->raster_cache->FindCacheItem(key);
+
+        if (maybe_item)
+        {
+            CHECK(maybe_item->GetType() == RasterCacheItem::kImageSnapshot);
+            cached_image = maybe_item->GetImageSnapshot();
+        }
+    }
+
+    if (cached_image)
+    {
+        // If the picture is found in caches, it must have an `auto_fast_clip` attribute.
+        SkRect cull_rect = sk_picture_->cullRect();
+        canvas->drawImage(cached_image, cull_rect.x(), cull_rect.y(), {},
+                          context->GetCurrentPaintPtr());
+    }
+    else
+    {
+        canvas->drawPicture(sk_picture_, nullptr, context->GetCurrentPaintPtr());
+    }
 }
 
 GLAMOR_NAMESPACE_END

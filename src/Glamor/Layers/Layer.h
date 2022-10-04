@@ -35,6 +35,7 @@ GLAMOR_NAMESPACE_BEGIN
 static constexpr SkRect kGiantRect = SkRect::MakeLTRB(-1E9F, -1E9F, 1E9F, 1E9F);
 
 class TextureManager;
+class RasterCache;
 
 class Layer
 {
@@ -52,6 +53,8 @@ public:
         // Calculated when we are prerolling the layer tree and will be available
         // after finishing prerolling.
         SkRect cull_rect;
+
+        RasterCache *raster_cache;
     };
 
     // NOLINTNEXTLINE
@@ -59,6 +62,8 @@ public:
     {
         GrDirectContext *gr_context;
         SkMatrix root_surface_transformation;
+
+        SkSurface *frame_surface;
 
         // canvas which is got from backend surface directly.
         SkCanvas *frame_canvas;
@@ -77,6 +82,8 @@ public:
         // Layers should set this if any GPU retained resources was drawn into
         // canvas. For example, a `SkImage` object which holds GPU texture.
         bool has_gpu_retained_resource;
+
+        RasterCache *raster_cache;
 
         g_nodiscard g_inline bool HasCurrentPaint() const {
             return !paints_stack.empty();

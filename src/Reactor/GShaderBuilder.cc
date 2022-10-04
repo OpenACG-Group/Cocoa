@@ -56,7 +56,7 @@ void GShaderBuilder::CreateEntryFunction()
                                               GSHADER_ENTRY_NAME, *module_);
     exposed_functions_.push_back(startUserFunc);
 
-    BasicBlock *block = BasicBlock::Create(*context_, "", startUserFunc);
+    BasicBlock *block = BasicBlock::Create(*context_, "_start", startUserFunc);
     IRBuilder<> builder(block);
 
     builder.CreateStore(startUserFunc->getArg(0), hostContextGV);
@@ -64,9 +64,9 @@ void GShaderBuilder::CreateEntryFunction()
     CallInst *call = CreateExternalFunctionCall(block, external::kBuiltinCheckHostContext,
                                                 LoadHostContextGV(block));
 
-    BasicBlock *retNormalBlock = BasicBlock::Create(*context_, "normal_ret", startUserFunc);
+    BasicBlock *retNormalBlock = BasicBlock::Create(*context_, "", startUserFunc);
     {
-        BasicBlock *retFailBlock = BasicBlock::Create(*context_, "check_failed", startUserFunc);
+        BasicBlock *retFailBlock = BasicBlock::Create(*context_, "", startUserFunc);
         Value *cond = builder.CreateICmpNE(call, NewInt(0));
         builder.CreateCondBr(cond, retFailBlock, retNormalBlock);
 
@@ -247,9 +247,5 @@ DECL_NEW_VEC_UNDEF(Float4, Float, 4)
 #undef DECL_NEW_UNDEF
 #undef DECL_NEW_VEC_UNDEF
 
-void GShaderBuilder::MainTestCodeGen()
-{
-    using namespace llvm;
-}
 
 REACTOR_NAMESPACE_END

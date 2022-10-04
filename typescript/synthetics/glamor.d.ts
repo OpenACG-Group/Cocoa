@@ -445,6 +445,8 @@ export class Blender extends RenderClientObject {
 
     public newTextureDeletionSubscriptionSignal(textureId: TextureId,
                                                 sigName: string): Promise<void>;
+
+    public purgeRasterCacheResources(): Promise<void>;
 }
 
 export class Scene {
@@ -474,7 +476,9 @@ export class SceneBuilder {
 
     public pushImageFilter(filter: CkImageFilter): SceneBuilder;
 
-    public pushBackdropFilter(filter: CkImageFilter, blendMode: number): SceneBuilder;
+    public pushBackdropFilter(filter: CkImageFilter,
+                              blendMode: number,
+                              autoChildClipping: boolean): SceneBuilder;
 }
 
 // ===============================

@@ -110,7 +110,9 @@ v8::Local<v8::Value> SceneBuilder::pushImageFilter(v8::Local<v8::Value> filter)
     return getSelfHandle();
 }
 
-v8::Local<v8::Value> SceneBuilder::pushBackdropFilter(v8::Local<v8::Value> filter, int32_t blendMode)
+v8::Local<v8::Value> SceneBuilder::pushBackdropFilter(v8::Local<v8::Value> filter,
+                                                      int32_t blendMode,
+                                                      bool autoChildClip)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     auto *wrapper = binder::Class<CkImageFilterWrap>::unwrap_object(isolate, filter);
@@ -123,7 +125,8 @@ v8::Local<v8::Value> SceneBuilder::pushBackdropFilter(v8::Local<v8::Value> filte
         g_throw(RangeError, "Argument 'blendMode' has an invalid enumeration value");
 
     auto mode = static_cast<SkBlendMode>(blendMode);
-    pushLayer(std::make_shared<gl::BackdropFilterLayer>(wrapper->getImageFilter(), mode));
+    pushLayer(std::make_shared<gl::BackdropFilterLayer>(wrapper->getImageFilter(),
+                                                        mode, autoChildClip));
 
     return getSelfHandle();
 }
