@@ -104,8 +104,8 @@ v8::Local<v8::Value> SceneBuilder::pushImageFilter(v8::Local<v8::Value> filter)
     if (!wrapper)
         g_throw(TypeError, "Argument 'filter' must be an instance of `CkImageFilter`");
 
-    CHECK(wrapper->getImageFilter());
-    pushLayer(std::make_shared<gl::ImageFilterLayer>(wrapper->getImageFilter()));
+    CHECK(wrapper->getSkiaObject());
+    pushLayer(std::make_shared<gl::ImageFilterLayer>(wrapper->getSkiaObject()));
 
     return getSelfHandle();
 }
@@ -119,13 +119,13 @@ v8::Local<v8::Value> SceneBuilder::pushBackdropFilter(v8::Local<v8::Value> filte
     if (!wrapper)
         g_throw(TypeError, "Argument 'filter' must be an instance of `CkImageFilter`");
 
-    CHECK(wrapper->getImageFilter());
+    CHECK(wrapper->getSkiaObject());
 
     if (blendMode < 0 || blendMode > static_cast<int>(SkBlendMode::kLastMode))
         g_throw(RangeError, "Argument 'blendMode' has an invalid enumeration value");
 
     auto mode = static_cast<SkBlendMode>(blendMode);
-    pushLayer(std::make_shared<gl::BackdropFilterLayer>(wrapper->getImageFilter(),
+    pushLayer(std::make_shared<gl::BackdropFilterLayer>(wrapper->getSkiaObject(),
                                                         mode, autoChildClip));
 
     return getSelfHandle();
@@ -157,29 +157,7 @@ v8::Local<v8::Value> SceneBuilder::addTexture(int64_t textureId,
 {
     SkPoint offset = SkPoint::Make(dx, dy);
     SkISize size = SkSize::Make(width, height).toRound();
-    SkSamplingOptions sampling_options;
-
-    switch (sampling)
-    {
-    case EV(Sampling::kNearest):
-        sampling_options = SkSamplingOptions(SkFilterMode::kNearest);
-        break;
-
-    case EV(Sampling::kLinear):
-        sampling_options = SkSamplingOptions(SkFilterMode::kLinear);
-        break;
-
-    case EV(Sampling::kCubicMitchell):
-        sampling_options = SkSamplingOptions(SkCubicResampler::Mitchell());
-        break;
-
-    case EV(Sampling::kCubicCatmullRom):
-        sampling_options = SkSamplingOptions(SkCubicResampler::CatmullRom());
-        break;
-
-    default:
-        g_throw(RangeError, "Invalid enumeration value for `sampling`");
-    }
+    SkSamplingOptions sampling_options = SamplingToSamplingOptions(sampling);
 
     addLayer(std::make_shared<gl::TextureLayer>(textureId, offset, size, sampling_options));
     return getSelfHandle();

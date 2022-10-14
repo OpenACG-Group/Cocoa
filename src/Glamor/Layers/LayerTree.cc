@@ -61,6 +61,13 @@ void LayerTree::Paint(Layer::PaintContext *context)
     root_layer_->Paint(context);
 }
 
+std::string LayerTree::ToString()
+{
+    std::ostringstream oss;
+    root_layer_->ToString(oss);
+    return oss.str();
+}
+
 MaybeGpuObject<SkPicture> LayerTree::Flatten(const SkRect& bounds)
 {
     // TODO(sora): implement this.

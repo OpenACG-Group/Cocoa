@@ -15,6 +15,8 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "fmt/format.h"
+
 #include "Core/Errors.h"
 #include "Glamor/Glamor.h"
 #include "Glamor/Layers/TextureLayer.h"
@@ -43,9 +45,6 @@ void TextureLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
 
 void TextureLayer::Paint(PaintContext *context) const
 {
-    SkAutoCanvasRestore restore(context->multiplexer_canvas, true);
-    context->multiplexer_canvas->translate(offset_.x(), offset_.y());
-
     TextureManager::ScopedTextureAcquire acquire(*context->texture_manager, texture_id_);
     Texture *texture = acquire.Get();
     CHECK(texture);
@@ -73,6 +72,13 @@ void TextureLayer::Paint(PaintContext *context) const
     }
 
     context->has_gpu_retained_resource = texture->IsHWComposeTexture();
+}
+
+void TextureLayer::ToString(std::ostream& out)
+{
+    out << fmt::format("(texture '(id {}) '(size {} {}) '(offset {} {}))",
+                       texture_id_, size_.width(), size_.height(),
+                       offset_.x(), offset_.y());
 }
 
 GLAMOR_NAMESPACE_END

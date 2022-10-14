@@ -452,6 +452,11 @@ export class Blender extends RenderClientObject {
 export class Scene {
     public dispose(): void;
     public toImage(width: number, height: number): Promise<CkImage>;
+
+    /**
+     * Get an S-Expression representation of the layer tree.
+     */
+    public toString(): string;
 }
 
 export class SceneBuilder {
@@ -564,6 +569,17 @@ export interface CkRect {
     bottom: number;
 }
 
+export class CkImageFilter {
+    public static MakeFromDSL(dsl: string, kwargs: object): CkImageFilter;
+    public static Deserialize(buffer: Buffer): CkImageFilter;
+
+    public serialize(): Buffer;
+}
+
+export class CkColorFilter {
+    public static MakeFromDSL(dsl: string, kwargs: object): CkColorFilter;
+}
+
 export class CkBitmap {
     public static MakeFromBuffer(buffer: Buffer,
                                  width: number,
@@ -611,11 +627,4 @@ export class CkPicture {
     public approximateOpCount(nested: boolean): number;
     public approximateByteUsed(): number;
     public uniqueId(): number;
-}
-
-export class CkImageFilter {
-    public static MakeFromDescriptor(descriptor: string, kwargs: object): CkImageFilter;
-    public static Deserialize(buffer: Buffer): CkImageFilter;
-
-    public serialize(): Buffer;
 }

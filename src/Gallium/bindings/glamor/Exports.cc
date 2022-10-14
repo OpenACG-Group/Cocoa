@@ -106,4 +106,32 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
                   binder::to_v8(isolate, constants)).Check();
 }
 
+SkSamplingOptions SamplingToSamplingOptions(int32_t v)
+{
+    SkSamplingOptions sampling_options;
+    switch (v)
+    {
+    case EV(Sampling::kNearest):
+        sampling_options = SkSamplingOptions(SkFilterMode::kNearest);
+        break;
+
+    case EV(Sampling::kLinear):
+        sampling_options = SkSamplingOptions(SkFilterMode::kLinear);
+        break;
+
+    case EV(Sampling::kCubicMitchell):
+        sampling_options = SkSamplingOptions(SkCubicResampler::Mitchell());
+        break;
+
+    case EV(Sampling::kCubicCatmullRom):
+        sampling_options = SkSamplingOptions(SkCubicResampler::CatmullRom());
+        break;
+
+    default:
+        g_throw(RangeError, "Invalid enumeration value for `sampling`");
+    }
+
+    return sampling_options;
+}
+
 GALLIUM_BINDINGS_GLAMOR_NS_END

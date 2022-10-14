@@ -15,6 +15,7 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "fmt/format.h"
 #include "Glamor/Layers/BackdropFilterLayer.h"
 GLAMOR_NAMESPACE_BEGIN
 
@@ -72,6 +73,19 @@ void BackdropFilterLayer::Paint(PaintContext *context) const
 
     // Restore the `saveLayer`
     canvas->restore();
+}
+
+void BackdropFilterLayer::ToString(std::ostream& out)
+{
+    out << fmt::format("(backdrop-filter '(typename \"{}\") '(auto-child-clipping {})",
+                       image_filter_->getTypeName(),
+                       auto_child_clip_ ? 1 : 0);
+    if (GetChildrenCount() > 0)
+    {
+        out << ' ';
+        ChildrenToString(out);
+    }
+    out << ')';
 }
 
 GLAMOR_NAMESPACE_END

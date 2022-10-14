@@ -57,4 +57,17 @@ void ContainerLayer::PaintChildren(PaintContext *context) const
     }
 }
 
+void ContainerLayer::ChildrenToString(std::ostream& out)
+{
+    bool is_first_child = true;
+    for (const Shared<Layer>& layer : child_layers_)
+    {
+        if (is_first_child)
+            is_first_child = false;
+        else
+            out << ' ';
+        layer->ToString(out);
+    }
+}
+
 GLAMOR_NAMESPACE_END

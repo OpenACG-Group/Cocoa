@@ -30,6 +30,7 @@
 #include "include/core/SkBitmap.h"
 #include "include/core/SkImage.h"
 #include "include/core/SkPicture.h"
+#include "include/effects/SkRuntimeEffect.h"
 
 #define GALLIUM_BINDINGS_GLAMOR_NS_BEGIN    namespace cocoa::gallium::bindings::glamor_wrap {
 #define GALLIUM_BINDINGS_GLAMOR_NS_END      }
@@ -59,11 +60,15 @@ using InfoAcceptor = std::function<InfoAcceptorResult(v8::Isolate*, gl::RenderHo
 
 enum class Sampling : uint32_t
 {
-    kNearest,
+    kNearest = 0,
     kLinear,
     kCubicMitchell,
-    kCubicCatmullRom
+    kCubicCatmullRom,
+
+    kLast = kCubicCatmullRom
 };
+
+SkSamplingOptions SamplingToSamplingOptions(int32_t v);
 
 //! TSDecl: class RenderHost
 class RenderHostWrap
@@ -329,16 +334,32 @@ public:
 SkRect CkRectToSkRectCast(v8::Isolate *isolate, v8::Local<v8::Value> object);
 SkIRect CkRectToSkIRectCast(v8::Isolate *isolate, v8::Local<v8::Value> object);
 
-//! TSDecl: class CkImageFilter
-class CkImageFilterWrap
+template<typename T>
+class SkiaObjectWrapper
 {
 public:
-    explicit CkImageFilterWrap(sk_sp<SkImageFilter> filter);
+    using ValueType = sk_sp<T>;
+    explicit SkiaObjectWrapper(ValueType value)
+            : wrapped_value_(std::move(value)) {}
+    ~SkiaObjectWrapper() = default;
+
+    g_nodiscard g_inline const ValueType& getSkiaObject() const {
+        return wrapped_value_;
+    }
+
+private:
+    ValueType   wrapped_value_;
+};
+
+//! TSDecl: class CkImageFilter
+class CkImageFilterWrap : public SkiaObjectWrapper<SkImageFilter>
+{
+public:
+    explicit CkImageFilterWrap(sk_sp<SkImageFilter> filter)
+        : SkiaObjectWrapper(std::move(filter)) {}
     ~CkImageFilterWrap() = default;
 
-    g_nodiscard sk_sp<SkImageFilter> getImageFilter() const;
-
-    // Descriptor syntax:
+    // DSL syntax:
     //   filter_expr    := IDENT '(' param_list ')'
     //   param_list     := expr
     //                   | param_list ',' expr
@@ -362,19 +383,90 @@ public:
     //   blur(3.0, 3.0, %tile, _)
     //   compose(blur(3.0, 3.0, %tile, _), image(%image, %sampling, _, _))
 
-    //! TSDecl: function MakeFromDescriptor(descriptor: string,
-    //!                                     params: object): CkImageFilter
-    static v8::Local<v8::Value> MakeFromDescriptor(const std::string& descriptor,
-                                                   v8::Local<v8::Value> params);
+    //! TSDecl: function MakeFromDSL(dsl: string, kwargs: object): CkImageFilter
+    static v8::Local<v8::Value> MakeFromDSL(v8::Local<v8::Value> dsl,
+                                            v8::Local<v8::Value> kwargs);
 
     //! TSDecl: function Deserialize(buffer: core.Buffer): CkImageFilter
     static v8::Local<v8::Value> Deserialize(v8::Local<v8::Value> buffer);
 
     //! TSDecl: function serialize(): core.Buffer
     v8::Local<v8::Value> serialize();
+};
+
+//! TSDecl: class CkShader
+class CkShaderWrap : public SkiaObjectWrapper<SkShader>
+{
+public:
+    explicit CkShaderWrap(sk_sp<SkShader> shader)
+            : SkiaObjectWrapper(std::move(shader)) {}
+    ~CkShaderWrap() = default;
+};
+
+//! TSDecl: class CkColorFilter
+class CkColorFilterWrap : public SkiaObjectWrapper<SkColorFilter>
+{
+public:
+    explicit CkColorFilterWrap(sk_sp<SkColorFilter> color_filter)
+            : SkiaObjectWrapper(std::move(color_filter)) {}
+    ~CkColorFilterWrap() = default;
+
+    //! TSDecl: function MakeFromDSL(dsl: string, kwargs: object): CkColorFilter
+    static v8::Local<v8::Value> MakeFromDSL(v8::Local<v8::Value> dsl,
+                                            v8::Local<v8::Value> kwargs);
+
+    //! TSDecl: function Deserialize(buffer: core.Buffer): CkColorFilter
+    static v8::Local<v8::Value> Deserialize(v8::Local<v8::Value> buffer);
+
+    //! TSDecl: function serialize(): core.Buffer
+    v8::Local<v8::Value> serialize();
+};
+
+//! TSDecl: class CkBlender
+class CkBlenderWrap : public SkiaObjectWrapper<SkBlender>
+{
+public:
+    explicit CkBlenderWrap(sk_sp<SkBlender> blender)
+            : SkiaObjectWrapper(std::move(blender)) {}
+    ~CkBlenderWrap() = default;
+};
+
+//! TSDecl: class CkRuntimeEffect
+class CkRuntimeEffectWrap
+{
+public:
+    enum class ProgramPurpose : uint8_t
+    {
+        kColorFilter,
+        kShader,
+        kBlender
+    };
+
+    explicit CkRuntimeEffectWrap(sk_sp<SkRuntimeEffect> effect, ProgramPurpose purpose);
+    ~CkRuntimeEffectWrap();
+
+    g_nodiscard g_inline sk_sp<SkRuntimeEffect> getRuntimeEffect() const {
+        return runtime_effect_;
+    }
+
+    g_nodiscard g_inline ProgramPurpose getPurpose() const {
+        return purpose_;
+    }
+
+    //! TSDecl: function Compile(source: string, purpose: number): CkRuntimeEffect
+    static v8::Local<v8::Value> Compile(const std::string& source, int32_t purpose);
 
 private:
-    sk_sp<SkImageFilter> image_filter_;
+    sk_sp<SkRuntimeEffect> runtime_effect_;
+    ProgramPurpose purpose_;
+};
+
+//! TSDecl: class CkRuntimeEffectBuilder
+class CkRuntimeEffectBuilderWrap
+{
+public:
+    v8::Local<v8::Value> setUniform(const std::string& name, v8::Local<v8::Value> value);
+    v8::Local<v8::Value> setChild(const std::string& name, v8::Local<v8::Value> value);
 };
 
 //! TSDecl: class CkPicture

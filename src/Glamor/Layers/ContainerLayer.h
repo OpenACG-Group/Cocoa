@@ -42,12 +42,17 @@ public:
             child_layers_.erase(itr);
     }
 
+    g_nodiscard g_inline size_t GetChildrenCount() const {
+        return child_layers_.size();
+    }
+
     void Preroll(PrerollContext *context, const SkMatrix &matrix) override;
     void Paint(PaintContext *context) const override;
 
 protected:
     void PrerollChildren(PrerollContext *context, const SkMatrix& matrix, SkRect *child_paint_bounds);
     void PaintChildren(PaintContext *context) const;
+    void ChildrenToString(std::ostream& out);
 
 private:
     std::list<Shared<Layer>>    child_layers_;

@@ -40,10 +40,13 @@ public:
      * thread.
      */
 
-    /* TSDecl: function toImage(): Promise<CkImage> */
+    //! TSDecl: function toImage(): Promise<CkImage>
     g_nodiscard v8::Local<v8::Value> toImage(int32_t width, int32_t height);
 
-    /* TSDecl: function dispose(): void */
+    //! TSDecl: function toString(): string
+    g_nodiscard std::string toString();
+
+    //! TSDecl: function dispose(): void
     void dispose();
 
     g_nodiscard std::unique_ptr<gl::LayerTree> takeLayerTree() {

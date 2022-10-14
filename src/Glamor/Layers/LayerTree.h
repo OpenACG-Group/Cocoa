@@ -19,6 +19,7 @@
 #define COCOA_GLAMOR_LAYERS_LAYERTREE_H
 
 #include <list>
+#include <sstream>
 
 #include "include/core/SkSize.h"
 #include "include/core/SkPicture.h"
@@ -81,6 +82,8 @@ public:
         if (itr != raster_draw_op_observers_.end())
             raster_draw_op_observers_.erase(itr);
     }
+
+    std::string ToString();
 
 private:
     SkISize frame_size_;

@@ -31,6 +31,7 @@ public:
     void Preroll(PrerollContext *context, const SkMatrix &matrix) override;
 
     void Paint(PaintContext *context) const override;
+    void ToString(std::ostream& out) override;
 
 private:
     SkMatrix transform_;

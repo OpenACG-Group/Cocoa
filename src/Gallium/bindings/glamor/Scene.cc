@@ -48,6 +48,13 @@ void Scene::dispose()
     disposed_ = true;
 }
 
+std::string Scene::toString()
+{
+    if (!layer_tree_)
+        g_throw(Error, "Scene has been disposed");
+    return layer_tree_->ToString();
+}
+
 v8::Local<v8::Value> Scene::toImage(int32_t width, int32_t height)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();

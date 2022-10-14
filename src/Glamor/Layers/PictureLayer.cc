@@ -96,4 +96,13 @@ void PictureLayer::Paint(PaintContext *context) const
     }
 }
 
+void PictureLayer::ToString(std::ostream& out)
+{
+    SkRect bounds = sk_picture_->cullRect();
+    out << fmt::format("(picture '(auto-fast-clipping {}) '(bounds {} {} {} {}) '(id {}) '(offset {} {}))",
+                       auto_fast_clip_ ? 1 : 0,
+                       bounds.x(), bounds.y(), bounds.width(), bounds.height(),
+                       sk_picture_->uniqueID(), offset_.x(), offset_.y());
+}
+
 GLAMOR_NAMESPACE_END

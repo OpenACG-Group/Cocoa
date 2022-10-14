@@ -16,6 +16,7 @@
  */
 
 #include "include/core/SkImageFilter.h"
+#include "fmt/format.h"
 
 #include "Core/Errors.h"
 #include "Glamor/Layers/ImageFilterLayer.h"
@@ -59,6 +60,17 @@ void ImageFilterLayer::Paint(PaintContext *context) const
     PaintChildren(context);
 
     canvas->restore();
+}
+
+void ImageFilterLayer::ToString(std::ostream& out)
+{
+    out << fmt::format("(imagefilter '(typename \"{}\")", filter_->getTypeName());
+    if (GetChildrenCount() > 0)
+    {
+        out << ' ';
+        ChildrenToString(out);
+    }
+    out << ')';
 }
 
 GLAMOR_NAMESPACE_END

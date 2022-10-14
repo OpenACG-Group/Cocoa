@@ -20,6 +20,7 @@
 
 #include <stack>
 #include <utility>
+#include <sstream>
 
 #include "include/gpu/GrDirectContext.h"
 #include "include/core/SkCanvas.h"
@@ -170,6 +171,8 @@ public:
     virtual void Preroll(PrerollContext *context, const SkMatrix& matrix);
 
     virtual void Paint(PaintContext *context) const = 0;
+
+    virtual void ToString(std::ostream& out);
 
 private:
     SkRect              paint_bounds_;

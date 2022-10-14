@@ -71,4 +71,22 @@ void TransformLayer::Paint(PaintContext *context) const
     PaintChildren(context);
 }
 
+void TransformLayer::ToString(std::ostream& out)
+{
+#define M(v) transform_[SkMatrix::kM##v]
+    out << "(transform"
+        << fmt::format(" '(scale {} {})", M(ScaleX), M(ScaleY))
+        << fmt::format(" '(skew {} {})", M(SkewX), M(SkewY))
+        << fmt::format(" '(trans {} {})", M(TransX), M(TransY))
+        << fmt::format(" '(perspective {} {} {})", M(Persp0), M(Persp1), M(Persp2));
+
+    if (GetChildrenCount() > 0)
+    {
+        out << ' ';
+        ChildrenToString(out);
+    }
+    out << ')';
+#undef M
+}
+
 GLAMOR_NAMESPACE_END

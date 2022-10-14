@@ -124,6 +124,7 @@
         <class name="Scene" wrapper="Scene">
             <method name="dispose" value="@dispose"/>
             <method name="toImage" value="@toImage"/>
+            <method name="toString" value="@toString"/>
         </class>
 
         <class name="SceneBuilder" wrapper="SceneBuilder">
@@ -138,7 +139,13 @@
         </class>
 
         <class name="CkImageFilter" wrapper="CkImageFilterWrap">
-            <method static="true" name="MakeFromDescriptor" value="@MakeFromDescriptor"/>
+            <method static="true" name="MakeFromDSL" value="@MakeFromDSL"/>
+            <method static="true" name="Deserialize" value="@Deserialize"/>
+            <method name="serialize" value="@serialize"/>
+        </class>
+
+        <class name="CkColorFilter" wrapper="CkColorFilterWrap">
+            <method static="true" name="MakeFromDSL" value="@MakeFromDSL"/>
             <method static="true" name="Deserialize" value="@Deserialize"/>
             <method name="serialize" value="@serialize"/>
         </class>

@@ -29,7 +29,8 @@ Issues / Pull requests are welcome.
 
 ## Build Cocoa
 Third parties should be built before building Cocoa.
-See [Build Third Party (Chinese)](./literature/build_third_party.md) for more details.
+See [_build third party_](https://github.com/OpenACG-Group/cocoa-docs/build_third_party.md)
+for more details.
 
 Then `cmake` can be used to build Cocoa:
 ```shell
@@ -39,15 +40,14 @@ $ cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
 $ ninja
 ```
 
-To package and deploy Cocoa, See [Deploy Cocoa]() for more details.
-
+A packager for releasing Cocoa is still in development.
 
 ## Rendering Framework
 After building Cocoa successfully, you can run a simple example which can play the lottie
 animations.
 
 More details about how to run this example and explore Cocoa are available
-in the [quick tutorial (Chinese)](./literature/quick_tutorial.md).
+in the [_quick tutorial_](https://github.com/OpenACG-Group/cocoa-docs/literature/quick_tutorial.md).
 
 TypeScript code of that example is like:
 

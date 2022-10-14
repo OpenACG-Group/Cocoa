@@ -36,4 +36,9 @@ Layer::Layer()
 
 void Layer::Preroll(PrerollContext *context, const SkMatrix& matrix) {}
 
+void Layer::ToString(std::ostream& out)
+{
+    out << "(unknown-layer)";
+}
+
 GLAMOR_NAMESPACE_END
