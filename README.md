@@ -1,8 +1,10 @@
-![Project Logo](./literature/assets/project_logo.svg)
+![Project Logo](./assets/project_logo.svg)
 # Cocoa — General-Purposed 2D Rendering Framework for Linux
 This project belongs to [OpenACG Group](https://github.com/OpenACG-Group).
 
 わたしわ、高性能ですから！
+
+[User's Documentations](https://openacg-group.github.io/)
 
 ## Motivation & Introduction
 Cocoa is a project inspired by
