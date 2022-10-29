@@ -26,6 +26,49 @@ export interface RenderClientError extends Error {
     opcode: number;
 }
 
+interface CkLTRBRect {
+    left: number;
+    top: number;
+    bottom: number;
+    right: number;
+}
+interface CkXYWHRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+type CkRect = CkLTRBRect | CkXYWHRect | Array<number> | Float32Array;
+
+interface CkUniformRadiusRRect {
+    rect: CkRect;
+    radius: number;
+}
+interface CkXYUniformRadiusRRect {
+    rect: CkRect;
+    radiusX: number;
+    radiusY: number;
+}
+interface CkUniformRadiiRRect {
+    rect: CkRect;
+    radiusUpperLeft: number;
+    radiusUpperRight: number;
+    radiusLowerRight: number;
+    radiusLowerLeft: number;
+}
+interface CkXYRadiiRRect {
+    rect: CkRect;
+    radiusUpperLeftX: number;
+    radiusUpperLeftY: number;
+    radiusUpperRightX: number;
+    radiusUpperRightY: number;
+    radiusLowerRightX: number;
+    radiusLowerRightY: number;
+    radiusLowerLeftX: number;
+    radiusLowerLeftY: number;
+}
+type CkRRect = CkUniformRadiusRRect | CkXYUniformRadiusRRect | CkUniformRadiiRRect | CkXYRadiiRRect;
+
 /**
  * Basic information of the application that should be provided for
  * the `RenderHost.Initialize` method.
@@ -447,6 +490,8 @@ export class Blender extends RenderClientObject {
                                                 sigName: string): Promise<void>;
 
     public purgeRasterCacheResources(): Promise<void>;
+
+    public captureNextFrameAsPicture(): Promise<number>;
 }
 
 export class Scene {
@@ -480,6 +525,10 @@ export class SceneBuilder {
     public pushOffset(offsetX: number, offsetY: number): SceneBuilder;
 
     public pushImageFilter(filter: CkImageFilter): SceneBuilder;
+
+    public pushRectClip(shape: CkRect, AA: boolean): SceneBuilder;
+
+    public pushRRectClip(shape: CkRRect, AA: boolean): SceneBuilder;
 
     public pushBackdropFilter(filter: CkImageFilter,
                               blendMode: number,
@@ -561,13 +610,6 @@ interface Constants {
 }
 
 export declare let Constants: Constants;
-
-export interface CkRect {
-    left: number;
-    top: number;
-    right: number;
-    bottom: number;
-}
 
 export class CkImageFilter {
     public static MakeFromDSL(dsl: string, kwargs: object): CkImageFilter;

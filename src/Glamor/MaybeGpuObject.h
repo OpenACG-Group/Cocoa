@@ -19,6 +19,7 @@
 #define COCOA_GLAMOR_MAYBEGPUOBJECT_H
 
 #include <type_traits>
+#include <list>
 
 #include "include/core/SkRefCnt.h"
 
@@ -26,23 +27,62 @@
 #include "Glamor/Glamor.h"
 #include "Glamor/RenderHostTaskRunner.h"
 #include "Glamor/RenderHost.h"
+#include "Glamor/GraphicsResourcesTrackable.h"
 GLAMOR_NAMESPACE_BEGIN
+
+class MaybeGpuObjectBase;
+
+/**
+ * All the methods are thread-safe.
+ */
+class GpuThreadSharedObjectsCollector : public GraphicsResourcesTrackable
+{
+public:
+    GpuThreadSharedObjectsCollector() = default;
+    ~GpuThreadSharedObjectsCollector() override;
+
+    void AddAliveObject(MaybeGpuObjectBase *ptr);
+    void DeleteDeadObject(MaybeGpuObjectBase *ptr);
+
+    void Collect();
+    void Trace(Tracer *tracer) noexcept override;
+
+private:
+    std::mutex                     list_lock_;
+    std::list<MaybeGpuObjectBase*> alive_objects_;
+};
 
 class MaybeGpuObjectBase
 {
+    // Allow calling `ForceCollect`
+    friend class GpuThreadSharedObjectsCollector;
+
 public:
+    using CollectedCallback = std::function<void()>;
+
     MaybeGpuObjectBase(bool isRetained, SkRefCnt *ptr, RenderHost *renderHost);
     MaybeGpuObjectBase(const MaybeGpuObjectBase& other);
     MaybeGpuObjectBase(MaybeGpuObjectBase&& rhs) noexcept;
     ~MaybeGpuObjectBase();
 
+    void SetObjectCollectedCallback(const CollectedCallback& cb) {
+        collected_callback_ = cb;
+    }
+
+    void ResetObjectCollectedCallback() {
+        collected_callback_ = {};
+    }
+
 protected:
-    void InternalReset(bool isRetained, SkRefCnt *ptr, RenderHost *renderHost);
+    void InternalReset(bool isRetained, SkRefCnt *ptr, RenderHost *renderHost,
+                       bool should_remove_entry = true);
+    void ForceCollect();
 
 private:
-    bool             is_retained_;
-    SkRefCnt        *object_;
-    RenderHost      *render_host_;
+    bool                 is_retained_;
+    SkRefCnt            *object_;
+    RenderHost          *render_host_;
+    CollectedCallback    collected_callback_;
 };
 
 /**

@@ -15,30 +15,17 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "Glamor/RenderHostTaskRunner.h"
+#ifndef COCOA_GLAMOR_GRAPHICSPROFILER_H
+#define COCOA_GLAMOR_GRAPHICSPROFILER_H
+
+#include "Glamor/Glamor.h"
 GLAMOR_NAMESPACE_BEGIN
 
-namespace {
-
-GLAMOR_TRAMPOLINE_IMPL(RenderHostTaskRunner, Run)
+class GraphicsProfiler
 {
-    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
-    auto this_ = info.GetThis()->As<RenderHostTaskRunner>();
-    info.SetReturnValueAny(this_->Run(info.GetConst<RenderHostTaskRunner::Task>(0)));
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
-}
-
-} // namespace anonymous
-
-RenderHostTaskRunner::RenderHostTaskRunner()
-    : RenderClientObject(RealType::kRenderHostTaskRunner)
-{
-    SetMethodTrampoline(GLOP_TASKRUNNER_RUN, RenderHostTaskRunner_Run_Trampoline);
-}
-
-std::any RenderHostTaskRunner::Run(const Task& task)
-{
-    return task();
-}
+public:
+    void MarkFrameSchedule();
+};
 
 GLAMOR_NAMESPACE_END
+#endif //COCOA_GLAMOR_GRAPHICSPROFILER_H

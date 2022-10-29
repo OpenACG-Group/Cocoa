@@ -52,7 +52,7 @@ RenderHostCallbackInfo::GetProfileMilestone(ITCProfileMilestone tag) const
     return invocation_->GetProfileMilestone(tag);
 }
 
-const std::exception& RenderHostCallbackInfo::GetCaughtException() const
+const std::string& RenderHostCallbackInfo::GetCaughtException() const
 {
     return invocation_->GetClientCallInfo().GetCaughtException();
 }

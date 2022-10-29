@@ -58,6 +58,12 @@ public:
                                             int32_t blendMode,
                                             bool autoChildClip);
 
+    //! TSDecl: function pushRectClip(shape: CkRect, antialias: boolean): SceneBuilder
+    v8::Local<v8::Value> pushRectClip(v8::Local<v8::Value> shape, bool AA);
+
+    //! TSDecl: function pushRRectClip(shape: CkRRect, antialias: boolean): SceneBuilder
+    v8::Local<v8::Value> pushRRectClip(v8::Local<v8::Value> shape, bool AA);
+
     //! TSDecl: function addTexture(textureId: number,
     //!                             dx: number,
     //!                             dy: number,

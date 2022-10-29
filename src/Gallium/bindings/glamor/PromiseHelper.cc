@@ -55,7 +55,7 @@ bool PromiseClosure::rejectIfEssential(gl::RenderHostCallbackInfo& info)
         reason += "Invalid arguments";
         break;
     case gl::RenderClientCallInfo::Status::kCaught:
-        reason += info.GetCaughtException().what();
+        reason += info.GetCaughtException();
         break;
     case gl::RenderClientCallInfo::Status::kOpFailed:
         reason += "Operation failed";

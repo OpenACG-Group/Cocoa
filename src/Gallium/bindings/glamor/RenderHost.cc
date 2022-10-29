@@ -31,12 +31,32 @@
 #include "Glamor/RenderClientObject.h"
 #include "Glamor/RenderHostCreator.h"
 #include "Glamor/RenderHostTaskRunner.h"
+#include "Glamor/MaybeGpuObject.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.bindings.Glamor)
 
+namespace {
+
+void check_gl_context_init()
+{
+    if (!gl::GlobalScope::Ref().HasInitialized())
+    {
+        g_throw(Error, "GL context (RenderHost) has not been initialized yet");
+    }
+}
+
+} // namespace anonymous
+
 void RenderHostWrap::Initialize(v8::Local<v8::Object> info)
 {
+    if (gl::GlobalScope::Ref().HasInitialized())
+    {
+        // Multiple initialization is not allowed, but the context
+        // can be initialized again after calling `Dispose`.
+        g_throw(Error, "Multiple initializations for GL context");
+    }
+
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
 
@@ -72,7 +92,7 @@ void RenderHostWrap::Initialize(v8::Local<v8::Object> info)
 
 void RenderHostWrap::SetTypefaceTransferCallback(v8::Local<v8::Value> func)
 {
-    CHECK(gl::GlobalScope::Instance());
+    check_gl_context_init();
 
     if (!func->IsFunction())
         g_throw(TypeError, "Argument `func' must be a callback function");
@@ -87,12 +107,16 @@ void RenderHostWrap::SetTypefaceTransferCallback(v8::Local<v8::Value> func)
 
 void RenderHostWrap::Dispose()
 {
+    check_gl_context_init();
+
     gl::GlobalScope::Ref().Dispose();
     QLOG(LOG_INFO, "RenderHost is disposed");
 }
 
 v8::Local<v8::Value> RenderHostWrap::Connect(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
+    check_gl_context_init();
+
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
     if (info.Length() > 1)
@@ -120,19 +144,24 @@ v8::Local<v8::Value> RenderHostWrap::Connect(const v8::FunctionCallbackInfo<v8::
 
 void RenderHostWrap::WaitForSyncBarrier(int64_t timeout)
 {
+    check_gl_context_init();
+
     gl::GlobalScope::Ref().GetRenderHost()->WaitForSyncBarrier(timeout);
 }
 
 v8::Local<v8::Value> RenderHostWrap::SleepRendererFor(int64_t timeout)
 {
+    check_gl_context_init();
+
     if (timeout < 0)
         g_throw(Error, fmt::format("Invalid time for argument \'timeout\': {}", timeout));
 
     gl::RenderHost *host = gl::GlobalScope::Ref().GetRenderHost();
     auto runner = host->GetRenderHostTaskRunner();
 
-    gl::RenderHostTaskRunner::Task task = [timeout]() {
+    gl::RenderHostTaskRunner::Task task = [timeout]() -> std::any {
         std::this_thread::sleep_for(std::chrono::milliseconds(timeout));
+        return {};
     };
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
@@ -154,10 +183,12 @@ struct TraceResult
 
 v8::Local<v8::Value> RenderHostWrap::TraceGraphicsResources()
 {
+    check_gl_context_init();
+
     gl::RenderHost *host = gl::GlobalScope::Ref().GetRenderHost();
 
     auto trace_result = std::make_shared<TraceResult>();
-    gl::RenderHostTaskRunner::Task task = [trace_result]() {
+    gl::RenderHostTaskRunner::Task task = [trace_result]() -> std::any {
         auto maybe = gl::GlobalScope::Ref().TraceResourcesToJson();
         if (!maybe)
         {
@@ -168,6 +199,7 @@ v8::Local<v8::Value> RenderHostWrap::TraceGraphicsResources()
             throw std::runtime_error("Failed to trace graphics resources");
         }
         trace_result->str = *maybe;
+        return {};
     };
 
     auto acceptor = [trace_result](v8::Isolate *isolate,
@@ -182,6 +214,15 @@ v8::Local<v8::Value> RenderHostWrap::TraceGraphicsResources()
     runner->Invoke(GLOP_TASKRUNNER_RUN, closure, PromiseClosure::HostCallback, task);
 
     return closure->getPromise();
+}
+
+void RenderHostWrap::CollectCriticalSharedResources()
+{
+    check_gl_context_init();
+
+    auto collector = gl::GlobalScope::Ref().GetGpuThreadSharedObjectsCollector();
+    CHECK(collector);
+    collector->Collect();
 }
 
 // ============================

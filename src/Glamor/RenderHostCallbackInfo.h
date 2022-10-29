@@ -57,7 +57,7 @@ public:
 
     g_nodiscard RenderClientCallInfo::Status GetReturnStatus() const;
 
-    g_nodiscard const std::exception& GetCaughtException() const;
+    g_nodiscard const std::string& GetCaughtException() const;
 
     g_nodiscard std::chrono::steady_clock::time_point GetProfileMilestone(ITCProfileMilestone tag) const;
 

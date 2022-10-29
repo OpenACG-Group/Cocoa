@@ -26,6 +26,9 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 BlenderWrap::BlenderWrap(gl::Shared<gl::RenderClientObject> object)
     : RenderClientObjectWrap(std::move(object))
 {
+    using PictCast = CreateObjCast<gl::MaybeGpuObject<SkPicture>, CriticalPictureWrap>;
+    defineSignal("picture-captured", GLSI_BLENDER_PICTURE_CAPTURED,
+                 GenericInfoAcceptor<PictCast, NoCast<int32_t>>);
 }
 
 BlenderWrap::~BlenderWrap() = default;
@@ -235,6 +238,13 @@ BlenderWrap::createTextureFromPixmap(v8::Local<v8::Value> buffer,
                         annotation);
 
     return closure->getPromise();
+}
+
+v8::Local<v8::Value> BlenderWrap::captureNextFrameAsPicture()
+{
+    return invoke_primitive_type_return<int32_t>(v8::Isolate::GetCurrent(),
+                                                 GLOP_BLENDER_CAPTURE_NEXT_FRAME_AS_PICTURE,
+                                                 this);
 }
 
 v8::Local<v8::Value> BlenderWrap::purgeRasterCacheResources()

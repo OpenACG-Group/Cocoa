@@ -23,10 +23,58 @@
 GLAMOR_NAMESPACE_BEGIN
 
 template<typename T>
-class ClippingLayerBase
+class ClippingLayerBase : public ContainerLayer
 {
 public:
     using ClipShape = T;
+
+    explicit ClippingLayerBase(ClipShape shape)
+        : clip_shape_(std::move(shape)) {}
+    ~ClippingLayerBase() override = default;
+
+    void Preroll(PrerollContext *context, const SkMatrix& matrix) override
+    {
+        SkRect previous_cull = context->cull_rect;
+        SkRect clip_shape_bounds = OnGetClipShapeBounds();
+
+        if (!context->cull_rect.intersect(clip_shape_bounds))
+        {
+            // The clipping bounds doesn't intersect with current cull rectangle
+            context->cull_rect.setEmpty();
+        }
+
+        SkRect child_paint_bounds = SkRect::MakeEmpty();
+        PrerollChildren(context, matrix, &child_paint_bounds);
+        if (child_paint_bounds.intersect(clip_shape_bounds))
+        {
+            // There is no need to paint children if they are completely
+            // outside the clipping shape bounds.
+            SetPaintBounds(child_paint_bounds);
+        }
+
+        // Restore cull rectangle
+        context->cull_rect = previous_cull;
+    }
+
+    void Paint(PaintContext *context) const override
+    {
+        SkCanvas *canvas = context->multiplexer_canvas;
+        SkAutoCanvasRestore scoped_restore(canvas, true);
+        OnApplyClipShape(clip_shape_, context);
+
+        PaintChildren(context);
+    }
+
+protected:
+    virtual void OnApplyClipShape(const ClipShape& shape, PaintContext *ctx) const = 0;
+    g_nodiscard virtual SkRect OnGetClipShapeBounds() const = 0;
+
+    g_nodiscard const ClipShape& GetClipShape() const {
+        return clip_shape_;
+    }
+
+private:
+    ClipShape   clip_shape_;
 };
 
 GLAMOR_NAMESPACE_END

@@ -23,6 +23,8 @@
 #include "Glamor/Layers/TextureLayer.h"
 #include "Glamor/Layers/ImageFilterLayer.h"
 #include "Glamor/Layers/BackdropFilterLayer.h"
+#include "Glamor/Layers/RectClipLayer.h"
+#include "Glamor/Layers/RRectClipLayer.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 SceneBuilder::SceneBuilder(int32_t width, int32_t height)
@@ -128,6 +130,26 @@ v8::Local<v8::Value> SceneBuilder::pushBackdropFilter(v8::Local<v8::Value> filte
     pushLayer(std::make_shared<gl::BackdropFilterLayer>(wrapper->getSkiaObject(),
                                                         mode, autoChildClip));
 
+    return getSelfHandle();
+}
+
+v8::Local<v8::Value> SceneBuilder::pushRectClip(v8::Local<v8::Value> shape,
+                                                bool AA)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    SkRect rect_shape = ExtractCkRect(isolate, shape);
+
+    pushLayer(std::make_shared<gl::RectClipLayer>(rect_shape, AA));
+    return getSelfHandle();
+}
+
+v8::Local<v8::Value> SceneBuilder::pushRRectClip(v8::Local<v8::Value> shape,
+                                                 bool AA)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    SkRRect rrect_shape = ExtractCkRRect(isolate, shape);
+
+    pushLayer(std::make_shared<gl::RRectClipLayer>(rrect_shape, AA));
     return getSelfHandle();
 }
 

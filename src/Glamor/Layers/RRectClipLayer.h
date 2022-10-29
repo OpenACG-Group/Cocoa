@@ -15,28 +15,30 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COCOA_GLAMOR_RENDERHOSTTASKRUNNER_H
-#define COCOA_GLAMOR_RENDERHOSTTASKRUNNER_H
+#ifndef COCOA_GLAMOR_LAYERS_RRECTCLIPLAYER_H
+#define COCOA_GLAMOR_LAYERS_RRECTCLIPLAYER_H
 
-#include <functional>
-#include <any>
+#include "include/core/SkRRect.h"
 
-#include "Glamor/Glamor.h"
-#include "Glamor/RenderClientObject.h"
+#include "Glamor/Layers/ContainerLayer.h"
+#include "Glamor/Layers/ClippingLayerBase.h"
 GLAMOR_NAMESPACE_BEGIN
 
-#define GLOP_TASKRUNNER_RUN     1
-
-class RenderHostTaskRunner : public RenderClientObject
+class RRectClipLayer : public ClippingLayerBase<SkRRect>
 {
 public:
-    using Task = std::function<std::any(void)>;
+    RRectClipLayer(const SkRRect& rrect, bool AA)
+        : ClippingLayerBase(rrect), perform_anti_alias_(AA) {}
+    ~RRectClipLayer() override = default;
 
-    RenderHostTaskRunner();
-    ~RenderHostTaskRunner() override = default;
+    g_nodiscard SkRect OnGetClipShapeBounds() const override;
+    void OnApplyClipShape(const SkRRect& shape, PaintContext *ctx) const override;
 
-    g_async_api std::any Run(const Task& task);
+    void ToString(std::ostream& os) override;
+
+private:
+    bool perform_anti_alias_;
 };
 
 GLAMOR_NAMESPACE_END
-#endif //COCOA_GLAMOR_RENDERHOSTTASKRUNNER_H
+#endif //COCOA_GLAMOR_LAYERS_RRECTCLIPLAYER_H

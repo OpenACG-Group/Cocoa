@@ -22,6 +22,7 @@
 #include "Glamor/Glamor.h"
 #include "Glamor/RenderHost.h"
 #include "Glamor/RenderClient.h"
+#include "Glamor/MaybeGpuObject.h"
 GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor)
@@ -93,6 +94,8 @@ GlobalScope::GlobalScope(const ContextOptions& options, EventLoop *loop)
     , render_host_(nullptr)
     , render_client_(nullptr)
     , external_data_{nullptr, {}}
+    , thread_shared_objs_collector_(
+            std::make_unique<GpuThreadSharedObjectsCollector>())
 {
     if (options_.GetSkiaJIT())
         SkGraphics::AllowJIT();
@@ -113,23 +116,28 @@ void GlobalScope::Initialize(const ApplicationInfo& info)
 
 void GlobalScope::Dispose()
 {
+    // Destroy all the alive GPU objects which are referenced
+    // by all other threads except GPU thread.
+    if (thread_shared_objs_collector_)
+        thread_shared_objs_collector_->Collect();
+    thread_shared_objs_collector_.reset();
+
     if (external_data_.ptr && external_data_.deleter)
         external_data_.deleter(external_data_.ptr);
     external_data_.ptr = nullptr;
     external_data_.deleter = {};
 
-    if (render_host_ && render_client_)
+    if (!render_client_ || !render_host_)
     {
-        delete render_client_;
-        render_client_ = nullptr;
-        render_host_->OnDispose();
-        /* This method may be called in a callback of host invocation,
-         * so we should not delete @p render_host_ here. */
+        QLOG(LOG_ERROR, "Disposing GlobalScope without an initialization");
+        return;
     }
-    else
-    {
-        QLOG(LOG_WARNING, "Disposing GlobalScope without an initialization");
-    }
+
+    delete render_client_;
+    render_client_ = nullptr;
+    render_host_->OnDispose();
+    /* This method may be called in a callback of host invocation,
+     * so we should not delete @p render_host_ here. */
 }
 
 GlobalScope::~GlobalScope()
@@ -166,6 +174,9 @@ std::optional<std::string> GlobalScope::TraceResourcesToJson()
 
     GraphicsResourcesTrackable::Tracer tracer;
     tracer.TraceRootObject("RenderClient", render_client_);
+    tracer.TraceRootObject("ThreadSharedObjectsCollector",
+                           thread_shared_objs_collector_.get());
+
     // TODO(sora): Also trace `RenderHost`
     return tracer.ToJsonString();
 }

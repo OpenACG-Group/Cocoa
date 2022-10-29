@@ -15,30 +15,28 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "Glamor/RenderHostTaskRunner.h"
+#ifndef COCOA_GLAMOR_LAYERS_RECTCLIPLAYER_H
+#define COCOA_GLAMOR_LAYERS_RECTCLIPLAYER_H
+
+#include "Glamor/Layers/ContainerLayer.h"
+#include "Glamor/Layers/ClippingLayerBase.h"
 GLAMOR_NAMESPACE_BEGIN
 
-namespace {
-
-GLAMOR_TRAMPOLINE_IMPL(RenderHostTaskRunner, Run)
+class RectClipLayer : public ClippingLayerBase<SkRect>
 {
-    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
-    auto this_ = info.GetThis()->As<RenderHostTaskRunner>();
-    info.SetReturnValueAny(this_->Run(info.GetConst<RenderHostTaskRunner::Task>(0)));
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
-}
+public:
+    RectClipLayer(const SkRect& rect, bool AA)
+        : ClippingLayerBase(rect), perform_anti_alias_(AA) {}
+    ~RectClipLayer() override = default;
 
-} // namespace anonymous
+    g_nodiscard SkRect OnGetClipShapeBounds() const override;
+    void OnApplyClipShape(const SkRect& shape, PaintContext *ctx) const override;
 
-RenderHostTaskRunner::RenderHostTaskRunner()
-    : RenderClientObject(RealType::kRenderHostTaskRunner)
-{
-    SetMethodTrampoline(GLOP_TASKRUNNER_RUN, RenderHostTaskRunner_Run_Trampoline);
-}
+    void ToString(std::ostream& os) override;
 
-std::any RenderHostTaskRunner::Run(const Task& task)
-{
-    return task();
-}
+private:
+    bool perform_anti_alias_;
+};
 
 GLAMOR_NAMESPACE_END
+#endif //COCOA_GLAMOR_LAYERS_RECTCLIPLAYER_H

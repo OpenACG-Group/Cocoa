@@ -58,6 +58,7 @@ add_library(
         Texture.cc
         TextureManager.h
         TextureManager.cc
+        GraphicsProfiler.h
 
         Layers/RasterCacheKey.h
         Layers/RasterCache.h
@@ -81,6 +82,10 @@ add_library(
         Layers/BackdropFilterLayer.h
         Layers/BackdropFilterLayer.cc
         Layers/ClippingLayerBase.h
+        Layers/RectClipLayer.h
+        Layers/RectClipLayer.cc
+        Layers/RRectClipLayer.h
+        Layers/RRectClipLayer.cc
 
         Wayland/protos/xdg-shell-client-protocol.h
         Wayland/protos/xdg-shell-client-protocol.c

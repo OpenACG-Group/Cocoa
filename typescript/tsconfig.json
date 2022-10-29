@@ -30,6 +30,7 @@
         "samples/canvaskit_window_lottie.ts",
         "samples/canvaskit_window_shader.ts",
         "experimental/canvaskit_window_physics.ts",
-        "experimental/canvaskit_window_vn.ts"
+        "experimental/canvaskit_window_vn.ts",
+        "experimental/rect_clip_test.ts"
     ]
 }

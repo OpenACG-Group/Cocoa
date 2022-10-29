@@ -58,6 +58,7 @@ enum class Backends
 
 class RenderHost;
 class RenderClient;
+class GpuThreadSharedObjectsCollector;
 
 class ContextOptions
 {
@@ -148,6 +149,10 @@ public:
     void Initialize(const ApplicationInfo& info);
     void Dispose();
 
+    g_nodiscard g_inline bool HasInitialized() const {
+        return (render_host_ && render_client_);
+    }
+
     g_nodiscard g_inline RenderHost *GetRenderHost() {
         return render_host_;
     }
@@ -182,6 +187,10 @@ public:
         return external_data_.ptr;
     }
 
+    g_nodiscard g_inline auto *GetGpuThreadSharedObjectsCollector() const {
+        return thread_shared_objs_collector_.get();
+    }
+
 private:
     ContextOptions  options_;
     EventLoop      *event_loop_;
@@ -189,6 +198,8 @@ private:
     RenderClient   *render_client_;
     Unique<StandaloneThreadPool>  render_workers_;
     ExternalData    external_data_;
+    Unique<GpuThreadSharedObjectsCollector>
+                    thread_shared_objs_collector_;
 };
 
 GLAMOR_NAMESPACE_END

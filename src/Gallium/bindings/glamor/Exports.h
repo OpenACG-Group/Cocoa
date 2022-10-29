@@ -25,7 +25,9 @@
 #include "Glamor/ForwardTypeDecls.h"
 #include "Glamor/RenderClientObject.h"
 #include "Glamor/RenderHostCallbackInfo.h"
+#include "Glamor/MaybeGpuObject.h"
 
+#include "include/core/SkRRect.h"
 #include "include/core/SkImageFilter.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkImage.h"
@@ -110,6 +112,9 @@ public:
 
     //! TSDecl: function TraceGraphicsResources(): Promise<string>
     static v8::Local<v8::Value> TraceGraphicsResources();
+
+    //! TSDecl: function CollectCriticalSharedResources(): void
+    static void CollectCriticalSharedResources();
 };
 
 //! TSDecl: class RenderClientObject
@@ -318,21 +323,63 @@ public:
     //! TSDecl: function newTextureDeletionSubscriptionSignal(id: number, sigName: string): Promise<void>
     v8::Local<v8::Value> newTextureDeletionSubscriptionSignal(int64_t id, const std::string& sigName);
 
+    //! TSDecl: function captureNextFrameAsPicture(): Promise<number>
+    v8::Local<v8::Value> captureNextFrameAsPicture();
+
     //! TSDecl: function purgeRasterCacheResources(): Promise<void>
     v8::Local<v8::Value> purgeRasterCacheResources();
 };
 
 
 //! TSDecl:
-//! interface CkRect {
+//! interface CkLTRBRect {
 //!   left: number;
 //!   top: number;
 //!   bottom: number;
 //!   right: number;
 //! }
+//! interface CkXYWHRect {
+//!   x: number;
+//!   y: number;
+//!   width: number;
+//!   height: number;
+//! }
+//! type CkRect = CkLTRBRect | CkXYWHRect | Array<number> | Float32Array;
+//!
+//! interface CkUniformRadiusRRect {
+//!   rect: CkRect;
+//!   radius: number;
+//! }
+//! interface CkXYUniformRadiusRRect {
+//!   rect: CkRect;
+//!   radiusX: number;
+//!   radiusY: number;
+//! }
+//! interface CkUniformRadiiRRect {
+//!   rect: CkRect;
+//!   radiusUpperLeft: number;
+//!   radiusUpperRight: number;
+//!   radiusLowerRight: number;
+//!   radiusLowerLeft: number;
+//! }
+//! interface CkXYRadiiRRect {
+//!   rect: CkRect;
+//!   radiusUpperLeftX: number;
+//!   radiusUpperLeftY: number;
+//!   radiusUpperRightX: number;
+//!   radiusUpperRightY: number;
+//!   radiusLowerRightX: number;
+//!   radiusLowerRightY: number;
+//!   radiusLowerLeftX: number;
+//!   radiusLowerLeftY: number;
+//! }
+//! type CkRRect = CkUniformRadiusRRect |
+//!                CkXYUniformRadiusRRect |
+//!                CkUniformRadiiRRect |
+//!                CkXYRadiiRRect;
 
-SkRect CkRectToSkRectCast(v8::Isolate *isolate, v8::Local<v8::Value> object);
-SkIRect CkRectToSkIRectCast(v8::Isolate *isolate, v8::Local<v8::Value> object);
+SkRect ExtractCkRect(v8::Isolate *isolate, v8::Local<v8::Value> object);
+SkRRect ExtractCkRRect(v8::Isolate *isolate, v8::Local<v8::Value> object);
 
 template<typename T>
 class SkiaObjectWrapper
@@ -394,15 +441,6 @@ public:
     v8::Local<v8::Value> serialize();
 };
 
-//! TSDecl: class CkShader
-class CkShaderWrap : public SkiaObjectWrapper<SkShader>
-{
-public:
-    explicit CkShaderWrap(sk_sp<SkShader> shader)
-            : SkiaObjectWrapper(std::move(shader)) {}
-    ~CkShaderWrap() = default;
-};
-
 //! TSDecl: class CkColorFilter
 class CkColorFilterWrap : public SkiaObjectWrapper<SkColorFilter>
 {
@@ -422,51 +460,29 @@ public:
     v8::Local<v8::Value> serialize();
 };
 
-//! TSDecl: class CkBlender
-class CkBlenderWrap : public SkiaObjectWrapper<SkBlender>
+//! TSDecl: class CriticalPictureWrap
+class CriticalPictureWrap
 {
 public:
-    explicit CkBlenderWrap(sk_sp<SkBlender> blender)
-            : SkiaObjectWrapper(std::move(blender)) {}
-    ~CkBlenderWrap() = default;
-};
+    explicit CriticalPictureWrap(const gl::MaybeGpuObject<SkPicture>& picture)
+        : picture_(picture) {}
+    ~CriticalPictureWrap() = default;
 
-//! TSDecl: class CkRuntimeEffect
-class CkRuntimeEffectWrap
-{
-public:
-    enum class ProgramPurpose : uint8_t
-    {
-        kColorFilter,
-        kShader,
-        kBlender
-    };
+    //! TSDecl: function sanitize(): Promise<CkPicture>
+    v8::Local<v8::Value> sanitize();
 
-    explicit CkRuntimeEffectWrap(sk_sp<SkRuntimeEffect> effect, ProgramPurpose purpose);
-    ~CkRuntimeEffectWrap();
+    //! TSDecl: function serialize(): Promise<core.Buffer>
+    v8::Local<v8::Value> serialize();
 
-    g_nodiscard g_inline sk_sp<SkRuntimeEffect> getRuntimeEffect() const {
-        return runtime_effect_;
-    }
+    //! TSDecl: function discardOwnership(): void
+    void discardOwnership();
 
-    g_nodiscard g_inline ProgramPurpose getPurpose() const {
-        return purpose_;
-    }
-
-    //! TSDecl: function Compile(source: string, purpose: number): CkRuntimeEffect
-    static v8::Local<v8::Value> Compile(const std::string& source, int32_t purpose);
+    //! TSDecl: function setCollectionCallback(F: () => void): void
+    void setCollectionCallback(v8::Local<v8::Value> F);
 
 private:
-    sk_sp<SkRuntimeEffect> runtime_effect_;
-    ProgramPurpose purpose_;
-};
-
-//! TSDecl: class CkRuntimeEffectBuilder
-class CkRuntimeEffectBuilderWrap
-{
-public:
-    v8::Local<v8::Value> setUniform(const std::string& name, v8::Local<v8::Value> value);
-    v8::Local<v8::Value> setChild(const std::string& name, v8::Local<v8::Value> value);
+    gl::MaybeGpuObject<SkPicture> picture_;
+    v8::Global<v8::Function> callback_;
 };
 
 //! TSDecl: class CkPicture

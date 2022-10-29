@@ -56,11 +56,14 @@ void RenderClientObject::CallFromHostTrampoline(RenderClientCallInfo& info)
     }
     else
     {
-        try {
+        try
+        {
             trampolines_pool_[info.GetOpCode()](info);
+        } catch (const std::bad_any_cast& e) {
+            CHECK_FAILED("typecheck: Bad any cast in asynchronous rendering operations");
         } catch (const std::exception& e) {
             info.SetReturnStatus(RenderClientCallInfo::Status::kCaught);
-            info.SetCaughtException(e);
+            info.SetCaughtException(e.what());
         }
     }
     info.SetThis(nullptr);

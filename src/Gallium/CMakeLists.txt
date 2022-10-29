@@ -94,6 +94,7 @@ add_library(Gallium STATIC
         bindings/glamor/EffectDSLParser.h
         bindings/glamor/EffectDSLParser.cc
         bindings/glamor/EffectDSLBuilderHelperMacros.h
+        bindings/glamor/TrivialSkiaExportedTypes.cc
 
         bindings/reactor/Exports.h
 )

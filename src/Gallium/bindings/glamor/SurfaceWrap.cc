@@ -26,38 +26,6 @@
 #include "Glamor/Cursor.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-SkRect CkRectToSkRectCast(v8::Isolate *isolate, v8::Local<v8::Value> object)
-{
-    if (!object->IsObject())
-        g_throw(TypeError, "CkRect is not an object");
-
-    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
-
-    v8::Local<v8::Object> r = object.As<v8::Object>();
-
-    float ltrb[4] = {0, 0, 0, 0};
-    float *pw = &ltrb[0];
-
-    for (const char *prop : {"left", "top", "right", "bottom"})
-    {
-        auto jsName = binder::to_v8(isolate, prop);
-        if (!r->HasOwnProperty(ctx, jsName).FromMaybe(false))
-            g_throw(TypeError, fmt::format("CkRect does not contain property '{}'", prop));
-        *(pw++) = binder::from_v8<float>(isolate, r->Get(ctx, jsName).ToLocalChecked());
-    }
-
-    return SkRect::MakeLTRB(ltrb[0], ltrb[1], ltrb[2], ltrb[3]);
-}
-
-SkIRect CkRectToSkIRectCast(v8::Isolate *isolate, v8::Local<v8::Value> object)
-{
-    SkRect rect = CkRectToSkRectCast(isolate, object);
-    return SkIRect::MakeLTRB(static_cast<int32_t>(rect.left()),
-                             static_cast<int32_t>(rect.top()),
-                             static_cast<int32_t>(rect.right()),
-                             static_cast<int32_t>(rect.bottom()));
-}
-
 SurfaceWrap::SurfaceWrap(gl::Shared<gl::RenderClientObject> object)
     : RenderClientObjectWrap(std::move(object))
 {

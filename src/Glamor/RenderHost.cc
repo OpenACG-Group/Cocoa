@@ -187,8 +187,9 @@ RenderHost::WaitResult RenderHost::WaitForSyncBarrier(int64_t timeout_ms)
     auto promise = std::make_shared<std::promise<void>>();
 
     RenderClientCallInfo info(GLOP_TASKRUNNER_RUN);
-    info.EmplaceBack<RenderHostTaskRunner::Task>([promise]() {
+    info.EmplaceBack<RenderHostTaskRunner::Task>([promise]() -> std::any {
         promise->set_value();
+        return {};
     });
 
     host_task_runner_->Invoke(std::move(info), host_task_runner_->DummyHostCallback());

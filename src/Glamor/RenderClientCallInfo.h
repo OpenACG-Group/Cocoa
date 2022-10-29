@@ -81,6 +81,13 @@ public:
     }
 
     template<typename T>
+    g_nodiscard g_inline const T& GetConst(size_t index) {
+        CHECK(index < args_vector_.size());
+        CHECK(args_vector_[index].has_value());
+        return std::any_cast<const T&>(args_vector_[index]);
+    }
+
+    template<typename T>
     g_inline RenderClientCallInfo& PushBack(T&& value) {
         args_vector_.push_back(value);
         return *this;
@@ -126,6 +133,11 @@ public:
         return std::any_cast<T&>(return_value_);
     }
 
+    g_inline const std::any& SetReturnValueAny(std::any&& value) {
+        return_value_ = std::move(value);
+        return return_value_;
+    }
+
     /* This method only can be called once */
     g_inline void SetReturnStatus(Status status) {
         CHECK(return_status_ == Status::kPending);
@@ -149,11 +161,11 @@ public:
         this_ = pThis;
     }
 
-    g_private_api g_inline void SetCaughtException(const std::exception& e) {
-        caught_exception_ = e;
+    g_private_api g_inline void SetCaughtException(const std::string& what) {
+        caught_exception_ = what;
     }
 
-    g_private_api g_nodiscard std::exception& GetCaughtException() {
+    g_private_api g_nodiscard const std::string& GetCaughtException() const {
         CHECK(caught_exception_.has_value());
         return caught_exception_.value();
     }
@@ -164,7 +176,7 @@ private:
     Status                      return_status_;
     std::any                    return_value_;
     Shared<RenderClientObject>   this_;
-    std::optional<std::exception> caught_exception_;
+    std::optional<std::string>  caught_exception_;
     std::any                    closure_ptr_;
 };
 

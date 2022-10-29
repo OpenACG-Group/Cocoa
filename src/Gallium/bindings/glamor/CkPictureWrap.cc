@@ -21,10 +21,107 @@
 #include "include/core/SkTypeface.h"
 #include "include/core/SkStream.h"
 
+#include "Gallium/binder/CallV8.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/CanvasKitTransferContext.h"
 #include "Gallium/bindings/core/Exports.h"
+#include "Gallium/bindings/glamor/PromiseHelper.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
+
+void CriticalPictureWrap::setCollectionCallback(v8::Local<v8::Value> F)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (!F->IsFunction())
+        g_throw(TypeError, "callback argument must be a function");
+
+    callback_.Reset(isolate, v8::Local<v8::Function>::Cast(F));
+
+    picture_.SetObjectCollectedCallback([this, isolate]() {
+        v8::HandleScope scope(isolate);
+        v8::Local<v8::Function> func = this->callback_.Get(isolate);
+        binder::Invoke(isolate, func, isolate->GetCurrentContext()->Global());
+    });
+}
+
+void CriticalPictureWrap::discardOwnership()
+{
+    if (!picture_)
+        g_throw(Error, "CriticalPicture is empty");
+
+    picture_.reset();
+}
+
+v8::Local<v8::Value> CriticalPictureWrap::sanitize()
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    gl::MaybeGpuObject<SkPicture> picture(picture_);
+
+    // Following code will be executed in the rendering thread
+    // to touch the GPU retained resources safely.
+    gl::RenderHostTaskRunner::Task sanitizer = [picture]() -> std::any {
+        sk_sp<SkData> data = picture->serialize();
+        if (!data)
+        {
+            throw std::runtime_error("Failed to serialize the picture");
+        }
+
+        // Once a picture is serialized, all the GPU resources (textures)
+        // should be read back and stored in the serialized data.
+
+        // Deserializing the serialized picture makes the new picture completely
+        // isolated with GPU resources (it becomes a standalone picture, except typefaces).
+        return {SkPicture::MakeFromData(data.get())};
+    };
+
+    using W = CkPictureWrap;
+    using T = sk_sp<SkPicture>;
+    auto closure = PromiseClosure::New(isolate, PromiseClosure::CreateObjectConverter<W, T>);
+
+    // The picture itself may contain critical GPU resources which are owned by
+    // rendering thread only. Sanitizer will download those critical GPU textures
+    // into system memory and serialize them. To avoid touching them unexpectedly,
+    // it is essential to execute the sanitizer function on rendering thread.
+    auto task_runner = gl::GlobalScope::Ref().GetRenderHost()
+            ->GetRenderHostTaskRunner();
+    CHECK(task_runner);
+    task_runner->Invoke(GLOP_TASKRUNNER_RUN, closure,
+                        PromiseClosure::HostCallback, sanitizer);
+
+    return closure->getPromise();
+}
+
+v8::Local<v8::Value> CriticalPictureWrap::serialize()
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    // See also comments in `sanitize` method.
+
+    gl::MaybeGpuObject<SkPicture> picture(picture_);
+    gl::RenderHostTaskRunner::Task serializer = [picture]() -> std::any {
+        sk_sp<SkData> data = picture->serialize();
+        if (!data)
+            throw std::runtime_error("Failed to serialize the picture");
+        return {data};
+    };
+
+    auto runner = gl::GlobalScope::Ref().GetRenderHost()
+            ->GetRenderHostTaskRunner();
+    CHECK(runner);
+
+    auto converter = [](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
+        auto data = info.GetReturnValue<sk_sp<SkData>>();
+        CHECK(data);
+
+        return Buffer::MakeFromExternal(data->writable_data(), data->size(),
+                                        [data]() {});
+    };
+    auto closure = PromiseClosure::New(isolate, converter);
+
+    runner->Invoke(GLOP_TASKRUNNER_RUN, closure, PromiseClosure::HostCallback, serializer);
+
+    return closure->getPromise();
+}
 
 CkPictureWrap::CkPictureWrap(sk_sp<SkPicture> picture)
         : picture_(std::move(picture))
@@ -55,8 +152,8 @@ v8::Local<v8::Value> CkPictureWrap::serialize()
     if (data == nullptr)
         g_throw(Error, "Failed to serialize SkPicture object");
 
-    // Maybe there is a way to avoid this expensive memory copy
-    v8::Local<v8::Object> buffer = Buffer::MakeFromPtrCopy(data->data(), data->size());
+    v8::Local<v8::Object> buffer = Buffer::MakeFromExternal(data->writable_data(), data->size(),
+                                                            [data]() {});
     return buffer;
 }
 

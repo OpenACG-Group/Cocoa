@@ -68,11 +68,12 @@ struct SlotClosure
     int32_t signal_code_;
 };
 
-template<typename RealT, typename CastT>
+template<typename RealT, typename CastT, bool CreateObj = false>
 struct InfoAcceptorCast
 {
     using real_type = RealT;
     using cast_type = CastT;
+    constexpr static bool create_obj = CreateObj;
 };
 
 template<typename T>
@@ -81,6 +82,9 @@ using NoCast = InfoAcceptorCast<T, T>;
 template<typename T>
 using AutoEnumCast = InfoAcceptorCast<T, typename std::underlying_type<T>::type>;
 
+template<typename ParamT, typename ObjT>
+using CreateObjCast = InfoAcceptorCast<ParamT, ObjT, true>;
+
 namespace acceptor_traits {
 
 template<typename T>
@@ -88,9 +92,17 @@ v8::Local<v8::Value> ConvertGeneric(v8::Isolate *isolate,
                                     gl::RenderHostSlotCallbackInfo& info,
                                     size_t index)
 {
-    if constexpr (std::is_same<typename T::real_type, typename T::cast_type>::value) {
+    if constexpr (T::create_obj)
+    {
+        return binder::Class<typename T::cast_type>::create_object(isolate,
+            info.Get<typename T::real_type>(index));
+    }
+    else if constexpr (std::is_same<typename T::real_type, typename T::cast_type>::value)
+    {
         return binder::to_v8(isolate, info.Get<typename T::real_type>(index));
-    } else {
+    }
+    else
+    {
         return binder::to_v8(isolate,
             static_cast<typename T::cast_type>(info.Get<typename T::real_type>(index)));
     }

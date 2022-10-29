@@ -19,6 +19,7 @@
             <method static="true" name="SleepRendererFor" value="@SleepRendererFor"/>
             <method static="true" name="TraceGraphicsResources" value="@TraceGraphicsResources"/>
             <method static="true" name="SetTypefaceTransferCallback" value="@SetTypefaceTransferCallback"/>
+            <method static="true" name="CollectCriticalSharedResources" value="@CollectCriticalSharedResources"/>
         </class>
 
         <class name="RenderClientObject" wrapper="RenderClientObjectWrap" invisible="true">
@@ -118,6 +119,7 @@
             <method name="createTextureFromPixmap" value="@createTextureFromPixmap"/>
             <method name="deleteTexture" value="@deleteTexture"/>
             <method name="newTextureDeletionSubscriptionSignal" value="@newTextureDeletionSubscriptionSignal"/>
+            <method name="captureNextFrameAsPicture" value="@captureNextFrameAsPicture"/>
             <method name="purgeRasterCacheResources" value="@purgeRasterCacheResources"/>
         </class>
 
@@ -134,6 +136,8 @@
             <method name="pushOffset" value="@pushOffset"/>
             <method name="pushImageFilter" value="@pushImageFilter"/>
             <method name="pushBackdropFilter" value="@pushBackdropFilter"/>
+            <method name="pushRectClip" value="@pushRectClip"/>
+            <method name="pushRRectClip" value="@pushRRectClip"/>
             <method name="addPicture" value="@addPicture"/>
             <method name="addTexture" value="@addTexture"/>
         </class>
@@ -188,6 +192,13 @@
             <!-- Enumeration map for gl::CkPictureWrap::PictureUsage -->
             <property static="true" name="USAGE_GENERIC" value="V_CAST_U32(@kGeneric_Usage)"/>
             <property static="true" name="USAGE_TRANSFER" value="V_CAST_U32(@kTransfer_Usage)"/>
+        </class>
+
+        <class name="CriticalPicture" wrapper="CriticalPictureWrap">
+            <method name="sanitize" value="@sanitize"/>
+            <method name="discardOwnership" value="@discardOwnership"/>
+            <method name="setCollectionCallback" value="@setCollectionCallback"/>
+            <method name="serialize" value="@serialize"/>
         </class>
     </exports>
 </module>

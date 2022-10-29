@@ -181,6 +181,11 @@ const Template g_templates[] = {
             .value_type = ValueType::kString,
             .desc = "Specify a comma separated list of allowed message\n"
                     "types for vulkan debug utils."
+        },
+        {
+            .long_name = "gl-enable-graphics-profiler",
+            .has_value = Template::RequireValue::kEmpty,
+            .desc = "Allow JavaScript to examine statistics of frames.\n"
         }
 };
 
