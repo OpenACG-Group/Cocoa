@@ -40,7 +40,7 @@ interface CkXYWHRect {
 }
 type CkRect = CkLTRBRect | CkXYWHRect | Array<number> | Float32Array;
 
-interface CkRRect {
+export interface CkRRect {
    rect: CkRect;
 
     /**
