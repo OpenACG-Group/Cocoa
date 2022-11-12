@@ -23,6 +23,7 @@
 #include "Glamor/RenderHost.h"
 #include "Glamor/RenderClient.h"
 #include "Glamor/MaybeGpuObject.h"
+#include "Glamor/GProfiler.h"
 GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor)
@@ -35,6 +36,9 @@ ContextOptions::ContextOptions()
     , tile_height_(GLAMOR_TILE_HEIGHT_DEFAULT)
     , render_workers_concurrency_count_(GLAMOR_WORKERS_CONCURRENCY)
     , show_tile_boundaries_(false)
+    , enable_profiler_(false)
+    , profiler_rb_threshold_(GLAMOR_PROFILER_RINGBUFFER_THRESHOLD_DEFAULT)
+    , disable_hw_compose_(false)
 {
 }
 

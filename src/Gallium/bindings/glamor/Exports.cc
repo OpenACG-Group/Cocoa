@@ -32,6 +32,12 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
     using T = SkColorType;
     using A = SkAlphaType;
     std::map<std::string, uint32_t> constants{
+        { "CAPABILITY_HWCOMPOSE_ENABLED",       EV(Capabilities::kHWComposeEnabled)   },
+        { "CAPABILITY_PROFILER_ENABLED",        EV(Capabilities::kProfilerEnabled)    },
+        { "CAPABILITY_PROFILER_MAX_SAMPLES",    EV(Capabilities::kProfilerMaxSamples) },
+        { "CAPABILITY_MESSAGE_QUEUE_PROFILING_ENABLED",
+                                                EV(Capabilities::kMessageQueueProfilingEnabled) },
+
         { "COLOR_TYPE_ALPHA8",              EV(T::kAlpha_8_SkColorType)             },
         { "COLOR_TYPE_RGB565",              EV(T::kRGB_565_SkColorType)             },
         { "COLOR_TYPE_ARGB4444",            EV(T::kARGB_4444_SkColorType)           },

@@ -83,6 +83,19 @@ const Template g_templates[] = {
                     "code snippets can be executed in the REPL interface of debugger."
         },
         {
+            .long_name = "runtime-inspector-startup-brk",
+            .has_value = Template::RequireValue::kEmpty,
+            .desc = "Insert a breakpoint at the first executed statement from user's\n"
+                    "JavaScript automatically. To pause on the \"real\" first statement,\n"
+                    "using --runtime-inspector-initial-brk instead."
+        },
+        {
+            .long_name = "runtime-inspector-initial-brk",
+            .has_value = Template::RequireValue::kEmpty,
+            .desc = "Insert a breakpoint at the first executed JavaScript statement,\n"
+                    "including engine's internal scripts."
+        },
+        {
             .long_name = "runtime-blacklist",
             .has_value = Template::RequireValue::kNecessary,
             .value_type = ValueType::kString,
@@ -136,7 +149,7 @@ const Template g_templates[] = {
         {
             .long_name = "gl-transfer-queue-profile",
             .has_value = Template::RequireValue::kEmpty,
-            .desc = "Enable profiling on RenderHost's message queue and the profiling\n"
+            .desc = "Enable profiling on the message queue and the profiling\n"
                     "result will be stored as a JSON file in working directory."
         },
         {
@@ -183,9 +196,17 @@ const Template g_templates[] = {
                     "types for vulkan debug utils."
         },
         {
-            .long_name = "gl-enable-graphics-profiler",
+            .long_name = "gl-enable-profiler",
             .has_value = Template::RequireValue::kEmpty,
             .desc = "Allow JavaScript to examine statistics of frames.\n"
+                    "(if enabled, slight performance loss is possible)"
+        },
+        {
+            .long_name = "gl-profiler-ringbuffer-threshold",
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kInteger,
+            .desc = "Limit the maximum number of samples recorded by \n"
+                    "the internal graphics profiler (32 by default)."
         }
 };
 

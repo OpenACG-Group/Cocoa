@@ -423,19 +423,26 @@ Buffer::MakeFromExternal(void *data, size_t size,
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
-
     Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
-    self->closure_captured_external_ = std::move(closure_captured_external);
 
-    auto external_deleter = +[](void *data, size_t size, void *closure) {
-        auto *self = reinterpret_cast<Buffer*>(closure);
-        CHECK(self->closure_captured_external_);
-        self->closure_captured_external_();
-        std::function<void()> empty_capture;
-        self->closure_captured_external_.swap(empty_capture);
+    struct DeleterClosure
+    {
+        std::function<void()> captured_external;
     };
 
-    v8::Local<v8::Uint8Array> array = create_u8array_from_external(data, size, external_deleter, self);
+    auto *deleter_closure = new DeleterClosure{
+        std::move(closure_captured_external)
+    };
+
+    auto external_deleter = +[](void *data, size_t size, void *closure) {
+        auto *this_ = reinterpret_cast<DeleterClosure*>(closure);
+        CHECK(this_->captured_external);
+        this_->captured_external();
+        delete this_;
+    };
+
+    v8::Local<v8::Uint8Array> array = create_u8array_from_external(
+            data, size, external_deleter, deleter_closure);
     self->array_.Reset(isolate, array);
     self->backing_store_ = array->Buffer()->GetBackingStore();
 

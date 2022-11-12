@@ -181,19 +181,11 @@ Shared<HWComposeContext> RenderClient::GetHWComposeContext()
     if (hw_compose_context_creation_failed_ || hw_compose_disabled_)
         return nullptr;
 
-    using DN = PropertyDataNode;
-    auto hwComposeNode = prop::Get()
-                         ->next("Graphics")
-                         ->next("HWCompose")
-                         ->as<PropertyObjectNode>();
-    if (hwComposeNode->hasMember("Disabled"))
+    if (GlobalScope::Ref().GetOptions().GetDisableHWCompose())
     {
-        if (hwComposeNode->getMember("Disabled")->as<DN>()->extract<bool>())
-        {
-            QLOG(LOG_INFO, "HWCompose is disabled for current environment");
-            hw_compose_disabled_ = true;
-            return nullptr;
-        }
+        QLOG(LOG_INFO, "HWCompose is disabled for current environment");
+        hw_compose_disabled_ = true;
+        return nullptr;
     }
 
     if (hw_compose_context_)
@@ -207,6 +199,13 @@ Shared<HWComposeContext> RenderClient::GetHWComposeContext()
     options.application_version_minor = std::get<1>(hostApplicationInfo.version_triple);
     options.application_version_patch = std::get<2>(hostApplicationInfo.version_triple);
     options.use_vkdbg = false;
+
+    // TODO(sora): eliminate the dependency on property tree
+    using DN = PropertyDataNode;
+    auto hwComposeNode = prop::Get()
+            ->next("Graphics")
+            ->next("HWCompose")
+            ->as<PropertyObjectNode>();
 
     if (hwComposeNode->hasMember("EnableVkDBG"))
     {

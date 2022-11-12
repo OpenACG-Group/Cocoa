@@ -10,6 +10,7 @@
     <hook on="instantiate" call="GlamorSetInstanceProperties"/>
     <exports>
         <toplevel type="declaration" name="Constants"/>
+        <toplevel type="function" name="queryCapabilities" value="QueryCapabilities"/>
 
         <class name="RenderHost" wrapper="RenderHostWrap">
             <method static="true" name="Initialize" value="@Initialize"/>
@@ -20,6 +21,11 @@
             <method static="true" name="TraceGraphicsResources" value="@TraceGraphicsResources"/>
             <method static="true" name="SetTypefaceTransferCallback" value="@SetTypefaceTransferCallback"/>
             <method static="true" name="CollectCriticalSharedResources" value="@CollectCriticalSharedResources"/>
+        </class>
+
+        <class name="GProfiler" wrapper="GProfilerWrap">
+            <method name="purgeRecentHistorySamples" value="@purgeRecentHistorySamples"/>
+            <method name="generateCurrentReport" value="@generateCurrentReport"/>
         </class>
 
         <class name="RenderClientObject" wrapper="RenderClientObjectWrap" invisible="true">
@@ -112,6 +118,7 @@
         </class>
 
         <class name="Blender" wrapper="BlenderWrap" inherit="RenderClientObjectWrap">
+            <property name="profiler" getter="@getProfiler"/>
             <method name="dispose" value="@dispose"/>
             <method name="update" value="@update"/>
             <method name="createTextureFromImage" value="@createTextureFromImage"/>

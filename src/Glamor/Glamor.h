@@ -49,6 +49,7 @@ using Weak = std::weak_ptr<T>;
 #define GLAMOR_TILE_WIDTH_DEFAULT   200
 #define GLAMOR_TILE_HEIGHT_DEFAULT  200
 #define GLAMOR_WORKERS_CONCURRENCY  4
+#define GLAMOR_PROFILER_RINGBUFFER_THRESHOLD_DEFAULT 32
 
 enum class Backends
 {
@@ -59,6 +60,7 @@ enum class Backends
 class RenderHost;
 class RenderClient;
 class GpuThreadSharedObjectsCollector;
+class GProfiler;
 
 class ContextOptions
 {
@@ -105,6 +107,30 @@ public:
         show_tile_boundaries_ = v;
     }
 
+    g_inline void SetEnableProfiler(bool v) {
+        enable_profiler_ = v;
+    }
+
+    g_nodiscard g_inline bool GetEnableProfiler() const {
+        return enable_profiler_;
+    }
+
+    g_inline void SetProfilerRingBufferThreshold(size_t v) {
+        profiler_rb_threshold_ = v;
+    }
+
+    g_nodiscard g_inline size_t GetProfilerRingBufferThreshold() const {
+        return profiler_rb_threshold_;
+    }
+
+    g_nodiscard g_inline bool GetDisableHWCompose() const {
+        return disable_hw_compose_;
+    }
+
+    g_inline void SetDisableHWCompose(bool v) {
+        disable_hw_compose_ = v;
+    }
+
 private:
     Backends    backend_;
     bool        skia_jit_;
@@ -113,6 +139,9 @@ private:
     int32_t     tile_height_;
     uint32_t    render_workers_concurrency_count_;
     bool        show_tile_boundaries_;
+    bool        enable_profiler_;
+    size_t      profiler_rb_threshold_;
+    bool        disable_hw_compose_;
 };
 
 class GlobalScope : public UniquePersistent<GlobalScope>

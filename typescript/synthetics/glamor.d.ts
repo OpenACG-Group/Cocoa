@@ -40,34 +40,34 @@ interface CkXYWHRect {
 }
 type CkRect = CkLTRBRect | CkXYWHRect | Array<number> | Float32Array;
 
-interface CkUniformRadiusRRect {
-    rect: CkRect;
-    radius: number;
+interface CkRRect {
+   rect: CkRect;
+
+    /**
+     * Decide whether apply the same radii in X and Y directions.
+     * If true, all the corners are arcs of a circle, otherwise, they are arcs of
+     * the specified ellipse.
+     */
+   uniformRadii: boolean;
+
+   /**
+    * Symbols:
+    *   TL: top-left, BL: bottom-left, TR: top-right, BR: bottom-right
+    *
+    * XY uniform radii:
+    *   1 value:  [TL|BL|TR|BR]
+    *   2 values: [TL|BR, TR|BL]
+    *   3 values: [TL, TR|BL, BR]
+    *   4 values: [TL, TR, BR, BL]
+    *
+    * XY discrete radii:
+    *   1 value pair:  [TL<xy>|BL<xy>|TR<xy>|BR<xy>]
+    *   2 value pairs: [TL<xy>|BR<xy>, TR<xy>|BL<xy>]
+    *   3 value pairs: [TL<xy>, TR<xy>|BL<xy>, BR<xy>]
+    *   4 value pairs: [TL<xy>, TR<xy>, BR<xy>, BL<xy>]
+    */
+   borderRadii: Float32Array | Array<number>;
 }
-interface CkXYUniformRadiusRRect {
-    rect: CkRect;
-    radiusX: number;
-    radiusY: number;
-}
-interface CkUniformRadiiRRect {
-    rect: CkRect;
-    radiusUpperLeft: number;
-    radiusUpperRight: number;
-    radiusLowerRight: number;
-    radiusLowerLeft: number;
-}
-interface CkXYRadiiRRect {
-    rect: CkRect;
-    radiusUpperLeftX: number;
-    radiusUpperLeftY: number;
-    radiusUpperRightX: number;
-    radiusUpperRightY: number;
-    radiusLowerRightX: number;
-    radiusLowerRightY: number;
-    radiusLowerLeftX: number;
-    radiusLowerLeftY: number;
-}
-type CkRRect = CkUniformRadiusRRect | CkXYUniformRadiusRRect | CkUniformRadiiRRect | CkXYRadiiRRect;
 
 /**
  * Basic information of the application that should be provided for
@@ -98,6 +98,13 @@ export interface TypefaceInfo {
 }
 
 type TypefaceTransferCallbackT = (info: TypefaceInfo) => Uint8Array;
+
+/**
+ * Query a certain capability of current Glamor context.
+ * This function can be called before Glamor is initialized.
+ * See `Constants.CAPABILITY_*` constants for available capabilities.
+ */
+export function queryCapabilities(cap: number): boolean | number | string;
 
 /**
  * RenderHost, aka local thread, is an interface to communicate with
@@ -146,9 +153,7 @@ export class RenderHost {
      */
     public static WaitForSyncBarrier(timeoutInMs: number): void;
 
-    /**
-     * [Only used for testing purpose]
-     */
+    // Internal testing API
     public static SleepRendererFor(timeoutInMs: number): Promise<void>;
 
     /**
@@ -158,8 +163,37 @@ export class RenderHost {
      */
     public static TraceGraphicsResources(): Promise<string>;
 
-    // Experimental API
+    /**
+     * Set a callback function which is used for typeface transferring.
+     * The callback will be fired when a typeface object is required during the
+     * deserialization of Picture objects (if `CkPicture.USAGE_TRANSFER` is specified),
+     * and the callee is supposed to return a certain serialized `SkTypeface` object.
+     * Once a serialized typeface object is received, it will be cached internally
+     * and Glamor will not request for the same typeface object anymore in the future.
+     *
+     * @note This is an internal API which should be used with CanvasKit.
+     *       See `bindWithInitializedRenderHost` function in CanvasKit module.
+     */
     public static SetTypefaceTransferCallback(callback: TypefaceTransferCallbackT): void;
+
+    /**
+     * Free all the critical graphics resources (e.g. `CriticalPicture` objects).
+     * Critical resources is a special type of graphics resources whose ownerships
+     * belong to JavaScript thread instead of rendering thread (GPU thread).
+     * They usually refer to sensitive GPU resources (like textures in video memory),
+     * which only can be accessed and destroyed in GPU thread, but for some reasons they
+     * need to be used in JavaScript thread directly. Consequently, JavaScript thread
+     * only retains weak references to actual resources, and user will be notified
+     * when they are destroyed (see `CriticalPicture.setCollectionCallback` for example).
+     *
+     * In most cases, those critical resources will be released automatically,
+     * depending on JavaScript GC, but user is also allowed to collect them explicitly and
+     * manually by calling this function.
+     *
+     * @note This is NOT an asynchronous API and the rendering thread will be blocked
+     *       when it attempts to manipulate the critical resources list.
+     */
+    public static CollectCriticalSharedResources(): void;
 }
 
 // A unique number to identify a signal slot.
@@ -465,8 +499,99 @@ export class Surface extends RenderClientObject {
     public setFullscreen(value: boolean, monitor: Monitor): Promise<void>;
 }
 
+/**
+ * The result of profiling which contains timing measurements for
+ * several recent frames (we call them "samples").
+ * A maximum number of samples can be specified by commandline option
+ * `--gl-profiler-ringbuffer-threshold`, otherwise, a default value
+ * will be used. Typically, about 30-60 samples can be carried in a single
+ * profiling report.
+ * This profiling report is generated by `GProfiler` object.
+ */
+export interface GProfilerReport {
+    // Profiling timebase in microseconds, a reference time point
+    // for all the timing measurements in this report.
+    timebaseUsSinceEpoch: number;
+
+    // Profiling entries. Each entry is a single frame.
+    entries: Array<{
+
+        // Frame serial number counted by Blender.
+        frame: number;
+
+        // Timing measurements. See related documentations to know
+        // more information about each milestone.
+        milestones: Array<{
+            requested: number;
+            presented: number;
+            prerollBegin: number;
+            prerollEnd: number;
+            paintBegin: number;
+            paintEnd: number;
+            begin: number;
+            end: number;
+        }>;
+    }>;
+}
+
+/**
+ * Graphics profiler.
+ * An instance of `GProfiler` always associates with a unique `Blender`
+ * instance (if it is enabled by commandline option `--gl-enable-profiler`),
+ * collecting the profiling information and manage them.
+ */
+export class GProfiler {
+    /**
+     * Generate a profiling report (export profiling results).
+     * A report contains profiling information of several
+     * the most recent frames. See `GProfilerReport` for more details.
+     *
+     * @note It is NOT an asynchronous API and will lock the rendering thread
+     *       if the rendering thread attempts to insert a new sample.
+     */
+    public generateCurrentReport(): GProfilerReport;
+
+    /**
+     * Purge all the history samples stored in the ring buffer
+     * to relieve memory pressure (if `freeMemory` is True).
+     *
+     * @param freeMemory Whether or not release the allocated memory after
+     *                   purging the samples. If not, memory of purged samples
+     *                   can be reused for new samples in the future to avoid
+     *                   frequent memory allocations.
+     *
+     * @note It is NOT an asynchronous API and will block the rendering thread
+     *       if the rendering thread attempts to insert a new sample.
+     */
+    public purgeRecentHistorySamples(freeMemory: boolean): void;
+}
+
 type TextureId = number;
+
+/**
+ * Blender, a content aggregator in Glamor rendering framework, mainly manages
+ * the textures and performs the rasterization work of layer trees.
+ * It controls the presentation process of contents on a window, providing a higher
+ * abstraction of `Surface`. While `Surface` itself provides an interface by which
+ * user can manipulate the behaviors and appearances of windows, `Blender` provides
+ * an interface by which user can render frames on a window.
+ *
+ * A `Blender` instance always associates with a unique `Surface` instance
+ * implicitly. See `Surface.createBlender` for more details about
+ * creating a Blender.
+ *
+ * @signal [picture-captured] A captured Picture of current frame has been delivered
+ *                            from rendering thread. The serial number corresponds with the
+ *                            number returned by `captureNextFrameAsPicture`.
+ *                            Prototype: (pict: CriticalPicture, serial: number) -> void
+ *
+ * @signal [<dynamic: texture deletion>] A texture has been deleted. Name of the signal
+ *                                       is specified by user.
+ *                                       Prototype: () -> void
+ */
 export class Blender extends RenderClientObject {
+    public readonly profiler: GProfiler | null;
+
     public dispose(): Promise<void>;
     public update(scene: Scene): Promise<void>;
 
@@ -491,15 +616,33 @@ export class Blender extends RenderClientObject {
 
     public purgeRasterCacheResources(): Promise<void>;
 
+    /**
+     * Record the rasterization process of current frame (current layer tree)
+     * as a Picture. Caller will be notified by `picture-captured` signal when
+     * the Picture is generated. All the required drawing resources are interned
+     * in the captured Picture (including textures, images, typefaces, etc.).
+     *
+     * @return A serial number of capture increasing with frame counter.
+     *         If the function is called for multiple times before calling `update`,
+     *         it will return the same serial number.
+     */
     public captureNextFrameAsPicture(): Promise<number>;
 }
 
 export class Scene {
+    /**
+     * A `Scene` instance MUST be disposed as quickly as possible
+     * if it will not be used anymore.
+     */
     public dispose(): void;
+
+    // ~Experimental API~
     public toImage(width: number, height: number): Promise<CkImage>;
 
     /**
      * Get an S-Expression representation of the layer tree.
+     * Related tools provided by Cocoa Project can be used to perform
+     * further analysis for the returned string.
      */
     public toString(): string;
 }
@@ -540,6 +683,11 @@ export class SceneBuilder {
 // ===============================
 
 interface Constants {
+    readonly CAPABILITY_HWCOMPOSE_ENABLED: number;
+    readonly CAPABILITY_PROFILER_ENABLED: number;
+    readonly CAPABILITY_PROFILER_MAX_SAMPLES: number;
+    readonly CAPABILITY_MESSAGE_QUEUE_PROFILING_ENABLED: number;
+
     readonly COLOR_TYPE_ALPHA8: number;
     readonly COLOR_TYPE_RGB565: number;
     readonly COLOR_TYPE_ARGB4444: number;
@@ -620,6 +768,9 @@ export class CkImageFilter {
 
 export class CkColorFilter {
     public static MakeFromDSL(dsl: string, kwargs: object): CkColorFilter;
+    public static Deserialize(buffer: Buffer): CkColorFilter;
+
+    public serialize(): Buffer;
 }
 
 export class CkBitmap {

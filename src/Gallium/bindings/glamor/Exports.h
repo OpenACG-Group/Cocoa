@@ -72,6 +72,19 @@ enum class Sampling : uint32_t
 
 SkSamplingOptions SamplingToSamplingOptions(int32_t v);
 
+enum class Capabilities : uint32_t
+{
+    kHWComposeEnabled,
+    kProfilerEnabled,
+    kProfilerMaxSamples,
+    kMessageQueueProfilingEnabled,
+
+    kLast = kMessageQueueProfilingEnabled
+};
+
+//! TSDecl: function queryCapabilities(cap: Enum<Capabilities>): boolean | number | string
+v8::Local<v8::Value> QueryCapabilities(uint32_t cap);
+
 //! TSDecl: class RenderHost
 class RenderHostWrap
 {
@@ -115,6 +128,24 @@ public:
 
     //! TSDecl: function CollectCriticalSharedResources(): void
     static void CollectCriticalSharedResources();
+};
+
+//! TSDecl: class GProfiler
+class GProfilerWrap
+{
+public:
+    explicit GProfilerWrap(gl::Shared<gl::GProfiler> profiler)
+        : profiler_(std::move(profiler)) {}
+    ~GProfilerWrap() = default;
+
+    //! TSDecl: function purgeRecentHistorySamples(freeMemory: boolean): void
+    void purgeRecentHistorySamples(bool free_memory);
+
+    //! TSDecl: function generateCurrentReport(): Report
+    v8::Local<v8::Value> generateCurrentReport();
+
+private:
+    gl::Shared<gl::GProfiler> profiler_;
 };
 
 //! TSDecl: class RenderClientObject
@@ -287,6 +318,9 @@ public:
     explicit BlenderWrap(gl::Shared<gl::RenderClientObject> object);
     ~BlenderWrap() override;
 
+    //! TSDecl: readonly profiler: null | GProfiler
+    v8::Local<v8::Value> getProfiler();
+
     //! TSDecl: function dispose(): Promise<void>
     v8::Local<v8::Value> dispose();
 
@@ -328,55 +362,10 @@ public:
 
     //! TSDecl: function purgeRasterCacheResources(): Promise<void>
     v8::Local<v8::Value> purgeRasterCacheResources();
+
+private:
+    v8::Global<v8::Object> wrapped_profiler_;
 };
-
-
-//! TSDecl:
-//! interface CkLTRBRect {
-//!   left: number;
-//!   top: number;
-//!   bottom: number;
-//!   right: number;
-//! }
-//! interface CkXYWHRect {
-//!   x: number;
-//!   y: number;
-//!   width: number;
-//!   height: number;
-//! }
-//! type CkRect = CkLTRBRect | CkXYWHRect | Array<number> | Float32Array;
-//!
-//! interface CkUniformRadiusRRect {
-//!   rect: CkRect;
-//!   radius: number;
-//! }
-//! interface CkXYUniformRadiusRRect {
-//!   rect: CkRect;
-//!   radiusX: number;
-//!   radiusY: number;
-//! }
-//! interface CkUniformRadiiRRect {
-//!   rect: CkRect;
-//!   radiusUpperLeft: number;
-//!   radiusUpperRight: number;
-//!   radiusLowerRight: number;
-//!   radiusLowerLeft: number;
-//! }
-//! interface CkXYRadiiRRect {
-//!   rect: CkRect;
-//!   radiusUpperLeftX: number;
-//!   radiusUpperLeftY: number;
-//!   radiusUpperRightX: number;
-//!   radiusUpperRightY: number;
-//!   radiusLowerRightX: number;
-//!   radiusLowerRightY: number;
-//!   radiusLowerLeftX: number;
-//!   radiusLowerLeftY: number;
-//! }
-//! type CkRRect = CkUniformRadiusRRect |
-//!                CkXYUniformRadiusRRect |
-//!                CkUniformRadiiRRect |
-//!                CkXYRadiiRRect;
 
 SkRect ExtractCkRect(v8::Isolate *isolate, v8::Local<v8::Value> object);
 SkRRect ExtractCkRRect(v8::Isolate *isolate, v8::Local<v8::Value> object);

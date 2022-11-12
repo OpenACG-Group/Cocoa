@@ -50,7 +50,7 @@
 #define g_maybe_unused  [[maybe_unused]]
 #define g_async_api
 #define g_sync_api
-#define g_immutable_member
+#define g_locked_sync_api
 
 // Property specifiers for classes
 #define CO_NONCOPYABLE(T) \

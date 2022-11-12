@@ -350,6 +350,14 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
         {
             gallium_options.inspector_no_script = true;
         }
+        else if arg_longopt_match("runtime-inspector-startup-brk")
+        {
+            gallium_options.inspector_startup_brk = true;
+        }
+        else if arg_longopt_match("runtime-inspector-initial-brk")
+        {
+            // TODO(sora): implement this
+        }
         else if arg_longopt_match("runtime-blacklist")
         {
             std::vector<std::string_view> list = utils::SplitString(arg.value->v_str, ',');
@@ -423,7 +431,7 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
         }
         else if arg_longopt_match("gl-disable-hwcompose")
         {
-            hwComposeNode->setMember("Disabled", prop::New<PropertyDataNode>(true));
+            glamor_options.SetDisableHWCompose(true);
         }
         else if arg_longopt_match("gl-hwcompose-enable-vkdbg")
         {
@@ -440,6 +448,15 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
         else if arg_longopt_match("gl-transfer-queue-profile")
         {
             glamor_options.SetProfileRenderHostTransfer(true);
+        }
+        else if arg_longopt_match("gl-enable-profiler")
+        {
+            glamor_options.SetEnableProfiler(true);
+        }
+        else if arg_longopt_match("gl-profiler-ringbuffer-threshold")
+        {
+            size_t v = arg.value->v_int;
+            glamor_options.SetProfilerRingBufferThreshold(v);
         }
     }
 

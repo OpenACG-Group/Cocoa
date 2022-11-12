@@ -487,7 +487,6 @@ public:
 
 private:
     size_t                              alloc_size_hint_;
-    std::function<void()>               closure_captured_external_;
     v8::Global<v8::Uint8Array>          array_;
     std::shared_ptr<v8::BackingStore>   backing_store_;
 };

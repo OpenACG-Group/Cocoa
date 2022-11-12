@@ -73,6 +73,7 @@ add_library(Gallium STATIC
 
         bindings/glamor/Exports.h
         bindings/glamor/Exports.cc
+        bindings/glamor/Capabilities.cc
         bindings/glamor/PromiseHelper.h
         bindings/glamor/PromiseHelper.cc
         bindings/glamor/RenderHost.cc
@@ -95,6 +96,7 @@ add_library(Gallium STATIC
         bindings/glamor/EffectDSLParser.cc
         bindings/glamor/EffectDSLBuilderHelperMacros.h
         bindings/glamor/TrivialSkiaExportedTypes.cc
+        bindings/glamor/GProfilerWrap.cc
 
         bindings/reactor/Exports.h
 )

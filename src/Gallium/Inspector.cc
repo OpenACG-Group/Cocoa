@@ -150,8 +150,13 @@ void Inspector::AsyncHandler(uv_async_t *async)
             should_evaluate_startup_script(front->message_))
         {
             std::string url = inspector->scheduled_module_eval_url_;
-            // inspector->client_->SchedulePauseOnNextStatement("startup");
             Runtime *runtime = Runtime::GetBareFromIsolate(inspector->isolate_);
+            if (runtime->getOptions().inspector_startup_brk)
+            {
+                QLOG(LOG_INFO, "Inspector inserted a startup-breakpoint automatically");
+                inspector->client_->SchedulePauseOnNextStatement("startup");
+            }
+
             try
             {
                 v8::Local<v8::Value> result;
@@ -161,6 +166,8 @@ void Inspector::AsyncHandler(uv_async_t *async)
             }
             catch (const std::exception& e)
             {
+                QLOG(LOG_ERROR, "An exception occurred when evaluating module {}: {}",
+                     inspector->scheduled_module_eval_url_, e.what());
                 // TODO(sora): error handling
             }
 

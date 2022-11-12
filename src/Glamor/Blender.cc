@@ -29,11 +29,11 @@
 #include "Glamor/Blender.h"
 #include "Glamor/RenderTarget.h"
 #include "Glamor/Surface.h"
-#include "Glamor/HWComposeTileFrameGenerator.h"
 #include "Glamor/HWComposeSwapchain.h"
 #include "Glamor/RasterFrameGenerator.h"
 #include "Glamor/TextureManager.h"
 #include "Glamor/TextureFactory.h"
+#include "Glamor/GProfiler.h"
 
 #include "Glamor/Layers/LayerTree.h"
 #include "Glamor/Layers/RasterDrawOpObserver.h"
@@ -172,6 +172,13 @@ Blender::Blender(const Shared<Surface>& surface, Unique<TextureManager> texture_
 {
     CHECK(surface);
 
+    ContextOptions& options = GlobalScope::Ref().GetOptions();
+    if (options.GetEnableProfiler())
+    {
+        QLOG(LOG_DEBUG, "Graphics profiler is available on the Blender");
+        gfx_profiler_ = std::make_shared<GProfiler>();
+    }
+
     auto device = surface->GetRenderTarget()->GetRenderDeviceType();
     GrDirectContext *direct_context = nullptr;
     if (device == RenderTarget::RenderDevice::kHWComposer)
@@ -195,11 +202,13 @@ Blender::Blender(const Shared<Surface>& surface, Unique<TextureManager> texture_
     SetMethodTrampoline(GLOP_BLENDER_PURGE_RASTER_CACHE_RESOURCES,
                         Blender_PurgeRasterCacheResources_Trampoline);
 
-    surface_resize_slot_id_ = surface->Connect(GLSI_SURFACE_RESIZE, [this](RenderHostSlotCallbackInfo& info) {
+    surface_resize_slot_id_ = surface->Connect(GLSI_SURFACE_RESIZE,
+                                               [this](RenderHostSlotCallbackInfo& info) {
         this->SurfaceResizeSlot(info.Get<int32_t>(0), info.Get<int32_t>(1));
     }, true);
 
-    surface_frame_slot_id_ = surface->Connect(GLSI_SURFACE_FRAME, [this](RenderHostSlotCallbackInfo& info) {
+    surface_frame_slot_id_ = surface->Connect(GLSI_SURFACE_FRAME,
+                                              [this](RenderHostSlotCallbackInfo& info) {
         this->SurfaceFrameSlot();
     }, true);
 }
@@ -229,6 +238,21 @@ SkColorInfo Blender::GetOutputColorInfo() const
     return {output_surface_->GetColorType(), SkAlphaType::kPremul_SkAlphaType, nullptr};
 }
 
+#define GPROFILER_TRY_MARK(tag)                                                  \
+    if (gfx_profiler_) {                                                         \
+        gfx_profiler_->MarkMilestoneInFrame(GProfiler::k##tag##_FrameMilestone); \
+    }
+
+#define GPROFILER_TRY_BEGIN_FRAME()     \
+    if (gfx_profiler_) {                \
+        gfx_profiler_->BeginFrame();    \
+    }
+
+#define GPROFILER_TRY_END_FRAME()       \
+    if (gfx_profiler_) {                \
+        gfx_profiler_->EndFrame();      \
+    }
+
 void Blender::SurfaceFrameSlot()
 {
     if (frame_schedule_state_ == FrameScheduleState::kIdle)
@@ -249,6 +273,9 @@ void Blender::SurfaceFrameSlot()
 
     for (const Shared<RasterDrawOpObserver>& observer : layer_tree_->GetObservers())
         observer->EndFrame();
+
+    GPROFILER_TRY_MARK(Presented)
+    GPROFILER_TRY_END_FRAME()
 
     frame_schedule_state_ = FrameScheduleState::kPresented;
 }
@@ -271,6 +298,8 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
         return;
     }
 
+    GPROFILER_TRY_BEGIN_FRAME()
+
     raster_cache_->IncreaseFrameCount();
 
     // TODO: diff & update layer tree
@@ -292,11 +321,15 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
         .raster_cache = raster_cache_.get()
     };
 
+    GPROFILER_TRY_MARK(PrerollBegin)
+
     if (!layer_tree_->Preroll(&context))
     {
         QLOG(LOG_ERROR, "Preroll stage was cancelled, no contents will be represented");
         return;
     }
+
+    GPROFILER_TRY_MARK(PrerollEnd)
 
     // Prepare canvases
     SkSurface *frame_surface = rt->BeginFrame();
@@ -332,7 +365,10 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
         .raster_cache = raster_cache_.get()
     };
 
+
+    GPROFILER_TRY_MARK(PaintBegin)
     layer_tree_->Paint(&paint_context);
+    GPROFILER_TRY_MARK(PaintEnd)
 
     if (picture_recorder.getRecordingCanvas())
     {
@@ -354,6 +390,8 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
                                             static_cast<int32_t>(context.cull_rect.width()),
                                             static_cast<int32_t>(context.cull_rect.height()));
     output_surface_->RequestNextFrame();
+
+    GPROFILER_TRY_MARK(Requested)
 
     frame_schedule_state_ = FrameScheduleState::kPendingFrame;
 }

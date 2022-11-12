@@ -89,6 +89,7 @@ public:
         int32_t     inspector_port = 9005;
         std::string inspector_address = "127.0.0.1";
         bool        inspector_no_script = false;
+        bool        inspector_startup_brk = false;
     };
 
     struct ESModuleCache

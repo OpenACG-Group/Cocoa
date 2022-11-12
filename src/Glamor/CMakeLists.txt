@@ -58,7 +58,8 @@ add_library(
         Texture.cc
         TextureManager.h
         TextureManager.cc
-        GraphicsProfiler.h
+        GProfiler.h
+        GProfiler.cc
 
         Layers/RasterCacheKey.h
         Layers/RasterCache.h

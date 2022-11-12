@@ -39,6 +39,7 @@ class Surface;
 class Blender;
 class LayerTree;
 class TextureManager;
+class GProfiler;
 
 #define GLOP_BLENDER_DISPOSE                            1
 #define GLOP_BLENDER_UPDATE                             2
@@ -87,6 +88,17 @@ public:
         return layer_tree_;
     }
 
+    /**
+     * The profiler is associated with the blender uniquely when the blender
+     * is created. It will NOT be removed or changed during the lifetime
+     * of blender.
+     * It is always safe to use the profiler after the corresponding blender
+     * has been destroyed.
+     */
+    g_sync_api g_nodiscard g_inline const Shared<GProfiler>& GetAttachedProfiler() const {
+        return gfx_profiler_;
+    }
+
     g_nodiscard RenderTarget::RenderDevice GetRenderDeviceType() const;
     g_nodiscard int32_t GetWidth() const;
     g_nodiscard int32_t GetHeight() const;
@@ -130,6 +142,7 @@ private:
     FrameScheduleState             frame_schedule_state_;
     Unique<TextureManager>         texture_manager_;
     Unique<RasterCache>            raster_cache_;
+    Shared<GProfiler>              gfx_profiler_;
 
     bool                           should_capture_next_frame_;
     int32_t                        capture_next_frame_serial_;

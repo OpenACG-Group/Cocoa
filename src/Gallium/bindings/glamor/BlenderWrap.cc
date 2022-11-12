@@ -26,9 +26,19 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 BlenderWrap::BlenderWrap(gl::Shared<gl::RenderClientObject> object)
     : RenderClientObjectWrap(std::move(object))
 {
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
     using PictCast = CreateObjCast<gl::MaybeGpuObject<SkPicture>, CriticalPictureWrap>;
     defineSignal("picture-captured", GLSI_BLENDER_PICTURE_CAPTURED,
                  GenericInfoAcceptor<PictCast, NoCast<int32_t>>);
+
+    gl::Shared<gl::Blender> blender = getObject()->As<gl::Blender>();
+    if (blender->GetAttachedProfiler())
+    {
+        gl::Shared<gl::GProfiler> profiler = blender->GetAttachedProfiler();
+        wrapped_profiler_.Reset(isolate,
+            binder::Class<GProfilerWrap>::create_object(isolate, profiler));
+    }
 }
 
 BlenderWrap::~BlenderWrap() = default;
@@ -64,6 +74,15 @@ v8::Local<v8::Value> invoke_primitive_type_return(v8::Isolate *isolate,
 }
 
 } // namespace anonymous
+
+v8::Local<v8::Value> BlenderWrap::getProfiler()
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (wrapped_profiler_.IsEmpty())
+        return v8::Null(isolate);
+
+    return wrapped_profiler_.Get(isolate);
+}
 
 v8::Local<v8::Value> BlenderWrap::dispose()
 {
