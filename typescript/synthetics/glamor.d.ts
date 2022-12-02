@@ -667,6 +667,8 @@ export class SceneBuilder {
 
     public pushOffset(offsetX: number, offsetY: number): SceneBuilder;
 
+    public pushOpacity(alpha: number): SceneBuilder;
+
     public pushImageFilter(filter: CkImageFilter): SceneBuilder;
 
     public pushRectClip(shape: CkRect, AA: boolean): SceneBuilder;

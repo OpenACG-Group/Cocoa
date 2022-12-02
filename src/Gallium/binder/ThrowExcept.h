@@ -80,8 +80,10 @@ private:
 
 using ExceptT = JSException::Category;
 
-#define g_throw(c, what)        binder::JSException::Throw(binder::ExceptT::k##c, (what))
-#define g_throw3(c, what, i)    binder::JSException::Throw(binder::ExceptT::k##c, (what), (i))
+#define g_throw(c, what)        cocoa::gallium::binder::JSException::Throw( \
+                                    cocoa::gallium::binder::ExceptT::k##c, (what))
+#define g_throw3(c, what, i)    cocoa::gallium::binder::JSException::Throw( \
+                                    cocoa::gallium::binder::ExceptT::k##c, (what), (i))
 
 GALLIUM_BINDER_NS_END
 #endif //COCOA_GALLIUM_BINDER_THROWEXCEPT_H

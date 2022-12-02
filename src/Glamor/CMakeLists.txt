@@ -87,6 +87,8 @@ add_library(
         Layers/RectClipLayer.cc
         Layers/RRectClipLayer.h
         Layers/RRectClipLayer.cc
+        Layers/OpacityLayer.h
+        Layers/OpacityLayer.cc
 
         Wayland/protos/xdg-shell-client-protocol.h
         Wayland/protos/xdg-shell-client-protocol.c

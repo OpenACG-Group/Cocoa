@@ -48,6 +48,9 @@ public:
     v8::Local<v8::Value> addPicture(v8::Local<v8::Value> picture, bool autoFastClip,
                                     SkScalar dx, SkScalar dy);
 
+    //! TSDecl: function pushOpacity(alpha: number): SceneBuilder
+    v8::Local<v8::Value> pushOpacity(SkScalar alpha);
+
     //! TSDecl: function pushImageFilter(filter: CkImageFilter): SceneBuilder
     v8::Local<v8::Value> pushImageFilter(v8::Local<v8::Value> filter);
 

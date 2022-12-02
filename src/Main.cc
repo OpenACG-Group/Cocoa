@@ -510,15 +510,22 @@ void mainloop_execute(bool justInitialize,
     {
         auto runtime = gallium::Runtime::Make(EventLoop::Instance(), options);
 
-        v8::Isolate::Scope isolateScope(runtime->GetIsolate());
-        v8::HandleScope handleScope(runtime->GetIsolate());
-        v8::Context::Scope contextScope(runtime->GetContext());
+        {
+            v8::Isolate::Scope isolateScope(runtime->GetIsolate());
+            v8::HandleScope handleScope(runtime->GetIsolate());
+            v8::Context::Scope contextScope(runtime->GetContext());
 
-        runtime->RunWithMainLoop();
+            runtime->RunWithMainLoop();
+            runtime->NotifyRuntimeWillExit();
+        }
+
+        // Language bindings have objects which is referenced by JavaScript,
+        // and disposing `Runtime` object makes all those objects collected (deleted)
+        // to avoid memory leaking. Therefore, it is necessary to dispose the
+        // `Runtime` object before deleting the binding manager.
+        runtime->Dispose();
 
         gallium::BindingManager::Delete();
-
-        runtime->NotifyRuntimeWillExit();
         CHECK(runtime.unique() && "Runtime is referenced by other scopes");
     }
     else

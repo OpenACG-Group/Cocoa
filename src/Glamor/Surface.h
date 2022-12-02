@@ -74,6 +74,9 @@ GLAMOR_NAMESPACE_BEGIN
 //! @prototype (PointerButton button, bool pressed) -> void
 #define GLSI_SURFACE_POINTER_BUTTON     8
 
+//! @prototype (AxisSourceType source, double x, double y)
+#define GLSI_SURFACE_POINTER_AXIS       9
+
 class RenderTarget;
 class Display;
 class Monitor;

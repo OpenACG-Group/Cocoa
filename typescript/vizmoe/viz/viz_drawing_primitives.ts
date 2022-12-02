@@ -15,35 +15,31 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COCOA_GLAMOR_TYPES_H
-#define COCOA_GLAMOR_TYPES_H
+import * as CanvasKit from 'internal://canvaskit';
 
-#define GLAMOR_NAMESPACE_BEGIN  namespace cocoa::gl {
-#define GLAMOR_NAMESPACE_END    }
+const Canvas = CanvasKit.canvaskit;
 
-GLAMOR_NAMESPACE_BEGIN
+enum DrawOpVerbs {
+    SAVE,
+    RESTORE,
 
-enum class PointerButton : uint8_t
-{
-    /* Mouse buttons */
-    kLeft,
-    kRight,
-    kMiddle,
-    kSide,
-    kExtra,
-    kForward,
-    kBack,
-    kTask
-};
+    CLIP,
+    TRANSFORM,
 
-enum class AxisSourceType : uint8_t
-{
-    kWheel,
-    kWheelTilt,
-    kFinger,
-    kContinuous,
-    kUnknown
-};
+    STROKE,
+    FILL
+}
 
-GLAMOR_NAMESPACE_END
-#endif //COCOA_GLAMOR_TYPES_H
+const g_draw_executors = [
+    { verb: DrawOpVerbs.SAVE, executor: function(canvas: CanvasKit.Canvas) {
+        canvas.save();
+    }},
+
+    { verb: DrawOpVerbs.RESTORE, executor: function(canvas: CanvasKit.Canvas) {
+        canvas.restore();
+    }},
+
+    { verb: DrawOpVerbs.STROKE, executor: function(canvas: CanvasKit.Canvas) {
+        
+    }}
+];

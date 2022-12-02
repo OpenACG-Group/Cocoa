@@ -41,6 +41,8 @@ SurfaceWrap::SurfaceWrap(gl::Shared<gl::RenderClientObject> object)
                  GenericInfoAcceptor<NoCast<double>, NoCast<double>>);
     defineSignal("pointer-button", GLSI_SURFACE_POINTER_BUTTON,
                  GenericInfoAcceptor<AutoEnumCast<gl::PointerButton>, NoCast<bool>>);
+    defineSignal("pointer-axis", GLSI_SURFACE_POINTER_AXIS,
+                 GenericInfoAcceptor<AutoEnumCast<gl::AxisSourceType>, NoCast<double>, NoCast<double>>);
 }
 
 SurfaceWrap::~SurfaceWrap() = default;

@@ -115,6 +115,8 @@ std::shared_ptr<SubprocessHost> SubprocessHost::Run(uv_loop_t *loop,
         uv_pipe_init(loop, &proc->ipc_pipe_stream_, true);
         proc->ipc_pipe_stream_.data = proc.get();
 
+        // TODO(sora): Set callbacks for `ipc_pipe_stream_`
+
         constexpr int flags = UV_CREATE_PIPE | UV_WRITABLE_PIPE | UV_READABLE_PIPE;
         stdio_containers[0].flags = static_cast<uv_stdio_flags>(flags);
         stdio_containers[0].data.stream = reinterpret_cast<uv_stream_t*>(&proc->ipc_pipe_stream_);

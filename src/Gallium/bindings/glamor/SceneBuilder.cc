@@ -25,6 +25,7 @@
 #include "Glamor/Layers/BackdropFilterLayer.h"
 #include "Glamor/Layers/RectClipLayer.h"
 #include "Glamor/Layers/RRectClipLayer.h"
+#include "Glamor/Layers/OpacityLayer.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 SceneBuilder::SceneBuilder(int32_t width, int32_t height)
@@ -96,6 +97,15 @@ v8::Local<v8::Value> SceneBuilder::pop()
 v8::Local<v8::Value> SceneBuilder::pushOffset(SkScalar x, SkScalar y)
 {
     pushLayer(std::make_shared<gl::TransformLayer>(SkMatrix::Translate(x, y)));
+    return getSelfHandle();
+}
+
+v8::Local<v8::Value> SceneBuilder::pushOpacity(SkScalar alpha)
+{
+    if (alpha < 0 || alpha > 1)
+        g_throw(RangeError, "Invalid alpha value, must between [0, 1]");
+
+    pushLayer(std::make_shared<gl::OpacityLayer>(alpha * 255));
     return getSelfHandle();
 }
 

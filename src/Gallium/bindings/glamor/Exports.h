@@ -190,7 +190,8 @@ private:
 };
 
 //! TSDecl: class Display extends RenderClientObject
-class DisplayWrap : public RenderClientObjectWrap
+class DisplayWrap : public RenderClientObjectWrap,
+                    public PreventGCObject
 {
 public:
     explicit DisplayWrap(gl::Shared<gl::RenderClientObject> object);

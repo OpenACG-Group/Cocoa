@@ -31,6 +31,12 @@
         "samples/canvaskit_window_shader.ts",
         "experimental/canvaskit_window_physics.ts",
         "experimental/canvaskit_window_vn.ts",
-        "experimental/rect_clip_test.ts"
+        "experimental/rect_clip_test.ts",
+
+        "vizmoe/viz/viz_component_base.ts",
+        "vizmoe/viz/viz_component_viewport.ts",
+        "vizmoe/viz/viz_drawing_primitives.ts",
+        "vizmoe/viz/viz_component_tests.ts",
+        "vizmoe/math.ts"
     ]
 }

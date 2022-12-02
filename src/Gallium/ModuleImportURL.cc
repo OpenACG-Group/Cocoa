@@ -138,13 +138,13 @@ ModuleImportURL::Resolve(const ModuleImportURL::SharedPtr& referer,
         /* 'internal://' must be specified explicitly */
         proto = Protocol::kFile;
         path = import;
-        if ((bindingCache = BindingManager::Instance()->search(import)))
+        if ((bindingCache = BindingManager::Instance()->search(path)))
             proto = Protocol::kSynthetic;
     }
 
     if (proto == Protocol::kSynthetic && !bindingCache)
     {
-        bindingCache = BindingManager::Instance()->search(import);
+        bindingCache = BindingManager::Instance()->search(path);
         if (!bindingCache)
             return nullptr;
     }

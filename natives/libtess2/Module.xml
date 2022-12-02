@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <info name="libtess2" description="A software implementation of GLU triangulation algorithm for polygon tessellation"/>
+    <metadata namespace="libtess2" class="Libtess2Binding"/>
+
+    <include src="Exports.h"/>
+
+    <exports>
+        <class name="Tessellator" wrapper="TessellatorWrap">
+            <constructor prototype=""/>
+
+            <method name="addContour2D" value="@addContour2D"/>
+            <method name="addContour3D" value="@addContour3D"/>
+            <method name="tessellate" value="@tessellate"/>
+
+            <property static="true" name="CONSTRAINED_DELAUNAY_TRIANGULATION" value="TESS_CONSTRAINED_DELAUNAY_TRIANGULATION"/>
+            <property static="true" name="REVERSE_CONTOURS" value="TESS_REVERSE_CONTOURS"/>
+
+            <property static="true" name="WINDING_ODD" value="TESS_WINDING_ODD"/>
+            <property static="true" name="WINDING_NONZERO" value="TESS_WINDING_NONZERO"/>
+            <property static="true" name="WINDING_POSITIVE" value="TESS_WINDING_POSITIVE"/>
+            <property static="true" name="WINDING_NEGATIVE" value="TESS_WINDING_NEGATIVE"/>
+            <property static="true" name="WINDING_ABS_GEQ_TWO" value="TESS_WINDING_ABS_GEQ_TWO"/>
+
+            <property static="true" name="POLYGONS" value="TESS_POLYGONS"/>
+            <property static="true" name="CONNECTED_POLYGONS" value="TESS_CONNECTED_POLYGONS"/>
+            <property static="true" name="BOUNDARY_CONTOURS" value="TESS_BOUNDARY_CONTOURS"/>
+        </class>
+    </exports>
+</module>

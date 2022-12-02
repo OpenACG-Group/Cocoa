@@ -23,6 +23,7 @@
 #include <wayland-cursor.h>
 
 #include "Core/Journal.h"
+#include "Core/Exception.h"
 #include "Glamor/Wayland/WaylandSeat.h"
 #include "Glamor/Wayland/WaylandDisplay.h"
 #include "Glamor/Wayland/WaylandSurface.h"
@@ -37,7 +38,9 @@ GLAMOR_NAMESPACE_BEGIN
 class WaylandSeatListener
 {
 public:
-    explicit WaylandSeatListener(WaylandSeat *seat) : seat_(seat) {}
+    explicit WaylandSeatListener(WaylandSeat *seat)
+        : seat_(seat), has_axis_event_frame_(false), axis_values_{0, 0}
+        , axis_source_type_(AxisSourceType::kUnknown) {}
     ~WaylandSeatListener() = default;
 
     // Seat events
@@ -70,15 +73,15 @@ public:
                         wl_pointer *pointer,
                         uint32_t time,
                         uint32_t axis,
-                        wl_fixed_t value) {}
-    static void on_frame(void *data, wl_pointer *pointer) {}
+                        wl_fixed_t value);
+    static void on_frame(void *data, wl_pointer *pointer);
     static void on_axis_source(void *data,
                                wl_pointer *pointer,
-                               uint32_t axis_source) {}
+                               uint32_t axis_source);
     static void on_axis_stop(void *data,
                              wl_pointer *pointer,
                              uint32_t time,
-                             uint32_t axis) {}
+                             uint32_t axis);
     static void on_axis_discrete(void *data,
                                  wl_pointer *pointer,
                                  uint32_t axis,
@@ -86,9 +89,19 @@ public:
     static void on_axis_value120(void *data,
                                  wl_pointer *pointer,
                                  uint32_t axis,
-                                 int32_t value120) {}
+                                 int32_t value120);
+
+    enum AxisValueSelector
+    {
+        kX,
+        kY
+    };
 
     WaylandSeat     *seat_;
+
+    bool             has_axis_event_frame_;
+    double           axis_values_[2];
+    AxisSourceType   axis_source_type_;
 };
 
 namespace {
@@ -333,6 +346,104 @@ void WaylandSeatListener::on_axis_discrete(g_maybe_unused void *data,
                                            g_maybe_unused int32_t discrete)
 {
     // Deprecated event (since version 8).
+}
+
+void WaylandSeatListener::on_axis(void *data,
+                                  g_maybe_unused wl_pointer *pointer,
+                                  g_maybe_unused uint32_t time,
+                                  uint32_t axis,
+                                  wl_fixed_t value)
+{
+    auto *listener = LISTENER(data);
+    CHECK(listener);
+
+    listener->has_axis_event_frame_ = true;
+
+    auto dv = wl_fixed_to_double(value);
+    if (axis == WL_POINTER_AXIS_VERTICAL_SCROLL)
+        listener->axis_values_[kY] += dv;
+    else if (axis == WL_POINTER_AXIS_HORIZONTAL_SCROLL)
+        listener->axis_values_[kX] += dv;
+    else
+        MARK_UNREACHABLE("Unexpected axis enumeration");
+}
+
+void WaylandSeatListener::on_axis_source(void *data,
+                                         g_maybe_unused wl_pointer *pointer,
+                                         uint32_t axis_source)
+{
+    auto *listener = LISTENER(data);
+    CHECK(listener);
+
+    listener->has_axis_event_frame_ = true;
+
+    switch (axis_source)
+    {
+    case WL_POINTER_AXIS_SOURCE_WHEEL:
+        listener->axis_source_type_ = AxisSourceType::kWheel;
+        break;
+
+    case WL_POINTER_AXIS_SOURCE_WHEEL_TILT:
+        listener->axis_source_type_ = AxisSourceType::kWheelTilt;
+        break;
+
+    case WL_POINTER_AXIS_SOURCE_FINGER:
+        listener->axis_source_type_ = AxisSourceType::kFinger;
+        break;
+
+    case WL_POINTER_AXIS_SOURCE_CONTINUOUS:
+        listener->axis_source_type_ = AxisSourceType::kContinuous;
+        break;
+
+    default:
+        MARK_UNREACHABLE("Invalid axis source type enumeration");
+    }
+}
+
+void WaylandSeatListener::on_axis_stop(void *data,
+                                       wl_pointer *pointer,
+                                       uint32_t time,
+                                       uint32_t axis)
+{
+}
+
+void WaylandSeatListener::on_axis_value120(void *data,
+                                           wl_pointer *pointer,
+                                           uint32_t axis,
+                                           int32_t value120)
+{
+    fmt::print("value120 = {}\n", value120);
+}
+
+void WaylandSeatListener::on_frame(void *data, wl_pointer *pointer)
+{
+    auto *listener = LISTENER(data);
+    CHECK(listener);
+
+    ScopeExitAutoInvoker reset([listener]() {
+        // Reset in-frame states
+        listener->has_axis_event_frame_ = false;
+        listener->axis_source_type_ = AxisSourceType::kUnknown;
+        listener->axis_values_[0] = 0;
+        listener->axis_values_[1] = 0;
+    });
+
+    if (listener->has_axis_event_frame_)
+    {
+        auto surface = extract_surface_from_pointer(data, pointer);
+        if (!surface)
+        {
+            QLOG(LOG_ERROR, "Compositor notified us an axis event of a pointer "
+                            "which is not hovering on any surfaces");
+            return;
+        }
+
+        RenderClientEmitterInfo info;
+        info.EmplaceBack<AxisSourceType>(listener->axis_source_type_);
+        info.EmplaceBack<double>(listener->axis_values_[kX]);
+        info.EmplaceBack<double>(listener->axis_values_[kY]);
+        surface->Emit(GLSI_SURFACE_POINTER_AXIS, std::move(info));
+    }
 }
 
 Shared<WaylandSeat> WaylandSeat::Make(const std::shared_ptr<WaylandDisplay>& display,

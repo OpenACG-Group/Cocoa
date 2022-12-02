@@ -55,6 +55,9 @@ v8::Local<v8::Value> CriticalPictureWrap::sanitize()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
+    if (!picture_)
+        g_throw(Error, "Null CriticalPicture object");
+
     gl::MaybeGpuObject<SkPicture> picture(picture_);
 
     // Following code will be executed in the rendering thread
@@ -95,6 +98,9 @@ v8::Local<v8::Value> CriticalPictureWrap::serialize()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
+    if (!picture_)
+        g_throw(Error, "Null CriticalPicture object");
+
     // See also comments in `sanitize` method.
 
     gl::MaybeGpuObject<SkPicture> picture(picture_);
@@ -110,7 +116,9 @@ v8::Local<v8::Value> CriticalPictureWrap::serialize()
     CHECK(runner);
 
     auto converter = [](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
-        auto data = info.GetReturnValue<sk_sp<SkData>>();
+        // Note that `SkData` only allows accessing `writable_data()` when
+        // `SkData` object does not be referenced by other owners.
+        auto data = std::move(info.GetReturnValue<sk_sp<SkData>>());
         CHECK(data);
 
         return Buffer::MakeFromExternal(data->writable_data(), data->size(),

@@ -3,6 +3,10 @@ project(Cocoa VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
+
+## Build options
+option(COCOA_BUILD_TOY_NATIVES "Build toy natives for testing purpose" ON)
+
 find_package(PkgConfig REQUIRED)
 
 set(COCOA_THIRDPARTY_DIR ${CMAKE_HOME_DIRECTORY}/third_party)
@@ -61,3 +65,7 @@ target_link_libraries(
 )
 
 add_subdirectory(tests)
+
+if (${COCOA_BUILD_TOY_NATIVES})
+    add_subdirectory(natives/libtess2)
+endif()

@@ -115,6 +115,13 @@
             <property static="true" name="POINTER_BUTTON_FORWARD" value="V_CAST_U32(gl::PointerButton::kForward)"/>
             <property static="true" name="POINTER_BUTTON_BACK" value="V_CAST_U32(gl::PointerButton::kBack)"/>
             <property static="true" name="POINTER_BUTTON_TASK" value="V_CAST_U32(gl::PointerButton::kTask)"/>
+
+            <!-- Enumeration map for gl::AxisSourceType -->
+            <property static="true" name="POINTER_AXIS_SOURCE_WHEEL" value="V_CAST_U32(gl::AxisSourceType::kWheel)"/>
+            <property static="true" name="POINTER_AXIS_SOURCE_WHEEL_TILT" value="V_CAST_U32(gl::AxisSourceType::kWheelTilt)"/>
+            <property static="true" name="POINTER_AXIS_SOURCE_FINGER" value="V_CAST_U32(gl::AxisSourceType::kFinger)"/>
+            <property static="true" name="POINTER_AXIS_SOURCE_CONTINUOUS" value="V_CAST_U32(gl::AxisSourceType::kContinuous)"/>
+            <property static="true" name="POINTER_AXIS_SOURCE_UNKNOWN" value="V_CAST_U32(gl::AxisSourceType::kUnknown)"/>
         </class>
 
         <class name="Blender" wrapper="BlenderWrap" inherit="RenderClientObjectWrap">
@@ -141,6 +148,7 @@
             <method name="pop" value="@pop"/>
             <method name="build" value="@build"/>
             <method name="pushOffset" value="@pushOffset"/>
+            <method name="pushOpacity" value="@pushOpacity"/>
             <method name="pushImageFilter" value="@pushImageFilter"/>
             <method name="pushBackdropFilter" value="@pushBackdropFilter"/>
             <method name="pushRectClip" value="@pushRectClip"/>

@@ -1,212 +1,109 @@
-import {details} from 'traint_utils';
-
-class LinkedListNode<T> {
-    constructor(public value: T, public next?: LinkedListNode<T>,
-                public prev?: LinkedListNode<T>) {
-    }
+export class LinkedListNode<T> {
+    constructor(public list: LinkedList<T>,
+                public value: T,
+                public head: boolean = false,
+                public next: LinkedListNode<T> = null,
+                public prev: LinkedListNode<T> = null) {}
 }
 
-export class LinkedList<T> implements Iterable<T> {
-    static readonly INVALID_INDEX = -1;
+export class LinkedList<T> {
+    #head: LinkedListNode<T>;
 
-    private count: number = 0;
-    private head: LinkedListNode<T> = null;
-    private rear: LinkedListNode<T> = null;
-
-    constructor(protected comparator: details.BinaryEqComparator<T> = details.defaultBinaryEqComparator) {
+    constructor() {
+        this.#head = new LinkedListNode<T>(this, undefined, true, null, null);
+        this.#head.next = this.#head;
+        this.#head.prev = this.#head;
     }
 
-    private atIndexUnsafe(index: number): LinkedListNode<T> {
-        let cur: LinkedListNode<T> = null;
-        if (index <= (this.count >>> 1)) {
-            cur = this.head;
-            while (index > 0 && cur != null) {
-                cur = cur.next;
-                index--;
-            }
-        } else {
-            cur = this.rear;
-            let p = this.count - 1;
-            while (p > index && cur != null) {
-                cur = cur.prev;
-                p--;
-            }
+    protected _checkNodeOwnership(node: LinkedListNode<T>): void {
+        if (!node.list) {
+            throw Error('Wild list node is not allowed');
         }
-        return cur;
+        if (node.list != this) {
+            throw Error('Provided list node belongs to another list');
+        }
     }
 
-    private atIndexNodeSafe(index: number): LinkedListNode<T> {
-        if (!Number.isInteger(index) || index < 0 || index >= this.count) {
-            throw RangeError(`Invalid index value ${index} (size=${this.count})`);
+    protected _checkEmptyList(): void {
+        if (this.#head.next == this.#head) {
+            throw Error('Empty list');
         }
-        return this.atIndexUnsafe(index);
     }
 
-    private removeNode(node: LinkedListNode<T>): LinkedListNode<T> {
-        if (node.prev != null) {
-            node.prev.next = node.next;
-        }
-        if (node.next != null) {
-            node.next.prev = node.prev;
-        }
-        let nextNode = node.next;
-
-        if (node == this.rear) {
-            this.rear = node.prev;
-        }
-        if (node == this.head) {
-            this.head = nextNode;
-        }
-
-        node.prev = null;
-        node.next = null;
-        this.count--;
-        return nextNode;
+    public isEmpty(): boolean {
+        return (this.#head.next == this.#head);
     }
 
-    *[Symbol.iterator](): IterableIterator<T> {
-        let current = this.head;
-        while (current != null) {
-            yield current.value;
+    public forEach(callback: (value: T, index: number) => void): void {
+        let current = this.#head.next;
+        let index = 0;
+        while (!current.head) {
+            callback(current.value, index);
             current = current.next;
+            index++;
         }
     }
 
-    public size(): number {
-        return this.count;
+    public insertAfter(node: LinkedListNode<T>, value: T): void {
+        this._checkNodeOwnership(node);
+        const insert = new LinkedListNode<T>(this, value);
+        insert.prev = node;
+        insert.next = node.next;
+        node.next.prev = insert;
+        node.next = insert;
+    }
+
+    public insertBefore(node: LinkedListNode<T>, value: T): void {
+        this._checkNodeOwnership(node);
+        const insert = new LinkedListNode<T>(this, value);
+        insert.next = node;
+        insert.prev = node.prev;
+        node.prev.next = insert;
+        node.prev = insert;
     }
 
     public push(value: T): void {
-        let node = new LinkedListNode<T>(value);
-        if (this.head == null) {
-            this.head = node;
-            this.rear = node;
-        } else {
-            this.rear.next = node;
-            node.prev = this.rear;
-            this.rear = node;
-        }
-
-        this.count++;
+        this.insertBefore(this.#head, value);
     }
 
     public pop(): void {
-        if (this.rear == null) {
-            throw Error('Pop an empty LinkedList');
-        }
-
-        if (this.rear == this.head) {
-            this.head = null;
-        }
-
-        let newRear = this.rear.prev;
-        if (newRear != null) {
-            newRear.next = null;
-        }
-        this.rear.prev = null;
-        this.rear = newRear;
-        this.count--;
+        this._checkEmptyList();
+        this.removeNode(this.#head.prev);
     }
 
-    public atIndex(index: number): T {
-        return this.atIndexNodeSafe(index).value;
+    public first(): LinkedListNode<T> {
+        this._checkEmptyList();
+        return this.#head.next;
     }
 
-    public insertAfter(index: number, value: T): void {
-        if (index == this.count - 1) {
-            this.push(value);
-            return;
-        }
-        let insertNode = new LinkedListNode<T>(value);
-        let prevNode = this.atIndexNodeSafe(index);
-        insertNode.prev = prevNode;
-        insertNode.next = prevNode.next;
-        if (prevNode.next != null) {
-            prevNode.next.prev = insertNode;
-        }
-        prevNode.next = insertNode;
-        this.count++;
+    public back(): LinkedListNode<T> {
+        this._checkEmptyList();
+        return this.#head.prev;
     }
 
-    public insertBefore(index: number, value: T): void {
-        let insertNode = new LinkedListNode<T>(value);
-        let nextNode = this.atIndexNodeSafe(index);
-        insertNode.prev = nextNode.prev;
-        insertNode.next = nextNode;
-        if (nextNode.prev != null) {
-            nextNode.prev.next = insertNode;
-        } else {
-            this.head = insertNode;
+    public removeNode(node: LinkedListNode<T>): void {
+        this._checkNodeOwnership(node);
+        if (node.head) {
+            throw Error('Head node cannot be removed');
         }
-        nextNode.prev = insertNode;
-        this.count++;
+        node.prev.next = node.next;
+        node.next.prev = node.prev;
+        node.prev = null;
+        node.next = null;
+        node.list = null;
+        node.value = null;
     }
 
-    public indexOf(value: T): number {
-        let current = this.head;
-        let i = 0;
-        while (current != null) {
-            if (this.comparator(current.value, value)) {
-                break;
+    public removeIf(pred: (value: T, index: number) => boolean): void {
+        let current = this.#head.next;
+        let index = 0;
+        while (!current.head) {
+            let next = current.next;
+            if (pred(current.value, index)) {
+                this.removeNode(current);
             }
-            current = current.next;
-            i++;
+            current = next;
+            index++;
         }
-        return (current != null) ? i : LinkedList.INVALID_INDEX;
-    }
-
-    public removeAt(index: number): T {
-        let node = this.atIndexNodeSafe(index);
-        this.removeNode(node);
-        return node.value;
-    }
-
-    public remove(value: T): number {
-        let counter = 0;
-        let current = this.head;
-        while (current != null) {
-            if (this.comparator(current.value, value)) {
-                current = this.removeNode(current);
-                counter++;
-            } else {
-                current = current.next;
-            }
-        }
-        return counter;
-    }
-
-    public removeIf(func: (value: T) => boolean): void {
-        let current = this.head;
-        while (current != null) {
-            if (func(current.value) == true) {
-                current = this.removeNode(current);
-            } else {
-                current = current.next;
-            }
-        }
-    }
-
-    public hasElement(value: T): boolean {
-        let cur = this.head;
-        while (cur != null) {
-            if (this.comparator(cur.value, value)) {
-                return true;
-            }
-            cur = cur.next;
-        }
-        return false;
-    }
-
-    public toString(): string {
-        let result = '[';
-        let current = this.head;
-        while (current != null) {
-            if (current != this.head) {
-                result = result.concat(', ');
-            }
-            result = result.concat(current.value.toString());
-            current = current.next;
-        }
-        return result.concat(']');
     }
 }

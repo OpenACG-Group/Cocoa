@@ -15,35 +15,27 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COCOA_GLAMOR_TYPES_H
-#define COCOA_GLAMOR_TYPES_H
+#ifndef COCOA_GLAMOR_LAYERS_OPACITYLAYER_H
+#define COCOA_GLAMOR_LAYERS_OPACITYLAYER_H
 
-#define GLAMOR_NAMESPACE_BEGIN  namespace cocoa::gl {
-#define GLAMOR_NAMESPACE_END    }
-
+#include "Glamor/Layers/ContainerLayer.h"
 GLAMOR_NAMESPACE_BEGIN
 
-enum class PointerButton : uint8_t
+class OpacityLayer : public ContainerLayer
 {
-    /* Mouse buttons */
-    kLeft,
-    kRight,
-    kMiddle,
-    kSide,
-    kExtra,
-    kForward,
-    kBack,
-    kTask
-};
+public:
+    explicit OpacityLayer(SkAlpha alpha)
+        : alpha_(alpha) {}
+    ~OpacityLayer() override = default;
 
-enum class AxisSourceType : uint8_t
-{
-    kWheel,
-    kWheelTilt,
-    kFinger,
-    kContinuous,
-    kUnknown
+    void Preroll(PrerollContext *context, const SkMatrix &matrix) override;
+
+    void Paint(PaintContext *context) const override;
+    void ToString(std::ostream& out) override;
+
+private:
+    SkAlpha alpha_;
 };
 
 GLAMOR_NAMESPACE_END
-#endif //COCOA_GLAMOR_TYPES_H
+#endif //COCOA_GLAMOR_LAYERS_OPACITYLAYER_H

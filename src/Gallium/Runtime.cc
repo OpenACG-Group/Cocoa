@@ -259,6 +259,7 @@ Runtime::Runtime(EventLoop *loop,
                  Options opts)
     : PrepareSource(loop)
     , CheckSource(loop)
+    , disposed_(false)
     , options_(std::move(opts))
     , startup_data_(startupData)
     , tracing_controller_(std::move(tracing_controller))
@@ -292,6 +293,16 @@ Runtime::Runtime(EventLoop *loop,
 
 Runtime::~Runtime()
 {
+    CHECK(disposed_ && "Runtime must be disposed before destruction");
+}
+
+void Runtime::Dispose()
+{
+    if (disposed_)
+        return;
+
+    CHECK(!isolate_->IsInUse() && "V8 Isolate is still being used when disposing");
+
     uv_close((uv_handle_t *)&idle_, nullptr);
 
     QLOG(LOG_DEBUG, "Imported modules (URL):");
@@ -302,7 +313,17 @@ Runtime::~Runtime()
     }
 
     ModuleImportURL::FreeInternalCaches();
-    binder::Cleanup(isolate_);
+
+    // The destructors of language binding classes will be called during `Cleanup`,
+    // which means the JavaScript code may be executed by those destructors,
+    // so we create temporary scopes to execute JavaScript code or allow the destructors
+    // to manipulate JavaScript objects.
+    {
+        v8::Isolate::Scope isolate_scope(isolate_);
+        v8::HandleScope handle_scope(isolate_);
+        v8::Context::Scope context_scope(GetContext());
+        binder::Cleanup(isolate_);
+    }
 
     introspect_.reset();
 
@@ -324,6 +345,8 @@ Runtime::~Runtime()
         delete[] startup_data_->data;
         delete startup_data_;
     }
+
+    disposed_ = true;
 }
 
 bindings::BindingBase *Runtime::GetSyntheticModuleBinding(v8::Local<v8::Module> module)

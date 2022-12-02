@@ -23,7 +23,8 @@
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 DisplayWrap::DisplayWrap(gl::Shared<gl::RenderClientObject> object)
-        : RenderClientObjectWrap(std::move(object))
+    : RenderClientObjectWrap(std::move(object))
+    , PreventGCObject(v8::Isolate::GetCurrent())
 {
     defineSignal("closed", GLSI_DISPLAY_CLOSED, nullptr);
     defineSignal("monitor-added", GLSI_DISPLAY_MONITOR_ADDED,
@@ -64,6 +65,8 @@ DisplayWrap::~DisplayWrap() = default;
 
 v8::Local<v8::Value> DisplayWrap::close()
 {
+    markCanBeGarbageCollected();
+
     auto closure = PromiseClosure::New(v8::Isolate::GetCurrent(), nullptr);
     getObject()->Invoke(GLOP_DISPLAY_CLOSE,
                         closure,

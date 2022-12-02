@@ -75,7 +75,7 @@ public:
     //! TSDecl: function next(): Promise<IteratorResult>
     g_nodiscard v8::Local<v8::Value> next() const;
 
-    //! TSDecl: function return(): Promise<IteratorResult
+    //! TSDecl: function return(): Promise<IteratorResult>
     g_nodiscard v8::Local<v8::Value> return_() const;
 
     //! TSDecl: function throw(): Promise<IteratorResult>

@@ -200,6 +200,8 @@ public:
 
     void DrainPlatformTasks();
 
+    void Dispose();
+
     // Binder's memory management
     using BinderExtValueHolderBase = binder::detail::external_data::value_holder_base;
     g_private_api void RegisterExternalValueHolder(BinderExtValueHolderBase *value);
@@ -226,6 +228,7 @@ private:
     KeepInLoop prepareDispatch() override;
     KeepInLoop checkDispatch() override;
 
+    bool                            disposed_;
     Options                         options_;
     v8::StartupData                *startup_data_;
     std::unique_ptr<v8::TracingController> tracing_controller_;

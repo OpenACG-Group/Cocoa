@@ -130,9 +130,15 @@ v8::Local<v8::Value> RenderHostWrap::Connect(const v8::FunctionCallbackInfo<v8::
 
     auto creator = gl::GlobalScope::Ref().GetRenderHost()->GetRenderHostCreator();
 
-    using W = DisplayWrap;
     using T = gl::Shared<gl::RenderClientObject>;
-    auto pack = PromiseClosure::New(isolate, PromiseClosure::CreateObjectConverter<W, T>);
+    auto pack = PromiseClosure::New(isolate, [](v8::Isolate *isolate, gl::RenderHostCallbackInfo &info) {
+        auto obj = binder::Class<DisplayWrap>::create_object(isolate,
+                                                             info.GetReturnValue<T>());
+        auto *ptr = binder::Class<DisplayWrap>::unwrap_object(isolate, obj);
+        ptr->setGCObjectSelfHandle(obj);
+
+        return obj;
+    });
 
     creator->Invoke(GLOP_RENDERHOSTCREATOR_CREATE_DISPLAY,
                     pack,

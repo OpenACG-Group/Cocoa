@@ -15,35 +15,8 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COCOA_GLAMOR_TYPES_H
-#define COCOA_GLAMOR_TYPES_H
+#include "native-libtess2.h"
 
-#define GLAMOR_NAMESPACE_BEGIN  namespace cocoa::gl {
-#define GLAMOR_NAMESPACE_END    }
-
-GLAMOR_NAMESPACE_BEGIN
-
-enum class PointerButton : uint8_t
-{
-    /* Mouse buttons */
-    kLeft,
-    kRight,
-    kMiddle,
-    kSide,
-    kExtra,
-    kForward,
-    kBack,
-    kTask
-};
-
-enum class AxisSourceType : uint8_t
-{
-    kWheel,
-    kWheelTilt,
-    kFinger,
-    kContinuous,
-    kUnknown
-};
-
-GLAMOR_NAMESPACE_END
-#endif //COCOA_GLAMOR_TYPES_H
+GALLIUM_BINDING_LOADER_HOOK {
+    GALLIUM_HOOK_RET(cocoa::gallium::bindings::on_register_module_libtess2());
+}
