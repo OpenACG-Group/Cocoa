@@ -18,16 +18,20 @@
 #ifndef COCOA_CORE_ENUMCLASSBITFIELD_H
 #define COCOA_CORE_ENUMCLASSBITFIELD_H
 
-#include <concepts>
 #include <initializer_list>
 #include <vector>
+
+#include "Core/Project.h"
 
 namespace cocoa {
 template<typename E, typename = typename std::enable_if<std::is_enum_v<E>>::type>
 class Bitfield
 {
 public:
+    CO_CLASS_HAS_EXTRACT_VALUE
+
     using T = typename std::underlying_type<E>::type;
+
     explicit Bitfield(T value) : fValue(value) {}
     Bitfield() : fValue(0) {}
     explicit Bitfield(E value) : fValue(static_cast<T>(value)) {}

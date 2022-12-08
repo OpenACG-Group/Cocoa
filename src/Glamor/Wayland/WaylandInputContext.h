@@ -15,31 +15,32 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as CanvasKit from 'internal://canvaskit';
+#ifndef COCOA_GLAMOR_WAYLAND_WAYLANDINPUTCONTEXT_H
+#define COCOA_GLAMOR_WAYLAND_WAYLANDINPUTCONTEXT_H
 
-const Canvas = CanvasKit.canvaskit;
+#include <xkbcommon/xkbcommon.h>
 
-enum DrawOpVerbs {
-    SAVE,
-    RESTORE,
+#include "Glamor/Glamor.h"
+GLAMOR_NAMESPACE_BEGIN
 
-    CLIP,
-    TRANSFORM,
+class WaylandDisplay;
 
-    STROKE,
-    FILL
-}
+class WaylandInputContext
+{
+public:
+    WaylandInputContext(WaylandDisplay *display, xkb_context *context);
+    ~WaylandInputContext();
 
-const g_draw_executors = [
-    { verb: DrawOpVerbs.SAVE, executor: function(canvas: CanvasKit.Canvas) {
-        canvas.save();
-    }},
+    static Unique<WaylandInputContext> Make(WaylandDisplay *display);
 
-    { verb: DrawOpVerbs.RESTORE, executor: function(canvas: CanvasKit.Canvas) {
-        canvas.restore();
-    }},
+    g_nodiscard g_inline xkb_context *GetXkbContext() const {
+        return xkb_context_;
+    }
 
-    { verb: DrawOpVerbs.STROKE, executor: function(canvas: CanvasKit.Canvas) {
-        
-    }}
-];
+private:
+    WaylandDisplay      *display_;
+    xkb_context         *xkb_context_;
+};
+
+GLAMOR_NAMESPACE_END
+#endif //COCOA_GLAMOR_WAYLAND_WAYLANDINPUTCONTEXT_H

@@ -20,6 +20,7 @@
 
 #include <functional>
 
+#include "Core/EnumClassBitfield.h"
 #include "Gallium/bindings/glamor/Exports.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
@@ -68,12 +69,13 @@ struct SlotClosure
     int32_t signal_code_;
 };
 
-template<typename RealT, typename CastT, bool CreateObj = false>
+template<typename RealT, typename CastT, bool CreateObj = false, bool ExtractValue = false>
 struct InfoAcceptorCast
 {
     using real_type = RealT;
     using cast_type = CastT;
     constexpr static bool create_obj = CreateObj;
+    constexpr static bool extract_value = ExtractValue;
 };
 
 template<typename T>
@@ -85,6 +87,9 @@ using AutoEnumCast = InfoAcceptorCast<T, typename std::underlying_type<T>::type>
 template<typename ParamT, typename ObjT>
 using CreateObjCast = InfoAcceptorCast<ParamT, ObjT, true>;
 
+template<typename Enum, typename Target = typename Bitfield<Enum>::T>
+using EnumBitfieldCast = InfoAcceptorCast<Bitfield<Enum>, Target, false, true>;
+
 namespace acceptor_traits {
 
 template<typename T>
@@ -92,7 +97,17 @@ v8::Local<v8::Value> ConvertGeneric(v8::Isolate *isolate,
                                     gl::RenderHostSlotCallbackInfo& info,
                                     size_t index)
 {
-    if constexpr (T::create_obj)
+    if constexpr (T::extract_value)
+    {
+        static_assert(T::real_type::kHasExtractValue,
+                "Class must have signature CO_CLASS_HAS_EXTRACT_VALUE");
+
+        static_assert(!T::create_obj, "Illegal usage of InfoAcceptorCast<...>");
+
+        return binder::to_v8(isolate, static_cast<typename T::cast_type>(
+                    info.Get<typename T::real_type>(index).value()));
+    }
+    else if constexpr (T::create_obj)
     {
         return binder::Class<typename T::cast_type>::create_object(isolate,
             info.Get<typename T::real_type>(index));

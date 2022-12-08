@@ -392,6 +392,19 @@ export class Monitor extends RenderClientObject {
  * 
  * @signal [pointer-button] Emitted when a button of pointer device is pressed or released.
  *                          Prototype: (button: PointerButton, pressed: boolean) -> void
+ *
+ * @signal [pointer-axis] <Undocumented>
+ *                        Prototype: (sourceType: PointerAxisSource, dx: number, dy: number) -> void
+ *
+ *
+ * @signal [pointer-highres-scroll] <Undocumented>
+ *                                  Prototype: (sourceType: PointerAxisSource, dx: number, dy: number) -> void
+ *
+ * @signal [keyboard-focus] <Undocumented>
+ *                          Prototype: (focused: boolean) -> void
+ *
+ * @signal [keyboard-key] <Undocumented>
+ *                        Prototype: (key: KeyboardKey, modifiers: KeyboardModifiers, pressed: boolean) -> void
  */
 export class Surface extends RenderClientObject {
     // ToplevelStates
@@ -403,16 +416,6 @@ export class Surface extends RenderClientObject {
     static readonly TOPLEVEL_TILED_RIGHT: number;
     static readonly TOPLEVEL_TILED_TOP: number;
     static readonly TOPLEVEL_TILED_BOTTOM: number;
-
-    // PointerButton
-    static readonly POINTER_BUTTON_LEFT: number;
-    static readonly POINTER_BUTTON_RIGHT: number;
-    static readonly POINTER_BUTTON_MIDDLE: number;
-    static readonly POINTER_BUTTON_SIDE: number;
-    static readonly POINTER_BUTTON_EXTRA: number;
-    static readonly POINTER_BUTTON_FORWARD: number;
-    static readonly POINTER_BUTTON_BACK: number;
-    static readonly POINTER_BUTTON_TASK: number;
 
     /* Window width in pixels. */
     public readonly width: number;
@@ -680,9 +683,10 @@ export class SceneBuilder {
                               autoChildClipping: boolean): SceneBuilder;
 }
 
-// ===============================
-// Basic Rendering Objects
-// ===============================
+export type PointerButton = number;
+export type PointerAxisSource = number;
+export type KeyboardModifiers = number;
+export type KeyboardKey = number;
 
 interface Constants {
     readonly CAPABILITY_HWCOMPOSE_ENABLED: number;
@@ -757,6 +761,153 @@ interface Constants {
     readonly BLEND_MODE_SATURATION: number;
     readonly BLEND_MODE_COLOR: number;
     readonly BLEND_MODE_LUMINOSITY: number;
+
+    /* Pointer buttons (mouse and other pointing devices) */
+    readonly POINTER_BUTTON_LEFT: PointerButton;
+    readonly POINTER_BUTTON_RIGHT: PointerButton;
+    readonly POINTER_BUTTON_MIDDLE: PointerButton;
+    readonly POINTER_BUTTON_SIDE: PointerButton;
+    readonly POINTER_BUTTON_EXTRA: PointerButton;
+    readonly POINTER_BUTTON_FORWARD: PointerButton;
+    readonly POINTER_BUTTON_BACK: PointerButton;
+    readonly POINTER_BUTTON_TASK: PointerButton;
+
+    /* Pointer axis (scrolling) */
+    readonly POINTER_AXIS_SOURCE_WHEEL: PointerAxisSource;
+    readonly POINTER_AXIS_SOURCE_WHEEL_TILT: PointerAxisSource;
+    readonly POINTER_AXIS_SOURCE_FINGER: PointerAxisSource;
+    readonly POINTER_AXIS_SOURCE_CONTINUOUS: PointerAxisSource;
+    readonly POINTER_AXIS_SOURCE_UNKNOWN: PointerAxisSource;
+
+    /* Keyboard modifiers (bitfields) */
+    readonly MODIFIER_CONTROL: KeyboardModifiers;
+    readonly MODIFIER_ALT: KeyboardModifiers;
+    readonly MODIFIER_SHIFT: KeyboardModifiers;
+    readonly MODIFIER_SUPER: KeyboardModifiers;
+    readonly MODIFIER_CAPS_LOCK: KeyboardModifiers;
+    readonly MODIFIER_NUM_LOCK: KeyboardModifiers;
+
+    /* Keyboard keys */
+    readonly KEY_SPACE: KeyboardKey;
+    readonly KEY_APOSTROPHE: KeyboardKey;
+    readonly KEY_COMMA: KeyboardKey;
+    readonly KEY_MINUS: KeyboardKey;
+    readonly KEY_PERIOD: KeyboardKey;
+    readonly KEY_SLASH: KeyboardKey;
+    readonly KEY_0: KeyboardKey;
+    readonly KEY_1: KeyboardKey;
+    readonly KEY_2: KeyboardKey;
+    readonly KEY_3: KeyboardKey;
+    readonly KEY_4: KeyboardKey;
+    readonly KEY_5: KeyboardKey;
+    readonly KEY_6: KeyboardKey;
+    readonly KEY_7: KeyboardKey;
+    readonly KEY_8: KeyboardKey;
+    readonly KEY_9: KeyboardKey;
+    readonly KEY_SEMICOLON: KeyboardKey;
+    readonly KEY_EQUAL: KeyboardKey;
+    readonly KEY_A: KeyboardKey;
+    readonly KEY_B: KeyboardKey;
+    readonly KEY_C: KeyboardKey;
+    readonly KEY_D: KeyboardKey;
+    readonly KEY_E: KeyboardKey;
+    readonly KEY_F: KeyboardKey;
+    readonly KEY_G: KeyboardKey;
+    readonly KEY_H: KeyboardKey;
+    readonly KEY_I: KeyboardKey;
+    readonly KEY_J: KeyboardKey;
+    readonly KEY_K: KeyboardKey;
+    readonly KEY_L: KeyboardKey;
+    readonly KEY_M: KeyboardKey;
+    readonly KEY_N: KeyboardKey;
+    readonly KEY_O: KeyboardKey;
+    readonly KEY_P: KeyboardKey;
+    readonly KEY_Q: KeyboardKey;
+    readonly KEY_R: KeyboardKey;
+    readonly KEY_S: KeyboardKey;
+    readonly KEY_T: KeyboardKey;
+    readonly KEY_U: KeyboardKey;
+    readonly KEY_V: KeyboardKey;
+    readonly KEY_W: KeyboardKey;
+    readonly KEY_X: KeyboardKey;
+    readonly KEY_Y: KeyboardKey;
+    readonly KEY_Z: KeyboardKey;
+    readonly KEY_LEFT_BRACKET: KeyboardKey;
+    readonly KEY_BACKSLASH: KeyboardKey;
+    readonly KEY_RIGHT_BRACKET: KeyboardKey;
+    readonly KEY_GRAVE_ACCENT: KeyboardKey;
+    readonly KEY_WORLD_1: KeyboardKey;
+    readonly KEY_WORLD_2: KeyboardKey;
+    readonly KEY_ESCAPE: KeyboardKey;
+    readonly KEY_ENTER: KeyboardKey;
+    readonly KEY_TAB: KeyboardKey;
+    readonly KEY_BACKSPACE: KeyboardKey;
+    readonly KEY_INSERT: KeyboardKey;
+    readonly KEY_DELETE: KeyboardKey;
+    readonly KEY_RIGHT: KeyboardKey;
+    readonly KEY_LEFT: KeyboardKey;
+    readonly KEY_DOWN: KeyboardKey;
+    readonly KEY_UP: KeyboardKey;
+    readonly KEY_PAGE_UP: KeyboardKey;
+    readonly KEY_PAGE_DOWN: KeyboardKey;
+    readonly KEY_HOME: KeyboardKey;
+    readonly KEY_END: KeyboardKey;
+    readonly KEY_CAPS_LOCK: KeyboardKey;
+    readonly KEY_SCROLL_LOCK: KeyboardKey;
+    readonly KEY_NUM_LOCK: KeyboardKey;
+    readonly KEY_PRINT_SCREEN: KeyboardKey;
+    readonly KEY_PAUSE: KeyboardKey;
+    readonly KEY_F1: KeyboardKey;
+    readonly KEY_F2: KeyboardKey;
+    readonly KEY_F3: KeyboardKey;
+    readonly KEY_F4: KeyboardKey;
+    readonly KEY_F5: KeyboardKey;
+    readonly KEY_F6: KeyboardKey;
+    readonly KEY_F7: KeyboardKey;
+    readonly KEY_F8: KeyboardKey;
+    readonly KEY_F9: KeyboardKey;
+    readonly KEY_F10: KeyboardKey;
+    readonly KEY_F11: KeyboardKey;
+    readonly KEY_F12: KeyboardKey;
+    readonly KEY_F13: KeyboardKey;
+    readonly KEY_F14: KeyboardKey;
+    readonly KEY_F15: KeyboardKey;
+    readonly KEY_F16: KeyboardKey;
+    readonly KEY_F17: KeyboardKey;
+    readonly KEY_F18: KeyboardKey;
+    readonly KEY_F19: KeyboardKey;
+    readonly KEY_F20: KeyboardKey;
+    readonly KEY_F21: KeyboardKey;
+    readonly KEY_F22: KeyboardKey;
+    readonly KEY_F23: KeyboardKey;
+    readonly KEY_F24: KeyboardKey;
+    readonly KEY_F25: KeyboardKey;
+    readonly KEY_KP_0: KeyboardKey;
+    readonly KEY_KP_1: KeyboardKey;
+    readonly KEY_KP_2: KeyboardKey;
+    readonly KEY_KP_3: KeyboardKey;
+    readonly KEY_KP_4: KeyboardKey;
+    readonly KEY_KP_5: KeyboardKey;
+    readonly KEY_KP_6: KeyboardKey;
+    readonly KEY_KP_7: KeyboardKey;
+    readonly KEY_KP_8: KeyboardKey;
+    readonly KEY_KP_9: KeyboardKey;
+    readonly KEY_KP_DECIMAL: KeyboardKey;
+    readonly KEY_KP_DIVIDE: KeyboardKey;
+    readonly KEY_KP_MULTIPLY: KeyboardKey;
+    readonly KEY_KP_SUBTRACT: KeyboardKey;
+    readonly KEY_KP_ADD: KeyboardKey;
+    readonly KEY_KP_ENTER: KeyboardKey;
+    readonly KEY_KP_EQUAL: KeyboardKey;
+    readonly KEY_LEFT_SHIFT: KeyboardKey;
+    readonly KEY_LEFT_CONTROL: KeyboardKey;
+    readonly KEY_LEFT_ALT: KeyboardKey;
+    readonly KEY_LEFT_SUPER: KeyboardKey;
+    readonly KEY_RIGHT_SHIFT: KeyboardKey;
+    readonly KEY_RIGHT_CONTROL: KeyboardKey;
+    readonly KEY_RIGHT_ALT: KeyboardKey;
+    readonly KEY_RIGHT_SUPER: KeyboardKey;
+    readonly KEY_MENU: KeyboardKey;
 }
 
 export declare let Constants: Constants;

@@ -24,13 +24,12 @@
 GLAMOR_NAMESPACE_BEGIN
 
 class WaylandDisplay;
-class WaylandSeatListener;
 class WaylandSurface;
+class WaylandSeatPointerDevice;
+class WaylandSeatKeyboardDevice;
 
 class WaylandSeat
 {
-    friend class WaylandSeatListener;
-
 public:
     WaylandSeat(std::weak_ptr<WaylandDisplay> display,
                 wl_seat *seat,
@@ -45,22 +44,18 @@ public:
         return registry_id_;
     }
 
-    g_nodiscard g_inline const auto& GetListener() const {
-        return listener_;
-    }
-
     g_nodiscard g_inline const std::string& GetName() const {
         return seat_name_;
     }
 
     Shared<WaylandSurface> FindSurfaceByNativeHandle(wl_surface *surface);
 
-    g_nodiscard g_inline wl_keyboard *GetKeyboardDevice() const {
-        return keyboard_device_;
+    g_nodiscard g_inline WaylandSeatKeyboardDevice *GetKeyboardDevice() const {
+        return keyboard_device_.get();
     }
 
-    g_nodiscard g_inline wl_pointer *GetPointerDevice() const {
-        return pointer_device_;
+    g_nodiscard g_inline WaylandSeatPointerDevice *GetPointerDevice() const {
+        return pointer_device_.get();
     }
 
     g_nodiscard g_inline wl_touch *GetTouchDevice() const {
@@ -71,14 +66,17 @@ public:
         return display_.lock();
     }
 
+    // Seat events
+    static void on_capabilities(void *data, wl_seat *seat, uint32_t caps);
+    static void on_name(void *data, wl_seat *seat, const char *name);
+
 private:
-    std::unique_ptr<WaylandSeatListener> listener_;
     std::weak_ptr<WaylandDisplay>   display_;
     wl_seat                        *wl_seat_;
     uint32_t                        registry_id_;
 
-    wl_keyboard                    *keyboard_device_;
-    wl_pointer                     *pointer_device_;
+    Unique<WaylandSeatKeyboardDevice> keyboard_device_;
+    Unique<WaylandSeatPointerDevice> pointer_device_;
     wl_touch                       *touch_device_;
     std::string                     seat_name_;
 };

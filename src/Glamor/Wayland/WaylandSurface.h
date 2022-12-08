@@ -48,11 +48,8 @@ public:
 
     void OnSetCursor(const Shared<Cursor> &cursor) override;
 
-    g_private_api g_inline void SetLatestPointerEnterEventSerial(uint32_t serial) {
+    g_private_api g_inline void SetPointerEntered(uint32_t serial, wl_pointer *device) {
         latest_pointer_enter_serial_ = serial;
-    }
-
-    g_private_api g_inline void SetEnteredPointerDevice(wl_pointer *device) {
         entered_pointer_device_ = device;
     }
 
@@ -62,6 +59,14 @@ public:
 
     g_private_api g_nodiscard g_inline wl_pointer *GetEnteredPointerDevice() const {
         return entered_pointer_device_;
+    }
+
+    g_private_api g_inline void SetKeyboardEntered(wl_keyboard *device) {
+        entered_keyboard_device_ = device;
+    }
+
+    g_private_api g_nodiscard g_inline wl_keyboard *GetEnteredKeyboardDevice() const {
+        return entered_keyboard_device_;
     }
 
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
@@ -81,6 +86,8 @@ private:
 
     uint32_t                             latest_pointer_enter_serial_;
     wl_pointer                          *entered_pointer_device_;
+
+    wl_keyboard                         *entered_keyboard_device_;
 };
 
 GLAMOR_NAMESPACE_END

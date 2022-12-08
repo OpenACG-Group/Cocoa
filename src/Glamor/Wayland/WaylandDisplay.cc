@@ -29,6 +29,7 @@
 #include "Glamor/Wayland/WaylandSeat.h"
 #include "Glamor/Wayland/WaylandCursorTheme.h"
 #include "Glamor/Wayland/WaylandCursor.h"
+#include "Glamor/Wayland/WaylandInputContext.h"
 GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.Wayland.Display)
@@ -229,6 +230,15 @@ Shared<WaylandDisplay> WaylandDisplay::Connect(uv_loop_t *loop, const std::strin
     display->wl_registry_ = wl_display_get_registry(display->wl_display_);
     wl_registry_add_listener(display->wl_registry_, &g_registry_listener, display.get());
 
+    // The input context is required in next roundtrip (compositor may send `keymap`
+    // event for keyboard device), so it must be created before next roundtrip.
+    display->input_context_ = WaylandInputContext::Make(display.get());
+    if (!display->input_context_)
+    {
+        QLOG(LOG_ERROR, "Failed to create input context for new display");
+        return nullptr;
+    }
+
     if (wl_display_roundtrip(display->wl_display_) < 0 ||
         wl_display_roundtrip(display->wl_display_) < 0)
     {
@@ -408,6 +418,8 @@ void WaylandDisplay::OnDispose()
     // All the `WaylandSeat` objects should be destructed here.
     seats_list_.clear();
 
+    input_context_.reset();
+
     globals_.reset();
 
     if (wl_registry_)
@@ -537,6 +549,19 @@ bool WaylandDisplay::HasPointerDeviceInSeats()
     return (itr != seats_list_.end());
 }
 
+bool WaylandDisplay::HasKeyboardDeviceInSeats()
+{
+    if (seats_list_.empty())
+        return false;
+
+    auto itr = std::find_if(seats_list_.begin(), seats_list_.end(),
+                            [](const Shared<WaylandSeat>& seat) -> bool {
+        return seat->GetKeyboardDevice();
+    });
+
+    return (itr != seats_list_.end());
+}
+
 Shared<WaylandSurface> WaylandDisplay::GetPointerEnteredSurface(wl_pointer *pointer)
 {
     CHECK(pointer);
@@ -552,6 +577,25 @@ Shared<WaylandSurface> WaylandDisplay::GetPointerEnteredSurface(wl_pointer *poin
 
     if (itr == surfaces_list_.end())
         return nullptr;
+    return (*itr)->As<WaylandSurface>();
+}
+
+Shared<WaylandSurface> WaylandDisplay::GetKeyboardEnteredSurface(wl_keyboard *keyboard)
+{
+    CHECK(keyboard);
+
+    if (!HasKeyboardDeviceInSeats())
+        return nullptr;
+
+    auto itr = std::find_if(surfaces_list_.begin(), surfaces_list_.end(),
+                            [keyboard](const Shared<Surface>& surface) -> bool {
+        wl_keyboard *focus = surface->As<WaylandSurface>()->GetEnteredKeyboardDevice();
+        return (focus == keyboard);
+    });
+
+    if (itr == surfaces_list_.end())
+        return nullptr;
+
     return (*itr)->As<WaylandSurface>();
 }
 

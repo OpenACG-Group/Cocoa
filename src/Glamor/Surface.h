@@ -74,8 +74,17 @@ GLAMOR_NAMESPACE_BEGIN
 //! @prototype (PointerButton button, bool pressed) -> void
 #define GLSI_SURFACE_POINTER_BUTTON     8
 
-//! @prototype (AxisSourceType source, double x, double y)
+//! @prototype (AxisSourceType source, double x, double y) -> void
 #define GLSI_SURFACE_POINTER_AXIS       9
+
+//! @prototype (AxisSourceType source, int value120) -> void
+#define GLSI_SURFACE_POINTER_HIGHRES_SCROLL 10
+
+//! @prototype (bool focused) -> void
+#define GLSI_SURFACE_KEYBOARD_FOCUS     11
+
+//! @prototype (KeyboardKey key, Bitfield<KeyboardModifiers> modifiers, bool pressed) -> void
+#define GLSI_SURFACE_KEYBOARD_KEY       12
 
 class RenderTarget;
 class Display;

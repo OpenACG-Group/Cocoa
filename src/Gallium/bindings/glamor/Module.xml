@@ -105,23 +105,6 @@
             <property static="true" name="TOPLEVEL_TILED_RIGHT" value="V_CAST_U32(gl::ToplevelStates::kTiledRight)"/>
             <property static="true" name="TOPLEVEL_TILED_TOP" value="V_CAST_U32(gl::ToplevelStates::kTiledTop)"/>
             <property static="true" name="TOPLEVEL_TILED_BOTTOM" value="V_CAST_U32(gl::ToplevelStates::kTiledBottom)"/>
-
-            <!-- Enumeration map for gl::PointerButton -->
-            <property static="true" name="POINTER_BUTTON_LEFT" value="V_CAST_U32(gl::PointerButton::kLeft)"/>
-            <property static="true" name="POINTER_BUTTON_RIGHT" value="V_CAST_U32(gl::PointerButton::kRight)"/>
-            <property static="true" name="POINTER_BUTTON_MIDDLE" value="V_CAST_U32(gl::PointerButton::kMiddle)"/>
-            <property static="true" name="POINTER_BUTTON_SIDE" value="V_CAST_U32(gl::PointerButton::kSide)"/>
-            <property static="true" name="POINTER_BUTTON_EXTRA" value="V_CAST_U32(gl::PointerButton::kExtra)"/>
-            <property static="true" name="POINTER_BUTTON_FORWARD" value="V_CAST_U32(gl::PointerButton::kForward)"/>
-            <property static="true" name="POINTER_BUTTON_BACK" value="V_CAST_U32(gl::PointerButton::kBack)"/>
-            <property static="true" name="POINTER_BUTTON_TASK" value="V_CAST_U32(gl::PointerButton::kTask)"/>
-
-            <!-- Enumeration map for gl::AxisSourceType -->
-            <property static="true" name="POINTER_AXIS_SOURCE_WHEEL" value="V_CAST_U32(gl::AxisSourceType::kWheel)"/>
-            <property static="true" name="POINTER_AXIS_SOURCE_WHEEL_TILT" value="V_CAST_U32(gl::AxisSourceType::kWheelTilt)"/>
-            <property static="true" name="POINTER_AXIS_SOURCE_FINGER" value="V_CAST_U32(gl::AxisSourceType::kFinger)"/>
-            <property static="true" name="POINTER_AXIS_SOURCE_CONTINUOUS" value="V_CAST_U32(gl::AxisSourceType::kContinuous)"/>
-            <property static="true" name="POINTER_AXIS_SOURCE_UNKNOWN" value="V_CAST_U32(gl::AxisSourceType::kUnknown)"/>
         </class>
 
         <class name="Blender" wrapper="BlenderWrap" inherit="RenderClientObjectWrap">

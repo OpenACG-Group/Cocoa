@@ -32,6 +32,7 @@ GLAMOR_NAMESPACE_BEGIN
 class WaylandRoundtripScope;
 class WaylandSeat;
 class WaylandSurface;
+class WaylandInputContext;
 
 class WaylandDisplay : public Display
 {
@@ -70,6 +71,10 @@ public:
         return wl_display_;
     }
 
+    g_nodiscard WaylandInputContext *GetInputContext() const {
+        return input_context_.get();
+    }
+
     g_inline void AppendSeat(const Shared<WaylandSeat>& seat) {
         CHECK(seat && "Invalid seat");
 
@@ -79,8 +84,10 @@ public:
     }
 
     bool HasPointerDeviceInSeats();
+    bool HasKeyboardDeviceInSeats();
 
     g_nodiscard Shared<WaylandSurface> GetPointerEnteredSurface(wl_pointer *pointer);
+    g_nodiscard Shared<WaylandSurface> GetKeyboardEnteredSurface(wl_keyboard *keyboard);
 
     /**
      * Try to remove a seat specified by the wayland global ID.
@@ -118,6 +125,7 @@ private:
     std::vector<wl_shm_format>      wl_shm_formats_;
 
     std::list<Shared<WaylandSeat>>  seats_list_;
+    std::unique_ptr<WaylandInputContext> input_context_;
 
     uv_prepare_t                   *uv_prepare_handle_;
     uv_check_t                     *uv_check_handle_;

@@ -59,6 +59,9 @@
 #define CO_NONASSIGNABLE(T) \
     T& operator=(const T&) = delete;
 
+#define CO_CLASS_HAS_EXTRACT_VALUE \
+    constexpr static bool kHasExtractValue = true;
+
 
 // Environment variables to control the behaviour of Cocoa
 #define ENV_GL_XCURSOR_THEME        "XCURSOR_THEME"

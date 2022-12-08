@@ -43,6 +43,15 @@ SurfaceWrap::SurfaceWrap(gl::Shared<gl::RenderClientObject> object)
                  GenericInfoAcceptor<AutoEnumCast<gl::PointerButton>, NoCast<bool>>);
     defineSignal("pointer-axis", GLSI_SURFACE_POINTER_AXIS,
                  GenericInfoAcceptor<AutoEnumCast<gl::AxisSourceType>, NoCast<double>, NoCast<double>>);
+    defineSignal("pointer-highres-scroll", GLSI_SURFACE_POINTER_HIGHRES_SCROLL,
+                 GenericInfoAcceptor<AutoEnumCast<gl::AxisSourceType>, NoCast<int32_t>, NoCast<int32_t>>);
+    defineSignal("keyboard-focus", GLSI_SURFACE_KEYBOARD_FOCUS,
+                 GenericInfoAcceptor<NoCast<bool>>);
+
+    defineSignal("keyboard-key", GLSI_SURFACE_KEYBOARD_KEY,
+                 GenericInfoAcceptor<AutoEnumCast<gl::KeyboardKey>,
+                                     EnumBitfieldCast<gl::KeyboardModifiers>,
+                                     NoCast<bool>>);
 }
 
 SurfaceWrap::~SurfaceWrap() = default;

@@ -111,6 +111,12 @@ add_library(
         Wayland/WaylandSurface.cc
         Wayland/WaylandSeat.h
         Wayland/WaylandSeat.cc
+        Wayland/WaylandInputContext.h
+        Wayland/WaylandInputContext.cc
+        Wayland/WaylandSeatPointerDevice.h
+        Wayland/WaylandSeatPointerDevice.cc
+        Wayland/WaylandSeatKeyboardDevice.h
+        Wayland/WaylandSeatKeyboardDevice.cc
         Wayland/WaylandCursorTheme.h
         Wayland/WaylandCursorTheme.cc
         Wayland/WaylandCursor.h

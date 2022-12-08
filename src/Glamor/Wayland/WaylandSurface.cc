@@ -180,6 +180,7 @@ WaylandSurface::WaylandSurface(const Shared<WaylandRenderTarget>& rt)
     , kde_kwin_server_deco_(nullptr)
     , latest_pointer_enter_serial_(0)
     , entered_pointer_device_(nullptr)
+    , entered_keyboard_device_(nullptr)
 {
 }
 
