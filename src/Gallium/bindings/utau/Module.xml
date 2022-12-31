@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <info name="utau" description="Pipeline-based multimedia processing framework"/>
+    <metadata namespace="cocoa::gallium::bindings::utau_wrap" class="UtauBinding"/>
+    <include src="Gallium/bindings/utau/Exports.h"/>
+
+    <hook on="instantiate" call="SetInstanceProperties"/>
+
+    <exports>
+        <toplevel type="function" name="Test" value="Test"/>
+    </exports>
+</module>

@@ -15,11 +15,7 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COCOA_GLAMOR_GSHADER_GSMODULE_H
-#define COCOA_GLAMOR_GSHADER_GSMODULE_H
+#ifndef COCOA_UTAU_AVSTREAMDECODER_H
+#define COCOA_UTAU_AVSTREAMDECODER_H
 
-#include "Glamor/Glamor.h"
-GLAMOR_NAMESPACE_BEGIN
-
-GLAMOR_NAMESPACE_END
-#endif //COCOA_GLAMOR_GSHADER_GSMODULE_H
+#endif //COCOA_UTAU_AVSTREAMDECODER_H

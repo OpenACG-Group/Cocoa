@@ -1,0 +1,8 @@
+//
+// Created by sora on 22-12-22.
+//
+
+#ifndef COCOA_PIPEWIREAUDIOSINK_H
+#define COCOA_PIPEWIREAUDIOSINK_H
+
+#endif //COCOA_PIPEWIREAUDIOSINK_H

@@ -15,22 +15,18 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COCOA_GLAMOR_GSHADER_GSENVIRONMENT_H
-#define COCOA_GLAMOR_GSHADER_GSENVIRONMENT_H
+#ifndef COCOA_UTAU_FFWRAPPERS_LIBAVUTIL_H
+#define COCOA_UTAU_FFWRAPPERS_LIBAVUTIL_H
 
-#include "Glamor/Glamor.h"
-#include "Glamor/GShader/GSAssembly.h"
-GLAMOR_NAMESPACE_BEGIN
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
 
-enum class GSCapabilities
-{
-    kBaseline
+#include <libavutil/avutil.h>
+#include <libavutil/samplefmt.h>
+
+#ifdef __cplusplus
 };
+#endif // __cplusplus
 
-class GSEnvironment
-{
-public:
-};
-
-GLAMOR_NAMESPACE_END
-#endif //COCOA_GSENVIRONMENT_H
+#endif //COCOA_UTAU_FFWRAPPERS_LIBAVUTIL_H
