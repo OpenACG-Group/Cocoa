@@ -18,19 +18,22 @@
 #ifndef COCOA_GLAMOR_LAYERS_RASTERDRAWOPOBSERVER_H
 #define COCOA_GLAMOR_LAYERS_RASTERDRAWOPOBSERVER_H
 
-#include "include/utils/SkNoDrawCanvas.h"
+#include "include/core/SkCanvas.h"
+#include "include/core/SkCanvasVirtualEnforcer.h"
+#include "include/gpu/GrDirectContext.h"
 
 #include "Glamor/Glamor.h"
 GLAMOR_NAMESPACE_BEGIN
 
-class RasterDrawOpObserver : public SkCanvasVirtualEnforcer<SkNoDrawCanvas>
+class RasterDrawOpObserver
 {
 public:
-    RasterDrawOpObserver(int32_t width, int32_t height);
-    explicit RasterDrawOpObserver(const SkIRect& cull);
-    ~RasterDrawOpObserver() override = default;
+    RasterDrawOpObserver() = default;
+    virtual ~RasterDrawOpObserver() = default;
 
-    virtual void BeginFrame() = 0;
+    virtual std::string GetExternalObserverName() = 0;
+    virtual SkCanvas *BeginFrame(GrDirectContext *direct_context,
+                                 const SkISize& viewport) = 0;
     virtual void EndFrame() = 0;
 };
 

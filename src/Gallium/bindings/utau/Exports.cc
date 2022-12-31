@@ -21,7 +21,6 @@
 #include "Gallium/bindings/utau/Exports.h"
 #include "Utau/Utau.h"
 #include "Utau/AudioSink.h"
-#include "Utau/AudioResampler.h"
 #include "Utau/AVStreamDecoder.h"
 #include "Utau/AudioFilterDAG.h"
 #include "fmt/core.h"
@@ -48,7 +47,15 @@ void SetInstanceProperties(v8::Local<v8::Object> instance)
         { "SAMPLE_FORMAT_F64P", I(FMT::kF64P)   },
 
         { "CH_MODE_MONO",       I(ChM::kMono)   },
-        { "CH_MODE_STEREO",     I(ChM::kStereo) }
+        { "CH_MODE_STEREO",     I(ChM::kStereo) },
+
+        { "STREAM_SELECTOR_VIDEO", I(utau::AVStreamDecoder::kVideo_StreamType) },
+        { "STREAM_SELECTOR_AUDIO", I(utau::AVStreamDecoder::kAudio_StreamType) },
+
+        { "DECODE_BUFFER_AUDIO", I(utau::AVStreamDecoder::AVGenericDecoded::kAudio) },
+        { "DECODE_BUFFER_VIDEO", I(utau::AVStreamDecoder::AVGenericDecoded::kVideo) },
+        { "DECODE_BUFFER_EOF",   I(utau::AVStreamDecoder::AVGenericDecoded::kEOF)   },
+        { "DECODE_BUFFER_NULL",  I(utau::AVStreamDecoder::AVGenericDecoded::kNull)  }
     };
 
 #undef I
@@ -58,6 +65,21 @@ void SetInstanceProperties(v8::Local<v8::Object> instance)
 
     instance->Set(context, binder::to_v8(isolate, "Constants"),
                   binder::to_v8(isolate, constants)).Check();
+}
+
+v8::Local<v8::Object> MakeRational(v8::Isolate *i, int32_t num, int32_t denom)
+{
+    CHECK(i && "Invalid isolate");
+    return binder::to_v8(i, std::unordered_map<std::string_view, v8::Local<v8::Value>>{
+        { "num", binder::to_v8(i, num) },
+        { "denom", binder::to_v8(i, denom) }
+    });
+}
+
+utau::Ratio ExtractRational(v8::Isolate *i, v8::Local<v8::Value> v)
+{
+    // TODO(sora): Implement this
+    return {};
 }
 
 GALLIUM_BINDINGS_UTAU_NS_END

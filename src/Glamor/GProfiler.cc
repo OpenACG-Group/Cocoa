@@ -92,8 +92,8 @@ GProfiler::Sample *GProfiler::CreateNewSample()
     current->p_prev = rb_head_->p_prev;
     rb_head_->p_prev->p_next = current;
     rb_head_->p_prev = current;
-    rb_head_->pending = true;
 
+    current->pending = true;
     current->alive = true;
     current->frame = frame_counter_++;
     return current;

@@ -67,7 +67,6 @@ add_library(
         Layers/LayerTree.h
         Layers/LayerTree.cc
         Layers/RasterDrawOpObserver.h
-        Layers/RasterDrawOpObserver.cc
         Layers/Layer.h
         Layers/Layer.cc
         Layers/ContainerLayer.h
@@ -126,10 +125,6 @@ add_library(
         Wayland/WaylandBitmapCursor.cc
         Wayland/WaylandSharedMemoryHelper.h
         Wayland/WaylandSharedMemoryHelper.cc
-
-        GShader/GSAssembly.h
-        GShader/GSEnvironment.h
-        GShader/GSModule.h
 )
 
 find_package(Vulkan REQUIRED)

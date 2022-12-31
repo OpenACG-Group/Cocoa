@@ -342,6 +342,13 @@ std::shared_ptr<Data> Data::MakeFromPtrWithoutCopy(void *ptr, size_t size, bool 
     });
 }
 
+std::shared_ptr<Data> Data::MakeFromExternal(void *ptr, size_t size, const ExternalDeleter& deleter)
+{
+    if (!ptr)
+        return nullptr;
+    return std::make_shared<MemoryData>(ptr, size, true, deleter);
+}
+
 std::shared_ptr<Data> Data::MakeFromSize(size_t size)
 {
     void *ptr = malloc(size);

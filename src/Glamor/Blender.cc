@@ -300,6 +300,9 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
 
     GPROFILER_TRY_BEGIN_FRAME()
 
+    int32_t vp_width = this->GetWidth();
+    int32_t vp_height = this->GetHeight();
+
     raster_cache_->IncreaseFrameCount();
 
     // TODO: diff & update layer tree
@@ -339,15 +342,24 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
     multiplexer_canvas.addCanvas(frame_surface->getCanvas());
     for (const Shared<RasterDrawOpObserver>& observer : layer_tree_->GetObservers())
     {
-        observer->BeginFrame();
-        multiplexer_canvas.addCanvas(observer.get());
+        SkCanvas *observer_canvas = observer->BeginFrame(
+                gr_context, SkISize::Make(vp_width, vp_height));
+        if (!observer_canvas)
+        {
+            QLOG(LOG_ERROR, "DrawOp observer \"{}\" could not provide a valid canvas, ignored",
+                 observer->GetExternalObserverName());
+        }
+        else
+        {
+            multiplexer_canvas.addCanvas(observer_canvas);
+        }
     }
 
     SkPictureRecorder picture_recorder;
     if (should_capture_next_frame_)
     {
-        auto width = static_cast<SkScalar>(GetWidth());
-        auto height = static_cast<SkScalar>(GetHeight());
+        auto width = static_cast<SkScalar>(vp_width);
+        auto height = static_cast<SkScalar>(vp_height);
         SkCanvas *canvas = picture_recorder.beginRecording(width, height);
         multiplexer_canvas.addCanvas(canvas);
     }

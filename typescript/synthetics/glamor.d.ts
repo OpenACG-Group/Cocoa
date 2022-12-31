@@ -388,7 +388,7 @@ export class Monitor extends RenderClientObject {
  *                            Prototype: (enter: boolean) -> void
  * 
  * @signal [pointer-motion] Emitted when a pointer moves on the window.
- *                          Prototype: (double dx, double dy) -> void
+ *                          Prototype: (double x, double y) -> void
  * 
  * @signal [pointer-button] Emitted when a button of pointer device is pressed or released.
  *                          Prototype: (button: PointerButton, pressed: boolean) -> void
@@ -406,6 +406,8 @@ export class Monitor extends RenderClientObject {
  * @signal [keyboard-key] <Undocumented>
  *                        Prototype: (key: KeyboardKey, modifiers: KeyboardModifiers, pressed: boolean) -> void
  */
+
+export type TopLevelStates = number;
 export class Surface extends RenderClientObject {
     // ToplevelStates
     static readonly TOPLEVEL_MAXIMIZED: number;
@@ -524,7 +526,7 @@ export interface GProfilerReport {
 
         // Timing measurements. See related documentations to know
         // more information about each milestone.
-        milestones: Array<{
+        milestones: {
             requested: number;
             presented: number;
             prerollBegin: number;
@@ -533,7 +535,7 @@ export interface GProfilerReport {
             paintEnd: number;
             begin: number;
             end: number;
-        }>;
+        };
     }>;
 }
 

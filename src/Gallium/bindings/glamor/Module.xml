@@ -124,6 +124,7 @@
             <method name="dispose" value="@dispose"/>
             <method name="toImage" value="@toImage"/>
             <method name="toString" value="@toString"/>
+            <property name="isDisposed" getter="@isDisposed"/>
         </class>
 
         <class name="SceneBuilder" wrapper="SceneBuilder">

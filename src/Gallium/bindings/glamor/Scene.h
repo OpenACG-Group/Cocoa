@@ -49,8 +49,24 @@ public:
     //! TSDecl: function dispose(): void
     void dispose();
 
+    //! TSDecl: property readonly isDisposed: boolean
+    g_nodiscard g_inline bool isDisposed() const {
+        return (!layer_tree_);
+    }
+
     g_nodiscard std::unique_ptr<gl::LayerTree> takeLayerTree() {
         return std::move(layer_tree_);
+    }
+
+    /**
+     * Cocoa itself does not use this API. It is designed for third-party
+     * language bindings (like cairo-embedder in `//natives/cairo-embedder`) to
+     * allow them to access the layer tree temporarily (not take its ownership).
+     * Language bindings must make sure that they never take the ownership of
+     * `LayerTree` object which is from `Scene` object.
+     */
+    g_nodiscard std::unique_ptr<gl::LayerTree>& GetLayerTree() {
+        return layer_tree_;
     }
 
 private:

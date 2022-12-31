@@ -22,7 +22,10 @@
 extern "C" {
 #endif // __cplusplus
 
-#include <libavcodec/avcodec.h>
+#include <libavutil/channel_layout.h>
+#include <libavfilter/avfilter.h>
+#include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
 
 #ifdef __cplusplus
 };

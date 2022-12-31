@@ -85,6 +85,9 @@ canvaskit.registerRenderableTypeface = function(face) {
         }
     };
 
+    if (canvaskit.getRenderableTypeface(key))
+        return key;
+
     const faceWidthSerialized = {
         typeface: face,
         serialized: null

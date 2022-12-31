@@ -3,11 +3,13 @@ set(CIB_SUBSCRIPT ${CMAKE_HOME_DIRECTORY}/script/modulec.py)
 set(CIB_MODULE_LISTS ${CMAKE_CURRENT_SOURCE_DIR}/bindings/ModuleLists.txt)
 set(CIB_MODULE_XML
         bindings/core/Module.xml
-        bindings/glamor/Module.xml)
+        bindings/glamor/Module.xml
+        bindings/utau/Module.xml)
 set(CIB_OUTPUT_FILE
         ${CMAKE_CURRENT_BINARY_DIR}/internal_bindings.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_core.cc
-        ${CMAKE_CURRENT_BINARY_DIR}/module_glamor.cc)
+        ${CMAKE_CURRENT_BINARY_DIR}/module_glamor.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/module_utau.cc)
 
 add_custom_command(
         OUTPUT ${CIB_OUTPUT_FILE}
@@ -98,7 +100,12 @@ add_library(Gallium STATIC
         bindings/glamor/TrivialSkiaExportedTypes.cc
         bindings/glamor/GProfilerWrap.cc
 
-        bindings/reactor/Exports.h
+        bindings/utau/Exports.h
+        bindings/utau/Exports.cc
+        bindings/utau/AudioSinkContext.cc
+        bindings/utau/AudioBufferWrap.cc
+        bindings/utau/AudioFilterDAGWrap.cc
+        bindings/utau/AVStreamDecoderWrap.cc
 )
 target_include_directories(Gallium PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 

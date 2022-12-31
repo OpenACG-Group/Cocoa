@@ -42,6 +42,8 @@
 
 #include "Glamor/Glamor.h"
 
+#include "Utau/Utau.h"
+
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Main)
 
 namespace cocoa {
@@ -487,11 +489,17 @@ void mainloop_execute(bool justInitialize,
                       const gallium::Runtime::Options& options,
                       const gl::ContextOptions& glamorOptions)
 {
+    // Initialize QResource module, loading internal resources
     QResource::New();
 
+    // TODO(sora): Deprecate property tree
     prop::SerializeToJournal(prop::Get());
 
+    // Initialize Glamor (rendering engine) and Utau (multimedia processing engine)
     gl::GlobalScope::New(glamorOptions, EventLoop::Instance());
+    utau::InitializePlatform();
+
+    // Initialize binding manager
     gallium::BindingManager::New(options);
 
     subproc::SubprocessHostRegistry::New();
@@ -510,6 +518,10 @@ void mainloop_execute(bool justInitialize,
     {
         auto runtime = gallium::Runtime::Make(EventLoop::Instance(), options);
 
+        ScopeExitAutoInvoker disposer([&runtime] {
+            runtime->Dispose();
+        });
+
         {
             v8::Isolate::Scope isolateScope(runtime->GetIsolate());
             v8::HandleScope handleScope(runtime->GetIsolate());
@@ -518,6 +530,8 @@ void mainloop_execute(bool justInitialize,
             runtime->RunWithMainLoop();
             runtime->NotifyRuntimeWillExit();
         }
+
+        disposer.cancel();
 
         // Language bindings have objects which is referenced by JavaScript,
         // and disposing `Runtime` object makes all those objects collected (deleted)

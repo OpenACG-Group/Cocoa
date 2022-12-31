@@ -7,6 +7,34 @@
     <hook on="instantiate" call="SetInstanceProperties"/>
 
     <exports>
-        <toplevel type="function" name="Test" value="Test"/>
+        <toplevel type="declaration" name="Constants"/>
+
+        <class name="AudioSinkContext" wrapper="AudioSinkContext">
+            <method static="true" name="Initialize" value="@Initialize"/>
+            <method static="true" name="Dispose" value="@Dispose"/>
+            <method static="true" name="Enqueue" value="@Enqueue"/>
+            <method static="true" name="AddBufferEventListener" value="@AddBufferEventListener"/>
+            <method static="true" name="RemoveBufferEventListener" value="@RemoveBufferEventListener"/>
+        </class>
+
+        <class name="AudioBuffer" wrapper="AudioBufferWrap">
+            <property name="sampleFormat" getter="@getSampleFormat"/>
+            <property name="channelMode" getter="@getChannelMode"/>
+            <property name="sampleRate" getter="@getSampleRate"/>
+            <property name="samplesCount" getter="@getSamplesCount"/>
+        </class>
+
+        <class name="AudioFilterDAG" wrapper="AudioFilterDAGWrap">
+            <method static="true" name="MakeFromDSL" value="@MakeFromDSL"/>
+            <method name="filter" value="@filter"/>
+        </class>
+
+        <class name="AVStreamDecoder" wrapper="AVStreamDecoderWrap">
+            <method static="true" name="MakeFromFile" value="@MakeFromFile"/>
+            <method name="getStreamInfo" value="@getStreamInfo"/>
+            <method name="decodeNextFrame" value="@decodeNextFrame"/>
+            <property name="hasAudioStream" getter="@hasAudioStream"/>
+            <property name="hasVideoStream" getter="@hasVideoStream"/>
+        </class>
     </exports>
 </module>

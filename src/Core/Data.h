@@ -19,6 +19,7 @@
 #define COCOA_CORE_DATA_H
 
 #include <memory>
+#include <functional>
 
 #include "Core/Filesystem.h"
 #include "Core/Project.h"
@@ -45,6 +46,8 @@ public:
         off_t                       stored_offset_;
     };
 
+    using ExternalDeleter = std::function<void(void*)>;
+
     Data() = default;
     virtual ~Data() = default;
     Data(const Data&) = delete;
@@ -64,6 +67,7 @@ public:
     static std::shared_ptr<Data> MakeFromSize(size_t size);
     static std::shared_ptr<Data> MakeFromString(const char *str, bool no_terminator = false);
     static std::shared_ptr<Data> MakeLinearBuffer(const std::shared_ptr<Data>& data);
+    static std::shared_ptr<Data> MakeFromExternal(void *ptr, size_t size, const ExternalDeleter& deleter);
 
     g_nodiscard virtual size_t size() = 0;
 

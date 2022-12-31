@@ -42,7 +42,7 @@ add_subdirectory(src/Core)
 add_subdirectory(src/Glamor)
 add_subdirectory(src/Gallium)
 # add_subdirectory(src/Reactor)
-# add_subdirectory(src/Utau)
+add_subdirectory(src/Utau)
 add_subdirectory(qresource/qresourcekit)
 
 add_executable(Cocoa src/Main.cc)
@@ -57,7 +57,7 @@ target_link_libraries(
         Cocoa
         Gallium
         Glamor
-        # Utau
+        Utau
         # Reactor
         Core
         ${LINK_STATIC_JSONCPP}
@@ -67,5 +67,5 @@ target_link_libraries(
 add_subdirectory(tests)
 
 if (${COCOA_BUILD_TOY_NATIVES})
-    add_subdirectory(natives/libtess2)
+    # Adding something
 endif()

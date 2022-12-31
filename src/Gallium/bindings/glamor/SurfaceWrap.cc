@@ -95,11 +95,7 @@ v8::Local<v8::Value> SurfaceWrap::setTitle(const std::string& str)
 v8::Local<v8::Value> SurfaceWrap::resize(int32_t width, int32_t height)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    using LV = v8::Local<v8::Value>;
-    auto closure = PromiseClosure::New(isolate,
-        [](v8::Isolate *isolate, gl::RenderHostCallbackInfo& info) -> LV {
-            return v8::Boolean::New(isolate, info.GetReturnValue<bool>());
-    });
+    auto closure = PromiseClosure::New(isolate, nullptr);
 
     getObject()->Invoke(GLOP_SURFACE_RESIZE, closure, PromiseClosure::HostCallback,
                         width, height);

@@ -15,17 +15,19 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COCOA_UTAU_FFWRAPPERS_LIBAVCODEC_H
-#define COCOA_UTAU_FFWRAPPERS_LIBAVCODEC_H
+#ifndef COCOA_UTAU_FFWRAPPERS_LIBAVUTIL_H
+#define COCOA_UTAU_FFWRAPPERS_LIBAVUTIL_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-#include <libavcodec/avcodec.h>
+#include <libavutil/avutil.h>
+#include <libavutil/frame.h>
+#include <libavutil/samplefmt.h>
 
 #ifdef __cplusplus
 };
 #endif // __cplusplus
 
-#endif //COCOA_UTAU_FFWRAPPERS_LIBAVCODEC_H
+#endif //COCOA_UTAU_FFWRAPPERS_LIBAVUTIL_H

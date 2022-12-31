@@ -24,76 +24,66 @@
 #ifndef COCOA_UTAU_UTAU_H
 #define COCOA_UTAU_UTAU_H
 
+#include <cstdint>
+#include <memory>
+
 #include "Core/Project.h"
+#include "Core/UniquePersistent.h"
+#include "Utau/ffwrappers/samplefmt.h"
 
 #define UTAU_NAMESPACE_BEGIN    namespace cocoa::utau {
 #define UTAU_NAMESPACE_END      }
 
 UTAU_NAMESPACE_BEGIN
 
-#define E(bits)         \
-    kU##bits##_LE,      \
-    kU##bits##_BE,      \
-    kS##bits##_LE,      \
-    kS##bits##_BE
-
-enum class SampleFormat
+enum class AudioChannelMode
 {
     kUnknown,
 
-    // interleaved formats
-    kS8,
-    kU8,
-    E(16),
-    E(24_32),
-    E(32),
-    E(24),
-    E(20),
-    E(18),
-    kF32_LE,
-    kF32_BE,
+    kMono,
+    kStereo,
 
-    kULAW,
-    kALAW,
+    kLast = kStereo
+};
+
+enum class SampleFormat : uint32_t
+{
+    kUnknown = 0,
+
+    // interleaved formats
+    kU8,
+    kS16,
+    kS32,
+    kF32,
+    kF64,
 
     // planar formats
     kU8P,
     kS16P,
-    kS24_32P,
     kS32P,
-    kS24P,
     kF32P,
     kF64P,
-    kS8P
+
+    kLast = kF64P
 };
 
-#undef E
 
-uint32_t SampleFormatToPipewireFormat(SampleFormat format);
-SampleFormat PipewireFormatToSampleFormat(uint32_t format);
-uint32_t SampleFormatToLibavFormat(SampleFormat format);
-SampleFormat LibavFormatToSampleFormat(uint32_t format);
-
-/**
- * Specify a certain purpose that the media is used in.
- */
-enum class MediaRole
+struct Ratio
 {
-    kMovie,
-    kMusic,
-    kCamera,
-    kCapture,
-    kScreen,
-    kCommunication,
-    kGame,
-    kNotification,
-    kDSP,
-    kProduction,
-    kAccessibility,
-    kTest
+    Ratio() : num(0), denom(1) {}
+    Ratio(int32_t _num, int32_t _denom) : num(_num), denom(_denom) {}
+
+    int32_t num;
+    int32_t denom;
 };
 
-const char *MediaRoleToString(MediaRole role);
+AVSampleFormat SampleFormatToLibavFormat(SampleFormat format);
+SampleFormat LibavFormatToSampleFormat(AVSampleFormat format);
+
+int GetPerSampleSize(SampleFormat format);
+bool SampleFormatIsPlanar(SampleFormat format);
+
+void InitializePlatform();
 
 UTAU_NAMESPACE_END
 #endif //COCOA_UTAU_UTAU_H

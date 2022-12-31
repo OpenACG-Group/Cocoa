@@ -19,11 +19,11 @@
 #include <functional>
 
 #include "Core/Errors.h"
-#include "Utau/ThreadedAudioSink.h"
+#include "Utau/AudioSink.h"
 UTAU_NAMESPACE_BEGIN
 
-ThreadedAudioSink::BufferWithId
-ThreadedAudioSink::BufferWithId::Generate(std::shared_ptr<SoundBuffer> buffer)
+AudioSink::BufferWithId
+AudioSink::BufferWithId::Generate(std::shared_ptr<AudioBuffer> buffer)
 {
     static int32_t g_id_counter = 0;
 
@@ -32,7 +32,7 @@ ThreadedAudioSink::BufferWithId::Generate(std::shared_ptr<SoundBuffer> buffer)
     return {std::move(buffer), ++g_id_counter};
 }
 
-ThreadedAudioSink::ThreadedAudioSink(uv_loop_t *main_loop, BackDevice device)
+AudioSink::AudioSink(uv_loop_t *main_loop, BackDevice device)
     : back_device_(device)
     , disposed_(false)
     , buffer_event_notifier_(nullptr)
@@ -47,12 +47,12 @@ ThreadedAudioSink::ThreadedAudioSink(uv_loop_t *main_loop, BackDevice device)
     uv_handle_set_data(reinterpret_cast<uv_handle_t*>(buffer_event_notifier_), this);
 }
 
-ThreadedAudioSink::~ThreadedAudioSink()
+AudioSink::~AudioSink()
 {
     CHECK(disposed_ && "ThreadAudioSink must be disposed before destructing");
 }
 
-void ThreadedAudioSink::Dispose(bool call_from_listener)
+void AudioSink::Dispose(bool call_from_listener)
 {
     if (disposed_)
         return;
@@ -89,7 +89,7 @@ void ThreadedAudioSink::Dispose(bool call_from_listener)
     disposed_ = true;
 }
 
-void ThreadedAudioSink::AppendBufferEventListener(BufferEventListener *listener)
+void AudioSink::AppendBufferEventListener(BufferEventListener *listener)
 {
     auto& l = buffer_event_listeners_;
     auto itr = std::find(l.begin(), l.end(), listener);
@@ -98,12 +98,12 @@ void ThreadedAudioSink::AppendBufferEventListener(BufferEventListener *listener)
     l.push_back(listener);
 }
 
-void ThreadedAudioSink::RemoveBufferEventListener(BufferEventListener *listener)
+void AudioSink::RemoveBufferEventListener(BufferEventListener *listener)
 {
     buffer_event_listeners_.remove(listener);
 }
 
-void ThreadedAudioSink::BroadcastBufferEvent(const BufferEvent& event)
+void AudioSink::BroadcastBufferEvent(const BufferEvent& event)
 {
     for (BufferEventListener *listener : buffer_event_listeners_)
     {
@@ -119,7 +119,7 @@ void ThreadedAudioSink::BroadcastBufferEvent(const BufferEvent& event)
     }
 }
 
-void ThreadedAudioSink::SendBufferEventFromWorkerThread(const BufferEvent& event)
+void AudioSink::SendBufferEventFromWorkerThread(const BufferEvent& event)
 {
     {
         std::scoped_lock<std::mutex> lock(buffer_event_queue_lock_);
@@ -128,10 +128,10 @@ void ThreadedAudioSink::SendBufferEventFromWorkerThread(const BufferEvent& event
     uv_async_send(buffer_event_notifier_);
 }
 
-void ThreadedAudioSink::on_buffer_event_notify(uv_async_t *handle)
+void AudioSink::on_buffer_event_notify(uv_async_t *handle)
 {
     CHECK(handle && handle->data);
-    auto *sink = reinterpret_cast<ThreadedAudioSink*>(handle->data);
+    auto *sink = reinterpret_cast<AudioSink*>(handle->data);
 
     std::scoped_lock<std::mutex> lock(sink->buffer_event_queue_lock_);
     while (!sink->buffer_event_queue_.empty())
@@ -141,7 +141,7 @@ void ThreadedAudioSink::on_buffer_event_notify(uv_async_t *handle)
     }
 }
 
-std::optional<ThreadedAudioSink::BufferWithId> ThreadedAudioSink::TakeNextBuffer()
+std::optional<AudioSink::BufferWithId> AudioSink::TakeNextBuffer()
 {
     std::scoped_lock<std::mutex> lock(buffer_queue_lock_);
     if (buffer_queue_.empty())
@@ -153,7 +153,7 @@ std::optional<ThreadedAudioSink::BufferWithId> ThreadedAudioSink::TakeNextBuffer
     return std::move(buffer);
 }
 
-int32_t ThreadedAudioSink::EnqueueBuffer(const std::shared_ptr<SoundBuffer>& sound_buffer)
+int32_t AudioSink::EnqueueBuffer(const std::shared_ptr<AudioBuffer>& sound_buffer)
 {
     if (!BufferCheckBeforeEnqueue(sound_buffer))
         return -1;

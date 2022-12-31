@@ -29,9 +29,9 @@
 #include "Utau/Utau.h"
 UTAU_NAMESPACE_BEGIN
 
-class SoundBuffer;
+class AudioBuffer;
 
-class ThreadedAudioSink
+class AudioSink
 {
 public:
     enum BackDevice
@@ -41,9 +41,9 @@ public:
 
     struct BufferWithId
     {
-        static BufferWithId Generate(std::shared_ptr<SoundBuffer> buffer);
+        static BufferWithId Generate(std::shared_ptr<AudioBuffer> buffer);
 
-        BufferWithId(std::shared_ptr<SoundBuffer> _buffer, int32_t _id)
+        BufferWithId(std::shared_ptr<AudioBuffer> _buffer, int32_t _id)
             : buffer(std::move(_buffer)), id(_id) {}
 
         BufferWithId(BufferWithId&& rhs) noexcept
@@ -51,13 +51,14 @@ public:
 
         BufferWithId(const BufferWithId& lhs) = default;
 
-        std::shared_ptr<SoundBuffer> buffer;
+        std::shared_ptr<AudioBuffer> buffer;
         int32_t id;
     };
 
     class BufferEventListener
     {
     public:
+        virtual ~BufferEventListener() = default;
         virtual void OnConsumed(const BufferWithId& buf) = 0;
         virtual void OnPlaying(const BufferWithId& buf) = 0;
         virtual void OnCancelled(const BufferWithId& buf) = 0;
@@ -79,17 +80,25 @@ public:
         EventType    event_type;
     };
 
-    ThreadedAudioSink(uv_loop_t *main_loop, BackDevice device);
-    virtual ~ThreadedAudioSink();
+    g_nodiscard static std::unique_ptr<AudioSink> MakePipeWire(uv_loop_t *loop);
+
+    AudioSink(uv_loop_t *main_loop, BackDevice device);
+    virtual ~AudioSink();
 
     g_nodiscard g_inline BackDevice GetBackDevice() const {
         return back_device_;
     }
 
+    g_nodiscard virtual SampleFormat GetRequiredSampleFormat() const = 0;
+    g_nodiscard virtual AudioChannelMode GetRequiredChannelMode() const = 0;
+    g_nodiscard virtual int GetRequiredSampleRate() const = 0;
+
     void AppendBufferEventListener(BufferEventListener *listener);
     void RemoveBufferEventListener(BufferEventListener *listener);
 
-    int32_t EnqueueBuffer(const std::shared_ptr<SoundBuffer>& sound_buffer);
+    int32_t EnqueueBuffer(const std::shared_ptr<AudioBuffer>& sound_buffer);
+
+    // TODO(sora): Implement this.
     void CancelBuffer(int32_t buffer);
 
     void Dispose(bool call_from_listener);
@@ -105,7 +114,7 @@ protected:
     // They will be called on main thread
     virtual void NotifyAndWaitWorkerThreadDispose() = 0;
     virtual void NotifyNewBufferEnqueued() = 0;
-    virtual bool BufferCheckBeforeEnqueue(const std::shared_ptr<SoundBuffer>& buffer) = 0;
+    virtual bool BufferCheckBeforeEnqueue(const std::shared_ptr<AudioBuffer>& buffer) = 0;
 
 private:
     static void on_buffer_event_notify(uv_async_t *handle);

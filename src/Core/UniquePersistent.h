@@ -33,6 +33,10 @@ public:
         return self_pointer_;
     }
 
+    static bool HasInstance() {
+        return self_pointer_;
+    }
+
     static T& Ref() {
         return *Instance();
     }
@@ -44,6 +48,7 @@ public:
 
     static void Delete() {
         delete self_pointer_;
+        self_pointer_ = nullptr;
     }
 
 private:
