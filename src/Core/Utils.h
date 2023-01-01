@@ -24,7 +24,6 @@
 #include <cstring>
 
 #include "Core/Exception.h"
-#include "Core/Properties.h"
 #include "Core/Errors.h"
 namespace cocoa::utils {
 

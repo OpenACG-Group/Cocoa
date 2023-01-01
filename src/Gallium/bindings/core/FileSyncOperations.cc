@@ -17,6 +17,8 @@
 
 #include "uv.h"
 
+#include "fmt/format.h"
+
 #include "Core/Errors.h"
 #include "Gallium/Gallium.h"
 #include "Gallium/bindings/core/Exports.h"

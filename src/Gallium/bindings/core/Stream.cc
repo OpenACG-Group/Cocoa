@@ -17,6 +17,7 @@
 
 #include "uv.h"
 #include "jemalloc/jemalloc.h"
+#include "fmt/format.h"
 
 #include "Core/EventLoop.h"
 #include "Gallium/Gallium.h"

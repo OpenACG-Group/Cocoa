@@ -20,6 +20,7 @@
 #include "include/core/SkSerialProcs.h"
 #include "include/core/SkTypeface.h"
 #include "include/core/SkStream.h"
+#include "fmt/format.h"
 
 #include "Gallium/binder/CallV8.h"
 #include "Gallium/bindings/glamor/Exports.h"

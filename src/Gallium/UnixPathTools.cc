@@ -15,7 +15,7 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "Core/Properties.h"
+#include "Core/ApplicationInfo.h"
 #include "Core/Errors.h"
 #include "Core/Utils.h"
 #include "Gallium/UnixPathTools.h"
@@ -27,11 +27,8 @@ namespace unixpath
 std::string SolveShortestPathRepresentation(const std::string& path)
 {
     CHECK(utils::StrStartsWith(path, '/') && "Path should be an absolute path");
-    auto cwd = prop::Cast<PropertyDataNode>(prop::Get()
-                ->next("Runtime")
-                ->next("CurrentPath"))
-                ->extract<std::string>();
-    CHECK(utils::StrStartsWith(path, '/') && "Runtime.CurrentPath should be an absolute path");
+
+    std::string cwd = ApplicationInfo::Ref().working_dir;
     if (cwd != "/" && cwd[cwd.length() - 1] != '/')
         cwd.push_back('/');
 

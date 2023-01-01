@@ -24,6 +24,9 @@
 #error Project.h only can be included in Cocoa Project
 #endif
 
+#define COCOA_BEGIN_NAMESPACE namespace cocoa {
+#define COCOA_END_NAMESPACE   }
+
 // Project versions
 #define COCOA_MAJOR     1
 #define COCOA_MINOR     0

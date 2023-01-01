@@ -15,22 +15,11 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COCOA_UTAU_AUDIOPLAYBACKCONTEXT_H
-#define COCOA_UTAU_AUDIOPLAYBACKCONTEXT_H
+#ifndef COCOA_UTAU_VIDEOBUFFER_H
+#define COCOA_UTAU_VIDEOBUFFER_H
 
-#include "Utau/Utau.h"
+#include "Utau/AVGenericBuffer.h"
 UTAU_NAMESPACE_BEGIN
 
-class AudioSink;
-class AudioResampler;
-
-class AudioPlaybackContext
-{
-public:
-
-private:
-
-};
-
 UTAU_NAMESPACE_END
-#endif //COCOA_UTAU_AUDIOPLAYBACKCONTEXT_H
+#endif //COCOA_UTAU_VIDEOBUFFER_H

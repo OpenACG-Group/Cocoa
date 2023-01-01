@@ -237,9 +237,7 @@ AudioFilterDAG::AudioFilterDAG()
 {
 }
 
-AudioFilterDAG::~AudioFilterDAG()
-{
-}
+AudioFilterDAG::~AudioFilterDAG() = default;
 
 std::vector<DAG::NamedInOutBuffer>
 AudioFilterDAG::Filter(const std::vector<NamedInOutBuffer>& inputs)

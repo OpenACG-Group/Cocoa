@@ -21,7 +21,8 @@ add_library(
         AudioFilterDAG.h
         AudioFilterDAG.cc
 
-        AudioPlaybackContext.h
+        VideoBuffer.h
+        VideoBuffer.cc
 
         ffwrappers/libavfilter.h
         ffwrappers/libavutil.h

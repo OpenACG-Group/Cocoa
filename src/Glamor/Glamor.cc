@@ -39,6 +39,9 @@ ContextOptions::ContextOptions()
     , enable_profiler_(false)
     , profiler_rb_threshold_(GLAMOR_PROFILER_RINGBUFFER_THRESHOLD_DEFAULT)
     , disable_hw_compose_(false)
+    , enable_vkdbg_(false)
+    , vkdbg_filter_severities_{"general", "performance", "validation"}
+    , vkdbg_filter_levels_{"verbose", "info", "warning", "error"}
 {
 }
 

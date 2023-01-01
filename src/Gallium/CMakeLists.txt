@@ -66,7 +66,6 @@ add_library(Gallium STATIC
 
         bindings/core/Exports.h
         bindings/core/Exports.cc
-        bindings/core/Property.cc
         bindings/core/Filesystem.cc
         bindings/core/FileSyncOperations.cc
         bindings/core/Buffer.cc

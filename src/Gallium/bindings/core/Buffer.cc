@@ -19,13 +19,13 @@
 #include <utility>
 
 #include "include/v8.h"
+#include "fmt/format.h"
 
 #include "Core/Errors.h"
 #include "Core/EventLoop.h"
 #include "Core/Utils.h"
 #include "Core/Data.h"
 #include "Core/QResource.h"
-
 #include "Gallium/Gallium.h"
 #include "Gallium/binder/Class.h"
 #include "Gallium/binder/CallV8.h"

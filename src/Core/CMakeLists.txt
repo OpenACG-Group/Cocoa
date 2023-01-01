@@ -26,8 +26,6 @@ add_library(
         Journal.cc
         Exception.h
         Exception.cc
-        Properties.h
-        Properties.cc
         Utils.h
         Utils.cc
         EventSource.h
@@ -53,6 +51,8 @@ add_library(
         HuffmanCodec.h
         HuffmanCodec.cc
         ConcurrentTaskQueue.h
+        ApplicationInfo.h
+        ApplicationInfo.cc
         ${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
 
         subprocess/SubprocessHost.h

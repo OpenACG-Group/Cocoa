@@ -15,13 +15,10 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <tuple>
 #include <fstream>
-#include <optional>
-#include <streambuf>
 
 #include "fmt/format.h"
-#include "Core/Properties.h"
+#include "Core/ApplicationInfo.h"
 #include "Core/Utils.h"
 #include "Core/Filesystem.h"
 #include "Gallium/Gallium.h"
@@ -36,11 +33,7 @@ std::string normalize(std::string url)
 {
     if (url[0] != '/')
     {
-        auto cwd = prop::Cast<PropertyDataNode>(
-                prop::Get()
-                ->next("Runtime")
-                ->next("CurrentPath")
-        )->extract<std::string>();
+        std::string cwd = ApplicationInfo::Ref().working_dir;
         cwd.push_back('/');
         cwd.append(url);
         url = cwd;

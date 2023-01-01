@@ -19,7 +19,6 @@
 
 #include "Core/Journal.h"
 #include "Core/EventLoop.h"
-#include "Core/Properties.h"
 #include "Gallium/bindings/core/Exports.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.bindings.core)

@@ -19,7 +19,6 @@
 
 #include "Core/Errors.h"
 #include "Core/Journal.h"
-#include "Core/Properties.h"
 #include "Glamor/RenderClient.h"
 #include "Glamor/RenderHostInvocation.h"
 #include "Glamor/RenderClientCallInfo.h"
@@ -200,58 +199,31 @@ Shared<HWComposeContext> RenderClient::GetHWComposeContext()
     options.application_version_patch = std::get<2>(hostApplicationInfo.version_triple);
     options.use_vkdbg = false;
 
-    // TODO(sora): eliminate the dependency on property tree
-    using DN = PropertyDataNode;
-    auto hwComposeNode = prop::Get()
-            ->next("Graphics")
-            ->next("HWCompose")
-            ->as<PropertyObjectNode>();
+    ContextOptions& gl_options = GlobalScope::Ref().GetOptions();
 
-    if (hwComposeNode->hasMember("EnableVkDBG"))
+    if (gl_options.GetEnableVkDBG())
     {
-        if (hwComposeNode->getMember("EnableVkDBG")->as<DN>()->extract<bool>())
-        {
-            QLOG(LOG_INFO, "Enabled VkDBG feature for HWCompose context");
-            options.use_vkdbg = true;
-        }
-    }
+        QLOG(LOG_INFO, "Enabled VkDBG feature for HWCompose context");
+        options.use_vkdbg = true;
 
-    if (options.use_vkdbg)
-    {
-        options.vkdbg_type_filter |= HWComposeContext::Options::VkDBGTypeFilter::kGeneral;
-        options.vkdbg_level_filter |= HWComposeContext::Options::VkDBGLevelFilter::kWarning;
-        options.vkdbg_level_filter |= HWComposeContext::Options::VkDBGLevelFilter::kError;
-
-        if (hwComposeNode->hasMember("VkDBGFilterSeverities"))
+        for (const std::string& name : gl_options.GetVkDBGFilterSeverities())
         {
-            options.vkdbg_type_filter.clear();
-            auto array = hwComposeNode->getMember("VkDBGFilterSeverities")->as<PropertyArrayNode>();
-            for (const std::shared_ptr<PropertyNode>& node : *array)
+            if (g_vkdbg_type_filters_name.count(name) == 0)
             {
-                auto str = node->as<DN>()->extract<std::string>();
-                if (g_vkdbg_type_filters_name.count(str) == 0)
-                {
-                    QLOG(LOG_WARNING, "Unrecognized severity name of VkDBG filter: {}", str);
-                    continue;
-                }
-                options.vkdbg_type_filter |= g_vkdbg_type_filters_name[str];
+                QLOG(LOG_WARNING, "Unrecognized severity name of VkDBG filter: {}", name);
+                continue;
             }
+            options.vkdbg_type_filter |= g_vkdbg_type_filters_name[name];
         }
 
-        if (hwComposeNode->hasMember("VkDBGFilterLevels"))
+        for (const std::string& name : gl_options.GetVkDBGFilterLevels())
         {
-            options.vkdbg_level_filter.clear();
-            auto array = hwComposeNode->getMember("VkDBGFilterLevels")->as<PropertyArrayNode>();
-            for (const std::shared_ptr<PropertyNode>& node : *array)
+            if (g_vkdbg_level_filters_name.count(name) == 0)
             {
-                auto str = node->as<DN>()->extract<std::string>();
-                if (g_vkdbg_level_filters_name.count(str) == 0)
-                {
-                    QLOG(LOG_WARNING, "Unrecognized information level of VkDBG filter: {}", str);
-                    continue;
-                }
-                options.vkdbg_level_filter |= g_vkdbg_level_filters_name[str];
+                QLOG(LOG_WARNING, "Unrecognized information level of VkDBG filter: {}", name);
+                continue;
             }
+            options.vkdbg_level_filter |= g_vkdbg_level_filters_name[name];
         }
     }
 

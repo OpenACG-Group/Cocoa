@@ -25,7 +25,6 @@
 
 #include "Core/Project.h"
 #include "Core/CmdParser.h"
-#include "Core/Properties.h"
 #include "Core/Errors.h"
 #include "Core/Utils.h"
 #include "Core/MeasuredTable.h"
@@ -35,6 +34,7 @@
 #include "Core/Filesystem.h"
 #include "Core/QResource.h"
 #include "Core/ProcessSignalHandler.h"
+#include "Core/ApplicationInfo.h"
 #include "Core/subprocess/SubprocessHost.h"
 
 #include "Gallium/Runtime.h"
@@ -47,9 +47,6 @@
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Main)
 
 namespace cocoa {
-namespace cmd {
-
-} // namespace cmd
 
 #define arg_longopt_match(s) (!std::strcmp(arg.matched_template->long_name, s))
 
@@ -92,152 +89,6 @@ cmd::ParseState initialize_logger(cmd::ParseResult& args)
     return cmd::ParseState::kSuccess;
 }
 
-const char *test_directory_env_variable(const char *name, bool report_if_unset)
-{
-    const char *value = ::getenv(name);
-    if (!value || std::strlen(value) == 0)
-    {
-        if (report_if_unset)
-            fmt::print(std::cerr, "Error: Environment variable ${} not set or empty\n", name);
-        return nullptr;
-    }
-
-    if (value[0] != '/')
-    {
-        fmt::print(std::cerr, "Error: Environment variable ${} points to a relative directory\n", name);
-        return nullptr;
-    }
-
-    if (!vfs::IsDirectory(value))
-    {
-        fmt::print(std::cerr, "Error: Environment variable ${} points to an invalid directory\n", name);
-        return nullptr;
-    }
-    return value;
-}
-
-std::vector<std::string> test_directory_list_env_variable(const char *name)
-{
-    const char *value = ::getenv(name);
-    if (!value || std::strlen(value) == 0)
-        return {};
-
-    std::string valueDump = value;
-    auto vec = utils::SplitString(valueDump, ':');
-    for (const std::string_view& sv : vec)
-    {
-        if (sv[0] != '/')
-        {
-            fmt::print(std::cerr, "Error: Environment variable ${} contains a relative directory {}\n",
-                       name, sv);
-            return {};
-        }
-        /* We do NOT check whether the directory exists. */
-    }
-
-    std::vector<std::string> result(vec.size());
-    std::transform(vec.begin(), vec.end(), result.begin(), [](const std::string_view& sv) -> std::string {
-        return std::string(sv);
-    });
-    return result;
-}
-
-cmd::ParseState initialize_path_table_properties()
-{
-    auto runtime = prop::Get()->next("Runtime")->as<PropertyObjectNode>();
-    auto paths = runtime->setMember("Paths", prop::New<PropertyObjectNode>())->as<PropertyObjectNode>();
-
-    const char *home = test_directory_env_variable("HOME", true);
-    if (!home)
-        return cmd::ParseState::kError;
-    paths->setMember("Home", prop::New<PropertyDataNode>(home));
-
-    const char *userDataEnv = test_directory_env_variable("XDG_DATA_HOME", false);
-    std::string userData = userDataEnv ? userDataEnv
-                           : vfs::Realpath(fmt::format("{}/.local/share", home));
-    paths->setMember("UserData", prop::New<PropertyDataNode>(userData));
-
-    const char *userConfigEnv = test_directory_env_variable("XDG_CONFIG_HOME", false);
-    std::string userConfig = userConfigEnv ? userConfigEnv
-                             : vfs::Realpath(fmt::format("{}/.config", home));
-    paths->setMember("UserConfig", prop::New<PropertyDataNode>(userConfig));
-
-    std::vector<std::string> systemDatas = test_directory_list_env_variable("XDG_DATA_DIRS");
-    if (systemDatas.empty())
-    {
-        systemDatas.emplace_back("/usr/local/share");
-        systemDatas.emplace_back("/usr/share");
-    }
-    paths->setMember("SystemData", prop::New<PropertyArrayNode>()->append(systemDatas));
-
-    std::vector<std::string> systemConfigs = test_directory_list_env_variable("XDG_CONFIG_DIRS");
-    if (systemConfigs.empty())
-        systemConfigs.emplace_back("/etc/xdg");
-    paths->setMember("SystemConfig", prop::New<PropertyArrayNode>()->append(systemConfigs));
-
-    const char *userCacheEnv = test_directory_env_variable("XDG_CACHE_HOME", false);
-    std::string userCache = userCacheEnv ? userCacheEnv
-                            : vfs::Realpath(fmt::format("{}/.cache", home));
-    paths->setMember("UserCache", prop::New<PropertyDataNode>(userCache));
-
-    const char *runtimeDirEnv = test_directory_env_variable("XDG_RUNTIME_DIR", true);
-    if (!runtimeDirEnv)
-        return cmd::ParseState::kError;
-    paths->setMember("Runtime", prop::New<PropertyDataNode>(runtimeDirEnv));
-
-    return cmd::ParseState::kSuccess;
-}
-
-cmd::ParseState initialize_properties(int argc, const char **argv, cmd::ParseResult& args)
-{
-    if (args.orphans.size() > 1)
-    {
-        fmt::print(std::cerr, "Too many arguments\n");
-        return cmd::ParseState::kError;
-    }
-    else if (!args.orphans.empty())
-    {
-        if (vfs::Chdir(args.orphans[0]) < 0)
-        {
-            fmt::print(std::cerr, "Failed to chdir to \"{}\": {}\n", args.orphans[0], strerror(errno));
-            return cmd::ParseState::kError;
-        }
-    }
-
-    /* Set `runtime` property object */
-    {
-        std::string execFile = utils::GetExecutablePath();
-        std::string execPath = execFile.substr(0, execFile.find_last_of('/') + 1);
-
-        auto runtimeProp = prop::New<PropertyObjectNode>();
-        auto cmdlineProp = prop::New<PropertyArrayNode>();
-        for (int32_t i = 0; i < argc; i++)
-            cmdlineProp->append(prop::New<PropertyDataNode>(argv[i]));
-        runtimeProp->setMember("Cmdline", cmdlineProp);
-
-        std::string workingPath = utils::GetAbsoluteDirectory(".");
-        runtimeProp->setMember("ExecutableFile", prop::New<PropertyDataNode>(execFile));
-        runtimeProp->setMember("ExecutablePath", prop::New<PropertyDataNode>(execPath));
-        runtimeProp->setMember("CurrentPath", prop::New<PropertyDataNode>(workingPath));
-        prop::Get()->setMember("Runtime", runtimeProp);
-
-        auto state = initialize_path_table_properties();
-        if (state != cmd::ParseState::kSuccess)
-            return state;
-    }
-
-    /* Set `system` property object */
-    {
-        auto systemProp = prop::New<PropertyObjectNode>();
-        systemProp->setMember("VirtualMemPageSize", prop::New<PropertyDataNode>(utils::GetMemPageSize()));
-        systemProp->setMember("CpuModelName", prop::New<PropertyDataNode>(utils::GetCpuModel()));
-        systemProp->setMember("VirtualMemSize", prop::New<PropertyDataNode>(utils::GetMemTotalSize()));
-        prop::Get()->setMember("System", systemProp);
-    }
-
-    return cmd::ParseState::kSuccess;
-}
-
 void report_vulnerability_option(const std::string& opt)
 {
     QLOG(LOG_WARNING, "%bg<re>%fg<hl>(Vulnerability)%reset Option %fg<hl>\"{}\"%reset"
@@ -259,14 +110,12 @@ void startup_print_greeting(const gallium::Runtime::Options& opts)
     QLOG(LOG_INFO, "  %fg<hl>Google Skia 2D Library%reset");
 }
 
-std::shared_ptr<PropertyArrayNode> splitStringStoreToArrayNode(const std::string& str, char delimiter)
+std::vector<std::string> string_view_vec_dup(const std::vector<std::string_view>& svv)
 {
-    auto array = prop::New<PropertyArrayNode>();
-    auto v = utils::SplitString(str, delimiter);
-    for (const auto& l : v)
-        array->append(prop::New<PropertyDataNode>(std::string(l)));
-
-    return array;
+    std::vector<std::string> sv;
+    for (const auto& s : svv)
+        sv.emplace_back(s);
+    return sv;
 }
 
 cmd::ParseState startup_initialize(int argc, char const **argv,
@@ -277,6 +126,28 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
     cmd::ParseState state = cmd::Parse(argc, argv, args);
     if (state == cmd::ParseState::kError)
         return cmd::ParseState::kError;
+
+    // We must change working directory before call `ApplicationInfo::Setup()`
+    // to make sure `ApplicationInfo` get user-specified working directory.
+    if (args.orphans.size() > 1)
+    {
+        fmt::print(std::cerr, "Too many arguments\n");
+        return cmd::ParseState::kError;
+    }
+    else if (!args.orphans.empty())
+    {
+        if (vfs::Chdir(args.orphans[0]) < 0)
+        {
+            fmt::print(std::cerr, "Failed to chdir to \"{}\": {}\n", args.orphans[0], strerror(errno));
+            return cmd::ParseState::kError;
+        }
+    }
+
+    // Application runtime environment, including important
+    // directories (path table) and global parameters.
+    if (!ApplicationInfo::Setup())
+        return cmd::ParseState::kError;
+    ApplicationInfo *app_env = ApplicationInfo::Instance();
 
     for (const auto& arg : args.options)
     {
@@ -297,25 +168,11 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
     if (state == cmd::ParseState::kError)
         return cmd::ParseState::kError;
 
-    /* Initialize necessary properties */
-    state = initialize_properties(argc, argv, args);
-    if (state == cmd::ParseState::kError)
-        return cmd::ParseState::kError;
-
     EventLoop::New();
 
-    auto lbpPreloads = prop::New<PropertyArrayNode>();
-    auto lbpBlacklist = prop::New<PropertyArrayNode>();
-    auto scriptArgs = prop::New<PropertyArrayNode>();
     char delimiter = ',';
 
     bool justInitialize = false;
-
-    auto graphicsNode = prop::New<PropertyObjectNode>();
-    prop::Get()->setMember("Graphics", graphicsNode);
-
-    auto hwComposeNode = prop::New<PropertyObjectNode>();
-    graphicsNode->setMember("HWCompose", hwComposeNode);
 
     for (const auto& arg : args.options)
     {
@@ -366,12 +223,12 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
             for (const auto& p : list)
             {
                 gallium_options.bindings_blacklist.emplace_back(p);
-                lbpBlacklist->append(prop::New<PropertyDataNode>(std::string(p)));
+                app_env->js_native_preloads.emplace_back(p);
             }
         }
         else if arg_longopt_match("runtime-preload")
         {
-            lbpPreloads->append(prop::New<PropertyDataNode>(arg.value->v_str));
+            app_env->js_native_preloads.push_back(arg.value->v_str);
         }
         else if arg_longopt_match("runtime-allow-override")
         {
@@ -380,11 +237,9 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
         }
         else if arg_longopt_match("pass")
         {
-            std::vector<std::string_view> argsView = utils::SplitString(arg.value->v_str, delimiter);
-            for (const auto& view : argsView)
-            {
-                scriptArgs->append(prop::New<PropertyDataNode>(std::string(view)));
-            }
+            std::vector<std::string_view> svv = utils::SplitString(arg.value->v_str, delimiter);
+            for (const auto& s : svv)
+                app_env->js_arguments.emplace_back(s);
         }
         else if arg_longopt_match("pass-delimiter")
         {
@@ -437,15 +292,17 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
         }
         else if arg_longopt_match("gl-hwcompose-enable-vkdbg")
         {
-            hwComposeNode->setMember("EnableVkDBG", prop::New<PropertyDataNode>(true));
+            glamor_options.SetEnableVkDBG(true);
         }
         else if arg_longopt_match("gl-hwcompose-vkdbg-severities")
         {
-            hwComposeNode->setMember("VkDBGFilterSeverities", splitStringStoreToArrayNode(arg.value->v_str, ','));
+            glamor_options.SetVkDBGFilterSeverities(string_view_vec_dup(
+                    utils::SplitString(arg.value->v_str, ',')));
         }
         else if arg_longopt_match("gl-hwcompose-vkdbg-levels")
         {
-            hwComposeNode->setMember("VkDBGFilterLevels", splitStringStoreToArrayNode(arg.value->v_str, ','));
+            glamor_options.SetVkDBGFilterLevels(string_view_vec_dup(
+                    utils::SplitString(arg.value->v_str, ',')));
         }
         else if arg_longopt_match("gl-transfer-queue-profile")
         {
@@ -462,28 +319,10 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
         }
     }
 
-    {
-        auto scriptNode = prop::New<PropertyObjectNode>();
-        scriptNode->setMember("LoaderPreloads", lbpPreloads);
-        scriptNode->setMember("LoaderBlacklist", lbpBlacklist);
-        scriptNode->setMember("Pass", scriptArgs);
-        prop::Cast<PropertyObjectNode>(prop::Get()->next("Runtime"))->setMember("Script", scriptNode);
-
-        auto persistentNode = prop::New<PropertyObjectNode>();
-        persistentNode->setMember("EventLoop", prop::New<PropertyDataNode>(EventLoop::Instance()));
-        persistentNode->setMember("Journal", prop::New<PropertyDataNode>(Journal::Instance()));
-        prop::Get()->setMember("Persistent", persistentNode);
-    }
-
     return justInitialize ? cmd::ParseState::kJustInitialize : cmd::ParseState::kSuccess;
 }
 
 #undef arg_longopt_match
-
-void mainloop_finalize()
-{
-    Journal::Delete();
-}
 
 void mainloop_execute(bool justInitialize,
                       const gallium::Runtime::Options& options,
@@ -491,9 +330,6 @@ void mainloop_execute(bool justInitialize,
 {
     // Initialize QResource module, loading internal resources
     QResource::New();
-
-    // TODO(sora): Deprecate property tree
-    prop::SerializeToJournal(prop::Get());
 
     // Initialize Glamor (rendering engine) and Utau (multimedia processing engine)
     gl::GlobalScope::New(glamorOptions, EventLoop::Instance());
@@ -504,15 +340,8 @@ void mainloop_execute(bool justInitialize,
 
     subproc::SubprocessHostRegistry::New();
 
-    auto preloads = prop::Get()
-            ->next("Runtime")
-            ->next("Script")
-            ->next("LoaderPreloads")->as<PropertyArrayNode>();
-    for (const auto& p : *preloads)
-    {
-        auto& val = prop::Cast<PropertyDataNode>(p)->extract<std::string>();
-        gallium::BindingManager::Ref().loadDynamicObject(val);
-    }
+    for (const auto& lib : ApplicationInfo::Ref().js_native_preloads)
+        gallium::BindingManager::Ref().loadDynamicObject(lib);
 
     if (!justInitialize)
     {
@@ -566,7 +395,8 @@ int startup_main(int argc, char const **argv)
     InstallPrimarySignalHandler();
 
     ScopeExitAutoInvoker epilogue([]() -> void {
-        mainloop_finalize();
+        ApplicationInfo::Delete();
+        Journal::Delete();
     });
 
     gallium::Runtime::Options gallium_options;

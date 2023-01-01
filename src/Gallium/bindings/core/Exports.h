@@ -19,7 +19,6 @@
 #define COCOA_GALLIUM_BINDINGS_CORE_EXPORTS_H
 
 #include "Core/EventSource.h"
-#include "Core/Properties.h"
 #include "Gallium/bindings/Base.h"
 #include "Gallium/Runtime.h"
 #include "Gallium/binder/Class.h"
@@ -32,7 +31,6 @@ class StreamWrap;
 class PipeStreamWrap;
 class ProcessWrap;
 class FileWrap;
-class PropertyWrap;
 class Buffer;
 
 void CoreSetInstanceProperties(v8::Local<v8::Object> instance);
@@ -338,90 +336,6 @@ v8::Local<v8::Value> Chown(const std::string& path, uv_uid_t uid, uv_gid_t gid);
 
 /* JSDecL: function lchown(path: string, uid: number, gid: number): Promise<void> */
 v8::Local<v8::Value> LChown(const std::string& path, uv_uid_t uid, uv_gid_t gid);
-
-//! TSDecl: #[[core::non-constructible]] class Property
-class PropertyWrap
-{
-public:
-    //! TSDecl: static const PROT_*: number
-    enum class Prot : uint32_t
-    {
-        /* JS and C++ readable/writable */
-        kPublic     = 0,
-
-        /* JS readable, C++ readable/writable */
-        kPrivate    = 1,
-
-        kLast       = kPrivate
-    };
-
-    //! TSDecl: static const TYPE_*: number
-    enum class Type : uint32_t
-    {
-        kObject     = 0,
-        kArray      = 1,
-        kData       = 2,
-        kLast       = kData
-    };
-
-    explicit PropertyWrap(const std::shared_ptr<PropertyNode>& node);
-    ~PropertyWrap();
-
-    static void InstallProperties();
-    static v8::Local<v8::Object> GetWrap(v8::Isolate *isolate, const std::shared_ptr<PropertyNode>& node);
-
-    g_nodiscard std::shared_ptr<PropertyNode> lockNode() const {
-        return fNode.lock();
-    }
-
-    //! TSDecl: const type: number
-    g_nodiscard v8::Local<v8::Value> getType() const;
-
-    //! TSDecl: const parent: Property
-    g_nodiscard v8::Local<v8::Value> getParent() const;
-
-    //! TSDecl: name: string
-    g_nodiscard v8::Local<v8::Value> getName() const;
-    void setName(v8::Local<v8::Value> name) const;
-
-    //! TSDecl: const protection: number
-    g_nodiscard v8::Local<v8::Value> getProtection() const;
-
-    //! TSDecl: const numberOfChildren: number
-    g_nodiscard v8::Local<v8::Value> getNumberOfChildren() const;
-
-    //! TSDecl: function foreachChild(func: (child: Property) => void): void
-    void foreachChild(v8::Local<v8::Value> callback) const;
-
-    //! TSDecl: function findChild(name: string): Property
-    g_nodiscard v8::Local<v8::Value> findChild(const std::string& name) const;
-
-    //! TSDecl: function insertChild(type: number, name: string): Property
-    g_nodiscard v8::Local<v8::Value> insertChild(int32_t type, const std::string& name) const;
-
-    //! TSDecl: function pushbackChild(type: number): Property
-    g_nodiscard v8::Local<v8::Value> pushbackChild(int32_t type) const;
-
-    //! TSDecl: function detachFromParent(): void
-    void detachFromParent();
-
-    //! TSDecl: function extract(): any (maybe undefined)
-    g_nodiscard v8::Local<v8::Value> extract() const;
-
-    //! TSDecl: function resetData(value?: any): void
-    void resetData(const v8::FunctionCallbackInfo<v8::Value>& value) const;
-
-    //! TSDecl: function hasData(): boolean
-    g_nodiscard bool hasData() const;
-
-    //! TSDecl: function dataValueRTTI(): string
-    g_nodiscard std::string dataTypeinfo() const;
-
-private:
-    void checkNodeProtectionForJSWriting() const;
-
-    std::weak_ptr<PropertyNode>   fNode;
-};
 
 class Buffer
 {

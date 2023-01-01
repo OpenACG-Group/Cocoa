@@ -156,28 +156,6 @@
             <property static="true" name="SYMLINK_JUNCTION" value="UV_FS_SYMLINK_JUNCTION"/>
         </class>
 
-        <class name="Property" wrapper="PropertyWrap">
-            <property name="type" getter="@getType"/>
-            <property name="parent" getter="@getParent"/>
-            <property name="name" getter="@getName" setter="@setName"/>
-            <property name="protection" getter="@getProtection"/>
-            <property name="numberOfChildren" getter="@getNumberOfChildren"/>
-            <method name="foreachChild" value="@foreachChild"/>
-            <method name="findChild" value="@findChild"/>
-            <method name="insertChild" value="@insertChild"/>
-            <method name="pushbackChild" value="@pushbackChild"/>
-            <method name="detachFromParent" value="@detachFromParent"/>
-            <method name="extract" value="@extract"/>
-            <method name="hasData" value="@hasData"/>
-            <method name="resetData" value="@resetData"/>
-            <method name="dataTypeinfo" value="@dataTypeinfo"/>
-            <property static="true" name="PROT_PUBLIC" value="V_CAST_U32(@Prot::kPublic)"/>
-            <property static="true" name="PROT_PRIVATE" value="V_CAST_U32(@Prot::kPrivate)"/>
-            <property static="true" name="TYPE_OBJECT" value="V_CAST_U32(@Type::kObject)"/>
-            <property static="true" name="TYPE_ARRAY" value="V_CAST_U32(@Type::kArray)"/>
-            <property static="true" name="TYPE_DATA" value="V_CAST_U32(@Type::kData)"/>
-        </class>
-
         <class name="Buffer" wrapper="Buffer">
             <method static="true" name="MakeFromSize" value="@MakeFromSize"/>
             <method static="true" name="MakeFromString" value="@MakeFromString"/>

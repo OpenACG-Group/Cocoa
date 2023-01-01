@@ -131,6 +131,30 @@ public:
         disable_hw_compose_ = v;
     }
 
+    g_nodiscard g_inline bool GetEnableVkDBG() const {
+        return enable_vkdbg_;
+    }
+
+    g_inline void SetEnableVkDBG(bool v) {
+        enable_vkdbg_ = v;
+    }
+
+    g_nodiscard g_inline std::vector<std::string>& GetVkDBGFilterSeverities() {
+        return vkdbg_filter_severities_;
+    }
+
+    g_nodiscard g_inline std::vector<std::string>& GetVkDBGFilterLevels() {
+        return vkdbg_filter_levels_;
+    }
+
+    g_inline void SetVkDBGFilterSeverities(const std::vector<std::string>& v) {
+        vkdbg_filter_severities_ = v;
+    }
+
+    g_inline void SetVkDBGFilterLevels(const std::vector<std::string>& v) {
+        vkdbg_filter_levels_ = v;
+    }
+
 private:
     Backends    backend_;
     bool        skia_jit_;
@@ -142,6 +166,10 @@ private:
     bool        enable_profiler_;
     size_t      profiler_rb_threshold_;
     bool        disable_hw_compose_;
+
+    bool        enable_vkdbg_;
+    std::vector<std::string> vkdbg_filter_severities_;
+    std::vector<std::string> vkdbg_filter_levels_;
 };
 
 class GlobalScope : public UniquePersistent<GlobalScope>
