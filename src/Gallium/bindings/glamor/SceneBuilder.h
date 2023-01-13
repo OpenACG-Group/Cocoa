@@ -25,6 +25,8 @@
 #include "Glamor/Layers/ContainerLayer.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
+//! TSDecl: import * as utau from 'synthetics://utau'
+
 //! TSDecl: class SceneBuilder
 class SceneBuilder
 {
@@ -79,6 +81,19 @@ public:
                                     SkScalar width,
                                     SkScalar height,
                                     int32_t sampling);
+
+    //! TSDecl: function addVideoBuffer(vbo: utau.VideoBuffer,
+    //!                                 dx: number,
+    //!                                 dy: number,
+    //!                                 width: number,
+    //!                                 height: number,
+    //!                                 sampling: number): SceneBuilder
+    v8::Local<v8::Value> addVideoBuffer(v8::Local<v8::Value> vbo,
+                                        SkScalar dx,
+                                        SkScalar dy,
+                                        SkScalar width,
+                                        SkScalar height,
+                                        int32_t sampling);
 
 private:
     v8::Local<v8::Object> getSelfHandle();

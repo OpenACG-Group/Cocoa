@@ -37,6 +37,7 @@ static constexpr SkRect kGiantRect = SkRect::MakeLTRB(-1E9F, -1E9F, 1E9F, 1E9F);
 
 class TextureManager;
 class RasterCache;
+class HWComposeSwapchain;
 
 class Layer
 {
@@ -62,6 +63,7 @@ public:
     struct PaintContext
     {
         GrDirectContext *gr_context;
+
         SkMatrix root_surface_transformation;
 
         SkSurface *frame_surface;

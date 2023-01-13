@@ -22,15 +22,22 @@
 #define GALLIUM_BINDINGS_UTAU_NS_END     }
 
 #include <list>
+#include <thread>
+#include <queue>
+#include <mutex>
 
+#include "uv.h"
+
+#include "Gallium/bindings/Base.h"
 #include "Gallium/Gallium.h"
 #include "Gallium/binder/Convert.h"
-
 #include "Core/UniquePersistent.h"
 #include "Utau/AudioBuffer.h"
-#include "Utau/AudioSink.h"
-#include "Utau/AudioFilterDAG.h"
+#include "Utau/AVFilterDAG.h"
+#include "Utau/VideoBuffer.h"
 #include "Utau/AVStreamDecoder.h"
+#include "Utau/AudioDevice.h"
+#include "Utau/AudioSinkStream.h"
 GALLIUM_BINDINGS_UTAU_NS_BEGIN
 
 void SetInstanceProperties(v8::Local<v8::Object> instance);
@@ -39,6 +46,8 @@ void SetInstanceProperties(v8::Local<v8::Object> instance);
 //! TSEnumDecl: Enum<ChannelMode> := Constants.CH_MODE_*
 //! TSEnumDecl: Enum<StreamSelector> := Constants.STREAM_SELECTOR_*
 //! TSEnumDecl: Enum<DecodeBufferType> := Constants.DECODE_BUFFER_*
+//! TSEnumDecl: Enum<MediaType> := Constants.MEDIA_TYPE_*
+//! TSEnumDecl: Enum<AudioSinkStreamBufferState> := Constants.AUDIO_SINKSTREAM_BUFFER_*
 
 //! TSDecl:
 //! interface Rational {
@@ -49,77 +58,78 @@ void SetInstanceProperties(v8::Local<v8::Object> instance);
 v8::Local<v8::Object> MakeRational(v8::Isolate *i, int32_t num, int32_t denom);
 utau::Ratio ExtractRational(v8::Isolate *i, v8::Local<v8::Value> v);
 
-class AudioSinkContext : public UniquePersistent<AudioSinkContext>
+//! TSDecl: function getCurrentTimestampMs(): number
+uint64_t getCurrentTimestampMs();
+
+//! TSDecl: class AudioDevice
+class AudioDeviceWrap
 {
 public:
-    //! TSDecl: function Initialize(): void
-    static void Initialize();
+    explicit AudioDeviceWrap(std::shared_ptr<utau::AudioDevice> device)
+        : device_(std::move(device)) {}
+    ~AudioDeviceWrap() = default;
 
-    //! TSDecl: function Dispose(call_from_listener: boolean): void
-    static void Dispose(bool call_from_listener);
+    //! TSDecl: function ConnectPipeWire(): AudioDevice
+    static v8::Local<v8::Value> ConnectPipeWire();
 
-    //! TSDecl: function Enqueue(buffer: AudioBuffer): number
-    static int32_t Enqueue(v8::Local<v8::Value> buffer);
+    //! TSDecl: function unref(): void
+    void unref();
 
-    //! TSDecl: type BufferEventListenerCallback = (id: number) => void;
+    //! TSDecl: function createSinkStream(name: string): AudioSinkStream
+    v8::Local<v8::Value> createSinkStream(const std::string& name);
 
-    //! TSDecl:
-    //! interface BufferEventListener {
-    //!   playing?: BufferEventListenerCallback;
-    //!   cancelled?: BufferEventListenerCallback;
-    //!   consumed?: BufferEventListenerCallback;
-    //! }
+private:
+    std::shared_ptr<utau::AudioDevice> device_;
+};
 
-    //! TSDecl: function AddBufferEventListener(listener: BufferEventListener): number
-    static int32_t AddBufferEventListener(v8::Local<v8::Value> listener);
+//! TSDecl: class AudioSinkStream
+class AudioSinkStreamWrap
+{
+public:
+    explicit AudioSinkStreamWrap(std::unique_ptr<utau::AudioSinkStream> st)
+        : stream_(std::move(st)) {}
+    ~AudioSinkStreamWrap() = default;
 
-    //! TSDecl: function RemoveBufferEventListener(): void
-    static void RemoveBufferEventListener(int32_t listenerId);
+    g_nodiscard g_inline utau::AudioSinkStream *GetStream() const {
+        return stream_.get();
+    }
 
-    struct JSBufferEventListener
-            : public utau::AudioSink::BufferEventListener
-    {
-        using BufferWithId = utau::AudioSink::BufferWithId;
+    //! TSDecl: function dispose(): void
+    void dispose();
 
-        explicit JSBufferEventListener(v8::Isolate *i);
-        ~JSBufferEventListener() override = default;
+    //! TSDecl: function connect(sampleFormat: Enum<SampleFormat>,
+    //!                          channelMode: Enum<ChannelMode>,
+    //!                          sampleRate: number,
+    //!                          realtime: boolean): void
+    void connect(int32_t sample_fmt, int32_t ch_mode,
+                 int32_t sample_rate, bool realtime);
 
-        void OnPlaying(const BufferWithId &buf) override {
-            InvokeJS(callbacks[0], buf.id);
-        }
+    //! TSDecl: function disconnect(): void
+    void disconnect();
 
-        void OnCancelled(const BufferWithId &buf) override {
-            InvokeJS(callbacks[1], buf.id);
-        }
+    //! TSDecl: function enqueue(buffer: AudioBuffer): void
+    void enqueue(v8::Local<v8::Value> buffer);
 
-        void OnConsumed(const BufferWithId &buf) override {
-            InvokeJS(callbacks[2], buf.id);
-        }
+    //! TSDecl: function getCurrentDelayInUs(): number
+    double getCurrentDelayInUs();
 
-        void InvokeJS(v8::Global<v8::Function>& func, int32_t id) const;
-
-        int32_t                     listener_id;
-        v8::Isolate                *isolate;
-
-        // [0] playing, [1] cancelled, [2] consumed
-        v8::Global<v8::Function>    callbacks[3];
-    };
-
-    std::unique_ptr<utau::AudioSink> audio_sink_;
-    std::list<JSBufferEventListener> js_buffer_listeners_;
+private:
+    std::unique_ptr<utau::AudioSinkStream> stream_;
 };
 
 //! TSDecl: class AudioBuffer
 class AudioBufferWrap
 {
 public:
-    explicit AudioBufferWrap(std::shared_ptr<utau::AudioBuffer> buffer)
-        : buffer_(std::move(buffer)) {}
-    ~AudioBufferWrap() = default;
+    explicit AudioBufferWrap(std::shared_ptr<utau::AudioBuffer> buffer);
+    ~AudioBufferWrap();
 
     g_nodiscard g_inline std::shared_ptr<utau::AudioBuffer> GetBuffer() {
         return buffer_;
     }
+
+    //! TSDecl: readonly pts: number
+    int64_t getPTS();
 
     //! TSDecl: readonly sampleFormat: Enum<SampleFormat>
     int32_t getSampleFormat();
@@ -133,37 +143,48 @@ public:
     //! TSDecl: readonly samplesCount: number
     int32_t getSamplesCount();
 
+    //! TSDecl: function dispose(): void
+    void dispose();
+
 private:
+    size_t approximate_size_;
     std::shared_ptr<utau::AudioBuffer>    buffer_;
 };
 
 //! TSDecl: class AudioFilterDAG
-class AudioFilterDAGWrap
+class AVFilterDAGWrap
 {
 public:
-    explicit AudioFilterDAGWrap(std::unique_ptr<utau::AudioFilterDAG> DAG)
+    explicit AVFilterDAGWrap(std::unique_ptr<utau::AVFilterDAG> DAG)
         : DAG_(std::move(DAG)) {}
-    ~AudioFilterDAGWrap() = default;
+    ~AVFilterDAGWrap() = default;
 
     //! TSDecl:
     //! interface InBufferParameters {
     //!   name: string;
-    //!   sampleFormat: Enum<SampleFormat>;
-    //!   channelMode: Enum<ChannelMode>;
-    //!   sampleRate: number;
+    //!   mediaType: Enum<MediaType>;
+    //!
+    //!   sampleFormat?: Enum<SampleFormat>;
+    //!   channelMode?: Enum<ChannelMode>;
+    //!   sampleRate?: number;
+    //!
+    //!   pixelFormat?: number;
+    //!   hwFrameContextFrom?: VideoBuffer;
+    //!   width?: number;
+    //!   height?: number;
+    //!   timeBase?: Rational;
+    //!   SAR?: Rational;
     //! }
 
     //! TSDecl:
     //! interface OutBufferParameters {
     //!   name: string;
-    //!   sampleFormats?: Array<Enum<SampleFormat>>;
-    //!   channelModes?: Array<Enum<ChannelMode>>;
-    //!   sampleRates?: Array<number>;
+    //!   mediaType: Enum<MediaType>;
     //! }
 
     //! TSDecl: function MakeFromDSL(dsl: string,
     //!                              inparams: Array<InBufferParameters>,
-    //!                              outparams: Array<OutBufferParameters>): AudioFilterDAG
+    //!                              outparams: Array<OutBufferParameters>): AVFilterDAG
     static v8::Local<v8::Value> MakeFromDSL(const std::string& dsl,
                                             v8::Local<v8::Value> inparams,
                                             v8::Local<v8::Value> outparams);
@@ -172,7 +193,31 @@ public:
     v8::Local<v8::Value> filter(v8::Local<v8::Value> inbuffers);
 
 private:
-    std::unique_ptr<utau::AudioFilterDAG> DAG_;
+    std::unique_ptr<utau::AVFilterDAG> DAG_;
+};
+
+//! TSDecl: class VideoBuffer
+class VideoBufferWrap
+{
+public:
+    explicit VideoBufferWrap(std::shared_ptr<utau::VideoBuffer> buffer);
+    ~VideoBufferWrap();
+
+    g_nodiscard g_inline std::shared_ptr<utau::VideoBuffer> GetBuffer() const {
+        return buffer_;
+    }
+
+    //! TSDecl: function dispose(): void
+    void dispose();
+
+    //! TSDecl: readonly pts: number
+    g_nodiscard g_inline int64_t getPTS() {
+        return buffer_->GetFramePTS();
+    }
+
+private:
+    size_t approximate_size_;
+    std::shared_ptr<utau::VideoBuffer> buffer_;
 };
 
 //! TSDecl: class AVStreamDecoder
@@ -183,10 +228,15 @@ public:
         : decoder_(std::move(decoder)) {}
     ~AVStreamDecoderWrap() = default;
 
+    g_nodiscard utau::AVStreamDecoder *GetDecoder() const {
+        return decoder_.get();
+    }
+
     //! TSDecl:
     //! interface DecoderOptions {
     //!   disableAudio?: boolean;
     //!   disableVideo?: boolean;
+    //!   useHWDecoding?: boolean;
     //!   audioCodecName?: string;
     //!   videoCodecName?: string;
     //! }
@@ -225,6 +275,74 @@ public:
 
 private:
     std::unique_ptr<utau::AVStreamDecoder> decoder_;
+};
+
+//! TSDecl: class MediaFramePresentDispatcher
+class MediaFramePresentDispatcher : public MaybeGCRootObject<MediaFramePresentDispatcher>
+{
+public:
+    struct PresentThreadContext;
+    struct PresentThreadCmd;
+
+    //! TSDecl: constructor(decoder: AVStreamDecoder, audioSinkStream: AudioSinkStream)
+    explicit MediaFramePresentDispatcher(v8::Local<v8::Value> decoder,
+                                         v8::Local<v8::Value> audioSinkStream);
+    ~MediaFramePresentDispatcher();
+
+    //! TSDecl: onPresentVideoBuffer: (buffer: VideoBuffer, ptsInSeconds: number) => void
+    void setOnPresentVideoBuffer(v8::Local<v8::Value> func);
+    v8::Local<v8::Value> getOnPresentVideoBuffer();
+
+    //! TSDecl: onErrorOrEOF: () => void
+    void setOnErrorOrEOF(v8::Local<v8::Value> func);
+    v8::Local<v8::Value> getOnErrorOrEOF();
+
+    //! TSDecl: play(): void
+    void play();
+
+    //! TSDecl: pause(): void
+    void pause();
+
+    //! TSDecl: dispose(): void
+    void dispose();
+
+private:
+    void ThreadRoutine();
+    static void PresentRequestHandler(uv_async_t *handle);
+    static void PresentThreadCmdHandler(uv_async_t *handle);
+    static void TimerCallback(uv_timer_t *timer);
+
+    void SendAndWaitForPresentThreadCmd(int verb, int64_t param);
+    void SendPresentRequest(utau::AVStreamDecoder::AVGenericDecoded frame, double pts_seconds);
+    void SendErrorOrEOFRequest();
+
+    struct PresentRequest
+    {
+        bool error_or_eof;
+        uint64_t send_timestamp;
+        double frame_pts_seconds;
+        std::shared_ptr<utau::VideoBuffer> vbuffer;
+    };
+
+    v8::Global<v8::Object>          decoder_js_obj_;
+    AVStreamDecoderWrap            *decoder_wrap_;
+    v8::Global<v8::Object>          asinkstream_js_obj_;
+    AudioSinkStreamWrap            *asinkstream_wrap_;
+    v8::Global<v8::Function>        cb_present_video_buffer_;
+    v8::Global<v8::Function>        cb_error_or_eof_;
+
+    bool                            disposed_;
+    bool                            paused_;
+    bool                            has_audio_;
+    bool                            has_video_;
+    utau::AVStreamDecoder::StreamInfo audio_stinfo_;
+    utau::AVStreamDecoder::StreamInfo video_stinfo_;
+
+    std::thread                     mp_thread_;
+    uv_async_t                     *host_notifier_;
+    std::mutex                      present_queue_lock_;
+    std::queue<PresentRequest>      present_queue_;
+    std::unique_ptr<PresentThreadContext> thread_ctx_;
 };
 
 GALLIUM_BINDINGS_UTAU_NS_END

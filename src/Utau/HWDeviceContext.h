@@ -15,30 +15,36 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COCOA_UTAU_FFWRAPPERS_LIBAVUTIL_H
-#define COCOA_UTAU_FFWRAPPERS_LIBAVUTIL_H
+#ifndef COCOA_UTAU_HWDEVICECONTEXT_H
+#define COCOA_UTAU_HWDEVICECONTEXT_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif // __cplusplus
+#include <va/va.h>
 
-#include <libavutil/avutil.h>
-#include <libavutil/frame.h>
-#include <libavutil/samplefmt.h>
-#include <libavutil/opt.h>
+#define FFWRAP_AVUTIL_USE_HWCONTEXT_VAAPI
 
-#include <libavutil/hwcontext.h>
+#include "Utau/Utau.h"
+#include "Utau/ffwrappers/libavutil.h"
+UTAU_NAMESPACE_BEGIN
 
-#ifdef FFWRAP_AVUTIL_USE_HWCONTEXT_VAAPI
-#include <libavutil/hwcontext_vaapi.h>
-#endif // FFWRAP_AVUTIL_USE_HWCONTEXT_VAAPI
+class HWDeviceContext
+{
+public:
+    struct DevicePriv;
 
-#ifdef FFWRAP_AVUTIL_USE_HWCONTEXT_VULKAN
-#include <libavutil/hwcontext_vulkan.h>
-#endif // FFWRAP_AVUTIL_USE_HWCONTEXT_VULKAN
+    HWDeviceContext();
+    ~HWDeviceContext() = default;
 
-#ifdef __cplusplus
+    g_nodiscard static std::shared_ptr<HWDeviceContext> MakeVAAPI();
+
+    g_nodiscard AVBufferRef *GetAVContext();
+
+    g_nodiscard AVPixelFormat GetDeviceFormat();
+
+    g_nodiscard VADisplay GetVADisplay();
+
+private:
+    std::unique_ptr<DevicePriv> priv_;
 };
-#endif // __cplusplus
 
-#endif //COCOA_UTAU_FFWRAPPERS_LIBAVUTIL_H
+UTAU_NAMESPACE_END
+#endif //COCOA_UTAU_HWDEVICECONTEXT_H

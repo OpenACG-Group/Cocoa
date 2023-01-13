@@ -15,11 +15,13 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "fmt/format.h"
+
 #include "Gallium/bindings/utau/Exports.h"
-#include "Utau/AudioBuffer.h"
+#include "Utau/VideoBuffer.h"
 GALLIUM_BINDINGS_UTAU_NS_BEGIN
 
-AudioBufferWrap::AudioBufferWrap(std::shared_ptr<utau::AudioBuffer> buffer)
+VideoBufferWrap::VideoBufferWrap(std::shared_ptr<utau::VideoBuffer> buffer)
     : approximate_size_(0)
     , buffer_(std::move(buffer))
 {
@@ -31,12 +33,12 @@ AudioBufferWrap::AudioBufferWrap(std::shared_ptr<utau::AudioBuffer> buffer)
             static_cast<int64_t>(approximate_size_));
 }
 
-AudioBufferWrap::~AudioBufferWrap()
+VideoBufferWrap::~VideoBufferWrap()
 {
     dispose();
 }
 
-void AudioBufferWrap::dispose()
+void VideoBufferWrap::dispose()
 {
     if (!buffer_)
         return;
@@ -49,31 +51,6 @@ void AudioBufferWrap::dispose()
         isolate->AdjustAmountOfExternalAllocatedMemory(
                 -static_cast<int64_t>(approximate_size_));
     }
-}
-
-int64_t AudioBufferWrap::getPTS()
-{
-    return buffer_->CastUnderlyingPointer<AVFrame>()->pts;
-}
-
-int32_t AudioBufferWrap::getSampleFormat()
-{
-    return static_cast<int32_t>(buffer_->GetInfo().GetSampleFormat());
-}
-
-int32_t AudioBufferWrap::getChannelMode()
-{
-    return static_cast<int32_t>(buffer_->GetInfo().GetChannelMode());
-}
-
-int32_t AudioBufferWrap::getSampleRate()
-{
-    return buffer_->GetInfo().GetSampleRate();
-}
-
-int32_t AudioBufferWrap::getSamplesCount()
-{
-    return buffer_->GetInfo().GetSamplesCount();
 }
 
 GALLIUM_BINDINGS_UTAU_NS_END

@@ -352,6 +352,10 @@ Shared<HWComposeContext> HWComposeContext::MakeVulkan(const Options& options)
     for (const std::string& str : deviceExtSet)
         context->device_enabled_extensions_.push_back(str);
 
+    QLOG(LOG_INFO, "Enabled extensions of Vulkan device:");
+    for (const auto& name : deviceExtSet)
+        QLOG(LOG_INFO, "  %italic<>%fg<bl>{}%reset", name);
+
     for (const char *str : vk_select_required_instance_extensions(options))
         context->instance_enabled_extensions_.emplace_back(str);
 

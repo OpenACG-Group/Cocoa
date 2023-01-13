@@ -88,6 +88,8 @@ add_library(
         Layers/RRectClipLayer.cc
         Layers/OpacityLayer.h
         Layers/OpacityLayer.cc
+        Layers/ExternalTextureLayer.h
+        Layers/ExternalTextureLayer.cc
 
         Wayland/protos/xdg-shell-client-protocol.h
         Wayland/protos/xdg-shell-client-protocol.c

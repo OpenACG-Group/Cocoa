@@ -8,25 +8,39 @@
 
     <exports>
         <toplevel type="declaration" name="Constants"/>
+        <toplevel type="function" name="getCurrentTimestampMs" value="getCurrentTimestampMs"/>
 
-        <class name="AudioSinkContext" wrapper="AudioSinkContext">
-            <method static="true" name="Initialize" value="@Initialize"/>
-            <method static="true" name="Dispose" value="@Dispose"/>
-            <method static="true" name="Enqueue" value="@Enqueue"/>
-            <method static="true" name="AddBufferEventListener" value="@AddBufferEventListener"/>
-            <method static="true" name="RemoveBufferEventListener" value="@RemoveBufferEventListener"/>
+        <class name="AudioDevice" wrapper="AudioDeviceWrap">
+            <method static="true" name="ConnectPipeWire" value="@ConnectPipeWire"/>
+            <method name="unref" value="@unref"/>
+            <method name="createSinkStream" value="@createSinkStream"/>
+        </class>
+
+        <class name="AudioSinkStream" wrapper="AudioSinkStreamWrap">
+            <method name="dispose" value="@dispose"/>
+            <method name="connect" value="@connect"/>
+            <method name="disconnect" value="@disconnect"/>
+            <method name="enqueue" value="@enqueue"/>
+            <method name="getCurrentDelayInUs" value="@getCurrentDelayInUs"/>
         </class>
 
         <class name="AudioBuffer" wrapper="AudioBufferWrap">
+            <method name="dispose" value="@dispose"/>
+            <property name="pts" getter="@getPTS"/>
             <property name="sampleFormat" getter="@getSampleFormat"/>
             <property name="channelMode" getter="@getChannelMode"/>
             <property name="sampleRate" getter="@getSampleRate"/>
             <property name="samplesCount" getter="@getSamplesCount"/>
         </class>
 
-        <class name="AudioFilterDAG" wrapper="AudioFilterDAGWrap">
+        <class name="AVFilterDAG" wrapper="AVFilterDAGWrap">
             <method static="true" name="MakeFromDSL" value="@MakeFromDSL"/>
             <method name="filter" value="@filter"/>
+        </class>
+
+        <class name="VideoBuffer" wrapper="VideoBufferWrap">
+            <method name="dispose" value="@dispose"/>
+            <property name="pts" getter="@getPTS"/>
         </class>
 
         <class name="AVStreamDecoder" wrapper="AVStreamDecoderWrap">
@@ -35,6 +49,15 @@
             <method name="decodeNextFrame" value="@decodeNextFrame"/>
             <property name="hasAudioStream" getter="@hasAudioStream"/>
             <property name="hasVideoStream" getter="@hasVideoStream"/>
+        </class>
+
+        <class name="MediaFramePresentDispatcher" wrapper="MediaFramePresentDispatcher">
+            <constructor prototype="v8::Local&lt;v8::Value&gt;, v8::Local&lt;v8::Value&gt;"/>
+            <property name="onPresentVideoBuffer" getter="@getOnPresentVideoBuffer" setter="@setOnPresentVideoBuffer"/>
+            <property name="onErrorOrEOF" getter="@getOnErrorOrEOF" setter="@setOnErrorOrEOF"/>
+            <method name="play" value="@play"/>
+            <method name="pause" value="@pause"/>
+            <method name="dispose" value="@dispose"/>
         </class>
     </exports>
 </module>

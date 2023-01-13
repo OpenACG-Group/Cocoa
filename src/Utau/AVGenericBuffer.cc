@@ -24,7 +24,9 @@ struct AVGenericBuffer::BufferPriv
 {
     ~BufferPriv() {
         if (frame)
+        {
             av_frame_free(&frame);
+        }
     }
     AVFrame *frame = nullptr;
 };
@@ -72,6 +74,20 @@ AVGenericBuffer::UnderlyingPtr AVGenericBuffer::CloneUnderlyingBuffer()
     CHECK(ret && "Failed to clone AVFrame");
 
     return ret;
+}
+
+size_t AVGenericBuffer::ComputeApproximateSizeInBytes()
+{
+    CHECK(priv_ && priv_->frame);
+
+    size_t total_size = 0;
+    for (AVBufferRef *buf : priv_->frame->buf)
+    {
+        if (!buf)
+            break;
+        total_size += buf->size;
+    }
+    return total_size;
 }
 
 UTAU_NAMESPACE_END

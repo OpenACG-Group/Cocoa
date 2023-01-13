@@ -101,10 +101,13 @@ add_library(Gallium STATIC
 
         bindings/utau/Exports.h
         bindings/utau/Exports.cc
-        bindings/utau/AudioSinkContext.cc
+        bindings/utau/AudioDeviceWrap.cc
+        bindings/utau/AudioSinkStreamWrap.cc
         bindings/utau/AudioBufferWrap.cc
-        bindings/utau/AudioFilterDAGWrap.cc
+        bindings/utau/AVFilterDAGWrap.cc
+        bindings/utau/VideoBufferWrap.cc
         bindings/utau/AVStreamDecoderWrap.cc
+        bindings/utau/MediaFramePresentDispatcher.cc
 )
 target_include_directories(Gallium PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 

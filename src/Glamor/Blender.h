@@ -39,6 +39,7 @@ class Surface;
 class Blender;
 class LayerTree;
 class TextureManager;
+class VAAPITextureEmbedder;
 class GProfiler;
 
 #define GLOP_BLENDER_DISPOSE                            1
@@ -76,8 +77,7 @@ public:
 
     static Shared<Blender> Make(const Shared<Surface>& surface);
 
-    explicit Blender(const Shared<Surface>& surface,
-                     Unique<TextureManager> texture_manager);
+    explicit Blender(const Shared<Surface>& surface, Unique<TextureManager> texture_manager);
     ~Blender() override;
 
     g_nodiscard g_inline Shared<Surface> GetOutputSurface() const {

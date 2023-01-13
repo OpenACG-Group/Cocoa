@@ -85,7 +85,10 @@ void thread_pool_post_task_routine(uv_work_t *work, int status)
 {
     auto *closure = reinterpret_cast<TaskClosure*>(work->data);
     CHECK(closure);
-    closure->post_task_routine();
+
+    if (closure->post_task_routine)
+        closure->post_task_routine();
+
     delete closure;
 }
 

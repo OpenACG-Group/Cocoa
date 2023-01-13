@@ -22,43 +22,61 @@
 #include <vector>
 
 #include "Utau/Utau.h"
+#include "Utau/ffwrappers/libavutil.h"
 UTAU_NAMESPACE_BEGIN
 
 class AudioBuffer;
+class VideoBuffer;
 
-class AudioFilterDAG
+class AVFilterDAG
 {
 public:
     struct FilterDAGPriv;
 
     struct NamedInOutBuffer
     {
-        std::string name;
-        std::shared_ptr<AudioBuffer> buffer;
+        std::string     name;
+        MediaType       media_type;
+
+        std::shared_ptr<AudioBuffer> audio_buffer;
+        std::shared_ptr<VideoBuffer> video_buffer;
     };
 
     struct InBufferParameters
     {
         std::string         name;
+        MediaType           media_type;
+
+        /* Audio only */
         AudioChannelMode    channel_mode;
         SampleFormat        sample_fmt;
         int32_t             sample_rate;
+
+        /* Video only */
+        AVPixelFormat       pixel_fmt;
+        AVBufferRef        *hw_frame_ctx;
+        int32_t             width;
+        int32_t             height;
+        Ratio               time_base;
+        Ratio               sar;
     };
 
     struct OutBufferParameters
     {
         std::string                     name;
+        MediaType                       media_type;
+
         std::vector<SampleFormat>       sample_fmts;
         std::vector<int32_t>            sample_rates;
         std::vector<AudioChannelMode>   channel_modes;
     };
 
-    static std::unique_ptr<AudioFilterDAG> MakeFromDSL(const std::string& dsl,
+    static std::unique_ptr<AVFilterDAG> MakeFromDSL(const std::string& dsl,
                                                        const std::vector<InBufferParameters>& inparams,
                                                        const std::vector<OutBufferParameters>& outparams);
 
-    AudioFilterDAG();
-    ~AudioFilterDAG();
+    AVFilterDAG();
+    ~AVFilterDAG();
 
     g_nodiscard g_inline int32_t GetInputsCount() const {
         return inputs_count_;

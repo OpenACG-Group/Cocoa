@@ -62,6 +62,9 @@ v8::Local<v8::Value> AVStreamDecoderWrap::MakeFromFile(const std::string& path,
     auto opt_disable_video = extract_object_owned_property<bool>(
             isolate, obj, "disableVideo", [](v8::Local<v8::Value> v) {return v->IsBoolean();});
 
+    auto opt_use_hw_decoding = extract_object_owned_property<bool>(
+            isolate, obj, "useHWDecoding", [](v8::Local<v8::Value> v) {return v->IsBoolean();});
+
     auto opt_audio_codec_name = extract_object_owned_property<std::string>(
             isolate, obj, "audioCodecName", [](v8::Local<v8::Value> v) {return v->IsString();});
 
@@ -73,6 +76,8 @@ v8::Local<v8::Value> AVStreamDecoderWrap::MakeFromFile(const std::string& path,
         opts.disable_audio = *opt_disable_audio;
     if (opt_disable_video)
         opts.disable_video = *opt_disable_video;
+    if (opt_use_hw_decoding)
+        opts.use_hw_decode = *opt_use_hw_decoding;
     if (opt_audio_codec_name)
         opts.audio_codec_name = *opt_audio_codec_name;
     if (opt_video_codec_name)
@@ -127,8 +132,10 @@ v8::Local<v8::Value> AVStreamDecoderWrap::getStreamInfo(int32_t selector)
     }
     else
     {
-        // TODO(sora): [video_decode] Support video stream info
-        MARK_UNREACHABLE();
+        map["pixelFormat"] = binder::to_v8(isolate, static_cast<int32_t>(info->pixel_fmt));
+        map["width"] = binder::to_v8(isolate, info->width);
+        map["height"] = binder::to_v8(isolate, info->height);
+        map["SAR"] = MakeRational(isolate, info->sar.num, info->sar.denom);
     }
 
     return binder::to_v8(isolate, map);
@@ -145,13 +152,13 @@ v8::Local<v8::Value> AVStreamDecoderWrap::decodeNextFrame()
 
     if (decoded.type == utau::AVStreamDecoder::AVGenericDecoded::kAudio)
     {
-        map["audio"] = binder::Class<AudioBufferWrap>::create_object(
+        map["audioBuffer"] = binder::Class<AudioBufferWrap>::create_object(
                 isolate, std::move(decoded.audio));
     }
     else if (decoded.type == utau::AVStreamDecoder::AVGenericDecoded::kVideo)
     {
-        // TODO(sora): [video_decode] Support video decoding result
-        MARK_UNREACHABLE();
+        map["videoBuffer"] = binder::Class<VideoBufferWrap>::create_object(
+                isolate, std::move(decoded.video));
     }
 
     return binder::to_v8(isolate, map);

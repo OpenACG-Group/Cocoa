@@ -153,10 +153,12 @@ Shared<Blender> Blender::Make(const Shared<Surface>& surface)
     // `TextureManager` is only owned by `Blender` and will be released when the
     // blender is disposed.
     auto texture_manager = std::make_unique<TextureManager>(std::move(texture_factory));
+
     return std::make_shared<Blender>(surface, std::move(texture_manager));
 }
 
-Blender::Blender(const Shared<Surface>& surface, Unique<TextureManager> texture_manager)
+Blender::Blender(const Shared<Surface>& surface,
+                 Unique<TextureManager> texture_manager)
     : RenderClientObject(RealType::kBlender)
     , disposed_(false)
     , surface_resize_slot_id_(0)

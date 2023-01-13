@@ -139,6 +139,7 @@
             <method name="pushRRectClip" value="@pushRRectClip"/>
             <method name="addPicture" value="@addPicture"/>
             <method name="addTexture" value="@addTexture"/>
+            <method name="addVideoBuffer" value="@addVideoBuffer"/>
         </class>
 
         <class name="CkImageFilter" wrapper="CkImageFilterWrap">

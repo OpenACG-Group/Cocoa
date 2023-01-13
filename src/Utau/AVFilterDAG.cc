@@ -17,31 +17,36 @@
 
 #include "fmt/format.h"
 
+#include "Utau/ffwrappers/libavutil.h"
+#include "Utau/ffwrappers/libavfilter.h"
+
 #include "Core/Exception.h"
 #include "Core/Errors.h"
 #include "Core/Journal.h"
-#include "Utau/AudioFilterDAG.h"
+#include "Utau/AVFilterDAG.h"
 #include "Utau/AudioBuffer.h"
-#include "Utau/ffwrappers/libavfilter.h"
-#include "Utau/ffwrappers/libavutil.h"
+#include "Utau/VideoBuffer.h"
+#include "Utau/HWDeviceContext.h"
 UTAU_NAMESPACE_BEGIN
 
-#define THIS_FILE_MODULE COCOA_MODULE_NAME(Utau.AudioFilterDAG)
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Utau.AVFilterDAG)
 
 struct NamedInOutFilterCtx
 {
     std::string         label_name;
+    MediaType           media_type;
 
-    // For input filters, `abuffersrc` filter is associated;
-    // for output filters, `abuffersink` filter is associated.
+    // For input filters, `abuffer` or `buffer` filter is associated;
+    // for output filters, `abuffersink` or `buffersink` filter is associated.
     AVFilterContext    *context;
 
-    AudioChannelMode    channel_mode;
-    SampleFormat        sample_fmt;
-    int32_t             sample_rate;
+    // For video inputs only
+    bool                enable_hw_frame;
+    AVRational          time_base;
+    AVRational          sar;
 };
 
-struct AudioFilterDAG::FilterDAGPriv
+struct AVFilterDAG::FilterDAGPriv
 {
     ~FilterDAGPriv() {
         // TODO(sora): should we release `in_filters` and `out_filters`?
@@ -55,7 +60,7 @@ struct AudioFilterDAG::FilterDAGPriv
 
 namespace {
 
-using DAG = AudioFilterDAG;
+using DAG = AVFilterDAG;
 
 bool configure_input_buffers(DAG::FilterDAGPriv *priv, AVFilterInOut *in,
                              const std::vector<DAG::InBufferParameters>& inparams)
@@ -70,6 +75,10 @@ bool configure_input_buffers(DAG::FilterDAGPriv *priv, AVFilterInOut *in,
 
     const AVFilter *af = avfilter_get_by_name("abuffer");
     if (!af)
+        return false;
+
+    const AVFilter *vf = avfilter_get_by_name("buffer");
+    if (!vf)
         return false;
 
     for (AVFilterInOut *cur = in; cur; cur = cur->next)
@@ -87,22 +96,67 @@ bool configure_input_buffers(DAG::FilterDAGPriv *priv, AVFilterInOut *in,
             return false;
         }
 
-        std::string args = fmt::format("sample_fmt={}:sample_rate={}:channel_layout={}",
-                                       static_cast<int32_t>(SampleFormatToLibavFormat(params->sample_fmt)),
-                                       params->sample_rate,
-                                       params->channel_mode == AudioChannelMode::kStereo ? "stereo" : "mono");
+        const AVFilter *filter;
+        AVFilterContext *filter_context;
+        std::string args;
 
-        AVFilterContext *af_context;
+        if (params->media_type == MediaType::kAudio)
+        {
+            args = fmt::format("sample_fmt={}:sample_rate={}:channel_layout={}",
+                               static_cast<int32_t>(SampleFormatToLibavFormat(params->sample_fmt)),
+                               params->sample_rate,
+                               params->channel_mode == AudioChannelMode::kStereo ? "stereo" : "mono");
+            filter = af;
+        }
+        else if (params->media_type == MediaType::kVideo)
+        {
+            args = fmt::format("width={}:height={}:pix_fmt={}:time_base={}/{}:sar={}/{}",
+                               params->width,
+                               params->height,
+                               static_cast<int32_t>(params->pixel_fmt),
+                               params->time_base.num, params->time_base.denom,
+                               params->sar.num, params->sar.denom);
+            filter = vf;
+        }
+        else
+        {
+            MARK_UNREACHABLE();
+        }
 
         int ret = avfilter_graph_create_filter(
-                &af_context, af, params->name.c_str(), args.c_str(), nullptr, priv->graph);
+                &filter_context, filter, params->name.c_str(), args.c_str(), nullptr, priv->graph);
         if (ret < 0)
         {
             QLOG(LOG_ERROR, "Failed to create input buffer '{}'", params->name);
             return false;
         }
 
-        ret = avfilter_link(af_context, 0, cur->filter_ctx, cur->pad_idx);
+        if (params->hw_frame_ctx)
+        {
+            auto hw_context = GlobalContext::Ref().GetHWDeviceContext();
+            if (!hw_context)
+            {
+                QLOG(LOG_ERROR, "Failed to get hardware device context for HW frame input '{}'",
+                     params->name);
+                return false;
+            }
+
+            AVBufferSrcParameters *src_par = av_buffersrc_parameters_alloc();
+            CHECK(src_par && "Failed to allocate memory");
+
+            // `params->pixel_fmt` is ignored if hwaccel is enabled
+            src_par->format = hw_context->GetDeviceFormat();
+            src_par->time_base = av_make_q(params->time_base.num, params->time_base.denom);
+            src_par->width = params->width;
+            src_par->height = params->height;
+            src_par->sample_aspect_ratio = av_make_q(params->sar.num, params->sar.denom);
+            src_par->hw_frames_ctx = params->hw_frame_ctx;
+
+            av_buffersrc_parameters_set(filter_context, src_par);
+            av_free(src_par);
+        }
+
+        ret = avfilter_link(filter_context, 0, cur->filter_ctx, cur->pad_idx);
         if (ret < 0)
         {
             QLOG(LOG_ERROR, "Failed to link input buffer with the destination node");
@@ -111,10 +165,11 @@ bool configure_input_buffers(DAG::FilterDAGPriv *priv, AVFilterInOut *in,
 
         priv->in_filters.emplace_back(NamedInOutFilterCtx{
             .label_name = params->name,
-            .context = af_context,
-            .channel_mode = params->channel_mode,
-            .sample_fmt = params->sample_fmt,
-            .sample_rate = params->sample_rate
+            .media_type = params->media_type,
+            .context = filter_context,
+            .enable_hw_frame = static_cast<bool>(params->hw_frame_ctx),
+            .time_base = av_make_q(params->time_base.num, params->time_base.denom),
+            .sar = av_make_q(params->sar.num, params->sar.denom)
         });
     }
 
@@ -138,6 +193,10 @@ bool configure_output_buffers(DAG::FilterDAGPriv *priv, AVFilterInOut *out,
     if (!af)
         return false;
 
+    const AVFilter *vf = avfilter_get_by_name("buffersink");
+    if (!vf)
+        return false;
+
     for (AVFilterInOut *cur = out; cur; cur = cur->next)
     {
         if (!cur->name)
@@ -153,10 +212,18 @@ bool configure_output_buffers(DAG::FilterDAGPriv *priv, AVFilterInOut *out,
             return false;
         }
 
-        AVFilterContext *af_context;
+        const AVFilter *filter;
+        AVFilterContext *filter_context;
+
+        if (params->media_type == MediaType::kAudio)
+            filter = af;
+        else if (params->media_type == MediaType::kVideo)
+            filter = vf;
+        else
+            MARK_UNREACHABLE();
 
         int ret = avfilter_graph_create_filter(
-                &af_context, af, params->name.c_str(), nullptr, nullptr, priv->graph);
+                &filter_context, filter, params->name.c_str(), nullptr, nullptr, priv->graph);
         if (ret < 0)
         {
             QLOG(LOG_ERROR, "Failed to create output buffer '{}'", params->name);
@@ -165,17 +232,17 @@ bool configure_output_buffers(DAG::FilterDAGPriv *priv, AVFilterInOut *out,
 
         // TODO(sora): Apply format constraints
 
-        ret = avfilter_link(cur->filter_ctx, cur->pad_idx, af_context, 0);
+        ret = avfilter_link(cur->filter_ctx, cur->pad_idx, filter_context, 0);
         if (ret < 0)
         {
             QLOG(LOG_ERROR, "Failed to link input buffer with the destination node");
             return false;
         }
 
-        // TODO(sora): push
         priv->out_filters.emplace_back(NamedInOutFilterCtx{
             .label_name = params->name,
-            .context = af_context
+            .media_type = params->media_type,
+            .context = filter_context
         });
     }
 
@@ -186,15 +253,15 @@ bool configure_output_buffers(DAG::FilterDAGPriv *priv, AVFilterInOut *out,
 
 } // namespace anonymous
 
-std::unique_ptr<AudioFilterDAG>
-AudioFilterDAG::MakeFromDSL(const std::string& dsl,
-                            const std::vector<InBufferParameters>& inparams,
-                            const std::vector<OutBufferParameters>& outparams)
+std::unique_ptr<AVFilterDAG>
+AVFilterDAG::MakeFromDSL(const std::string& dsl,
+                         const std::vector<InBufferParameters>& inparams,
+                         const std::vector<OutBufferParameters>& outparams)
 {
     if (dsl.empty())
         return nullptr;
 
-    auto graph = std::make_unique<AudioFilterDAG>();
+    auto graph = std::make_unique<AVFilterDAG>();
     auto& priv = graph->priv_;
 
     // Memory of `graph` is managed by `AudioFilterDAG::FilterDAGPriv` object
@@ -202,6 +269,9 @@ AudioFilterDAG::MakeFromDSL(const std::string& dsl,
     priv->graph = avfilter_graph_alloc();
     if (!priv->graph)
         return nullptr;
+
+    // TODO(sora): allow user to specify this from commandline
+    priv->graph->nb_threads = 4;
 
     // Parse filter DAG descriptor (DSL)
     AVFilterInOut *inputs = nullptr, *outputs = nullptr;
@@ -230,17 +300,17 @@ AudioFilterDAG::MakeFromDSL(const std::string& dsl,
     return graph;
 }
 
-AudioFilterDAG::AudioFilterDAG()
+AVFilterDAG::AVFilterDAG()
     : priv_(std::make_unique<FilterDAGPriv>())
     , inputs_count_(0)
     , outputs_count_(0)
 {
 }
 
-AudioFilterDAG::~AudioFilterDAG() = default;
+AVFilterDAG::~AVFilterDAG() = default;
 
 std::vector<DAG::NamedInOutBuffer>
-AudioFilterDAG::Filter(const std::vector<NamedInOutBuffer>& inputs)
+AVFilterDAG::Filter(const std::vector<NamedInOutBuffer>& inputs)
 {
     if (inputs.size() != inputs_count_)
         return {};
@@ -257,8 +327,43 @@ AudioFilterDAG::Filter(const std::vector<NamedInOutBuffer>& inputs)
             continue;
         }
 
-        auto *frame = inbuf.buffer->CastUnderlyingPointer<AVFrame>();
-        if (av_buffersrc_add_frame(itr->context, frame) < 0)
+        if (inbuf.media_type != itr->media_type)
+        {
+            QLOG(LOG_ERROR, "Media type mismatched on input buffer '{}'", inbuf.name);
+            return {};
+        }
+
+        AVFrame *frame;
+        if (itr->media_type == MediaType::kAudio)
+        {
+            if (!inbuf.audio_buffer)
+            {
+                QLOG(LOG_ERROR, "Invalid input buffer '{}'", inbuf.name);
+                return {};
+            }
+            frame = inbuf.audio_buffer->CastUnderlyingPointer<AVFrame>();
+        }
+        else if (itr->media_type == MediaType::kVideo)
+        {
+            if (!inbuf.video_buffer)
+            {
+                QLOG(LOG_ERROR, "Invalid input buffer '{}'", inbuf.name);
+                return {};
+            }
+            frame = inbuf.video_buffer->CastUnderlyingPointer<AVFrame>();
+        }
+        else
+        {
+            MARK_UNREACHABLE();
+        }
+
+        if (frame->hw_frames_ctx && !itr->enable_hw_frame)
+        {
+            QLOG(LOG_ERROR, "Input buffer '{}' does not accept HW frames", inbuf.name);
+            return {};
+        }
+
+        if (av_buffersrc_add_frame_flags(itr->context, frame, 0) < 0)
         {
             QLOG(LOG_ERROR, "Failed to push input buffer '{}' into DAG", inbuf.name);
             return {};
@@ -279,18 +384,37 @@ AudioFilterDAG::Filter(const std::vector<NamedInOutBuffer>& inputs)
             return {};
         }
 
-        std::shared_ptr<AudioBuffer> audio_buffer = AudioBuffer::MakeFromAVFrame(frame);
-        if (!audio_buffer)
-        {
-            QLOG(LOG_ERROR, "Failed to wrap AVFrame");
+        ScopeExitAutoInvoker frame_releaser([&frame] {
             av_frame_free(&frame);
-            return {};
-        }
+        });
 
         outbufs.emplace_back(NamedInOutBuffer{
             .name = output.label_name,
-            .buffer = audio_buffer
+            .media_type = output.media_type
         });
+
+        if (output.media_type == MediaType::kAudio)
+        {
+            outbufs.back().audio_buffer = AudioBuffer::MakeFromAVFrame(frame);
+            if (!outbufs.back().audio_buffer)
+            {
+                QLOG(LOG_ERROR, "Failed in wrapping output frame of pad '{}'", output.label_name);
+                return {};
+            }
+        }
+        else if (output.media_type == MediaType::kVideo)
+        {
+            outbufs.back().video_buffer = VideoBuffer::MakeFromAVFrame(frame);
+            if (!outbufs.back().video_buffer)
+            {
+                QLOG(LOG_ERROR, "Failed in wrapping output frame of pad '{}'", output.label_name);
+                return {};
+            }
+        }
+        else
+        {
+            MARK_UNREACHABLE();
+        }
     }
 
     return outbufs;

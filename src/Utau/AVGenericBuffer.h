@@ -51,6 +51,8 @@ public:
         return reinterpret_cast<T*>(CloneUnderlyingBuffer());
     }
 
+    size_t ComputeApproximateSizeInBytes();
+
 protected:
     /**
      * The `AVGenericBuffer` only can be created from a valid `AVFrame`

@@ -23,7 +23,7 @@
 #include "Utau/ffwrappers/libavcodec.h"
 #include "Utau/AVStreamDecoder.h"
 #include "Utau/AudioBuffer.h"
-#include "Utau/AudioFilterDAG.h"
+#include "Utau/HWDeviceContext.h"
 UTAU_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Utau.AVStreamDecoder)
@@ -47,15 +47,16 @@ public:
 
     explicit DataAVIOContextPriv(std::shared_ptr<Data> from_data)
         : data_(std::move(from_data))
-        , buffer_ptr_(nullptr)
         , avio_context_(nullptr)
     {
         CHECK(data_);
 
-        buffer_ptr_ = static_cast<uint8_t*>(av_malloc(kBufferSize));
-        CHECK(buffer_ptr_ && "Failed to allocate memory");
+        // There is no need to free `buffer` as it is freed
+        // by libavformat automatically.
+        auto *buffer = static_cast<uint8_t*>(av_malloc(kBufferSize));
+        CHECK(buffer && "Failed to allocate memory");
 
-        avio_context_ = avio_alloc_context(buffer_ptr_, kBufferSize, 0, this,
+        avio_context_ = avio_alloc_context(buffer, kBufferSize, 0, this,
                                            &read_packet, nullptr, &seek);
         CHECK(avio_context_ && "Failed to allocate AVIOContext");
     }
@@ -63,7 +64,6 @@ public:
     ~DataAVIOContextPriv()
     {
         av_free(avio_context_);
-        av_free(buffer_ptr_);
     }
 
     static int read_packet(void *opaque, uint8_t *buf_ptr, int buf_size)
@@ -90,7 +90,6 @@ public:
     }
 
     std::shared_ptr<Data>        data_;
-    uint8_t                     *buffer_ptr_;
     AVIOContext                 *avio_context_;
 };
 
@@ -125,6 +124,19 @@ enum class StreamType
 };
 
 namespace {
+
+AVPixelFormat vcodec_get_format_cb(g_maybe_unused AVCodecContext *ctx,
+                                   const AVPixelFormat *formats)
+{
+    for (const AVPixelFormat *p = formats; *p != AV_PIX_FMT_NONE; p++)
+    {
+        if (*p == AV_PIX_FMT_VAAPI)
+            return AV_PIX_FMT_VAAPI;
+    }
+
+    QLOG(LOG_ERROR, "VAAPI is not supported by chosen decoder");
+    return AV_PIX_FMT_NONE;
+}
 
 bool open_stream_decoder(AVStreamDecoder::DecoderPriv *priv, StreamType st_type,
                          const AVStreamDecoder::Options& options)
@@ -180,6 +192,22 @@ bool open_stream_decoder(AVStreamDecoder::DecoderPriv *priv, StreamType st_type,
     }
 
     codec_ctx->codec_id = codec->id;
+
+    if (st_type == StreamType::kVideo && options.use_hw_decode)
+    {
+        std::shared_ptr<HWDeviceContext> device_ctx =
+                GlobalContext::Ref().GetHWDeviceContext();
+        if (!device_ctx)
+        {
+            QLOG(LOG_ERROR, "Failed to create hardware device context");
+            avcodec_free_context(&codec_ctx);
+            return false;
+        }
+
+        codec_ctx->get_format = vcodec_get_format_cb;
+        codec_ctx->hw_device_ctx = av_buffer_ref(device_ctx->GetAVContext());
+        QLOG(LOG_DEBUG, "Attempt to use hwaccel for video decoding");
+    }
 
     // Open the decoder
     error = avcodec_open2(codec_ctx, codec, nullptr);
@@ -361,13 +389,19 @@ AVStreamDecoder::AVGenericDecoded AVStreamDecoder::DecodeNextFrame()
     AVGenericDecoded decoded(AVGenericDecoded::kNull);
     if (is_video_frame)
     {
-        // TODO(sora): [video_decode] Support video frames
-        MARK_UNREACHABLE("Video frame not supported");
+        decoded.type = AVGenericDecoded::kVideo;
+        decoded.video = VideoBuffer::MakeFromAVFrame(frame);
     }
     else
     {
         decoded.type = AVGenericDecoded::kAudio;
         decoded.audio = AudioBuffer::MakeFromAVFrame(frame);
+    }
+
+    if (!decoded.audio && !decoded.video && decoded.type != AVGenericDecoded::kNull)
+    {
+        QLOG(LOG_ERROR, "Failed in reading buffers in frame");
+        decoded.type = AVGenericDecoded::kNull;
     }
 
     return decoded;
@@ -419,8 +453,10 @@ AVStreamDecoder::GetStreamInfo(StreamSelector selector)
     }
     else
     {
-        // TODO(sora): [video_decode] Process video stream.
-        MARK_UNREACHABLE("Video stream is not supported");
+        info.pixel_fmt = static_cast<AVPixelFormat>(st->codecpar->format);
+        info.width = st->codecpar->width;
+        info.height = st->codecpar->height;
+        info.sar = Ratio(st->sample_aspect_ratio.num, st->sample_aspect_ratio.den);
     }
 
     return info;

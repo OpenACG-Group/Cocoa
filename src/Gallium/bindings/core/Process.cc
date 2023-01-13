@@ -15,8 +15,6 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "jemalloc/jemalloc.h"
-
 #include "Core/Journal.h"
 #include "Core/EventLoop.h"
 #include "Gallium/bindings/core/Exports.h"
@@ -326,7 +324,8 @@ v8::Local<v8::Value> GetEnviron()
 
 void DumpNativeHeapProfile()
 {
-    mallctl("prof.dump", nullptr, nullptr, nullptr, 0);
+    // mallctl("prof.dump", nullptr, nullptr, nullptr, 0);
+    // TODO(sora): deprecate this
 }
 
 GALLIUM_BINDINGS_NS_END

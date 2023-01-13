@@ -360,6 +360,12 @@ bool HWComposeSwapchain::CreateOrRecreateSwapchain(int32_t width, int32_t height
         return false;
     }
 
+    if (vk_swapchain_)
+    {
+        vkDestroySwapchainKHR(vk_device_, vk_swapchain_, nullptr);
+        vk_swapchain_ = VK_NULL_HANDLE;
+    }
+
     vk_swapchain_extent_.width = static_cast<uint32_t>(width);
     vk_swapchain_extent_.height = static_cast<uint32_t>(height);
 
@@ -398,13 +404,14 @@ bool HWComposeSwapchain::CreateOrRecreateSwapchain(int32_t width, int32_t height
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = vk_present_mode_;
     createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = vk_swapchain_;
+    createInfo.oldSwapchain = VK_NULL_HANDLE;
 
     if (vkCreateSwapchainKHR(vk_device_, &createInfo, nullptr, &vk_swapchain_) != VK_SUCCESS)
     {
         QLOG(LOG_ERROR, "Failed to create Vulkan swapchain");
         return false;
     }
+
     return true;
 }
 

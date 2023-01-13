@@ -173,9 +173,13 @@ void Surface::Close()
 
 bool Surface::Resize(int32_t width, int32_t height)
 {
+    if (width == render_target_->GetWidth() && height == render_target_->GetHeight())
+        return true;
+
     QLOG(LOG_DEBUG, "Attempting to resize surface to {}x{}", width, height);
     if (width <= 0 || height <= 0)
         return false;
+
     render_target_->Resize(width, height);
 
     RenderClientEmitterInfo info;

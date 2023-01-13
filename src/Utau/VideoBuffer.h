@@ -21,5 +21,23 @@
 #include "Utau/AVGenericBuffer.h"
 UTAU_NAMESPACE_BEGIN
 
+class VideoBuffer : public AVGenericBuffer
+{
+public:
+    /**
+     * Make an `VideoBuffer` instance from an `AVFrame` object obtained
+     * from FFmpeg components (e.g. decoders). The `frame` must be reference counted,
+     * and it will be cloned, which means it does NOT take the ownership of
+     * the original `frame` object that caller passes in. It is safe
+     * to free or unref `frame` object during the lifetime of `AudioBuffer`.
+     */
+    static std::unique_ptr<VideoBuffer> MakeFromAVFrame(UnderlyingPtr frame);
+
+    explicit VideoBuffer(UnderlyingPtr ptr);
+    ~VideoBuffer();
+
+    g_nodiscard int64_t GetFramePTS();
+};
+
 UTAU_NAMESPACE_END
 #endif //COCOA_UTAU_VIDEOBUFFER_H

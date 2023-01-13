@@ -26,6 +26,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <chrono>
 
 #include "Core/Project.h"
 #include "Core/UniquePersistent.h"
@@ -36,6 +37,41 @@
 
 UTAU_NAMESPACE_BEGIN
 
+class HWDeviceContext;
+class VideoFrameGLEmbedder;
+
+struct ContextOptions
+{
+    std::string     hwdevice_drm_device_path;
+};
+
+class GlobalContext : public UniquePersistent<GlobalContext>
+{
+public:
+    explicit GlobalContext(const ContextOptions& options);
+    ~GlobalContext();
+
+    g_nodiscard g_inline const ContextOptions& GetOptions() const {
+        return options_;
+    }
+
+    g_nodiscard g_inline VideoFrameGLEmbedder* GetVideoFrameGLEmbedder() const {
+        return vf_GL_embedder_.get();
+    }
+
+    g_nodiscard const std::shared_ptr<HWDeviceContext>& GetHWDeviceContext();
+    g_nodiscard bool HasHWDeviceContext() const;
+
+    g_nodiscard uint64_t GetCurrentTimestampMs() const;
+
+private:
+    ContextOptions options_;
+    std::shared_ptr<HWDeviceContext> hw_context_;
+    bool hw_context_creation_failed_;
+    std::unique_ptr<VideoFrameGLEmbedder> vf_GL_embedder_;
+    std::chrono::steady_clock::time_point context_time_epoch_;
+};
+
 enum class AudioChannelMode
 {
     kUnknown,
@@ -44,6 +80,14 @@ enum class AudioChannelMode
     kStereo,
 
     kLast = kStereo
+};
+
+enum class MediaType
+{
+    kAudio,
+    kVideo,
+
+    kLast = kVideo
 };
 
 enum class SampleFormat : uint32_t
@@ -83,7 +127,8 @@ SampleFormat LibavFormatToSampleFormat(AVSampleFormat format);
 int GetPerSampleSize(SampleFormat format);
 bool SampleFormatIsPlanar(SampleFormat format);
 
-void InitializePlatform();
+void InitializePlatform(const ContextOptions& options);
+void DisposePlatform();
 
 UTAU_NAMESPACE_END
 #endif //COCOA_UTAU_UTAU_H

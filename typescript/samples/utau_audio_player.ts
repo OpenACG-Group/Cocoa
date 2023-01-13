@@ -29,16 +29,17 @@ function main(): void {
 
     const info = decoder.getStreamInfo(utau.Constants.STREAM_SELECTOR_AUDIO);
 
-    const inparams: utau.AudioInBufferParameters = {
+    const inparams: utau.InBufferParameters = {
         name: 'in',
+        mediaType: utau.Constants.MEDIA_TYPE_AUDIO,
         sampleFormat: info.sampleFormat,
         channelMode: info.channelMode,
         sampleRate: info.sampleRate
     };
 
-    const DAG = utau.AudioFilterDAG.MakeFromDSL(
+    const DAG = utau.AVFilterDAG.MakeFromDSL(
         'aresample=osf=flt:osr=44100:ochl=stereo',
-        [inparams], [{name: 'out'}]);
+        [inparams], [{name: 'out', mediaType: utau.Constants.MEDIA_TYPE_AUDIO}]);
 
     utau.AudioSinkContext.Initialize();
 
@@ -50,8 +51,13 @@ function main(): void {
             return;
         }
 
-        const filtered = DAG.filter([{name: 'in', buffer: decodeBuffer.audio}]);
-        lastBufferId = utau.AudioSinkContext.Enqueue(filtered[0].buffer);
+        const filtered = DAG.filter([{
+            name: 'in',
+            mediaType: utau.Constants.MEDIA_TYPE_AUDIO,
+            audioBuffer: decodeBuffer.audioBuffer
+        }]);
+
+        lastBufferId = utau.AudioSinkContext.Enqueue(filtered[0].audioBuffer);
 
         decodeBuffer = decoder.decodeNextFrame();
     }

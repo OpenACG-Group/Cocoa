@@ -120,7 +120,8 @@ std::vector<std::string> string_view_vec_dup(const std::vector<std::string_view>
 
 cmd::ParseState startup_initialize(int argc, char const **argv,
                                    gallium::Runtime::Options& gallium_options,
-                                   gl::ContextOptions& glamor_options)
+                                   gl::ContextOptions& glamor_options,
+                                   utau::ContextOptions& utau_options)
 {
     cmd::ParseResult args;
     cmd::ParseState state = cmd::Parse(argc, argv, args);
@@ -317,6 +318,10 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
             size_t v = arg.value->v_int;
             glamor_options.SetProfilerRingBufferThreshold(v);
         }
+        else if arg_longopt_match("utau-hwdevice-drm-devicepath")
+        {
+            utau_options.hwdevice_drm_device_path = arg.value->v_str;
+        }
     }
 
     return justInitialize ? cmd::ParseState::kJustInitialize : cmd::ParseState::kSuccess;
@@ -326,14 +331,15 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
 
 void mainloop_execute(bool justInitialize,
                       const gallium::Runtime::Options& options,
-                      const gl::ContextOptions& glamorOptions)
+                      const gl::ContextOptions& gl_options,
+                      const utau::ContextOptions& utau_options)
 {
     // Initialize QResource module, loading internal resources
     QResource::New();
 
     // Initialize Glamor (rendering engine) and Utau (multimedia processing engine)
-    gl::GlobalScope::New(glamorOptions, EventLoop::Instance());
-    utau::InitializePlatform();
+    gl::GlobalScope::New(gl_options, EventLoop::Instance());
+    utau::InitializePlatform(utau_options);
 
     // Initialize binding manager
     gallium::BindingManager::New(options);
@@ -379,6 +385,7 @@ void mainloop_execute(bool justInitialize,
 
     // No matter whether these UniquePersistent objects are created,
     // deleting them is safe.
+    utau::DisposePlatform();
     gl::GlobalScope::Delete();
 
     // RenderHost message queue profiler may register a threadpool work.
@@ -399,13 +406,14 @@ int startup_main(int argc, char const **argv)
         Journal::Delete();
     });
 
-    gallium::Runtime::Options gallium_options;
-    gl::ContextOptions glamor_options;
+    gallium::Runtime::Options rt_options;
+    gl::ContextOptions gl_options;
+    utau::ContextOptions utau_options;
     bool only_initialize = false;
 
     try
     {
-        switch (startup_initialize(argc, argv, gallium_options, glamor_options))
+        switch (startup_initialize(argc, argv, rt_options, gl_options, utau_options))
         {
         case cmd::ParseState::kError:
             return EXIT_FAILURE;
@@ -418,9 +426,9 @@ int startup_main(int argc, char const **argv)
             break;
         }
 
-        gallium::Runtime::AdoptV8CommandOptions(gallium_options);
-        startup_print_greeting(gallium_options);
-        mainloop_execute(only_initialize, gallium_options, glamor_options);
+        gallium::Runtime::AdoptV8CommandOptions(rt_options);
+        startup_print_greeting(rt_options);
+        mainloop_execute(only_initialize, rt_options, gl_options, utau_options);
     }
     catch (const RuntimeException& e)
     {

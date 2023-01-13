@@ -17,12 +17,11 @@
 
 #include <unordered_map>
 
-#include "Core/EventLoop.h"
 #include "Gallium/bindings/utau/Exports.h"
+#include "Gallium/binder/ThrowExcept.h"
 #include "Utau/Utau.h"
-#include "Utau/AudioSink.h"
 #include "Utau/AVStreamDecoder.h"
-#include "Utau/AudioFilterDAG.h"
+#include "Utau/AudioSinkStream.h"
 #include "fmt/core.h"
 GALLIUM_BINDINGS_UTAU_NS_BEGIN
 
@@ -55,7 +54,13 @@ void SetInstanceProperties(v8::Local<v8::Object> instance)
         { "DECODE_BUFFER_AUDIO", I(utau::AVStreamDecoder::AVGenericDecoded::kAudio) },
         { "DECODE_BUFFER_VIDEO", I(utau::AVStreamDecoder::AVGenericDecoded::kVideo) },
         { "DECODE_BUFFER_EOF",   I(utau::AVStreamDecoder::AVGenericDecoded::kEOF)   },
-        { "DECODE_BUFFER_NULL",  I(utau::AVStreamDecoder::AVGenericDecoded::kNull)  }
+        { "DECODE_BUFFER_NULL",  I(utau::AVStreamDecoder::AVGenericDecoded::kNull)  },
+
+        { "MEDIA_TYPE_VIDEO",    I(utau::MediaType::kVideo) },
+        { "MEDIA_TYPE_AUDIO",    I(utau::MediaType::kAudio) },
+
+        { "AUDIO_SINKSTREAM_BUFFER_CONSUMED", I(utau::AudioSinkStream::BufferState::kConsumed) },
+        { "AUDIO_SINKSTREAM_BUFFER_CANCELLED", I(utau::AudioSinkStream::BufferState::kCancelled) }
     };
 
 #undef I
@@ -78,8 +83,32 @@ v8::Local<v8::Object> MakeRational(v8::Isolate *i, int32_t num, int32_t denom)
 
 utau::Ratio ExtractRational(v8::Isolate *i, v8::Local<v8::Value> v)
 {
-    // TODO(sora): Implement this
-    return {};
+    CHECK(i && "Invalid isolate");
+
+    utau::Ratio r;
+
+    if (!v->IsObject())
+        g_throw(TypeError, "Type `Rational` must be an object");
+
+    auto obj = v8::Local<v8::Object>::Cast(v);
+    CHECK(!obj.IsEmpty());
+
+    auto maybe = obj->Get(i->GetCurrentContext(), binder::to_v8(i, "num"));
+    if (maybe.IsEmpty())
+        g_throw(TypeError, "Missing `num` property for `Rational` type");
+    r.num = binder::from_v8<int32_t>(i, maybe.ToLocalChecked());
+
+    maybe = obj->Get(i->GetCurrentContext(), binder::to_v8(i, "denom"));
+    if (maybe.IsEmpty())
+        g_throw(TypeError, "Missing `denom` property for `Rational` type");
+    r.denom = binder::from_v8<int32_t>(i, maybe.ToLocalChecked());
+
+    return r;
+}
+
+uint64_t getCurrentTimestampMs()
+{
+    return utau::GlobalContext::Ref().GetCurrentTimestampMs();
 }
 
 GALLIUM_BINDINGS_UTAU_NS_END

@@ -19,6 +19,7 @@ export type SampleFormat = number;
 export type ChannelMode = number;
 export type StreamSelector = number;
 export type DecodeBufferType = number;
+export type MediaType = number;
 
 export interface Rational {
     num: number;
@@ -48,62 +49,90 @@ export interface Constants {
     DECODE_BUFFER_VIDEO: DecodeBufferType;
     DECODE_BUFFER_EOF: DecodeBufferType;
     DECODE_BUFFER_NULL: DecodeBufferType;
+
+    MEDIA_TYPE_AUDIO: MediaType;
+    MEDIA_TYPE_VIDEO: MediaType;
 }
 
 export const Constants: Constants;
 
-export type ABufferEventListenerCallback = (id: number) => void;
-export interface ABufferEventListener {
-    playing?: ABufferEventListenerCallback;
-    cancelled?: ABufferEventListenerCallback;
-    consumed?: ABufferEventListenerCallback;
+export function getCurrentTimestampMs(): number;
+
+export class AudioDevice {
+    static ConnectPipeWire(): AudioDevice;
+
+    unref(): void;
+    createSinkStream(name: string): AudioSinkStream;
 }
 
-export class AudioSinkContext {
-    static Initialize(): void;
-    static Dispose(callFromListener: boolean): void;
-    static Enqueue(buffer: AudioBuffer): number;
-    static AddBufferEventListener(listener: ABufferEventListener): number;
-    static RemoveBufferEventListener(listenerId: number);
+export class AudioSinkStream {
+    dispose(): void;
+    connect(sampleFormat: SampleFormat, channelMode: ChannelMode, sampleRate: number, realTime: boolean): void;
+    disconnect(): void;
+    enqueue(buffer: AudioBuffer): void;
+    getCurrentDelayInUs(): number;
 }
 
-export class AudioBuffer {
+export interface AVGenericBuffer {
+    readonly pts: number;
+}
+
+export class AudioBuffer implements AVGenericBuffer {
+    readonly pts: number;
     readonly sampleFormat: SampleFormat;
     readonly channelMode: ChannelMode;
     readonly sampleRate: number;
     readonly samplesCount: number;
+
+    dispose(): void;
 }
 
-export interface AudioInBufferParameters {
+export class VideoBuffer implements AVGenericBuffer {
+    readonly pts: number;
+
+    dispose(): void;
+}
+
+export interface InBufferParameters {
     name: string;
-    sampleFormat: SampleFormat;
-    channelMode: ChannelMode;
-    sampleRate: number;
+    mediaType: MediaType;
+
+    sampleFormat?: SampleFormat;
+    channelMode?: ChannelMode;
+    sampleRate?: number;
+
+    pixelFormat?: number;
+    hwFrameContextFrom?: VideoBuffer;
+    width?: number;
+    height?: number;
+    timeBase?: Rational;
+    SAR?: Rational;
 }
 
-export interface AudioOutBufferParameters {
+export interface OutBufferParameters {
     name: string;
-    sampleFormats?: Array<SampleFormat>;
-    channelModes?: Array<ChannelMode>;
-    sampleRates?: Array<number>;
+    mediaType: MediaType;
 }
 
-export interface AudioDAGNamedInOutBuffer {
+export interface DAGNamedInOutBuffer {
     name: string;
-    buffer: AudioBuffer;
+    mediaType: MediaType;
+
+    audioBuffer?: AudioBuffer;
+    videoBuffer?: VideoBuffer;
 }
 
-export class AudioFilterDAG {
-    static MakeFromDSL(dsl: string,
-                       inparams: Array<AudioInBufferParameters>,
-                       outparams: Array<AudioOutBufferParameters>): AudioFilterDAG;
+export class AVFilterDAG {
+    static MakeFromDSL(dsl: string, inparams: Array<InBufferParameters>,
+                       outparams: Array<OutBufferParameters>): AVFilterDAG;
 
-    filter(inBuffers: Array<AudioDAGNamedInOutBuffer>): Array<AudioDAGNamedInOutBuffer>;
+    filter(inBuffers: Array<DAGNamedInOutBuffer>): Array<DAGNamedInOutBuffer>;
 }
 
 export interface AVDecoderOptions {
     disableAudio?: boolean;
     disableVideo?: boolean;
+    useHWDecoding?: boolean;
     audioCodecName?: string;
     videoCodecName?: string;
 }
@@ -111,14 +140,22 @@ export interface AVDecoderOptions {
 export interface AVDecoderStreamInfo {
     timeBase: Rational;
     duration: number;
+
     sampleFormat?: SampleFormat;
     channelMode?: ChannelMode;
     sampleRate?: number;
+
+    pixelFormat?: number;
+    width?: number;
+    height?: number;
+    SAR?: Rational;
 }
 
 export interface AVDecodeBuffer {
     type: DecodeBufferType;
-    audio?: AudioBuffer;
+
+    audioBuffer?: AudioBuffer;
+    videoBuffer?: VideoBuffer;
 }
 
 export class AVStreamDecoder {
@@ -129,4 +166,15 @@ export class AVStreamDecoder {
 
     getStreamInfo(selector: StreamSelector): AVDecoderStreamInfo;
     decodeNextFrame(): AVDecodeBuffer;
+}
+
+export class MediaFramePresentDispatcher {
+    onPresentVideoBuffer: (buffer: VideoBuffer, ptsInSeconds: number) => void;
+    onErrorOrEOF: () => void;
+
+    constructor(decoder: AVStreamDecoder, audioSinkStream: AudioSinkStream);
+
+    play(): void;
+    pause(): void;
+    dispose(): void;
 }

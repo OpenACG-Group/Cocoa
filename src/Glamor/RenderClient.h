@@ -32,6 +32,7 @@ class RenderHostInvocation;
 class RenderClientSignalEmit;
 class RenderClientObject;
 class HWComposeContext;
+class VAAPITextureEmbedder;
 class Display;
 
 enum class ITCProfileMilestone : uint8_t

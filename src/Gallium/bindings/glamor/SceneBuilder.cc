@@ -17,6 +17,7 @@
 
 #include "Gallium/bindings/glamor/Scene.h"
 #include "Gallium/bindings/glamor/SceneBuilder.h"
+#include "Gallium/bindings/utau/Exports.h"
 
 #include "Glamor/Layers/TransformLayer.h"
 #include "Glamor/Layers/PictureLayer.h"
@@ -26,6 +27,8 @@
 #include "Glamor/Layers/RectClipLayer.h"
 #include "Glamor/Layers/RRectClipLayer.h"
 #include "Glamor/Layers/OpacityLayer.h"
+
+#include "Utau/VideoFrameGLEmbedder.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 SceneBuilder::SceneBuilder(int32_t width, int32_t height)
@@ -192,6 +195,34 @@ v8::Local<v8::Value> SceneBuilder::addTexture(int64_t textureId,
     SkSamplingOptions sampling_options = SamplingToSamplingOptions(sampling);
 
     addLayer(std::make_shared<gl::TextureLayer>(textureId, offset, size, sampling_options));
+    return getSelfHandle();
+}
+
+v8::Local<v8::Value> SceneBuilder::addVideoBuffer(v8::Local<v8::Value> vbo,
+                                                  SkScalar dx,
+                                                  SkScalar dy,
+                                                  SkScalar width,
+                                                  SkScalar height,
+                                                  int32_t sampling)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    utau_wrap::VideoBufferWrap *wrapper =
+            binder::Class<utau_wrap::VideoBufferWrap>::unwrap_object(isolate, vbo);
+    if (!wrapper)
+        g_throw(TypeError, "Argument `vbo` must be an instance of utau.VideoBuffer");
+
+    utau::VideoFrameGLEmbedder *embedder = utau::GlobalContext::Ref().GetVideoFrameGLEmbedder();
+    CHECK(embedder);
+
+    gl::Shared<gl::ExternalTextureLayer> layer = embedder->Commit(wrapper->GetBuffer(),
+                                                                  SkPoint::Make(dx, dy),
+                                                                  SkSize::Make(width, height).toRound(),
+                                                                  SamplingToSamplingOptions(sampling));
+    if (!layer)
+        g_throw(Error, "Failed to generate an external texture layer for video");
+
+    addLayer(layer);
+
     return getSelfHandle();
 }
 

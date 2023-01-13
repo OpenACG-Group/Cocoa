@@ -15,7 +15,8 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {Buffer} from 'core';
+import {Buffer} from 'synthetic://core';
+import {VideoBuffer} from 'synthetic://utau';
 
 /**
  * Error class thrown when an asynchronous operation fails.
@@ -669,6 +670,13 @@ export class SceneBuilder {
                       width: number,
                       height: number,
                       sampling: number): SceneBuilder;
+
+    public addVideoBuffer(vbo: VideoBuffer,
+                          offsetX: number,
+                          offsetY: number,
+                          width: number,
+                          height: number,
+                          sampling: number): SceneBuilder;
 
     public pushOffset(offsetX: number, offsetY: number): SceneBuilder;
 

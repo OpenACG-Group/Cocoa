@@ -55,14 +55,18 @@ public:
                                            VkSurfaceKHR surface, int32_t width, int32_t height);
 
     HWComposeSwapchain(Shared<HWComposeContext> ctx, VkSurfaceKHR surface);
-    ~HWComposeSwapchain();
+    ~HWComposeSwapchain() override;
 
     bool Resize(int32_t width, int32_t height);
     SkSurface *NextFrame();
     void SubmitFrame();
 
-    g_inline const sk_sp<GrDirectContext>& GetSkiaDirectContext() const {
+    g_nodiscard g_inline const sk_sp<GrDirectContext>& GetSkiaDirectContext() const {
         return skia_direct_context_;
+    }
+
+    g_nodiscard g_inline VkDevice GetVkDevice() const {
+        return vk_device_;
     }
 
     g_nodiscard SkColorType GetImageFormat() const;

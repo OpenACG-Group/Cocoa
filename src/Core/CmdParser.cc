@@ -207,7 +207,14 @@ const Template g_templates[] = {
             .value_type = ValueType::kInteger,
             .desc = "Limit the maximum number of samples recorded by \n"
                     "the internal graphics profiler (32 by default)."
-        }
+        },
+        {
+            .long_name = "utau-hwdevice-drm-devicepath",
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kString,
+            .desc = "Specify a DRM device to be used for hardware-accelerated\n"
+                    "video decoding and processing, /dev/dri/renderD128 by default."
+        },
 };
 
 namespace {

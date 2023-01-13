@@ -8,28 +8,55 @@ add_library(
 
         AVStreamDecoder.h
         AVStreamDecoder.cc
+        AVFilterDAG.h
+        AVFilterDAG.cc
 
         AVGenericBuffer.h
         AVGenericBuffer.cc
         AudioBufferInfo.h
         AudioBuffer.h
         AudioBuffer.cc
-        AudioSink.h
-        AudioSink.cc
-        PipeWireAudioSink.h
-        PipeWireAudioSink.cc
-        AudioFilterDAG.h
-        AudioFilterDAG.cc
+        AudioDevice.h
+        AudioSinkStream.h
+        AudioSinkStream.cc
 
         VideoBuffer.h
         VideoBuffer.cc
+
+        HWDeviceContext.h
+        HWDeviceContext.cc
+
+        VideoFrameGLEmbedder.h
+        VideoFrameGLEmbedder.cc
+
+        pipewire/PipeWireAudioDevice.h
+        pipewire/PipeWireAudioDevice.cc
+        pipewire/PipeWireAudioSinkStream.h
+        pipewire/PipeWireAudioSinkStream.cc
 
         ffwrappers/libavfilter.h
         ffwrappers/libavutil.h
         ffwrappers/libavformat.h
         ffwrappers/libavcodec.h
         ffwrappers/libswresample.h
+        ffwrappers/libswscale.h
         ffwrappers/samplefmt.h
 )
 
-target_link_libraries(Utau PUBLIC PipeWire::PipeWire avutil avformat avcodec avfilter)
+target_link_libraries(
+        Utau PUBLIC
+        PipeWire::PipeWire
+        avutil
+        avformat
+        avcodec
+        avfilter
+        swscale
+        drm
+        va
+        va-drm
+)
+
+target_include_directories(
+        Utau PUBLIC
+        /usr/include/libdrm
+)

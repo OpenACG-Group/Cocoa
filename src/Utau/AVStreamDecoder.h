@@ -19,10 +19,12 @@
 #define COCOA_UTAU_AVSTREAMDECODER_H
 
 #include <unordered_map>
+#include <optional>
 
 #include "Core/Data.h"
 #include "Utau/Utau.h"
 #include "Utau/AudioBuffer.h"
+#include "Utau/VideoBuffer.h"
 UTAU_NAMESPACE_BEGIN
 
 class AVStreamDecoder
@@ -43,6 +45,7 @@ public:
     {
         bool disable_video = false;
         bool disable_audio = false;
+        bool use_hw_decode = false;
         std::string video_codec_name;
         std::string audio_codec_name;
     };
@@ -60,6 +63,13 @@ public:
         AudioChannelMode    channel_mode;
         SampleFormat        sample_fmt;
         int32_t             sample_rate;
+
+        /* For video streams only */
+
+        AVPixelFormat       pixel_fmt;
+        int32_t             width;
+        int32_t             height;
+        Ratio               sar;
     };
 
     /**
@@ -84,11 +94,23 @@ public:
             : type(type), audio(nullptr) {}
 
         AVGenericDecoded(AVGenericDecoded&& other) noexcept
-            : type(other.type), audio(std::move(other.audio)) {}
+            : type(other.type), audio(std::move(other.audio)), video(std::move(other.video))
+        {
+            other.type = kNull;
+        }
+
+        AVGenericDecoded& operator=(AVGenericDecoded&& other) noexcept
+        {
+            type = other.type;
+            other.type = kNull;
+            audio = std::move(other.audio);
+            video = std::move(other.video);
+            return *this;
+        }
 
         Type type;
         std::unique_ptr<AudioBuffer> audio;
-        // TODO(sora): [video_decode] Video buffers.
+        std::unique_ptr<VideoBuffer> video;
     };
 
     AVStreamDecoder();

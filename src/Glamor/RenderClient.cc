@@ -227,6 +227,7 @@ Shared<HWComposeContext> RenderClient::GetHWComposeContext()
         }
     }
 
+    // Enable WSI extensions
     switch (GlobalScope::Ref().GetOptions().GetBackend())
     {
     case Backends::kWayland:
@@ -235,10 +236,18 @@ Shared<HWComposeContext> RenderClient::GetHWComposeContext()
         break;
     }
 
+    // For VAAPI texture embedding
+    // options.device_extensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME);
+    // options.device_extensions.emplace_back(VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME);
+    // options.device_extensions.emplace_back(VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME);
+    // options.device_extensions.emplace_back(VK_EXT_QUEUE_FAMILY_FOREIGN_EXTENSION_NAME);
+    // options.device_extensions.emplace_back(VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME);
+
     hw_compose_context_ = HWComposeContext::MakeVulkan(options);
 
     if (!hw_compose_context_)
         hw_compose_context_creation_failed_ = true;
+
     return hw_compose_context_;
 }
 

@@ -18,6 +18,8 @@
 #include "Core/Errors.h"
 #include "Core/Journal.h"
 #include "Utau/Utau.h"
+#include "Utau/HWDeviceContext.h"
+#include "Utau/VideoFrameGLEmbedder.h"
 #include "Utau/ffwrappers/libavutil.h"
 UTAU_NAMESPACE_BEGIN
 
@@ -93,15 +95,12 @@ thread_local char g_log_buffer[1024];
 
 void av_log_callback(void *avcl, int level, const char *fmt, va_list arg)
 {
-    if (level > AV_LOG_DEBUG)
+    if (level >= AV_LOG_DEBUG)
         return;
 
     LogType type;
     switch (level)
     {
-    case AV_LOG_DEBUG:
-        type = LOG_DEBUG;
-        break;
     case AV_LOG_INFO:
         type = LOG_INFO;
         break;
@@ -151,10 +150,66 @@ void av_log_callback(void *avcl, int level, const char *fmt, va_list arg)
 
 } // namespace anonymous
 
-void InitializePlatform()
+void InitializePlatform(const ContextOptions& options)
 {
+    GlobalContext::New(options);
+
     av_log_set_callback(av_log_callback);
     av_log_set_level(AV_LOG_INFO);
+
+    QLOG(LOG_INFO, "Supported device type of hardware decoder:");
+    AVHWDeviceType hw_device_type = AV_HWDEVICE_TYPE_NONE;
+    while ((hw_device_type = av_hwdevice_iterate_types(hw_device_type)) != AV_HWDEVICE_TYPE_NONE) {
+        QLOG(LOG_INFO, "  %fg<bl>%italic<>{}%reset",
+             av_hwdevice_get_type_name(hw_device_type));
+    }
+}
+
+void DisposePlatform()
+{
+    GlobalContext::Delete();
+}
+
+GlobalContext::GlobalContext(const ContextOptions& options)
+    : options_(options)
+    , hw_context_creation_failed_(false)
+    , vf_GL_embedder_(std::make_unique<VideoFrameGLEmbedder>())
+    , context_time_epoch_(std::chrono::steady_clock::now())
+{
+}
+
+GlobalContext::~GlobalContext()
+{
+    vf_GL_embedder_.reset();
+    if (hw_context_)
+    {
+        CHECK(hw_context_.use_count() == 1
+              && "HWDeviceContext is referenced by other objects");
+    }
+}
+
+const std::shared_ptr<HWDeviceContext>& GlobalContext::GetHWDeviceContext()
+{
+    if (hw_context_ || hw_context_creation_failed_)
+        return hw_context_;
+
+    hw_context_ = HWDeviceContext::MakeVAAPI();
+    if (!hw_context_)
+        hw_context_creation_failed_ = true;
+
+    return hw_context_;
+}
+
+bool GlobalContext::HasHWDeviceContext() const
+{
+    return static_cast<bool>(hw_context_);
+}
+
+uint64_t GlobalContext::GetCurrentTimestampMs() const
+{
+    auto now = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+            now - context_time_epoch_).count();
 }
 
 UTAU_NAMESPACE_END

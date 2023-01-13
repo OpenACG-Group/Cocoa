@@ -1,3 +1,42 @@
-//
-// Created by sora on 23-1-1.
-//
+/**
+ * This file is part of Cocoa.
+ *
+ * Cocoa is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * Cocoa is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include <cstdint>
+
+#include "Utau/ffwrappers/libavutil.h"
+
+#include "Utau/VideoBuffer.h"
+UTAU_NAMESPACE_BEGIN
+
+std::unique_ptr<VideoBuffer> VideoBuffer::MakeFromAVFrame(UnderlyingPtr opaque)
+{
+    return std::make_unique<VideoBuffer>(opaque);
+}
+
+VideoBuffer::VideoBuffer(UnderlyingPtr ptr)
+    : AVGenericBuffer(ptr)
+{
+}
+
+VideoBuffer::~VideoBuffer() = default;
+
+int64_t VideoBuffer::GetFramePTS()
+{
+    return CastUnderlyingPointer<AVFrame>()->pts;
+}
+
+UTAU_NAMESPACE_END

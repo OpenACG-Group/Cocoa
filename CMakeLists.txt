@@ -56,8 +56,8 @@ set(LINK_STATIC_LIBSQUASH ${COCOA_THIRDPARTY_DIR}/build/lib/libsquash.a CACHE ST
 target_link_libraries(
         Cocoa
         Gallium
-        Glamor
         Utau
+        Glamor
         # Reactor
         Core
         ${LINK_STATIC_JSONCPP}

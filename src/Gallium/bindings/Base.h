@@ -25,6 +25,7 @@
 #include "Gallium/Gallium.h"
 #include "Gallium/binder/Module.h"
 #include "Gallium/binder/Factory.h"
+#include "Gallium/binder/Class.h"
 
 GALLIUM_BINDINGS_NS_BEGIN
 
@@ -121,6 +122,7 @@ private:
     std::string   fDescription;
 };
 
+/* Deprecated, use MaybeGCRootObject instead */
 class PreventGCObject
 {
 public:
@@ -138,6 +140,27 @@ public:
 private:
     v8::Isolate            *isolate_;
     v8::Global<v8::Object>  self_;
+};
+
+template<typename T>
+class MaybeGCRootObject
+{
+public:
+    explicit MaybeGCRootObject(v8::Isolate *isolate) : isolate_(isolate) {}
+    ~MaybeGCRootObject() = default;
+
+    void MarkShouldEscapeGC(T *self) {
+        v8::Local<v8::Object> v = binder::Class<T>::find_object(isolate_, self);
+        self_.Reset(isolate_, v);
+    }
+
+    void MarkGCCollectable() {
+        self_.Reset();
+    }
+
+private:
+    v8::Isolate                    *isolate_;
+    v8::Global<v8::Object>          self_;
 };
 
 GALLIUM_BINDINGS_NS_END
