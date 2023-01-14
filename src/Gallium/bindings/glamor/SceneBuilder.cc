@@ -103,6 +103,13 @@ v8::Local<v8::Value> SceneBuilder::pushOffset(SkScalar x, SkScalar y)
     return getSelfHandle();
 }
 
+v8::Local<v8::Value> SceneBuilder::pushRotate(SkScalar rad, SkScalar pivotX, SkScalar pivotY)
+{
+    pushLayer(std::make_shared<gl::TransformLayer>(
+            SkMatrix::RotateDeg(SkRadiansToDegrees(rad), SkPoint::Make(pivotX, pivotY))));
+    return getSelfHandle();
+}
+
 v8::Local<v8::Value> SceneBuilder::pushOpacity(SkScalar alpha)
 {
     if (alpha < 0 || alpha > 1)

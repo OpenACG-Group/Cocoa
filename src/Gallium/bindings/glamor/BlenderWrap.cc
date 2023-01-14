@@ -170,7 +170,7 @@ BlenderWrap::createTextureFromEncodedData(v8::Local<v8::Value> buffer,
         g_throw(TypeError, "`buffer` must be an instance of `Buffer`");
 
     std::optional<SkAlphaType> alpha_type_enum;
-    if (!alphaType->IsNull() || !alphaType->IsNumber())
+    if (!alphaType->IsNull() && !alphaType->IsNumber())
         g_throw(TypeError, "`alphaType` must be `null` or an integer");
 
     if (alphaType->IsNumber())

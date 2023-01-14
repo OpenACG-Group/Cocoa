@@ -132,6 +132,7 @@
             <method name="pop" value="@pop"/>
             <method name="build" value="@build"/>
             <method name="pushOffset" value="@pushOffset"/>
+            <method name="pushRotate" value="@pushRotate"/>
             <method name="pushOpacity" value="@pushOpacity"/>
             <method name="pushImageFilter" value="@pushImageFilter"/>
             <method name="pushBackdropFilter" value="@pushBackdropFilter"/>

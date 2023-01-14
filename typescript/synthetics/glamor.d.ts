@@ -682,6 +682,8 @@ export class SceneBuilder {
 
     public pushOpacity(alpha: number): SceneBuilder;
 
+    public pushRotate(rad: number, pivotX: number, pivotY: number): SceneBuilder;
+
     public pushImageFilter(filter: CkImageFilter): SceneBuilder;
 
     public pushRectClip(shape: CkRect, AA: boolean): SceneBuilder;

@@ -55,11 +55,18 @@ Shared<Texture> TextureFactory::MakeFromEncodedData(const sk_sp<SkData>& data,
 {
     CHECK(data);
 
-    sk_sp<SkImage> decoded_image = SkImage::MakeFromEncoded(data, alpha_type);
-    if (!decoded_image)
+    std::unique_ptr<SkCodec> codec = SkCodec::MakeFromData(data);
+    if (!codec)
         return nullptr;
 
-    return MakeFromImage(decoded_image);
+    auto [image, result] = codec->getImage();
+    if (result != SkCodec::Result::kSuccess)
+    {
+        QLOG(LOG_ERROR, "Failed to decode image: {}", SkCodec::ResultToString(result));
+        return nullptr;
+    }
+
+    return MakeFromImage(image);
 }
 
 Shared<Texture> TextureFactory::MakeFromImage(const sk_sp<SkImage>& image)

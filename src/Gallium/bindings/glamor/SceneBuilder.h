@@ -43,6 +43,9 @@ public:
     //! TSDecl: function pushOffset(x: number, y: number): SceneBuilder
     v8::Local<v8::Value> pushOffset(SkScalar x, SkScalar y);
 
+    //! TSDecl: function pushRotate(rad: number, pivotX: number, pivotY: number): SceneBuilder
+    v8::Local<v8::Value> pushRotate(SkScalar rad, SkScalar pivotX, SkScalar pivotY);
+
     //! TSDecl: function addPicture(picture: CkPicture,
     //!                             autoFastClip: boolean,
     //!                             dx: number,
