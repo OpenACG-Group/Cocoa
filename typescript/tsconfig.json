@@ -24,6 +24,9 @@
         "./core/linked_list.ts",
         "./core/pretty_printer.ts",
 
+        "GL/utils.ts",
+        "GL/window.ts",
+
         "samples/canvaskit_offscreen_picture.ts",
         "samples/canvaskit_offscreen_image.ts",
         "samples/canvaskit_window.ts",

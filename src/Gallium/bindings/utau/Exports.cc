@@ -57,10 +57,7 @@ void SetInstanceProperties(v8::Local<v8::Object> instance)
         { "DECODE_BUFFER_NULL",  I(utau::AVStreamDecoder::AVGenericDecoded::kNull)  },
 
         { "MEDIA_TYPE_VIDEO",    I(utau::MediaType::kVideo) },
-        { "MEDIA_TYPE_AUDIO",    I(utau::MediaType::kAudio) },
-
-        { "AUDIO_SINKSTREAM_BUFFER_CONSUMED", I(utau::AudioSinkStream::BufferState::kConsumed) },
-        { "AUDIO_SINKSTREAM_BUFFER_CANCELLED", I(utau::AudioSinkStream::BufferState::kCancelled) }
+        { "MEDIA_TYPE_AUDIO",    I(utau::MediaType::kAudio) }
     };
 
 #undef I

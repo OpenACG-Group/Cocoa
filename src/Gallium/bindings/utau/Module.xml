@@ -22,6 +22,8 @@
             <method name="disconnect" value="@disconnect"/>
             <method name="enqueue" value="@enqueue"/>
             <method name="getCurrentDelayInUs" value="@getCurrentDelayInUs"/>
+            <property name="volume" getter="@getVolume" setter="@setVolume"/>
+            <property name="onVolumeChanged" getter="@getOnVolumeChanged" setter="@setOnVolumeChanged"/>
         </class>
 
         <class name="AudioBuffer" wrapper="AudioBufferWrap">
@@ -47,6 +49,8 @@
             <method static="true" name="MakeFromFile" value="@MakeFromFile"/>
             <method name="getStreamInfo" value="@getStreamInfo"/>
             <method name="decodeNextFrame" value="@decodeNextFrame"/>
+            <method name="seekStreamTo" value="@seekStreamTo"/>
+            <method name="flushDecoderBuffers" value="@flushDecoderBuffers"/>
             <property name="hasAudioStream" getter="@hasAudioStream"/>
             <property name="hasVideoStream" getter="@hasVideoStream"/>
         </class>
@@ -57,6 +61,7 @@
             <property name="onErrorOrEOF" getter="@getOnErrorOrEOF" setter="@setOnErrorOrEOF"/>
             <method name="play" value="@play"/>
             <method name="pause" value="@pause"/>
+            <method name="seekTo" value="@seekTo"/>
             <method name="dispose" value="@dispose"/>
         </class>
     </exports>

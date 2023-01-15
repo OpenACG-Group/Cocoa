@@ -57,8 +57,11 @@ public:
     bool Enqueue(const AudioBuffer &buffer) override;
 
     double GetDelayInUs() override;
+    float GetVolume() override;
+    void SetVolume(float volume) override;
 
     static void Process(void *userdata);
+    static void OnControlInfo(void *userdata, uint32_t id, const pw_stream_control *ctl);
 
 private:
     bool HasExpiredBuffer();
@@ -76,6 +79,7 @@ private:
     BufferItem                                  current_buffer_;
     int64_t                                     current_queued_samples_;
     double                                      delay_in_us_;
+    float                                       volume_;
 };
 
 UTAU_NAMESPACE_END

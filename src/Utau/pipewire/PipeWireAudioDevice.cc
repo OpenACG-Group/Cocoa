@@ -15,6 +15,8 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <spa/utils/result.h>
+
 #include "Core/Errors.h"
 #include "Core/Exception.h"
 #include "Core/Journal.h"
@@ -23,6 +25,37 @@
 UTAU_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Utau.pipewire.PipeWireAudioDevice)
+
+namespace {
+
+void core_event_ping(void *data, uint32_t id, int seq)
+{
+    auto *device = reinterpret_cast<PipeWireAudioDevice*>(data);
+    pw_core_pong(device->GetPipeWireCore(), id, seq);
+}
+
+void core_event_info(void *data, const pw_core_info *info)
+{
+    QLOG(LOG_INFO, "PipeWire remote core info:");
+    QLOG(LOG_INFO, "  username: {}", info->user_name);
+    QLOG(LOG_INFO, "  hostname: {}", info->host_name);
+    QLOG(LOG_INFO, "  version: {}", info->version);
+    QLOG(LOG_INFO, "  name: {}", info->name);
+}
+
+void core_event_error(void *data, uint32_t id, int seq, int res, const char *message)
+{
+    QLOG(LOG_ERROR, "Error during playback: {},{}\n", spa_strerror(res), message);
+}
+
+const pw_core_events core_events = {
+    .version = PW_VERSION_CORE_EVENTS,
+    .info = core_event_info,
+    .ping = core_event_ping,
+    .error = core_event_error
+};
+
+} // namespace anonymous
 
 std::shared_ptr<AudioDevice> AudioDevice::MakePipeWire(uv_loop_t *loop)
 {
@@ -72,7 +105,7 @@ std::shared_ptr<AudioDevice> AudioDevice::MakePipeWire(uv_loop_t *loop)
         return nullptr;
     }
 
-    // TODO(sora): add core listener
+    pw_core_add_listener(dev->pw_core_, &dev->pw_core_listener_, &core_events, dev.get());
 
     pw_thread_loop_unlock(dev->pw_loop_);
 
@@ -92,12 +125,14 @@ PipeWireAudioDevice::PipeWireAudioDevice()
     , uv_async_(nullptr)
     , pw_loop_(nullptr)
     , pw_core_(nullptr)
+    , pw_core_listener_{}
 {
 }
 
 PipeWireAudioDevice::~PipeWireAudioDevice()
 {
     pw_thread_loop_stop(pw_loop_);
+    spa_hook_remove(&pw_core_listener_);
     pw_context_destroy(pw_core_get_context(pw_core_));
     pw_thread_loop_destroy(pw_loop_);
 

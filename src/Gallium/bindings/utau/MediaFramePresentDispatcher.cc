@@ -21,6 +21,7 @@
 #include "fmt/format.h"
 
 #include "Core/EventLoop.h"
+#include "Core/Journal.h"
 #include "Gallium/bindings/utau/Exports.h"
 #include "Gallium/binder/Class.h"
 #include "Gallium/binder/Convert.h"
@@ -29,6 +30,8 @@ GALLIUM_BINDINGS_UTAU_NS_BEGIN
 
 using DecodeResult = utau::AVStreamDecoder::AVGenericDecoded;
 
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.bindings.utau.MediaFramePresentDispatcher)
+
 struct MediaFramePresentDispatcher::PresentThreadCmd
 {
     enum Verb
@@ -36,11 +39,13 @@ struct MediaFramePresentDispatcher::PresentThreadCmd
         kTerminate,
         kPause,
         kPlay,
+
+        // param[0]: timestamp in milliseconds; param[1]: time tolerance in milliseconds
         kSeekTo
     };
 
     Verb verb;
-    int64_t param;
+    int64_t param[3];
     std::promise<void> promise;
 };
 
@@ -58,18 +63,54 @@ struct MediaFramePresentDispatcher::PresentThreadContext
         uv_timer_init(&loop, &timer);
         timer.data = this;
 
-        decoding_thread = std::thread(&PresentThreadContext::DecodingThreadRoutine, this);
+        StartDecodingThread();
     }
 
     void DecodingThreadRoutine();
 
-    void TryCloseLoopHandles() {
+    void TryCloseLoopHandles()
+    {
         if (loop_handles_closed)
             return;
 
         uv_close(reinterpret_cast<uv_handle_t*>(&thread_notifier), nullptr);
         uv_close(reinterpret_cast<uv_handle_t*>(&timer), nullptr);
         loop_handles_closed = true;
+    }
+
+    void ClearQueues()
+    {
+        while (!audio_queue.empty())
+            audio_queue.pop();
+        while (!video_queue.empty())
+            video_queue.pop();
+    }
+
+    void ClearLastFrameStates()
+    {
+        last_frame.type = DecodeResult::kNull;
+        last_frame.audio.reset();
+        last_frame.video.reset();
+        last_frame_pts = 0;
+        last_required_intv_ms = 0;
+        last_delay_compensated_intv_ms = 0;
+    }
+
+    void StopDecodingThread()
+    {
+        {
+            std::scoped_lock<std::mutex> lock(queue_lock);
+            decode_stop_flag = true;
+        }
+        queue_cond.notify_one();
+        if (decoding_thread.joinable())
+            decoding_thread.join();
+    }
+
+    void StartDecodingThread()
+    {
+        decode_stop_flag = false;
+        decoding_thread = std::thread(&PresentThreadContext::DecodingThreadRoutine, this);
     }
 
     MediaFramePresentDispatcher *dispatcher;
@@ -105,6 +146,8 @@ struct MediaFramePresentDispatcher::PresentThreadContext
 
     int64_t last_required_intv_ms = 0;
     int64_t last_delay_compensated_intv_ms = 0;
+
+    bool seek_requested_ = false;
 };
 
 void MediaFramePresentDispatcher::PresentThreadContext::DecodingThreadRoutine()
@@ -117,8 +160,8 @@ void MediaFramePresentDispatcher::PresentThreadContext::DecodingThreadRoutine()
         {
             std::unique_lock<std::mutex> lock(queue_lock);
             queue_cond.wait(lock, [this] {
-                return (audio_queue.size() < AUDIO_QUEUE_MAX_FRAMES ||
-                        audio_queue.size() < VIDEO_QUEUE_MAX_FRAMES ||
+                return ((audio_queue.size() < AUDIO_QUEUE_MAX_FRAMES &&
+                         video_queue.size() < VIDEO_QUEUE_MAX_FRAMES) ||
                         decode_stop_flag);
             });
 
@@ -230,7 +273,7 @@ void MediaFramePresentDispatcher::dispose()
     {
         if (!paused_)
             pause();
-        SendAndWaitForPresentThreadCmd(PresentThreadCmd::kTerminate, 0);
+        SendAndWaitForPresentThreadCmd(PresentThreadCmd::kTerminate, nullptr);
     }
 
     if (thread_ctx_->decoding_thread.joinable())
@@ -333,25 +376,15 @@ void MediaFramePresentDispatcher::TimerCallback(uv_timer_t *timer)
         return;
     }
 
-    if (thread_ctx->audio_queue.empty())
-    {
-        // Do next loop iteration to wait for decoding thread to fill the queue
-        uv_timer_start(timer, TimerCallback, 0, 0);
-        return;
-    }
-
-    double head_audio_pts = thread_ctx->audio_queue.front().pts;
+    double head_audio_pts = -1;
     double head_video_pts = -1;
 
-    // Drop video frames
+    // Drop old frames
     while (!thread_ctx->video_queue.empty())
     {
         auto& head = thread_ctx->video_queue.front();
         if (head.pts < thread_ctx->last_frame_pts)
         {
-            DecodeResult reqbuf(DecodeResult::kVideo);
-            reqbuf.video = std::move(head.buffer);
-            thread_ctx->dispatcher->SendPresentRequest(std::move(reqbuf), head.pts);
             thread_ctx->video_queue.pop();
         }
         else
@@ -361,38 +394,59 @@ void MediaFramePresentDispatcher::TimerCallback(uv_timer_t *timer)
         }
     }
 
+    if (!thread_ctx->audio_queue.empty())
+    {
+        head_audio_pts = thread_ctx->audio_queue.front().pts;
+    }
+
     double pts;
-    if (head_video_pts >= 0 && head_video_pts < head_audio_pts)
+    if (head_video_pts >= 0 && (head_video_pts < head_audio_pts || head_audio_pts < 0))
     {
         thread_ctx->last_frame.type = DecodeResult::kVideo;
         thread_ctx->last_frame.video = std::move(thread_ctx->video_queue.front().buffer);
         pts = head_video_pts;
         thread_ctx->video_queue.pop();
     }
-    else
+    else if (head_audio_pts >= 0)
     {
         thread_ctx->last_frame.type = DecodeResult::kAudio;
         thread_ctx->last_frame.audio = std::move(thread_ctx->audio_queue.front().buffer);
         pts = head_audio_pts;
         thread_ctx->audio_queue.pop();
     }
+    else
+    {
+        // No frames available
+        thread_ctx->queue_cond.notify_one();
+        uv_timer_start(timer, TimerCallback, 0, 0);
+        return;
+    }
 
     thread_ctx->queue_cond.notify_one();
 
-    auto interval = static_cast<int64_t>(std::round((pts - thread_ctx->last_frame_pts) * 1000));
-    thread_ctx->last_required_intv_ms = interval;
-
-    if (pts == head_audio_pts)
+    if (thread_ctx->seek_requested_)
     {
-        double stream_delay_us = thread_ctx->asinkstream->GetDelayInUs();
-        interval -= static_cast<int64_t>(std::round(stream_delay_us / 1000));
+        thread_ctx->last_frame_pts = pts;
+        thread_ctx->seek_requested_ = false;
+        uv_timer_start(timer, TimerCallback, 0, 0);
     }
+    else
+    {
+        auto interval = static_cast<int64_t>(std::round((pts - thread_ctx->last_frame_pts) * 1000));
+        thread_ctx->last_required_intv_ms = interval;
 
-    interval = std::max(int64_t(0), interval);
-    thread_ctx->last_delay_compensated_intv_ms = interval;
+        if (pts == head_audio_pts)
+        {
+            double stream_delay_us = thread_ctx->asinkstream->GetDelayInUs();
+            interval -= static_cast<int64_t>(std::round(stream_delay_us / 1000));
+        }
 
-    uv_timer_start(timer, TimerCallback, interval, 0);
-    thread_ctx->last_frame_pts = pts;
+        interval = std::max(int64_t(0), interval);
+        thread_ctx->last_delay_compensated_intv_ms = interval;
+
+        uv_timer_start(timer, TimerCallback, interval, 0);
+        thread_ctx->last_frame_pts = pts;
+    }
 }
 
 void MediaFramePresentDispatcher::SendPresentRequest(DecodeResult frame, double pts_seconds)
@@ -526,19 +580,82 @@ void MediaFramePresentDispatcher::PresentThreadCmdHandler(uv_async_t *handle)
     }
     else if (verb == PresentThreadCmd::kSeekTo)
     {
-        // TODO(sora): implement this
+        thread_ctx->StopDecodingThread();
+        thread_ctx->ClearQueues();
+        thread_ctx->ClearLastFrameStates();
+
+        double ts_sec = (double)thread_ctx->cmd->param[0] / 1000;
+
+        if (thread_ctx->dispatcher->has_audio_)
+        {
+            AVRational tb = av_make_q(thread_ctx->dispatcher->audio_stinfo_.time_base.num,
+                                      thread_ctx->dispatcher->audio_stinfo_.time_base.denom);
+
+            bool res = thread_ctx->decoder->SeekStreamTo(utau::AVStreamDecoder::kAudio_StreamType,
+                                                         static_cast<int64_t>(ts_sec / av_q2d(tb)));
+            if (!res)
+            {
+                QLOG(LOG_ERROR, "Failed to seek audio stream");
+                thread_ctx->dispatcher->SendErrorOrEOFRequest();
+                thread_ctx->cmd->promise.set_value();
+                return;
+            }
+
+            thread_ctx->decoder->FlushDecoderBuffers(utau::AVStreamDecoder::kAudio_StreamType);
+        }
+
+        if (thread_ctx->dispatcher->has_video_)
+        {
+            AVRational tb = av_make_q(thread_ctx->dispatcher->video_stinfo_.time_base.num,
+                                      thread_ctx->dispatcher->video_stinfo_.time_base.denom);
+
+            bool res = thread_ctx->decoder->SeekStreamTo(utau::AVStreamDecoder::kVideo_StreamType,
+                                                         static_cast<int64_t>(ts_sec / av_q2d(tb)));
+            if (!res)
+            {
+                QLOG(LOG_ERROR, "Failed to seek video stream");
+                thread_ctx->dispatcher->SendErrorOrEOFRequest();
+                thread_ctx->cmd->promise.set_value();
+                return;
+            }
+
+            thread_ctx->decoder->FlushDecoderBuffers(utau::AVStreamDecoder::kVideo_StreamType);
+        }
+
+        // Start decoding again
+        thread_ctx->StartDecodingThread();
+        thread_ctx->seek_requested_ = true;
     }
 
     thread_ctx->cmd->promise.set_value();
 }
 
-void MediaFramePresentDispatcher::SendAndWaitForPresentThreadCmd(int verb, int64_t param)
+void MediaFramePresentDispatcher::SendAndWaitForPresentThreadCmd(int verb, const int64_t param[3])
 {
-    PresentThreadCmd cmd{ static_cast<PresentThreadCmd::Verb>(verb), param };
+    static const int64_t default_params[3] = {0, 0, 0};
+    if (!param)
+        param = default_params;
+
+    PresentThreadCmd cmd{
+        static_cast<PresentThreadCmd::Verb>(verb),
+        { param[0], param[1], param[2] }
+    };
     thread_ctx_->cmd = &cmd;
     uv_async_send(&thread_ctx_->thread_notifier);
     cmd.promise.get_future().wait();
     thread_ctx_->cmd = nullptr;
+}
+
+void MediaFramePresentDispatcher::seekTo(double tsSeconds)
+{
+    if (disposed_)
+        g_throw(Error, "Object has been disposed");
+
+    if (tsSeconds < 0)
+        g_throw(RangeError, "Argument `tsSeconds` must be a positive number");
+
+    int64_t params[3] = { static_cast<int64_t>(tsSeconds * 1000), 0, 0 };
+    SendAndWaitForPresentThreadCmd(PresentThreadCmd::kSeekTo, params);
 }
 
 void MediaFramePresentDispatcher::play()
@@ -549,7 +666,7 @@ void MediaFramePresentDispatcher::play()
     if (!paused_)
         return;
 
-    SendAndWaitForPresentThreadCmd(PresentThreadCmd::kPlay, 0);
+    SendAndWaitForPresentThreadCmd(PresentThreadCmd::kPlay, nullptr);
     paused_ = false;
     MarkShouldEscapeGC(this);
 }
@@ -562,7 +679,7 @@ void MediaFramePresentDispatcher::pause()
     if (paused_)
         return;
 
-    SendAndWaitForPresentThreadCmd(PresentThreadCmd::kPause, 0);
+    SendAndWaitForPresentThreadCmd(PresentThreadCmd::kPause, nullptr);
     paused_ = true;
     MarkGCCollectable();
 }

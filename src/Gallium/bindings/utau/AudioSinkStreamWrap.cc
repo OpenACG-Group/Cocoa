@@ -17,11 +17,51 @@
 
 #include "fmt/format.h"
 
-#include "Core/EventLoop.h"
+#include "Core/Journal.h"
 #include "Utau/AudioSinkStream.h"
 #include "Gallium/bindings/utau/Exports.h"
 #include "Gallium/binder/Class.h"
 GALLIUM_BINDINGS_UTAU_NS_BEGIN
+
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.bindings.utau.AudioSinkStreamWrap)
+
+class AudioSinkStreamWrap::JSListener : public utau::AudioSinkStreamEventListener
+{
+public:
+    explicit JSListener(v8::Isolate *isolate) : isolate_(isolate) {}
+    ~JSListener() override = default;
+
+    void OnVolumeChanged(float volume) override
+    {
+        if (cb_volume_changed_.IsEmpty())
+            return;
+
+        v8::HandleScope scope(isolate_);
+        v8::Local<v8::Context> ctx = isolate_->GetCurrentContext();
+        v8::Local<v8::Function> func = cb_volume_changed_.Get(isolate_);
+
+        v8::Local<v8::Value> v = binder::to_v8(isolate_, volume);
+
+        v8::TryCatch tc(isolate_);
+        if (func->Call(ctx, ctx->Global(), 1, &v).IsEmpty())
+        {
+            if (tc.HasCaught())
+                QLOG(LOG_WARNING, "Exception thrown by `onVolumeChanged` callback function was swallowed");
+            else
+                QLOG(LOG_WARNING, "Failed to call `onVolumeChanged` callback function");
+        }
+    }
+
+    v8::Isolate *isolate_;
+    v8::Global<v8::Function> cb_volume_changed_;
+};
+
+AudioSinkStreamWrap::AudioSinkStreamWrap(std::unique_ptr<utau::AudioSinkStream> st)
+    : stream_(std::move(st))
+    , listener_(std::make_shared<JSListener>(v8::Isolate::GetCurrent()))
+{
+    stream_->SetEventListener(listener_);
+}
 
 void AudioSinkStreamWrap::dispose()
 {
@@ -81,6 +121,36 @@ void AudioSinkStreamWrap::enqueue(v8::Local<v8::Value> buffer)
 double AudioSinkStreamWrap::getCurrentDelayInUs()
 {
     return stream_->GetDelayInUs();
+}
+
+float AudioSinkStreamWrap::getVolume()
+{
+    return stream_->GetVolume();
+}
+
+void AudioSinkStreamWrap::setVolume(float volume)
+{
+    if (volume < 0 || volume > 1)
+        g_throw(RangeError, "Volume must be in a range of [0, 1]");
+
+    stream_->SetVolume(volume);
+}
+
+v8::Local<v8::Value> AudioSinkStreamWrap::getOnVolumeChanged()
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (listener_->cb_volume_changed_.IsEmpty())
+        return v8::Null(isolate);
+
+    return listener_->cb_volume_changed_.Get(isolate);
+}
+
+void AudioSinkStreamWrap::setOnVolumeChanged(v8::Local<v8::Value> value)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (!value->IsFunction())
+        g_throw(TypeError, "Property `onVolumeChanged` must be a function");
+    listener_->cb_volume_changed_.Reset(isolate, v8::Local<v8::Function>::Cast(value));
 }
 
 GALLIUM_BINDINGS_UTAU_NS_END

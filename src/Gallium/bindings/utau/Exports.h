@@ -86,8 +86,9 @@ private:
 class AudioSinkStreamWrap
 {
 public:
-    explicit AudioSinkStreamWrap(std::unique_ptr<utau::AudioSinkStream> st)
-        : stream_(std::move(st)) {}
+    class JSListener;
+
+    explicit AudioSinkStreamWrap(std::unique_ptr<utau::AudioSinkStream> st);
     ~AudioSinkStreamWrap() = default;
 
     g_nodiscard g_inline utau::AudioSinkStream *GetStream() const {
@@ -113,8 +114,17 @@ public:
     //! TSDecl: function getCurrentDelayInUs(): number
     double getCurrentDelayInUs();
 
+    //! TSDecl: volume: number
+    float getVolume();
+    void setVolume(float volume);
+
+    //! TSDecl: onVolumeChanged: (volume: number) => void
+    void setOnVolumeChanged(v8::Local<v8::Value> value);
+    v8::Local<v8::Value> getOnVolumeChanged();
+
 private:
     std::unique_ptr<utau::AudioSinkStream> stream_;
+    std::shared_ptr<JSListener> listener_;
 };
 
 //! TSDecl: class AudioBuffer
@@ -273,6 +283,12 @@ public:
     //! TSDecl: function decodeNextFrame(): DecodeBuffer
     v8::Local<v8::Value> decodeNextFrame();
 
+    //! TSDecl: function seekStreamTo(selector: Enum<StreamSelector>, ts: number): void
+    void seekStreamTo(int32_t selector, int64_t ts);
+
+    //! TSDecl: function flushDecoderBuffers(selector: Enum<StreamSelector>): void
+    void flushDecoderBuffers(int32_t selector);
+
 private:
     std::unique_ptr<utau::AVStreamDecoder> decoder_;
 };
@@ -303,6 +319,9 @@ public:
     //! TSDecl: pause(): void
     void pause();
 
+    //! TSDecl: seekTo(tsSeconds: number): void
+    void seekTo(double tsSeconds);
+
     //! TSDecl: dispose(): void
     void dispose();
 
@@ -312,7 +331,7 @@ private:
     static void PresentThreadCmdHandler(uv_async_t *handle);
     static void TimerCallback(uv_timer_t *timer);
 
-    void SendAndWaitForPresentThreadCmd(int verb, int64_t param);
+    void SendAndWaitForPresentThreadCmd(int verb, const int64_t param[3]);
     void SendPresentRequest(utau::AVStreamDecoder::AVGenericDecoded frame, double pts_seconds);
     void SendErrorOrEOFRequest();
 

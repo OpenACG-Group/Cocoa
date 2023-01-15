@@ -129,6 +129,8 @@ public:
 
     g_nodiscard std::optional<StreamInfo> GetStreamInfo(StreamSelector selector);
 
+    bool SeekStreamTo(StreamSelector stream, int64_t ts);
+    bool FlushDecoderBuffers(StreamSelector stream);
     AVGenericDecoded DecodeNextFrame();
 
 private:

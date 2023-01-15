@@ -61,6 +61,10 @@ public:
         return pw_loop_;
     }
 
+    g_private_api g_nodiscard g_inline pw_core *GetPipeWireCore() const {
+        return pw_core_;
+    }
+
     g_private_api void InvokeFromMainThread(const std::function<void()>& proc);
 
     g_private_api void LockThreadLoop();
@@ -73,6 +77,7 @@ private:
     uv_async_t                 *uv_async_;
     pw_thread_loop             *pw_loop_;
     pw_core                    *pw_core_;
+    spa_hook                    pw_core_listener_;
     std::mutex                  calls_queue_lock_;
     std::queue<std::function<void()>> main_thread_calls_queue_;
 };

@@ -312,6 +312,35 @@ AVStreamDecoder::~AVStreamDecoder()
     avio_context_priv_.reset();
 }
 
+bool AVStreamDecoder::SeekStreamTo(StreamSelector stream, int64_t ts)
+{
+    int32_t stream_idx = -1;
+    if (stream == StreamSelector::kAudio_StreamType && has_audio_stream_)
+        stream_idx = decoder_priv_->audio_stream_idx_;
+    else if (stream == StreamSelector::kVideo_StreamType && has_video_stream_)
+        stream_idx = decoder_priv_->video_stream_idx_;
+
+    if (stream_idx < 0)
+        return false;
+
+    int ret = av_seek_frame(decoder_priv_->format_ctx_, stream_idx, ts, 0);
+    return (ret >= 0);
+}
+
+bool AVStreamDecoder::FlushDecoderBuffers(StreamSelector stream)
+{
+    AVCodecContext *ctx = nullptr;
+    if (stream == StreamSelector::kAudio_StreamType && has_audio_stream_)
+        ctx = decoder_priv_->acodec_ctx_;
+    else if (stream == StreamSelector::kVideo_StreamType && has_video_stream_)
+        ctx = decoder_priv_->vcodec_ctx_;
+    if (!ctx)
+        return false;
+
+    avcodec_flush_buffers(ctx);
+    return true;
+}
+
 AVStreamDecoder::AVGenericDecoded AVStreamDecoder::DecodeNextFrame()
 {
     if (!decoder_priv_->packet_)

@@ -164,4 +164,28 @@ v8::Local<v8::Value> AVStreamDecoderWrap::decodeNextFrame()
     return binder::to_v8(isolate, map);
 }
 
+void AVStreamDecoderWrap::seekStreamTo(int32_t selector, int64_t ts)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    using Selector = utau::AVStreamDecoder::StreamSelector;
+    if (selector < 0 || selector > Selector::kLast_StreamType)
+        g_throw(RangeError, "Invalid enumeration value for `selector`");
+
+    if (!decoder_->SeekStreamTo(static_cast<Selector>(selector), ts))
+        g_throw(Error, "Failed to seek stream to specified position");
+}
+
+void AVStreamDecoderWrap::flushDecoderBuffers(int32_t selector)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    using Selector = utau::AVStreamDecoder::StreamSelector;
+    if (selector < 0 || selector > Selector::kLast_StreamType)
+        g_throw(RangeError, "Invalid enumeration value for `selector`");
+
+    if (!decoder_->FlushDecoderBuffers(static_cast<Selector>(selector)))
+        g_throw(Error, "Failed to flush decoder buffers");
+}
+
 GALLIUM_BINDINGS_UTAU_NS_END

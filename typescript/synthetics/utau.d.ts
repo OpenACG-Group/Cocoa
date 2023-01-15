@@ -66,6 +66,9 @@ export class AudioDevice {
 }
 
 export class AudioSinkStream {
+    public volume: number;
+    public onVolumeChanged: (volume: number) => void;
+
     dispose(): void;
     connect(sampleFormat: SampleFormat, channelMode: ChannelMode, sampleRate: number, realTime: boolean): void;
     disconnect(): void;
@@ -166,6 +169,8 @@ export class AVStreamDecoder {
 
     getStreamInfo(selector: StreamSelector): AVDecoderStreamInfo;
     decodeNextFrame(): AVDecodeBuffer;
+    seekStreamTo(selector: StreamSelector, timestamp: number): void;
+    flushDecoderBuffers(selector: StreamSelector): void;
 }
 
 export class MediaFramePresentDispatcher {
@@ -176,5 +181,6 @@ export class MediaFramePresentDispatcher {
 
     play(): void;
     pause(): void;
+    seekTo(tsSeconds: number): void;
     dispose(): void;
 }

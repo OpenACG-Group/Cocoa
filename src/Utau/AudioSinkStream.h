@@ -27,6 +27,14 @@ UTAU_NAMESPACE_BEGIN
 class AudioDevice;
 class AudioBuffer;
 
+class AudioSinkStreamEventListener
+{
+public:
+    virtual ~AudioSinkStreamEventListener() = default;
+
+    virtual void OnVolumeChanged(float volume) = 0;
+};
+
 class AudioSinkStream
 {
 public:
@@ -54,8 +62,17 @@ public:
         return this->OnGetDevice();
     }
 
+    g_nodiscard g_inline const auto& GetEventListener() const {
+        return event_listener_;
+    }
+
     g_inline void Dispose() {
+        event_listener_.reset();
         this->OnDispose();
+    }
+
+    g_inline void SetEventListener(const std::shared_ptr<AudioSinkStreamEventListener>& listener) {
+        event_listener_ = listener;
     }
 
     ConnectStatus Connect(SampleFormat sample_format, AudioChannelMode channel_mode,
@@ -63,16 +80,11 @@ public:
 
     ConnectStatus Disconnect();
 
-    enum class BufferState
-    {
-        kConsumed,
-        kCancelled
-    };
-
-    using BufferStateProc = std::function<void(BufferState state)>;
     virtual bool Enqueue(const AudioBuffer& buffer) = 0;
 
     virtual double GetDelayInUs() = 0;
+    virtual float GetVolume() = 0;
+    virtual void SetVolume(float volume) = 0;
 
 protected:
     virtual void OnDispose() = 0;
@@ -86,6 +98,8 @@ protected:
 private:
     int32_t         unique_id_;
     bool            connected_;
+    std::shared_ptr<AudioSinkStreamEventListener>
+                    event_listener_;
 };
 
 UTAU_NAMESPACE_END

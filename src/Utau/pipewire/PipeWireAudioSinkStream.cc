@@ -18,6 +18,7 @@
 #include <pipewire/pipewire.h>
 #include <spa/param/audio/format-utils.h>
 #include <spa/support/loop.h>
+#include <spa/param/props.h>
 
 #include "Core/Journal.h"
 #include "Utau/AudioBuffer.h"
@@ -33,6 +34,7 @@ namespace {
 
 const pw_stream_events g_stream_events = {
     .version = PW_VERSION_STREAM_EVENTS,
+    .control_info = PipeWireAudioSinkStream::OnControlInfo,
     .process = PipeWireAudioSinkStream::Process
 };
 
@@ -91,9 +93,15 @@ PipeWireAudioSinkStream::MakeFromDevice(const std::shared_ptr<PipeWireAudioDevic
 
     PipeWireAudioDevice::ScopedThreadLoopLock lock(device.get());
 
+    std::string nodename = fmt::format("Cocoa [{}]", name);
+
     pw_properties *props = pw_properties_new(PW_KEY_MEDIA_TYPE, "Audio",
                                              PW_KEY_MEDIA_CATEGORY, "Playback",
                                              PW_KEY_MEDIA_ROLE, "Music",
+                                             PW_KEY_NODE_NAME, nodename.c_str(),
+                                             PW_KEY_NODE_DESCRIPTION, "Cocoa Audio Sink",
+                                             PW_KEY_APP_NAME, "Cocoa",
+                                             PW_KEY_NODE_ALWAYS_PROCESS, "true",
                                              nullptr);
 
     stream->device_ = device;
@@ -101,7 +109,10 @@ PipeWireAudioSinkStream::MakeFromDevice(const std::shared_ptr<PipeWireAudioDevic
             loop, name.c_str(), props, &g_stream_events, stream.get());
 
     if (!stream->pw_stream_)
+    {
+        pw_properties_free(props);
         return nullptr;
+    }
 
     stream->disposed_ = false;
 
@@ -114,6 +125,7 @@ PipeWireAudioSinkStream::PipeWireAudioSinkStream()
     , sample_format_(SampleFormat::kUnknown)
     , channel_mode_(AudioChannelMode::kUnknown)
     , sample_rate_(0)
+    , current_queued_samples_(0)
     , delay_in_us_(0)
 {
 }
@@ -250,6 +262,27 @@ bool PipeWireAudioSinkStream::Enqueue(const AudioBuffer& buffer)
     return true;
 }
 
+void PipeWireAudioSinkStream::OnControlInfo(void *userdata,
+                                            uint32_t id,
+                                            const pw_stream_control *ctl)
+{
+    auto *self = reinterpret_cast<PipeWireAudioSinkStream*>(userdata);
+    CHECK(self);
+
+    if (id == SPA_PROP_channelVolumes)
+    {
+        float avg_vol = 0;
+        for (int i = 0; i < ctl->n_values; i++)
+            avg_vol += ctl->values[i] / static_cast<float>(ctl->n_values);
+
+        self->device_->InvokeFromMainThread([self, avg_vol] {
+            self->volume_ = avg_vol;
+            if (self->GetEventListener())
+                self->GetEventListener()->OnVolumeChanged(avg_vol);
+        });
+    }
+}
+
 void PipeWireAudioSinkStream::Process(void *userdata)
 {
     auto *self = reinterpret_cast<PipeWireAudioSinkStream*>(userdata);
@@ -365,6 +398,19 @@ double PipeWireAudioSinkStream::GetDelayInUs()
     queue_lock_.unlock();
 
     return delay_in_us_ + queue_delay;
+}
+
+float PipeWireAudioSinkStream::GetVolume()
+{
+    return volume_;
+}
+
+void PipeWireAudioSinkStream::SetVolume(float volume)
+{
+    PipeWireAudioDevice::ScopedThreadLoopLock lock(device_.get());
+    int channels = (channel_mode_ == AudioChannelMode::kStereo ? 2 : 1);
+    float values[2] = {volume, volume};
+    pw_stream_set_control(pw_stream_, SPA_PROP_channelVolumes, channels, values);
 }
 
 UTAU_NAMESPACE_END

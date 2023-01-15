@@ -273,7 +273,7 @@ export class Display extends RenderClientObject {
      * All the HWCompose surfaces share the same physical GPU and GPU context.
      * If there are multiple GPUs in the system configuration, Cocoa will choose a
      * suitable one to use, which is opaque to the caller.
-     * If it is the first HWCompose surface that the caller created, it will lead to
+     * If it is the first HWCompose surface that the caller creates, it will lead to
      * the initialization of GPU context, which may be very slow. In the worst case,
      * it will take several seconds to complete.
      * 
