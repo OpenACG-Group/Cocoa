@@ -5,6 +5,16 @@
     <include src="Gallium/bindings/glamor/Exports.h"/>
     <include src="Gallium/bindings/glamor/Scene.h"/>
     <include src="Gallium/bindings/glamor/SceneBuilder.h"/>
+    <include src="Gallium/bindings/glamor/CkMatrixWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkPaintWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkSurfaceWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkPathWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkCanvasWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkTypefaceWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkFontWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkTextBlobWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkPathEffectWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkPictureRecorder.h"/>
     <include src="Glamor/Surface.h"/>
     <include src="Glamor/Monitor.h"/>
     <hook on="instantiate" call="GlamorSetInstanceProperties"/>
@@ -143,6 +153,259 @@
             <method name="addVideoBuffer" value="@addVideoBuffer"/>
         </class>
 
+        <class name="CkMatrix" wrapper="CkMatrix">
+            <method static="true" name="Identity" value="@Identity"/>
+            <method static="true" name="Scale" value="@Scale"/>
+            <method static="true" name="Translate" value="@Translate"/>
+            <method static="true" name="RotateRad" value="@RotateRad"/>
+            <method static="true" name="Skew" value="@Skew"/>
+            <method static="true" name="RectToRect" value="@RectToRect"/>
+            <method static="true" name="All" value="@All"/>
+            <method static="true" name="Concat" value="@Concat"/>
+            <property name="scaleX" getter="@getScaleX" setter="@setScaleX"/>
+            <property name="scaleY" getter="@getScaleY" setter="@setScaleY"/>
+            <property name="translateX" getter="@getTranslateX" setter="@setTranslateX"/>
+            <property name="translateY" getter="@getTranslateY" setter="@setTranslateY"/>
+            <property name="skewX" getter="@getSkewX" setter="@setSkewX"/>
+            <property name="skewY" getter="@getSkewY" setter="@setSkewY"/>
+            <property name="perspectiveX" getter="@getPerspectiveX" setter="@setPerspectiveX"/>
+            <property name="perspectiveY" getter="@getPerspectiveY" setter="@setPerspectiveY"/>
+            <method name="clone" value="@clone"/>
+            <method name="rectStaysRect" value="@rectStaysRect"/>
+            <method name="hasPerspective" value="@hasPerspective"/>
+            <method name="isSimilarity" value="@isSimilarity"/>
+            <method name="preservesRightAngles" value="@preservesRightAngles"/>
+            <method name="preTranslate" value="@preTranslate"/>
+            <method name="preScale" value="@preScale"/>
+            <method name="preRotate" value="@preRotate"/>
+            <method name="preSkew" value="@preSkew"/>
+            <method name="preConcat" value="@preConcat"/>
+            <method name="postTranslate" value="@postTranslate"/>
+            <method name="postScale" value="@postScale"/>
+            <method name="postRotate" value="@postRotate"/>
+            <method name="postSkew" value="@postSkew"/>
+            <method name="postConcat" value="@postConcat"/>
+            <method name="invert" value="@invert"/>
+            <method name="normalizePerspective" value="@normalizePerspective"/>
+            <method name="mapPoints" value="@mapPoints"/>
+            <method name="mapPoint" value="@mapPoint"/>
+            <method name="mapHomogeneousPoints" value="@mapHomogeneousPoints"/>
+            <method name="mapRect" value="@mapRect"/>
+            <method name="mapRadius" value="@mapRadius"/>
+            <method name="isFinite" value="@isFinite"/>
+        </class>
+
+        <class name="CkPaint" wrapper="CkPaint">
+            <constructor prototype=""/>
+            <method name="reset" value="@reset"/>
+            <method name="setAntiAlias" value="@setAntiAlias"/>
+            <method name="setDither" value="@setDither"/>
+            <method name="setStyle" value="@setStyle"/>
+            <method name="setColor" value="@setColor"/>
+            <method name="setColor4f" value="@setColor4f"/>
+            <method name="setAlpha" value="@setAlpha"/>
+            <method name="setAlphaf" value="@setAlphaf"/>
+            <method name="setStrokeWidth" value="@setStrokeWidth"/>
+            <method name="setStrokeMiter" value="@setStrokeMiter"/>
+            <method name="setStrokeCap" value="@setStrokeCap"/>
+            <method name="setStrokeJoin" value="@setStrokeJoin"/>
+            <method name="setShader" value="@setShader"/>
+            <method name="setColorFilter" value="@setColorFilter"/>
+            <method name="setBlendMode" value="@setBlendMode"/>
+            <method name="setBlender" value="@setBlender"/>
+            <method name="setPathEffect" value="@setPathEffect"/>
+            <method name="setImageFilter" value="@setImageFilter"/>
+        </class>
+
+        <class name="CkPath" wrapper="CkPath">
+            <constructor prototype=""/>
+            <method static="true" name="IsLineDegenerate" value="@IsLineDegenerate"/>
+            <method static="true" name="IsQuadDegenerate" value="@IsQuadDegenerate"/>
+            <method static="true" name="IsCubicDegenerate" value="@IsCubicDegenerate"/>
+            <method name="clone" value="@clone"/>
+            <method name="isInterpolatable" value="@isInterpolatable"/>
+            <method name="interpolate" value="@interpolate"/>
+            <method name="setFillType" value="@setFillType"/>
+            <method name="toggleInverseFillType" value="@toggleInverseFillType"/>
+            <method name="isConvex" value="@isConvex"/>
+            <method name="reset" value="@reset"/>
+            <method name="rewind" value="@rewind"/>
+            <method name="isEmpty" value="@isEmpty"/>
+            <method name="isLastContourClosed" value="@isLastContourClosed"/>
+            <method name="isFinite" value="@isFinite"/>
+            <method name="isVolatile" value="@isVolatile"/>
+            <method name="setIsVolatile" value="@setIsVolatile"/>
+            <method name="countPoints" value="@countPoints"/>
+            <method name="getPoint" value="@getPoint"/>
+            <method name="getBounds" value="@getBounds"/>
+            <method name="computeTightBounds" value="@computeTightBounds"/>
+            <method name="conservativelyContainsRect" value="@conservativelyContainsRect"/>
+            <method name="moveTo" value="@moveTo"/>
+            <method name="rMoveTo" value="@rMoveTo"/>
+            <method name="lineTo" value="@lineTo"/>
+            <method name="rLineTo" value="@rLineTo"/>
+            <method name="quadTo" value="@quadTo"/>
+            <method name="rQuadTo" value="@rQuadTo"/>
+            <method name="conicTo" value="@conicTo"/>
+            <method name="rConicTo" value="@rConicTo"/>
+            <method name="cubicTo" value="@cubicTo"/>
+            <method name="rCubicTo" value="@rCubicTo"/>
+            <method name="oaaArcTo" value="@oaaArcTo"/>
+            <method name="pprArcTo" value="@pprArcTo"/>
+            <method name="pspArcTo" value="@pspArcTo"/>
+            <method name="rPspArcTo" value="@rPspArcTo"/>
+            <method name="close" value="@close"/>
+            <method name="addRect" value="@addRect"/>
+            <method name="addOval" value="@addOval"/>
+            <method name="addCircle" value="@addCircle"/>
+            <method name="addArc" value="@addArc"/>
+            <method name="addRRect" value="@addRRect"/>
+            <method name="addPoly" value="@addPoly"/>
+            <method name="addPath" value="@addPath"/>
+            <method name="addPathMatrix" value="@addPathMatrix"/>
+            <method name="reverseAddPath" value="@reverseAddPath"/>
+            <method name="offset" value="@offset"/>
+            <method name="transform" value="@transform"/>
+            <method name="toString" value="@toString"/>
+        </class>
+
+        <class name="CkSurface" wrapper="CkSurface">
+            <property name="width" getter="@getWidth"/>
+            <property name="height" getter="@getHeight"/>
+            <property name="generationID" getter="@getGenerationID"/>
+            <property name="imageInfo" getter="@getImageInfo"/>
+            <method static="true" name="MakeRaster" value="@MakeRaster"/>
+            <method static="true" name="MakeNull" value="@MakeNull"/>
+            <method name="getCanvas" value="@getCanvas"/>
+            <method name="makeSurface" value="@makeSurface"/>
+            <method name="makeImageSnapshot" value="@makeImageSnapshot"/>
+            <method name="draw" value="@draw"/>
+            <method name="readPixels" value="@readPixels"/>
+            <method name="peekPixels" value="@peekPixels"/>
+        </class>
+
+        <class name="CkCanvas" wrapper="CkCanvas">
+            <method name="save" value="@save"/>
+            <method name="saveLayer" value="@saveLayer"/>
+            <method name="saveLayerAlpha" value="@saveLayerAlpha"/>
+            <method name="saveLayerRec" value="@saveLayerRec"/>
+            <method name="restore" value="@restore"/>
+            <method name="restoreToCount" value="@restoreToCount"/>
+            <method name="translate" value="@translate"/>
+            <method name="scale" value="@scale"/>
+            <method name="rotate" value="@rotate"/>
+            <method name="skew" value="@skew"/>
+            <method name="concat" value="@concat"/>
+            <method name="setMatrix" value="@setMatrix"/>
+            <method name="resetMatrix" value="@resetMatrix"/>
+            <method name="clipRect" value="@clipRect"/>
+            <method name="clipRRect" value="@clipRRect"/>
+            <method name="clipPath" value="@clipPath"/>
+            <method name="clipShader" value="@clipShader"/>
+            <method name="quickRejectRect" value="@quickRejectRect"/>
+            <method name="quickRejectPath" value="@quickRejectPath"/>
+            <method name="getLocalClipBounds" value="@getLocalClipBounds"/>
+            <method name="getDeviceClipBounds" value="@getDeviceClipBounds"/>
+            <method name="drawColor" value="@drawColor"/>
+            <method name="clear" value="@clear"/>
+            <method name="drawPaint" value="@drawPaint"/>
+            <method name="drawPoints" value="@drawPoints"/>
+            <method name="drawPoint" value="@drawPoint"/>
+            <method name="drawLine" value="@drawLine"/>
+            <method name="drawRect" value="@drawRect"/>
+            <method name="drawOval" value="@drawOval"/>
+            <method name="drawRRect" value="@drawRRect"/>
+            <method name="drawDRRect" value="@drawDRRect"/>
+            <method name="drawCircle" value="@drawCircle"/>
+            <method name="drawArc" value="@drawArc"/>
+            <method name="drawRoundRect" value="@drawRoundRect"/>
+            <method name="drawPath" value="@drawPath"/>
+            <method name="drawImage" value="@drawImage"/>
+            <method name="drawImageRect" value="@drawImageRect"/>
+            <method name="drawString" value="@drawString"/>
+            <method name="drawGlyphs" value="@drawGlyphs"/>
+            <method name="drawTextBlob" value="@drawTextBlob"/>
+            <method name="drawPicture" value="@drawPicture"/>
+            <method name="drawVertices" value="@drawVertices"/>
+            <method name="drawPatch" value="@drawPatch"/>
+        </class>
+
+        <class name="CkFontStyle" wrapper="CkFontStyle">
+            <constructor prototype="int32_t, int32_t, int32_t"/>
+            <method static="true" name="MakeNormal" value="@MakeNormal"/>
+            <method static="true" name="MakeItalic" value="@MakeItalic"/>
+            <method static="true" name="MakeBold" value="@MakeBold"/>
+            <method static="true" name="MakeBoldItalic" value="@MakeBoldItalic"/>
+            <property name="weight" getter="@getWeight"/>
+            <property name="width" getter="@getWidth"/>
+            <property name="slant" getter="@getSlant"/>
+        </class>
+
+        <class name="CkTypeface" wrapper="CkTypeface">
+            <method static="true" name="MakeDefault" value="@MakeDefault"/>
+            <method static="true" name="MakeFromName" value="@MakeFromName"/>
+            <method static="true" name="MakeFromFile" value="@MakeFromFile"/>
+            <method static="true" name="MakeFromData" value="@MakeFromData"/>
+            <property name="fontStyle" getter="@getFontStyle"/>
+            <property name="bold" getter="@getBold"/>
+            <property name="italic" getter="@getItalic"/>
+            <property name="fixedPitch" getter="@getFixedPitch"/>
+            <property name="uniqueID" getter="@getUniqueID"/>
+            <property name="unitsPerEm" getter="@getUnitsPerEm"/>
+            <property name="familyName" getter="@getFamilyName"/>
+            <method name="getKerningPairAdjustments" value="@getKerningPairAdjustments"/>
+            <method name="unicharsToGlyphs" value="@unicharsToGlyphs"/>
+            <method name="textToGlyphs" value="@textToGlyphs"/>
+            <method name="unicharToGlyph" value="@unicharToGlyph"/>
+            <method name="countGlyphs" value="@countGlyphs"/>
+            <method name="countTables" value="@countTables"/>
+            <method name="getTableTags" value="@getTableTags"/>
+            <method name="getTableSize" value="@getTableSize"/>
+            <method name="copyTableData" value="@copyTableData"/>
+        </class>
+
+        <class name="CkFont" wrapper="CkFont">
+            <method static="true" name="Make" value="@Make"/>
+            <method static="true" name="MakeFromSize" value="@MakeFromSize"/>
+            <method static="true" name="MakeTransformed" value="@MakeTransformed"/>
+            <method name="countText" value="@countText"/>
+            <method name="measureText" value="@measureText"/>
+            <method name="measureTextBounds" value="@measureTextBounds"/>
+            <method name="getBounds" value="@getBounds"/>
+            <method name="getPos" value="@getPos"/>
+            <method name="getIntercepts" value="@getIntercepts"/>
+            <method name="getPath" value="@getPath"/>
+            <property name="forceAutoHinting" getter="@getForceAutoHinting" setter="@setForceAutoHinting"/>
+            <property name="embeddedBitmaps" getter="@getEmbeddedBitmaps" setter="@setEmbeddedBitmaps"/>
+            <property name="subpixel" getter="@getSubpixel" setter="@setSubpixel"/>
+            <property name="linearMetrics" getter="@getLinearMetrics" setter="@setLinearMetrics"/>
+            <property name="embolden" getter="@getEmbolden" setter="@setEmbolden"/>
+            <property name="baselineSnap" getter="@getBaselineSnap" setter="@setBaselineSnap"/>
+            <property name="edging" getter="@getEdging" setter="@setEdging"/>
+            <property name="hinting" getter="@getHinting" setter="@setHinting"/>
+            <property name="size" getter="@getSize" setter="@setSize"/>
+            <property name="scaleX" getter="@getScaleX" setter="@setScaleX"/>
+            <property name="skewX" getter="@getSkewX" setter="@setSkewX"/>
+            <property name="spacing" getter="@getSpacing"/>
+        </class>
+
+        <class name="CkTextBlob" wrapper="CkTextBlob">
+            <method static="true" name="MakeFromText" value="@MakeFromText"/>
+            <method static="true" name="MakeFromPosTextH" value="@MakeFromPosTextH"/>
+            <method static="true" name="MakeFromPosText" value="@MakeFromPosText"/>
+            <property name="bounds" getter="@getBounds"/>
+            <property name="uniqueID" getter="@getUniqueID"/>
+            <method name="getIntercepts" value="@getIntercepts"/>
+        </class>
+
+        <class name="CkPictureRecorder" wrapper="CkPictureRecorder">
+            <constructor prototype=""/>
+            <method name="beginRecording" value="@beginRecording"/>
+            <method name="getRecordingCanvas" value="@getRecordingCanvas"/>
+            <method name="finishRecordingAsPicture" value="@finishRecordingAsPicture"/>
+            <method name="finishRecordingAsPictureWithCull" value="@finishRecordingAsPictureWithCull"/>
+        </class>
+
         <class name="CkImageFilter" wrapper="CkImageFilterWrap">
             <method static="true" name="MakeFromDSL" value="@MakeFromDSL"/>
             <method static="true" name="Deserialize" value="@Deserialize"/>
@@ -155,6 +418,21 @@
             <method name="serialize" value="@serialize"/>
         </class>
 
+        <class name="CkShader" wrapper="CkShaderWrap">
+            <method static="true" name="MakeFromDSL" value="@MakeFromDSL"/>
+            <method name="makeWithLocalMatrix" value="@makeWithLocalMatrix"/>
+            <method name="makeWithColorFilter" value="@makeWithColorFilter"/>
+        </class>
+
+        <class name="CkBlender" wrapper="CkBlenderWrap">
+            <method static="true" name="Mode" value="@Mode"/>
+            <method static="true" name="Arithmetic" value="@Arithmetic"/>
+        </class>
+
+        <class name="CkPathEffect" wrapper="CkPathEffect">
+            <method static="true" name="MakeFromDSL" value="@MakeFromDSL"/>
+        </class>
+
         <class name="CkBitmap" wrapper="CkBitmapWrap">
             <method static="true" name="MakeFromBuffer" value="@MakeFromBuffer"/>
             <method static="true" name="MakeFromEncodedFile" value="@MakeFromEncodedFile"/>
@@ -164,7 +442,7 @@
             <property name="colorType" getter="@getColorType"/>
             <property name="bytesPerPixel" getter="@getBytesPerPixel"/>
             <property name="rowBytesAsPixels" getter="@getRowBytesAsPixels"/>
-            <property name="getShiftPerPixel" getter="@getShiftPerPixel"/>
+            <property name="shiftPerPixel" getter="@getShiftPerPixel"/>
             <property name="rowBytes" getter="@getRowBytes"/>
             <method name="computeByteSize" value="@computeByteSize"/>
             <method name="toImage" value="@toImage"/>
@@ -174,8 +452,10 @@
         <class name="CkImage" wrapper="CkImageWrap">
             <method static="true" name="MakeFromEncodedData" value="@MakeFromEncodedData"/>
             <method static="true" name="MakeFromEncodedFile" value="@MakeFromEncodedFile"/>
+            <method static="true" name="MakeFromVideoBuffer" value="@MakeFromVideoBuffer"/>
             <method name="encodeToData" value="@encodeToData"/>
             <method name="uniqueId" value="@uniqueId"/>
+            <method name="makeSharedPixelsBuffer" value="@makeSharedPixelsBuffer"/>
             <property name="width" getter="@getWidth"/>
             <property name="height" getter="@getHeight"/>
             <property name="alphaType" getter="@getAlphaType"/>

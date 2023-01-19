@@ -29,7 +29,6 @@ add_library(Gallium STATIC
         Internals.cc
         BindingManager.h
         BindingManager.cc
-        StackAllocatorBase.h
         GlobalIsolateGuard.h
         GlobalIsolateGuard.cc
         VMIntrospect.h
@@ -72,6 +71,7 @@ add_library(Gallium STATIC
         bindings/core/Process.cc
         bindings/core/Stream.cc
 
+        bindings/glamor/Types.h
         bindings/glamor/Exports.h
         bindings/glamor/Exports.cc
         bindings/glamor/Capabilities.cc
@@ -86,6 +86,8 @@ add_library(Gallium STATIC
         bindings/glamor/CkBitmapWrap.cc
         bindings/glamor/CkImageFilterWrap.cc
         bindings/glamor/CkColorFilterWrap.cc
+        bindings/glamor/CkShaderWrap.cc
+        bindings/glamor/CkBlenderWrap.cc
         bindings/glamor/Scene.h
         bindings/glamor/Scene.cc
         bindings/glamor/SceneBuilder.h
@@ -96,8 +98,29 @@ add_library(Gallium STATIC
         bindings/glamor/EffectDSLParser.h
         bindings/glamor/EffectDSLParser.cc
         bindings/glamor/EffectDSLBuilderHelperMacros.h
+        bindings/glamor/TrivialSkiaExportedTypes.h
         bindings/glamor/TrivialSkiaExportedTypes.cc
         bindings/glamor/GProfilerWrap.cc
+        bindings/glamor/CkMatrixWrap.h
+        bindings/glamor/CkMatrixWrap.cc
+        bindings/glamor/CkSurfaceWrap.h
+        bindings/glamor/CkSurfaceWrap.cc
+        bindings/glamor/CkPaintWrap.h
+        bindings/glamor/CkPaintWrap.cc
+        bindings/glamor/CkPathWrap.h
+        bindings/glamor/CkPathWrap.cc
+        bindings/glamor/CkTypefaceWrap.h
+        bindings/glamor/CkTypefaceWrap.cc
+        bindings/glamor/CkFontWrap.h
+        bindings/glamor/CkFontWrap.cc
+        bindings/glamor/CkCanvasWrap.h
+        bindings/glamor/CkCanvasWrap.cc
+        bindings/glamor/CkTextBlobWrap.h
+        bindings/glamor/CkTextBlobWrap.cc
+        bindings/glamor/CkPathEffectWrap.h
+        bindings/glamor/CkPathEffectWrap.cc
+        bindings/glamor/CkPictureRecorder.h
+        bindings/glamor/CkPictureRecorder.cc
 
         bindings/utau/Exports.h
         bindings/utau/Exports.cc

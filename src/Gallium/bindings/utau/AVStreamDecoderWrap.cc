@@ -166,8 +166,6 @@ v8::Local<v8::Value> AVStreamDecoderWrap::decodeNextFrame()
 
 void AVStreamDecoderWrap::seekStreamTo(int32_t selector, int64_t ts)
 {
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-
     using Selector = utau::AVStreamDecoder::StreamSelector;
     if (selector < 0 || selector > Selector::kLast_StreamType)
         g_throw(RangeError, "Invalid enumeration value for `selector`");
@@ -178,8 +176,6 @@ void AVStreamDecoderWrap::seekStreamTo(int32_t selector, int64_t ts)
 
 void AVStreamDecoderWrap::flushDecoderBuffers(int32_t selector)
 {
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-
     using Selector = utau::AVStreamDecoder::StreamSelector;
     if (selector < 0 || selector > Selector::kLast_StreamType)
         g_throw(RangeError, "Invalid enumeration value for `selector`");

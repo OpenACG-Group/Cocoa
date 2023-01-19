@@ -21,6 +21,8 @@
 
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/core/Exports.h"
+#include "Gallium/bindings/utau/Exports.h"
+#include "Utau/VideoFrameGLEmbedder.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 CkImageWrap::CkImageWrap(sk_sp<SkImage> image)
@@ -109,6 +111,23 @@ v8::Local<v8::Value> CkImageWrap::MakeFromEncodedFile(const std::string& path)
     return resolver->GetPromise();
 }
 
+v8::Local<v8::Value> CkImageWrap::MakeFromVideoBuffer(v8::Local<v8::Value> vbo)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    auto *wrapper = binder::Class<utau_wrap::VideoBufferWrap>::unwrap_object(isolate, vbo);
+    if (!wrapper)
+        g_throw(TypeError, "Argument `vbo` must be an instance of `utau.VideoBuffer`");
+
+    auto *embedder = utau::GlobalContext::Ref().GetVideoFrameGLEmbedder();
+    CHECK(embedder);
+    
+    sk_sp<SkImage> image = embedder->ConvertToRasterImage(wrapper->GetBuffer());
+    if (!image)
+        g_throw(Error, "Failed to convert video buffer to an image");
+
+    return binder::Class<CkImageWrap>::create_object(isolate, image);
+}
+
 v8::Local<v8::Value> CkImageWrap::encodeToData(uint32_t format, int quality)
 {
     sk_sp<SkData> data = image_->encodeToData(static_cast<SkEncodedImageFormat>(format), quality);
@@ -142,6 +161,31 @@ uint32_t CkImageWrap::getAlphaType()
 uint32_t CkImageWrap::getColorType()
 {
     return image_->colorType();
+}
+
+v8::Local<v8::Value> CkImageWrap::makeSharedPixelsBuffer()
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    SkPixmap pixmap;
+    if (!image_->peekPixels(&pixmap))
+        g_throw(Error, "Image is not readable");
+
+    sk_sp<SkImage> image_ref = image_;
+    v8::Local<v8::Value> buffer = Buffer::MakeFromExternal(pixmap.writable_addr(),
+                                                           pixmap.computeByteSize(),
+                                                           [image_ref] {});
+
+    std::unordered_map<std::string_view, v8::Local<v8::Value>> result{
+        { "buffer", buffer },
+        { "width", binder::to_v8(isolate, image_->width()) },
+        { "height", binder::to_v8(isolate, image_->height()) },
+        { "colorType", binder::to_v8(isolate, static_cast<int32_t>(image_->colorType())) },
+        { "alphaType", binder::to_v8(isolate, static_cast<int32_t>(image_->alphaType())) },
+        { "rowBytes", binder::to_v8(isolate, pixmap.rowBytes()) }
+    };
+
+    return binder::to_v8(isolate, result);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

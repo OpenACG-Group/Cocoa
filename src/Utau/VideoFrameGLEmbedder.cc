@@ -663,4 +663,42 @@ VideoFrameGLEmbedder::Commit(const std::shared_ptr<VideoBuffer>& buffer,
             std::move(accessor), offset, size, sampling);
 }
 
+sk_sp<SkImage> VideoFrameGLEmbedder::ConvertToRasterImage(const std::shared_ptr<VideoBuffer>& buffer)
+{
+    CHECK(buffer);
+
+    auto *frame = buffer->CastUnderlyingPointer<AVFrame>();
+    if (frame->linesize[0] < 0)
+    {
+        QLOG(LOG_ERROR, "Committing a vertical flipped frame (linesize < 0) is not supported");
+        return nullptr;
+    }
+
+    SkISize size = SkISize::Make(frame->width, frame->height);
+
+    std::unique_ptr<gl::ExternalTextureAccessor> accessor;
+    if (frame->format == AV_PIX_FMT_VAAPI)
+    {
+        // How to use and composite a hardware (VAAPI) frame depends on whether the
+        // Glamor context has a GPU context. See `VAAPIVBOAccessor::Acquire` for more
+        // details.
+        accessor = std::make_unique<VAAPIVBOAccessor>(
+                this, frame, size, SkSamplingOptions(SkFilterMode::kLinear));
+    }
+    else
+    {
+        accessor = std::make_unique<HostVBOAccessor>(
+                this, frame, size, SkSamplingOptions(SkFilterMode::kLinear));
+    }
+
+    if (!accessor)
+        return nullptr;
+
+    accessor->Prefetch();
+    sk_sp<SkImage> image = accessor->Acquire(nullptr);
+    accessor->Release();
+
+    return image;
+}
+
 UTAU_NAMESPACE_END

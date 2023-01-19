@@ -20,6 +20,9 @@
 #include "include/core/SkPoint3.h"
 
 #include "Gallium/bindings/glamor/EffectDSLParser.h"
+#include "Gallium/bindings/glamor/CkPathWrap.h"
+#include "Gallium/bindings/glamor/CkPathEffectWrap.h"
+#include "Gallium/bindings/glamor/CkMatrixWrap.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 namespace {
@@ -413,8 +416,7 @@ public:
         current_itr_++;
 
         int elements_count = 0;
-        while (current_itr_->type != Token::kLBracket &&
-               current_itr_->type != Token::kEOF)
+        while (current_itr_->type != Token::kEOF)
         {
             elements_count++;
             ParseExpr();
@@ -490,7 +492,7 @@ const char *EffectStackOperand::GetTypeName(Type type)
     static std::unordered_map<Type, const char*> name_map = {
             { kNull,     "Null"      },
             { kInt,      "Int"       },
-            { kEffector, "Effector"    },
+            { kEffector, "Effector"  },
             { kArray,    "Array"     },
             { kKWArgs,   "KWArgs"    }
     };
@@ -570,8 +572,23 @@ EffectStackOperand::Nullable<Effector> EffectStackOperand::ToEffectorSafe()
         return Effector(color_flt_wrapped->getSkiaObject());
     }
 
+    auto *shader_wrapped = binder::Class<CkShaderWrap>::unwrap_object(isolate, kwarg_pair.second);
+    if (shader_wrapped)
+    {
+        CHECK(shader_wrapped->getSkiaObject());
+        return Effector(shader_wrapped->getSkiaObject());
+    }
+
+    auto *patheffect_wrapped = binder::Class<CkPathEffect>::unwrap_object(isolate, kwarg_pair.second);
+    if (patheffect_wrapped)
+    {
+        CHECK(patheffect_wrapped->getSkiaObject());
+        return Effector(patheffect_wrapped->getSkiaObject());
+    }
+
     g_throw(TypeError, fmt::format("Keyword argument `{}` must be an instance"
-                                   " of neither `CkImageFilter` nor `CkColorFilter`",
+                                   " one of `CkImageFilter`, `CkColorFilter`, "
+                                   "`CkShader`, `CkPath` or `CkPathEffect`",
                                    kwarg_pair.first));
 }
 
@@ -594,6 +611,46 @@ EffectStackOperand::Nullable<sk_sp<SkImage>> EffectStackOperand::ToImageSafe()
     }
 
     return wrapped->getImage();
+}
+
+EffectStackOperand::Nullable<SkPath*> EffectStackOperand::ToPathSafe()
+{
+    NULLABLE_CHECK;
+    if (type != kKWArgs)
+        g_throw(Error, "Only kwarg operand can be converted to Path");
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    CHECK(isolate);
+
+    auto *wrapped = binder::Class<CkPath>::unwrap_object(isolate, kwarg_pair.second);
+    if (!wrapped)
+    {
+        g_throw(TypeError,
+                fmt::format("Keyword argument `{}` is not an instance of CkPath",
+                            kwarg_pair.first));
+    }
+
+    return &wrapped->GetPath();
+}
+
+EffectStackOperand::Nullable<SkMatrix*> EffectStackOperand::ToMatrixSafe()
+{
+    NULLABLE_CHECK;
+    if (type != kKWArgs)
+        g_throw(Error, "Only kwarg operand can be converted to Matrix");
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    CHECK(isolate);
+
+    auto *wrapped = binder::Class<CkMatrix>::unwrap_object(isolate, kwarg_pair.second);
+    if (!wrapped)
+    {
+        g_throw(TypeError,
+                fmt::format("Keyword argument `{}` is not an instance of CkMatrix",
+                            kwarg_pair.first));
+    }
+
+    return &wrapped->GetMatrix();
 }
 
 EffectStackOperand::Nullable<SkRect> EffectStackOperand::ToRectSafe()

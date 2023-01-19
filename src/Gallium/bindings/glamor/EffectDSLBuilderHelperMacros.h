@@ -22,6 +22,7 @@
 #define HAS_EFFECT_DSL_BUILDER_HELPER_MACROS_H
 
 #define AUTO_SELECT(v)  ((v) ? *(v) : nullptr)
+#define AUTO_SELECT_PTR(v) ((v) ? &(*(v)) : nullptr)
 
 #define DEF_BUILDER(name) Effector builder_##name (EffectStack& st, int argc)
 #define THROW_IF_NULL(v, arg, flt) \

@@ -98,3 +98,68 @@ export async function LoadTypefaceFromFile(file: string): Promise<CanvasKit.Type
 export function LoadTypefaceFromFileSync(file: string): CanvasKit.Typeface {
     return LoadTypefaceFromBuffer(std.File.ReadFileSync(file));
 }
+
+const kCkSkColorTypeMap = [
+    [ canvaskit.ColorType.BGRA_8888, GL.Constants.COLOR_TYPE_BGRA8888 ],
+    [ canvaskit.ColorType.RGBA_8888, GL.Constants.COLOR_TYPE_RGBA8888 ],
+    [ canvaskit.ColorType.RGBA_1010102, GL.Constants.COLOR_TYPE_RGBA1010102 ],
+    [ canvaskit.ColorType.RGBA_F16, GL.Constants.COLOR_TYPE_RGBA_F16 ],
+    [ canvaskit.ColorType.RGBA_F32, GL.Constants.COLOR_TYPE_RGBA_F32 ],
+    [ canvaskit.ColorType.RGB_101010x, GL.Constants.COLOR_TYPE_RGB101010x ],
+    [ canvaskit.ColorType.RGB_565, GL.Constants.COLOR_TYPE_RGB565 ],
+    [ canvaskit.ColorType.Alpha_8, GL.Constants.COLOR_TYPE_ALPHA8 ],
+    [ canvaskit.ColorType.Gray_8, GL.Constants.COLOR_TYPE_GRAY8 ]
+];
+
+const kCkSkAlphaTypeMap = [
+    [ canvaskit.AlphaType.Opaque, GL.Constants.ALPHA_TYPE_OPAQUE ],
+    [ canvaskit.AlphaType.Premul, GL.Constants.ALPHA_TYPE_PREMULTIPLIED ],
+    [ canvaskit.AlphaType.Unpremul, GL.Constants.ALPHA_TYPE_UNPREMULTIPLIED ]
+];
+
+export function CkToSkColorType(ct: GL.ColorType): CanvasKit.ColorType {
+    for (let entry of kCkSkColorTypeMap) {
+        if (entry[1] == ct) {
+            return entry[0] as CanvasKit.ColorType;
+        }
+    }
+    throw Error('Unsupported color type by CanvasKit');
+}
+
+export function SkToCkColorType(ct: CanvasKit.ColorType): GL.ColorType {
+    for (let entry of kCkSkColorTypeMap) {
+        if (entry[0] == ct) {
+            return entry[1] as GL.ColorType;
+        }
+    }
+    throw Error('Unsupported color type by Glamor');
+}
+
+export function CkToSkAlphaType(at: GL.AlphaType): CanvasKit.AlphaType {
+    for (let entry of kCkSkAlphaTypeMap) {
+        if (entry[1] == at) {
+            return entry[0] as CanvasKit.AlphaType;
+        }
+    }
+    throw Error('Unsupported alpha type by CanvasKit');
+}
+
+export function SkToCkAlphaType(at: CanvasKit.AlphaType): GL.AlphaType {
+    for (let entry of kCkSkAlphaTypeMap) {
+        if (entry[0] == at) {
+            return entry[1] as GL.AlphaType;
+        }
+    }
+    throw Error('Unsupported alpha type by Glamor');
+}
+
+export function CopyCkImageToSkImage(image: GL.CkImage): CanvasKit.Image {
+    const pixmap = image.makeSharedPixelsBuffer();
+    return canvaskit.MakeImage({
+        width: pixmap.width,
+        height: pixmap.height,
+        colorType: CkToSkColorType(pixmap.colorType),
+        alphaType: CkToSkAlphaType(pixmap.alphaType),
+        colorSpace: canvaskit.ColorSpace.SRGB
+    }, pixmap.buffer.byteArray, pixmap.rowBytes);
+}

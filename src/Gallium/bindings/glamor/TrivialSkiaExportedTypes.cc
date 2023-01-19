@@ -18,6 +18,9 @@
 #include "include/v8.h"
 #include "include/core/SkRect.h"
 #include "include/core/SkRRect.h"
+#include "include/core/SkColorSpace.h"
+
+#include "fmt/format.h"
 
 #include "Gallium/bindings/glamor/Exports.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
@@ -270,6 +273,180 @@ SkRRect ExtractCkRRect(v8::Isolate *isolate, v8::Local<v8::Value> value)
 
     return uniform_radii ? rrect_from_uniform_xy(bounds_rect, radii, radii_size)
                          : rrect_from_discrete_xy(bounds_rect, radii, radii_size);
+}
+
+SkImageInfo ExtractCkImageInfo(v8::Isolate *isolate, v8::Local<v8::Value> object)
+{
+    if (!object->IsObject())
+        g_throw(TypeError, "CkImageInfo must be an object");
+    v8::Local<v8::Object> obj = v8::Local<v8::Object>::Cast(object);
+    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+
+    int32_t color_type_v, alpha_type_v, colorspace_v, width, height;
+
+    for (auto [key, ptr] : {std::make_pair("colorType", &color_type_v),
+                            std::make_pair("alphaType", &alpha_type_v),
+                            std::make_pair("colorSpace", &colorspace_v),
+                            std::make_pair("width", &width),
+                            std::make_pair("height", &height)})
+    {
+        auto res = obj->Get(ctx, binder::to_v8(isolate, key)).FromMaybe(v8::Local<v8::Value>());
+        if (res.IsEmpty())
+            g_throw(TypeError, fmt::format("Missing required property `{}` for `CkImageInfo`", key));
+        *ptr = binder::from_v8<int32_t>(isolate, res);
+    }
+
+    SkColorType ct = ExtractCkColorType(color_type_v);
+    SkAlphaType at = ExtractCkAlphaType(alpha_type_v);
+    sk_sp<SkColorSpace> cs = ExtrackCkColorSpace(colorspace_v);
+
+    return SkImageInfo::Make(width, height, ct, at, cs);
+}
+
+v8::Local<v8::Value> WrapCkImageInfo(v8::Isolate *isolate, const SkImageInfo& info)
+{
+    ColorSpace cs = ColorSpace::kSRGB;
+    if (info.colorSpace())
+    {
+        // TODO(sora): support other colorspaces
+        cs = info.colorSpace()->isSRGB() ? ColorSpace::kSRGB : ColorSpace::kUnknown;
+    }
+
+    std::unordered_map<std::string_view, v8::Local<v8::Value>> map{
+        { "colorType", binder::to_v8(isolate, static_cast<int32_t>(info.colorType())) },
+        { "alphaType", binder::to_v8(isolate, static_cast<int32_t>(info.alphaType())) },
+        { "colorSpace", binder::to_v8(isolate, static_cast<int32_t>(cs)) },
+        { "width", binder::to_v8(isolate, info.width()) },
+        { "height", binder::to_v8(isolate, info.height()) }
+    };
+
+    return binder::to_v8(isolate, map);
+}
+
+sk_sp<SkColorSpace> ExtrackCkColorSpace(int32_t v)
+{
+    if (v < 0 || v > static_cast<int32_t>(ColorSpace::kLast))
+        g_throw(RangeError, "Invalid range of enumeration `CkColorSpace`");
+
+    if (static_cast<ColorSpace>(v) == ColorSpace::kSRGB)
+        return SkColorSpace::MakeSRGB();
+    else
+        g_throw(Error, "Unsupported colorspace");
+}
+
+SkColorType ExtractCkColorType(int32_t v)
+{
+    if (v < 0 || v > static_cast<int32_t>(SkColorType::kLastEnum_SkColorType))
+        g_throw(RangeError, "Invalid range of enumeration `CkColorType`");
+
+    return static_cast<SkColorType>(v);
+}
+
+SkAlphaType ExtractCkAlphaType(int32_t v)
+{
+    if (v < 0 || v > static_cast<int32_t>(SkAlphaType::kLastEnum_SkAlphaType))
+        g_throw(RangeError, "Invalid range of enumeration `CkColorType`");
+
+    return static_cast<SkAlphaType>(v);
+}
+
+SkColor4f ExtractColor4f(v8::Isolate *isolate, v8::Local<v8::Value> color)
+{
+    if (!color->IsArray())
+        g_throw(TypeError, "Color4f must be an array with 4 numbers");
+    v8::Local<v8::Array> arr = v8::Local<v8::Array>::Cast(color);
+    if (arr->Length() != 4)
+        g_throw(Error, "Color4f must be an array with 4 numbers");
+
+    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+    float data[4];
+
+    for (int32_t i = 0; i < 4; i++)
+    {
+        auto v = arr->Get(ctx, i).FromMaybe(v8::Local<v8::Value>());
+        CHECK(!v.IsEmpty());
+
+        if (!v->IsNumber())
+            g_throw(TypeError, "Color4f must be an array with 4 numbers");
+
+        data[i] = binder::from_v8<float>(isolate, v);
+    }
+
+    return {data[0], data[1], data[2], data[3]};
+}
+
+SkPoint ExtractCkPoint(v8::Isolate *isolate, v8::Local<v8::Value> point)
+{
+    if (!point->IsArray())
+        g_throw(TypeError, "CkPoint must be an array with 2 numbers");
+    v8::Local<v8::Array> arr = v8::Local<v8::Array>::Cast(point);
+    if (arr->Length() != 2)
+        g_throw(Error, "CkPoint must be an array with 2 numbers");
+
+    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+    float data[2];
+
+    for (int32_t i = 0; i < 2; i++)
+    {
+        auto v = arr->Get(ctx, i).FromMaybe(v8::Local<v8::Value>());
+        CHECK(!v.IsEmpty());
+
+        if (!v->IsNumber())
+            g_throw(TypeError, "CkPoint must be an array with 2 numbers");
+
+        data[i] = binder::from_v8<float>(isolate, v);
+    }
+
+    return {data[0], data[1]};
+}
+
+v8::Local<v8::Value> WrapCkRect(v8::Isolate *isolate, const SkRect& rect)
+{
+    std::vector<SkScalar> v{rect.x(), rect.y(), rect.width(), rect.height()};
+    return binder::to_v8(isolate, v);
+}
+
+v8::Local<v8::Value> WrapColor4f(v8::Isolate *isolate, const SkColor4f& color)
+{
+    std::vector<SkScalar> v{color.fA, color.fR, color.fB, color.fA};
+    return binder::to_v8(isolate, v);
+}
+
+v8::Local<v8::Value> WrapCkPoint(v8::Isolate *isolate, const SkPoint& p)
+{
+    std::vector<SkScalar> v{p.x(), p.y()};
+    return binder::to_v8(isolate, v);
+}
+
+SkPoint3 ExtractCkPoint3(v8::Isolate *isolate, v8::Local<v8::Value> point3)
+{
+    if (!point3->IsArray())
+        g_throw(TypeError, "CkPoint3 must be an array with 3 numbers");
+    v8::Local<v8::Array> arr = v8::Local<v8::Array>::Cast(point3);
+    if (arr->Length() != 3)
+        g_throw(Error, "CkPoint3 must be an array with 3 numbers");
+
+    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+    float data[3];
+
+    for (int32_t i = 0; i < 3; i++)
+    {
+        auto v = arr->Get(ctx, i).FromMaybe(v8::Local<v8::Value>());
+        CHECK(!v.IsEmpty());
+
+        if (!v->IsNumber())
+            g_throw(TypeError, "CkPoint must be an array with 3 numbers");
+
+        data[i] = binder::from_v8<float>(isolate, v);
+    }
+
+    return {data[0], data[1], data[2]};
+}
+
+v8::Local<v8::Value> WrapCkPoint3(v8::Isolate *isolate, const SkPoint3& p)
+{
+    std::vector<SkScalar> v{p.x(), p.y(), p.z()};
+    return binder::to_v8(isolate, v);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

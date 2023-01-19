@@ -121,6 +121,13 @@ struct Ratio
     int32_t denom;
 };
 
+struct SampleTriple
+{
+    SampleFormat        format;
+    AudioChannelMode    channel_mode;
+    int32_t             sample_rate;
+};
+
 AVSampleFormat SampleFormatToLibavFormat(SampleFormat format);
 SampleFormat LibavFormatToSampleFormat(AVSampleFormat format);
 

@@ -32,6 +32,7 @@
         "samples/canvaskit_window.ts",
         "samples/canvaskit_window_lottie.ts",
         "samples/canvaskit_window_shader.ts",
+        "samples/sknative_window.ts",
 
         // These files are not included in git version as they are experimental
         // code, so remove them before compiling TypeScript.

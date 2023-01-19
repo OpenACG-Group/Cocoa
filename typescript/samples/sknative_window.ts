@@ -17,13 +17,10 @@
 
 import * as std from 'core';
 import * as GL from 'glamor';
-import * as CanvasKit from 'internal://canvaskit';
-
-const canvaskit = CanvasKit.canvaskit;
 
 // Geometry size of the window
-const WINDOW_WIDTH = 258;
-const WINDOW_HEIGHT = 258;
+const WINDOW_WIDTH = 256;
+const WINDOW_HEIGHT = 256;
 
 // First of all, initialize Glamor context by providing the name 
 // and version of your application for `Initialize` function.
@@ -75,11 +72,11 @@ surface.connect('close', () => {
 });
 
 // Now the preparation steps have been done and we can draw something
-// by canvaskit.
+// by Skia.
 
-function star(): CanvasKit.Path {
+function star(): GL.CkPath {
     const R = 60.0, C = 128.0;
-    let path = new canvaskit.Path();
+    let path = new GL.CkPath();
     path.moveTo(C + R, C);
     for (let i = 0; i < 15; i++) {
         let a = 0.44879895 * i;
@@ -89,38 +86,34 @@ function star(): CanvasKit.Path {
     return path;
 }
 
-function draw(canvas: CanvasKit.Canvas): void {
-    let paint = new CanvasKit.canvaskit.Paint();
-    paint.setPathEffect(CanvasKit.canvaskit.PathEffect.MakeDiscrete(10, 4, 12));
-    
-    let packedColors = new Float32Array([0.26, 0.52, 0.96, 1,
-                                         0.06, 0.62, 0.35, 1]);
-    let shader = canvaskit.Shader.MakeLinearGradient([0, 0], [256, 256],
-                                                     packedColors,
-                                                     null,
-                                                     canvaskit.TileMode.Clamp);
+function draw(canvas: GL.CkCanvas): void {
+    let paint = new GL.CkPaint();
+    paint.setPathEffect(GL.CkPathEffect.MakeFromDSL('discrete(10, 4, 12)', {}));
+
+    const shader = GL.CkShader.MakeFromDSL(
+            'gradient_linear([0, 0], [256, 256], [[0.26,0.52,0.96,1], [0.06,0.62,0.35,1]], _, %tile)',
+            {tile: GL.Constants.TILE_MODE_CLAMP});
+
     paint.setShader(shader);
     paint.setAntiAlias(true);
 
-    canvas.clear(canvaskit.WHITE);
+    canvas.clear([1, 1, 1, 1]);
     canvas.drawPath(star(), paint);
 }
 
-function drawPicture(): CanvasKit.SkPicture {
-    let recorder = new canvaskit.PictureRecorder();
-    let canvas = recorder.beginRecording(canvaskit.XYWHRect(0, 0, 256, 256));
+function drawPicture(): GL.CkPicture {
+    let recorder = new GL.CkPictureRecorder();
+    let canvas = recorder.beginRecording([0, 0, 256, 256]);
     draw(canvas);
     return recorder.finishRecordingAsPicture();
 }
 
 const startTimeMs = getMillisecondTimeCounter();
 
-let buffer = std.Buffer.MakeFromAdoptBuffer(drawPicture().serialize());
-
 // Then build a scene with a single picture layer and submit it to blender.
 let scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
                 .pushOffset(0, 0)
-                .addPicture(GL.CkPicture.MakeFromData(buffer, GL.CkPicture.USAGE_GENERIC), false,0, 0)
+                .addPicture(drawPicture(), false, 0, 0)
                 .build();
 
 const endTimeMs = getMillisecondTimeCounter();

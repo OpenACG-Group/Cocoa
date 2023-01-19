@@ -469,12 +469,16 @@ Buffer::~Buffer()
 
 uint8_t *Buffer::addressU8()
 {
-    return reinterpret_cast<uint8_t*>(backing_store_->Data());
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::Local<v8::Uint8Array> array = array_.Get(isolate);
+    return reinterpret_cast<uint8_t*>(backing_store_->Data()) + array->ByteOffset();
 }
 
 size_t Buffer::length()
 {
-    return backing_store_->ByteLength();
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::Local<v8::Uint8Array> array = array_.Get(isolate);
+    return array->Length();
 }
 
 uint8_t Buffer::byteAt(int64_t idx)
@@ -485,7 +489,7 @@ uint8_t Buffer::byteAt(int64_t idx)
         binder::throw_(isolate, "Index out of range", v8::Exception::RangeError);
         return 0;
     }
-    return reinterpret_cast<const uint8_t*>(backing_store_->Data())[idx];
+    return addressU8()[idx];
 }
 
 v8::Local<v8::Value> Buffer::copy(const v8::FunctionCallbackInfo<v8::Value>& args)

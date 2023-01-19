@@ -24,10 +24,14 @@
 #include "include/core/SkPoint3.h"
 #include "include/core/SkImageFilter.h"
 #include "include/core/SkColorFilter.h"
+#include "include/core/SkPathEffect.h"
+#include "include/core/SkShader.h"
 #include "fmt/format.h"
 
 #include "Gallium/bindings/glamor/Exports.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
+
+class CkPath;
 
 struct Effector
 {
@@ -35,6 +39,8 @@ struct Effector
     {
         kImageFilter,
         kColorFilter,
+        kShader,
+        kPathEffect,
         kNull
     };
 
@@ -44,10 +50,16 @@ struct Effector
     Effector(sk_sp<SkColorFilter> CF)
         : type(kColorFilter), color_filter(std::move(CF)) {}
 
+    Effector(sk_sp<SkShader> S)
+        : type(kShader), shader(std::move(S)) {}
+
+    Effector(sk_sp<SkPathEffect> S)
+        : type(kPathEffect), path_effect(std::move(S)) {}
+
     explicit Effector() : type(kNull) {}
 
     g_inline explicit operator bool() const noexcept {
-        return (image_filter || color_filter);
+        return (image_filter || color_filter || shader || path_effect);
     }
 
     g_nodiscard g_inline sk_sp<SkImageFilter> CheckImageFilter() const {
@@ -62,9 +74,23 @@ struct Effector
         return color_filter;
     }
 
+    g_nodiscard g_inline sk_sp<SkShader> CheckShader() const {
+        if (type != kShader)
+            g_throw(Error, "Operand is not a shader");
+        return shader;
+    }
+
+    g_nodiscard g_inline sk_sp<SkPathEffect> CheckPathEffect() const {
+        if (type != kPathEffect)
+            g_throw(Error, "Operand is not a path effect");
+        return path_effect;
+    }
+
     Type type;
     sk_sp<SkImageFilter> image_filter;
     sk_sp<SkColorFilter> color_filter;
+    sk_sp<SkShader> shader;
+    sk_sp<SkPathEffect> path_effect;
 };
 
 struct EffectStackOperand
@@ -128,6 +154,21 @@ struct EffectStackOperand
         return std::nullopt;
     }
 
+    Nullable<sk_sp<SkShader>> ToShaderSafe() {
+        if (auto e = ToEffectorSafe())
+            return e->CheckShader();
+        return std::nullopt;
+    }
+
+    Nullable<sk_sp<SkPathEffect>> ToPathEffectSafe() {
+        if (auto e = ToEffectorSafe())
+            return e->CheckPathEffect();
+        return std::nullopt;
+    }
+
+    Nullable<SkPath*> ToPathSafe();
+    Nullable<SkMatrix*> ToMatrixSafe();
+
     // Float[4]
     Nullable<SkRect> ToRectSafe();
 
@@ -142,6 +183,22 @@ struct EffectStackOperand
 
     // Int[2]
     Nullable<SkIPoint> ToIVector2Safe();
+
+    // Float[2]
+    Nullable<SkSize> ToSizeSafe() {
+        Nullable<SkPoint> p = ToVector2Safe();
+        if (!p)
+            return std::nullopt;
+        return SkSize::Make(p->fX, p->fY);
+    }
+
+    // Int[2]
+    Nullable<SkISize> ToISizeSafe() {
+        Nullable<SkIPoint> p = ToIVector2Safe();
+        if (!p)
+            return std::nullopt;
+        return SkISize::Make(p->fX, p->fY);
+    }
 
     template<typename T, typename Cast = std::function<Nullable<T>(const Ptr&)>>
     Nullable<std::vector<T>> ToMonoTypeArraySafe(const Cast& value_cast)

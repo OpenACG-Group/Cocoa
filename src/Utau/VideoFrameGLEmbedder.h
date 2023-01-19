@@ -47,6 +47,8 @@ public:
                                                      const SkISize& size,
                                                      const SkSamplingOptions& sampling);
 
+    sk_sp<SkImage> ConvertToRasterImage(const std::shared_ptr<VideoBuffer>& buffer);
+
     g_private_api g_nodiscard g_inline
     SwscaleContextCache *GetSwsContextCache() const {
         return sws_context_cache_.get();

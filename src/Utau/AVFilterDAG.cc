@@ -312,9 +312,6 @@ AVFilterDAG::~AVFilterDAG() = default;
 std::vector<DAG::NamedInOutBuffer>
 AVFilterDAG::Filter(const std::vector<NamedInOutBuffer>& inputs)
 {
-    if (inputs.size() != inputs_count_)
-        return {};
-
     for (const auto& inbuf : inputs)
     {
         auto itr = std::find_if(priv_->in_filters.begin(), priv_->in_filters.end(),
@@ -378,11 +375,7 @@ AVFilterDAG::Filter(const std::vector<NamedInOutBuffer>& inputs)
         CHECK(frame && "Failed to allocate memory");
 
         if (av_buffersink_get_frame(output.context, frame) < 0)
-        {
-            QLOG(LOG_ERROR, "Failed to receive output buffer '{}' from DAG", output.label_name);
-            av_frame_free(&frame);
-            return {};
-        }
+            continue;
 
         ScopeExitAutoInvoker frame_releaser([&frame] {
             av_frame_free(&frame);

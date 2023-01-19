@@ -48,7 +48,7 @@ v8::Local<v8::Value> create_bitmap_from_buffer(v8::Local<v8::Object> buffer,
 
     size_t pixelsSize = info.computeMinByteSize();
 
-    // Do a quick check based on the size of the provided buffer.
+    // Do a quick check based on the size of the provided buffer
     if (pixelsSize != unwrapped_buffer->length())
         g_throw(Error, "Provided buffer size conflicts with the image info");
 

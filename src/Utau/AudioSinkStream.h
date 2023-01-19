@@ -41,8 +41,6 @@ public:
     AudioSinkStream();
     virtual ~AudioSinkStream() = default;
 
-    using TimestampInMs = uint64_t;
-
     enum class ConnectStatus
     {
         kAlready,

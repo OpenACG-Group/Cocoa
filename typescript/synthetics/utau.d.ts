@@ -175,6 +175,7 @@ export class AVStreamDecoder {
 
 export class MediaFramePresentDispatcher {
     onPresentVideoBuffer: (buffer: VideoBuffer, ptsInSeconds: number) => void;
+    onAudioPresentNotify: (ptsInSeconds: number) => void;
     onErrorOrEOF: () => void;
 
     constructor(decoder: AVStreamDecoder, audioSinkStream: AudioSinkStream);

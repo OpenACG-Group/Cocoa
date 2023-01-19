@@ -21,6 +21,8 @@
 #include <map>
 
 #include "Gallium/bindings/Base.h"
+#include "Gallium/bindings/glamor/Types.h"
+#include "Gallium/bindings/glamor/TrivialSkiaExportedTypes.h"
 #include "Gallium/binder/Class.h"
 #include "Glamor/ForwardTypeDecls.h"
 #include "Glamor/RenderClientObject.h"
@@ -33,9 +35,6 @@
 #include "include/core/SkImage.h"
 #include "include/core/SkPicture.h"
 #include "include/effects/SkRuntimeEffect.h"
-
-#define GALLIUM_BINDINGS_GLAMOR_NS_BEGIN    namespace cocoa::gallium::bindings::glamor_wrap {
-#define GALLIUM_BINDINGS_GLAMOR_NS_END      }
 
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
@@ -59,18 +58,6 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance);
 using InfoAcceptorResult = std::optional<std::vector<v8::Local<v8::Value>>>;
 // using InfoAcceptor = InfoAcceptorResult(*)(v8::Isolate*, ::cocoa::gl::RenderHostSlotCallbackInfo&);
 using InfoAcceptor = std::function<InfoAcceptorResult(v8::Isolate*, gl::RenderHostSlotCallbackInfo&)>;
-
-enum class Sampling : uint32_t
-{
-    kNearest = 0,
-    kLinear,
-    kCubicMitchell,
-    kCubicCatmullRom,
-
-    kLast = kCubicCatmullRom
-};
-
-SkSamplingOptions SamplingToSamplingOptions(int32_t v);
 
 enum class Capabilities : uint32_t
 {
@@ -368,32 +355,11 @@ private:
     v8::Global<v8::Object> wrapped_profiler_;
 };
 
-SkRect ExtractCkRect(v8::Isolate *isolate, v8::Local<v8::Value> object);
-SkRRect ExtractCkRRect(v8::Isolate *isolate, v8::Local<v8::Value> object);
-
-template<typename T>
-class SkiaObjectWrapper
-{
-public:
-    using ValueType = sk_sp<T>;
-    explicit SkiaObjectWrapper(ValueType value)
-            : wrapped_value_(std::move(value)) {}
-    ~SkiaObjectWrapper() = default;
-
-    g_nodiscard g_inline const ValueType& getSkiaObject() const {
-        return wrapped_value_;
-    }
-
-private:
-    ValueType   wrapped_value_;
-};
-
 //! TSDecl: class CkImageFilter
 class CkImageFilterWrap : public SkiaObjectWrapper<SkImageFilter>
 {
 public:
-    explicit CkImageFilterWrap(sk_sp<SkImageFilter> filter)
-        : SkiaObjectWrapper(std::move(filter)) {}
+    using SkiaObjectWrapper::SkiaObjectWrapper;
     ~CkImageFilterWrap() = default;
 
     // DSL syntax:
@@ -435,8 +401,7 @@ public:
 class CkColorFilterWrap : public SkiaObjectWrapper<SkColorFilter>
 {
 public:
-    explicit CkColorFilterWrap(sk_sp<SkColorFilter> color_filter)
-            : SkiaObjectWrapper(std::move(color_filter)) {}
+    using SkiaObjectWrapper::SkiaObjectWrapper;
     ~CkColorFilterWrap() = default;
 
     //! TSDecl: function MakeFromDSL(dsl: string, kwargs: object): CkColorFilter
@@ -450,7 +415,38 @@ public:
     v8::Local<v8::Value> serialize();
 };
 
-//! TSDecl: class CriticalPictureWrap
+//! TSDecl: class CkShader
+class CkShaderWrap : public SkiaObjectWrapper<SkShader>
+{
+public:
+    using SkiaObjectWrapper::SkiaObjectWrapper;
+
+    //! TSDecl: function MakeFromDSL(dsl: string, kwargs: object): CkShader
+    static v8::Local<v8::Value> MakeFromDSL(v8::Local<v8::Value> dsl,
+                                            v8::Local<v8::Value> kwargs);
+
+    //! TSDecl: function makeWithLocalMatrix(matrix: CkMatrix): CkShader
+    v8::Local<v8::Value> makeWithLocalMatrix(v8::Local<v8::Value> matrix);
+
+    //! TSDecl: function makeWithColorFilter(filter: CkColorFilter): CkShader
+    v8::Local<v8::Value> makeWithColorFilter(v8::Local<v8::Value> filter);
+};
+
+//! TSDecl: class CkBlender
+class CkBlenderWrap : public SkiaObjectWrapper<SkBlender>
+{
+public:
+    using SkiaObjectWrapper::SkiaObjectWrapper;
+
+    //! TSDecl: function Mode(mode: Enum<BlendMode>): CkBlender
+    static v8::Local<v8::Value> Mode(int32_t mode);
+
+    //! TSDecl: function Arithmetic(k1: number, k2: number, k3: number, k4: number,
+    //!                             enforcePM: boolean): CkBlender
+    static v8::Local<v8::Value> Arithmetic(float k1, float k2, float k3, float k4, bool enforcePM);
+};
+
+//! TSDecl: class CriticalPicture
 class CriticalPictureWrap
 {
 public:
@@ -547,14 +543,14 @@ public:
 
     //! TSDecl: function MakeFromBuffer(buffer: core.Buffer,
     //!                                 width: number, height: number,
-    //!                                 colorType: number, alphaType: number): Bitmap
+    //!                                 colorType: number, alphaType: number): CkBitmap
     g_nodiscard static v8::Local<v8::Value> MakeFromBuffer(v8::Local<v8::Value> buffer,
                                                            int32_t width,
                                                            int32_t height,
                                                            uint32_t colorType,
                                                            uint32_t alphaType);
 
-    //! TSDecl: function MakeFromEncodedFile(path: string): Bitmap
+    //! TSDecl: function MakeFromEncodedFile(path: string): CkBitmap
     g_nodiscard static v8::Local<v8::Value> MakeFromEncodedFile(const std::string& path);
 
     //! TSDecl: readonly width: number
@@ -611,6 +607,9 @@ public:
     //! TSDecl: function MakeFromEncodedFile(path: string): Promise<CkImage>
     static v8::Local<v8::Value> MakeFromEncodedFile(const std::string& path);
 
+    //! TSDecl: function MakeFromVideoBuffer(vbo: utau.VideoBuffer): CkImage
+    static v8::Local<v8::Value> MakeFromVideoBuffer(v8::Local<v8::Value> vbo);
+
     //! TSDecl: readonly width: number
     g_nodiscard int32_t getWidth();
 
@@ -626,8 +625,11 @@ public:
     //! TSDecl: function uniqueId(): number
     g_nodiscard uint32_t uniqueId();
 
-    //! TSDecl: function encodeToData(format: uint32_t, quality: number): Buffer
+    //! TSDecl: function encodeToData(format: uint32_t, quality: number): core.Buffer
     v8::Local<v8::Value> encodeToData(uint32_t format, int quality);
+
+    //! TSDecl: function makeSharedPixelsBuffer(): core.Buffer
+    v8::Local<v8::Value> makeSharedPixelsBuffer();
 
 private:
     sk_sp<SkImage>      image_;

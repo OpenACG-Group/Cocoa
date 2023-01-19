@@ -70,6 +70,23 @@ export interface CkRRect {
    borderRadii: Float32Array | Array<number>;
 }
 
+// [x, y]
+export type CkPoint = Array<number>;
+
+// [x, y, z]
+export type CkPoint3 = Array<number>;
+
+// [R, G, B, A] where R,G,B,A∈[0,1]
+export type CkColor4f = Array<number>;
+
+export interface CkImageInfo {
+    alphaType: AlphaType;
+    colorType: ColorType;
+    colorSpace: ColorSpace;
+    width: number;
+    height: number;
+}
+
 /**
  * Basic information of the application that should be provided for
  * the `RenderHost.Initialize` method.
@@ -105,7 +122,7 @@ type TypefaceTransferCallbackT = (info: TypefaceInfo) => Uint8Array;
  * This function can be called before Glamor is initialized.
  * See `Constants.CAPABILITY_*` constants for available capabilities.
  */
-export function queryCapabilities(cap: number): boolean | number | string;
+export function queryCapabilities(cap: Capability): boolean | number | string;
 
 /**
  * RenderHost, aka local thread, is an interface to communicate with
@@ -605,14 +622,14 @@ export class Blender extends RenderClientObject {
                                   annotation: string): Promise<TextureId>;
 
     public createTextureFromEncodedData(data: Buffer,
-                                        alphaType: number,
+                                        alphaType: AlphaType,
                                         annotation: string): Promise<TextureId>;
 
     public createTextureFromPixmap(pixels: Buffer,
                                    width: number,
                                    height: number,
-                                   colorType: number,
-                                   alphaType: number,
+                                   colorType: ColorType,
+                                   alphaType: AlphaType,
                                    annotation: string): Promise<TextureId>;
 
     public deleteTexture(textureId: TextureId): Promise<void>;
@@ -691,88 +708,202 @@ export class SceneBuilder {
     public pushRRectClip(shape: CkRRect, AA: boolean): SceneBuilder;
 
     public pushBackdropFilter(filter: CkImageFilter,
-                              blendMode: number,
+                              blendMode: BlendMode,
                               autoChildClipping: boolean): SceneBuilder;
 }
 
+export type Capability = number;
 export type PointerButton = number;
 export type PointerAxisSource = number;
 export type KeyboardModifiers = number;
 export type KeyboardKey = number;
+export type ColorType = number;
+export type AlphaType = number;
+export type CodecFormat = number;
+export type SamplingOption = number;
+export type TileMode = number;
+export type BlendMode = number;
+export type ColorSpace = number;
+export type PaintStyle = number;
+export type PaintCap = number;
+export type PaintJoin = number;
+export type PathFillType = number;
+export type PathDirection = number;
+export type PathArcSize = number;
+export type PathAddPathMode = number;
+export type ApplyPerspectiveClip = number;
+export type CanvasSaveLayerFlag = number;
+export type CanvasPointMode = number;
+export type CanvasSrcRectConstraint = number;
+export type ClipOp = number;
+export type FontStyleWeight = number;
+export type FontStyleWidth = number;
+export type FontStyleSlant = number;
+export type MatrixScaleToFit = number;
+export type FontEdging = number;
+export type FontHinting = number;
+export type TextEncoding = number;
+export type PathEffectPath1DStyle = number;
+export type PathEffectTrim = number;
 
 interface Constants {
-    readonly CAPABILITY_HWCOMPOSE_ENABLED: number;
-    readonly CAPABILITY_PROFILER_ENABLED: number;
-    readonly CAPABILITY_PROFILER_MAX_SAMPLES: number;
-    readonly CAPABILITY_MESSAGE_QUEUE_PROFILING_ENABLED: number;
+    readonly CAPABILITY_HWCOMPOSE_ENABLED: Capability;
+    readonly CAPABILITY_PROFILER_ENABLED: Capability;
+    readonly CAPABILITY_PROFILER_MAX_SAMPLES: Capability;
+    readonly CAPABILITY_MESSAGE_QUEUE_PROFILING_ENABLED: Capability;
 
-    readonly COLOR_TYPE_ALPHA8: number;
-    readonly COLOR_TYPE_RGB565: number;
-    readonly COLOR_TYPE_ARGB4444: number;
-    readonly COLOR_TYPE_RGBA8888: number;
-    readonly COLOR_TYPE_RGB888x: number;
-    readonly COLOR_TYPE_BGRA8888: number;
-    readonly COLOR_TYPE_BGRA1010102: number;
-    readonly COLOR_TYPE_RGBA1010102: number;
-    readonly COLOR_TYPE_RGB101010x: number;
-    readonly COLOR_TYPE_BGR101010x: number;
-    readonly COLOR_TYPE_GRAY8: number;
-    readonly COLOR_TYPE_RGBA_F16_NORM: number;
-    readonly COLOR_TYPE_RGBA_F16: number;
-    readonly COLOR_TYPE_RGBA_F32: number;
-    readonly COLOR_TYPE_R8G8_UNORM: number;
-    readonly COLOR_TYPE_A16_FLOAT: number;
-    readonly COLOR_TYPE_R16G16_FLOAT: number;
-    readonly COLOR_TYPE_A16_UNORM: number;
-    readonly COLOR_TYPE_R16G16_UNORM: number;
-    readonly COLOR_TYPE_R16G16B16A16_UNORM: number;
+    readonly COLOR_TYPE_ALPHA8: ColorType;
+    readonly COLOR_TYPE_RGB565: ColorType;
+    readonly COLOR_TYPE_ARGB4444: ColorType;
+    readonly COLOR_TYPE_RGBA8888: ColorType;
+    readonly COLOR_TYPE_RGB888x: ColorType;
+    readonly COLOR_TYPE_BGRA8888: ColorType;
+    readonly COLOR_TYPE_BGRA1010102: ColorType;
+    readonly COLOR_TYPE_RGBA1010102: ColorType;
+    readonly COLOR_TYPE_RGB101010x: ColorType;
+    readonly COLOR_TYPE_BGR101010x: ColorType;
+    readonly COLOR_TYPE_GRAY8: ColorType;
+    readonly COLOR_TYPE_RGBA_F16_NORM: ColorType;
+    readonly COLOR_TYPE_RGBA_F16: ColorType;
+    readonly COLOR_TYPE_RGBA_F32: ColorType;
+    readonly COLOR_TYPE_R8G8_UNORM: ColorType;
+    readonly COLOR_TYPE_A16_FLOAT: ColorType;
+    readonly COLOR_TYPE_R16G16_FLOAT: ColorType;
+    readonly COLOR_TYPE_A16_UNORM: ColorType;
+    readonly COLOR_TYPE_R16G16_UNORM: ColorType;
+    readonly COLOR_TYPE_R16G16B16A16_UNORM: ColorType;
 
-    readonly ALPHA_TYPE_PREMULTIPLIED: number;
-    readonly ALPHA_TYPE_UNPREMULTIPLIED: number;
-    readonly ALPHA_TYPE_OPAQUE: number;
+    readonly ALPHA_TYPE_PREMULTIPLIED: AlphaType;
+    readonly ALPHA_TYPE_UNPREMULTIPLIED: AlphaType;
+    readonly ALPHA_TYPE_OPAQUE: AlphaType;
 
-    readonly FORMAT_PNG: number;
-    readonly FORMAT_JPEG: number;
-    readonly FORMAT_WEBP: number;
+    readonly COLOR_SPACE_SRGB: ColorSpace;
 
-    readonly SAMPLING_FILTER_NEAREST: number;
-    readonly SAMPLING_FILTER_LINEAR: number;
-    readonly SAMPLING_CUBIC_MITCHELL: number;
-    readonly SAMPLING_CUBIC_CATMULL_ROM: number;
+    readonly PAINT_STYLE_FILL: PaintStyle;
+    readonly PAINT_STYLE_STROKE: PaintStyle;
+    readonly PAINT_STYLE_STROKE_FILL: PaintStyle;
+    readonly PAINT_CAP_BUTT: PaintCap;
+    readonly PAINT_CAP_ROUND: PaintCap;
+    readonly PAINT_CAP_SQUARE: PaintCap;
+    readonly PAINT_JOIN_MITER: PaintJoin;
+    readonly PAINT_JOIN_ROUND: PaintJoin;
+    readonly PAINT_JOIN_BEVEL: PaintJoin;
+    readonly PATH_FILL_TYPE_WINDING: PathFillType;
+    readonly PATH_FILL_TYPE_EVEN_ODD: PathFillType;
+    readonly PATH_FILL_TYPE_INVERSE_WINDING: PathFillType;
+    readonly PATH_FILL_TYPE_INVERSE_EVEN_ODD: PathFillType;
+    readonly PATH_DIRECTION_CW: PathDirection;
+    readonly PATH_DIRECTION_CCW: PathDirection;
+    readonly PATH_ARC_SIZE_SMALL: PathArcSize;
+    readonly PATH_ARC_SIZE_LARGE: PathArcSize;
+    readonly PATH_ADD_PATH_MODE_APPEND: PathAddPathMode;
+    readonly PATH_ADD_PATH_MODE_EXTEND: PathAddPathMode;
 
-    readonly TILE_MODE_CLAMP: number;
-    readonly TILE_MODE_REPEAT: number;
-    readonly TILE_MODE_MIRROR: number;
-    readonly TILE_MODE_DECAL: number;
+    readonly APPLY_PERSPECTIVE_CLIP_YES: ApplyPerspectiveClip;
+    readonly APPLY_PERSPECTIVE_CLIP_NO: ApplyPerspectiveClip;
 
-    readonly BLEND_MODE_CLEAR: number;
-    readonly BLEND_MODE_SRC: number;
-    readonly BLEND_MODE_DST: number;
-    readonly BLEND_MODE_SRC_OVER: number;
-    readonly BLEND_MODE_DST_OVER: number;
-    readonly BLEND_MODE_SRC_IN: number;
-    readonly BLEND_MODE_DST_IN: number;
-    readonly BLEND_MODE_SRC_OUT: number;
-    readonly BLEND_MODE_DST_OUT: number;
-    readonly BLEND_MODE_SRC_ATOP: number;
-    readonly BLEND_MODE_DST_ATOP: number;
-    readonly BLEND_MODE_XOR: number;
-    readonly BLEND_MODE_PLUS: number;
-    readonly BLEND_MODE_MODULATE: number;
-    readonly BLEND_MODE_SCREEN: number;
-    readonly BLEND_MODE_OVERLAY: number;
-    readonly BLEND_MODE_DARKEN: number;
-    readonly BLEND_MODE_LIGHTEN: number;
-    readonly BLEND_MODE_COLOR_DODGE: number;
-    readonly BLEND_MODE_COLOR_BURN: number;
-    readonly BLEND_MODE_HARD_LIGHT: number;
-    readonly BLEND_MODE_SOFT_LIGHT: number;
-    readonly BLEND_MODE_DIFFERENCE: number;
-    readonly BLEND_MODE_EXCLUSION: number;
-    readonly BLEND_MODE_HUE: number;
-    readonly BLEND_MODE_SATURATION: number;
-    readonly BLEND_MODE_COLOR: number;
-    readonly BLEND_MODE_LUMINOSITY: number;
+    readonly MATRIX_SCALE_TO_FIT_FILL: MatrixScaleToFit;
+    readonly MATRIX_SCALE_TO_FIT_START: MatrixScaleToFit;
+    readonly MATRIX_SCALE_TO_FIT_CENTER: MatrixScaleToFit;
+    readonly MATRIX_SCALE_TO_FIT_END: MatrixScaleToFit;
+
+    readonly CANVAS_SAVE_LAYER_PRESERVE_LCD_TEXT: CanvasSaveLayerFlag;
+    readonly CANVAS_SAVE_LAYER_INIT_WITH_PREVIOUS: CanvasSaveLayerFlag;
+    readonly CANVAS_SAVE_LAYER_F16_COLOR_TYPE: CanvasSaveLayerFlag;
+    readonly CANVAS_POINT_MODE_POINTS: CanvasPointMode;
+    readonly CANVAS_POINT_MODE_LINES: CanvasPointMode;
+    readonly CANVAS_POINT_MODE_POLYGON: CanvasPointMode;
+    readonly CANVAS_SRC_RECT_CONSTRAINT_STRICT: CanvasSrcRectConstraint;
+    readonly CANVAS_SRC_RECT_CONSTRAINT_FAST: CanvasSrcRectConstraint;
+
+    readonly CLIP_OP_DIFFERENCE: ClipOp;
+    readonly CLIP_OP_INTERSECT: ClipOp;
+
+    readonly FONT_STYLE_WEIGHT_INVISIBLE: FontStyleWeight;
+    readonly FONT_STYLE_WEIGHT_THIN: FontStyleWeight;
+    readonly FONT_STYLE_WEIGHT_EXTRA_LIGHT: FontStyleWeight;
+    readonly FONT_STYLE_WEIGHT_LIGHT: FontStyleWeight;
+    readonly FONT_STYLE_WEIGHT_NORMAL: FontStyleWeight;
+    readonly FONT_STYLE_WEIGHT_MEDIUM: FontStyleWeight;
+    readonly FONT_STYLE_WEIGHT_SEMI_BOLD: FontStyleWeight;
+    readonly FONT_STYLE_WEIGHT_BOLD: FontStyleWeight;
+    readonly FONT_STYLE_WEIGHT_EXTRA_BOLD: FontStyleWeight;
+    readonly FONT_STYLE_WEIGHT_BLACK: FontStyleWeight;
+    readonly FONT_STYLE_WEIGHT_EXTRA_BLACK: FontStyleWeight;
+    readonly FONT_STYLE_WIDTH_ULTRA_CONDENSED: FontStyleWidth;
+    readonly FONT_STYLE_WIDTH_EXTRA_CONDENSED: FontStyleWidth;
+    readonly FONT_STYLE_WIDTH_CONDENSED: FontStyleWidth;
+    readonly FONT_STYLE_WIDTH_SEMI_CONDENSED: FontStyleWidth;
+    readonly FONT_STYLE_WIDTH_NORMAL: FontStyleWidth;
+    readonly FONT_STYLE_WIDTH_SEMI_EXPANDED: FontStyleWidth;
+    readonly FONT_STYLE_WIDTH_EXPANDED: FontStyleWidth;
+    readonly FONT_STYLE_WIDTH_EXTRA_EXPANDED: FontStyleWidth;
+    readonly FONT_STYLE_WIDTH_ULTRA_EXPANDED: FontStyleWidth;
+    readonly FONT_STYLE_SLANT_UPRIGHT: FontStyleSlant;
+    readonly FONT_STYLE_SLANT_ITALIC: FontStyleSlant;
+    readonly FONT_STYLE_SLANT_OBLIQUE: FontStyleSlant;
+
+    readonly FONT_EDGING_ALIAS: FontEdging;
+    readonly FONT_EDGING_ANTIALIAS: FontEdging;
+    readonly FONT_EDGING_SUBPIXEL_ANTIALIAS: FontEdging;
+
+    readonly FONT_HINTING_NONE: FontHinting;
+    readonly FONT_HINTING_SLIGHT: FontHinting;
+    readonly FONT_HINTING_NORMAL: FontHinting;
+    readonly FONT_HINTING_FULL: FontHinting;
+
+    readonly TEXT_ENCODING_UTF8: TextEncoding;
+    readonly TEXT_ENCODING_UTF16: TextEncoding;
+    readonly TEXT_ENCODING_UTF32: TextEncoding;
+
+    readonly PATH_EFFECT_PATH1D_STYLE_TRANSLATE: PathEffectPath1DStyle;
+    readonly PATH_EFFECT_PATH1D_STYLE_ROTATE: PathEffectPath1DStyle;
+    readonly PATH_EFFECT_PATH1D_STYLE_MORPH: PathEffectPath1DStyle;
+    readonly PATH_EFFECT_TRIM_NORMAL: PathEffectTrim;
+    readonly PATH_EFFECT_TRIM_INVERTED: PathEffectTrim;
+
+    readonly FORMAT_PNG: CodecFormat;
+    readonly FORMAT_JPEG: CodecFormat;
+    readonly FORMAT_WEBP: CodecFormat;
+
+    readonly SAMPLING_FILTER_NEAREST: SamplingOption;
+    readonly SAMPLING_FILTER_LINEAR: SamplingOption;
+    readonly SAMPLING_CUBIC_MITCHELL: SamplingOption;
+    readonly SAMPLING_CUBIC_CATMULL_ROM: SamplingOption;
+
+    readonly TILE_MODE_CLAMP: TileMode;
+    readonly TILE_MODE_REPEAT: TileMode;
+    readonly TILE_MODE_MIRROR: TileMode;
+    readonly TILE_MODE_DECAL: TileMode;
+
+    readonly BLEND_MODE_CLEAR: BlendMode;
+    readonly BLEND_MODE_SRC: BlendMode;
+    readonly BLEND_MODE_DST: BlendMode;
+    readonly BLEND_MODE_SRC_OVER: BlendMode;
+    readonly BLEND_MODE_DST_OVER: BlendMode;
+    readonly BLEND_MODE_SRC_IN: BlendMode;
+    readonly BLEND_MODE_DST_IN: BlendMode;
+    readonly BLEND_MODE_SRC_OUT: BlendMode;
+    readonly BLEND_MODE_DST_OUT: BlendMode;
+    readonly BLEND_MODE_SRC_ATOP: BlendMode;
+    readonly BLEND_MODE_DST_ATOP: BlendMode;
+    readonly BLEND_MODE_XOR: BlendMode;
+    readonly BLEND_MODE_PLUS: BlendMode;
+    readonly BLEND_MODE_MODULATE: BlendMode;
+    readonly BLEND_MODE_SCREEN: BlendMode;
+    readonly BLEND_MODE_OVERLAY: BlendMode;
+    readonly BLEND_MODE_DARKEN: BlendMode;
+    readonly BLEND_MODE_LIGHTEN: BlendMode;
+    readonly BLEND_MODE_COLOR_DODGE: BlendMode;
+    readonly BLEND_MODE_COLOR_BURN: BlendMode;
+    readonly BLEND_MODE_HARD_LIGHT: BlendMode;
+    readonly BLEND_MODE_SOFT_LIGHT: BlendMode;
+    readonly BLEND_MODE_DIFFERENCE: BlendMode;
+    readonly BLEND_MODE_EXCLUSION: BlendMode;
+    readonly BLEND_MODE_HUE: BlendMode;
+    readonly BLEND_MODE_SATURATION: BlendMode;
+    readonly BLEND_MODE_COLOR: BlendMode;
+    readonly BLEND_MODE_LUMINOSITY: BlendMode;
 
     /* Pointer buttons (mouse and other pointing devices) */
     readonly POINTER_BUTTON_LEFT: PointerButton;
@@ -924,6 +1055,286 @@ interface Constants {
 
 export declare let Constants: Constants;
 
+export class CkSurface {
+    private constructor();
+    public static MakeRaster(imageInfo: CkImageInfo): CkSurface;
+    public static MakeNull(width: number, height: number): CkSurface;
+
+    readonly width: number;
+    readonly height: number;
+    readonly generationID: number;
+    readonly imageInfo: CkImageInfo;
+
+    public getCanvas(): CkCanvas;
+    public makeSurface(width: number, height: number): CkSurface;
+    public makeImageSnapshot(bounds: CkRect | null): CkImage;
+    public draw(canvas: CkCanvas, x: number, y: number, sampling: SamplingOption, paint: CkPaint | null): void;
+    public readPixels(dstInfo: CkImageInfo, dstPixels: Buffer, dstRowBytes: number, srcX: number, srcY: number): void;
+    public peekPixels(): Buffer;
+}
+
+export class CkMatrix {
+    private constructor();
+    public static Identity(): CkMatrix;
+    public static Scale(sx: number, sy: number): CkMatrix;
+    public static Translate(dx: number, dy: number): CkMatrix;
+    public static RotateRad(rad: number, pt: CkPoint): CkMatrix;
+    public static Skew(kx: number, ky: number): CkMatrix;
+    public static RectToRect(src: CkRect, dst: CkRect, mode: MatrixScaleToFit): CkMatrix;
+    public static All(scaleX: number, skewX: number, transX: number,
+                      skewY: number, scaleY: number, transY: number,
+                      pers0: number, pers1: number, pers2: number): CkMatrix;
+    public static Concat(a: CkMatrix, b: CkMatrix): CkMatrix;
+
+    public readonly scaleX: number;
+    public readonly scaleY: number;
+    public readonly skewX: number;
+    public readonly skewY: number;
+    public readonly translateX: number;
+    public readonly translateY: number;
+    public readonly perspectiveX: number;
+    public readonly perspectiveY: number;
+
+    public clone(): CkMatrix;
+    public rectStaysRect(): boolean;
+    public hasPerspective(): boolean;
+    public isSimilarity(): boolean;
+    public preservesRightAngles(): boolean;
+    public preTranslate(dx: number, dy: number): void;
+    public preScale(sx: number, sy: number): void;
+    public preRotate(rad: number, px: number, py: number): void;
+    public preSkew(kx: number, ky: number, px: number, py: number): void;
+    public preConcat(other: CkMatrix): CkMatrix;
+    public postTranslate(dx: number, dy: number): void;
+    public postScale(sx: number, sy: number): void;
+    public postRotate(rad: number, px: number, py: number): void;
+    public postSkew(kx: number, ky: number, px: number, py: number): void;
+    public postConcat(other: CkMatrix): CkMatrix;
+    public invert(): null | CkMatrix;
+    public normalizePerspective(): CkMatrix;
+    public mapPoints(points: Array<CkPoint>): Array<CkPoint>;
+    public mapPoint(point: CkPoint): CkPoint;
+    public mapHomogeneousPoints(points: Array<CkPoint3>): Array<CkPoint3>;
+    public mapRect(src: CkRect, pc: ApplyPerspectiveClip): CkRect;
+    public mapRadius(): number;
+    public isFinite(): boolean;
+}
+
+export class CkPaint {
+    public constructor();
+    public reset(): void;
+    public setAntiAlias(AA: boolean): void;
+    public setDither(dither: boolean): void;
+    public setStyle(style: PaintStyle): void;
+    public setColor(color: number): void;
+    public setColor4f(color: CkColor4f): void;
+    public setAlpha(alpha: number): void;
+    public setAlphaf(alpha: number): void;
+    public setStrokeWidth(width: number): void;
+    public setStrokeMiter(miter: number): void;
+    public setStrokeCap(cap: PaintCap): void;
+    public setStrokeJoin(join: PaintJoin): void;
+    public setShader(shader: CkShader): void;
+    public setColorFilter(filter: CkColorFilter): void;
+    public setBlendMode(mode: BlendMode): void;
+    public setBlender(blender: CkBlender): void;
+    public setPathEffect(effect: CkPathEffect): void;
+    public setImageFilter(filter: CkImageFilter): void;
+}
+
+export class CkPath {
+    public static IsLineDegenerate(p1: CkPoint, p2: CkPoint, exact: boolean): boolean;
+    public static IsQuadDegenerate(p1: CkPoint, p2: CkPoint, p3: CkPoint, exact: boolean): boolean;
+    public static IsCubicDegenerate(p1: CkPoint, p2: CkPoint, p3: CkPoint, p4: CkPoint, exact: boolean): boolean;
+    public constructor();
+    public clone(): CkPath;
+    public isInterpolatable(compare: CkPath): boolean;
+    public interpolate(ending: CkPath, weight: number): CkPath;
+    public setFillType(ft: PathFillType): void;
+    public toggleInverseFillType(): void;
+    public isConvex(): boolean;
+    public reset(): void;
+    public rewind(): void;
+    public isEmpty(): boolean;
+    public isLastContourClosed(): boolean;
+    public isFinite(): boolean;
+    public isVolatile(): boolean;
+    public setIsVolatile(volatile: boolean): void;
+    public countPoints(): number;
+    public getPoint(): CkPoint;
+    public getBounds(): CkRect;
+    public computeTightBounds(): CkRect;
+    public conservativelyContainsRect(rect: CkRect): boolean;
+    public moveTo(x: number, y: number): void;
+    public rMoveTo(dx: number, y: number): void;
+    public lineTo(x: number, y: number): void;
+    public rLineTo(x: number, y: number): void;
+    public quadTo(x1: number, y1: number, x2: number, y2: number): void;
+    public rQuadTo(dx1: number, dy1: number, dx2: number, dy2: number): void;
+    public conicTo(x1: number, y1: number, x2: number, y2: number): void;
+    public rConicTo(dx1: number, dy1: number, dx2: number, dy2: number): void;
+    public cubicTo(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): void;
+    public rCubicTo(dx1: number, dy1: number, dx2: number, dy2: number, dx3: number, dy3: number): void;
+    public ooaArcTo(oval: CkRect, startAngleDeg: number, sweepAngleDeg: number, forceMoveTo: boolean): void;
+    public pprArcTo(p1: CkPoint, p2: CkPoint, radius: number): void;
+    public pspArcTo(r: CkPoint, xAxisRotate: number, arc: PathArcSize, sweep: PathDirection, xy: CkPoint): void;
+    public rPspArcTo(rx: number, ry: number, xAxisRotate: number, arc: PathArcSize, sweep: PathDirection,
+                     dx: number, dy: number): void;
+    public close(): void;
+    public addRect(rect: CkRect, dir: PathDirection, start: number): void;
+    public addOval(oval: CkRect, dir: PathDirection, start: number): void;
+    public addCircle(x: number, y: number, r: number, dir: PathDirection): void;
+    public addArc(oval: CkRect, startAngleDeg: number, sweepAngleDeg: number): void;
+    public addRRect(rrect: CkRRect, dir: PathDirection, start: number): void;
+    public addPoly(pts: Array<CkPoint>, close: boolean): void;
+    public addPath(src: CkPath, dx: number, dy: number, mode: PathAddPathMode): void;
+    public addPathMatrix(src: CkPath, matrix: CkMatrix, mode: PathAddPathMode): void;
+    public reverseAddPath(src: CkPath): void;
+    public offset(dx: number, dy: number): void;
+    public transform(matrix: CkMatrix, pc: ApplyPerspectiveClip): void;
+    public toString(hex: boolean): string;
+}
+
+export class CkFontStyle {
+    public constructor(weight: number, width: number, slant: FontStyleSlant);
+    public static MakeNormal(): CkFontStyle;
+    public static MakeBold(): CkFontStyle;
+    public static MakeItalic(): CkFontStyle;
+    public static MakeBoldItalic(): CkFontStyle;
+    readonly weight: number;
+    readonly width: number;
+    readonly slant: FontStyleSlant;
+}
+
+export class CkTypeface {
+    public static MakeDefault(): CkTypeface;
+    public static MakeFromName(name: string, style: CkFontStyle): CkTypeface;
+    public static MakeFromFile(file: string, index: number): CkTypeface;
+    public static MakeFromData(buffer: Buffer, index: number): CkTypeface;
+    
+    readonly fontStyle: CkFontStyle;
+    readonly bold: boolean;
+    readonly fixedPitch: boolean;
+    readonly uniqueID: number;
+    readonly unitsPerEm: number;
+    readonly familyName: string;
+    readonly postScriptName: string | null;
+    readonly bounds: CkRect;
+
+    public getKerningPairAdjuestments(glyphs: Uint16Array): Array<number> | null;
+    public unicharsToGlyphs(unichars: Uint32Array): Uint16Array;
+    public textToGlyphs(text: Buffer, encoding: TextEncoding): Uint16Array | null;
+    public unicharToGlyph(unichar: number): number;
+    public countGlyphs(): number;
+    public countTables(): number;
+    public getTableTags(): Uint32Array;
+    public getTableSize(tag: number): number;
+    public copyTableData(tag: number): Buffer;
+}
+
+export class CkFont {
+    private constructor();
+    public static Make(typeface: CkTypeface): CkFont;
+    public static MakeFromSize(typeface: CkTypeface, size: number): CkFont;
+    public static MakeTransformed(typeface: CkTypeface, size: number, scaleX: number, skewX: number): CkFont;
+
+    public forceAutoHinting: boolean;
+    public embeddedBitmaps: boolean;
+    public subpixel: boolean;
+    public linearMetrics: boolean;
+    public embolden: boolean;
+    public baselineSnap: boolean;
+    public edging: FontEdging;
+    public hinting: FontHinting;
+    public size: number;
+    public scaleX: number;
+    public skewX: number;
+    public readonly spacing: number;
+
+    public countText(text: Buffer, encoding: TextEncoding): number;
+    public measureText(text: Buffer, encoding: TextEncoding, paint: null | CkPaint): number;
+    public measureTextBounds(text: Buffer, encoding: TextEncoding, paint: null | CkPaint): CkRect;
+    public getBounds(glyphs: Uint16Array, paint: null | CkPaint): Array<CkRect>;
+    public getPos(glyphs: Uint16Array, origin: CkPoint): Array<CkPoint>;
+    public getIntercepts(glyphs: Uint16Array, pos: Array<CkPoint>, top: number,
+                         bottom: number, paint: null | CkPaint): Float32Array;
+    public getPath(glyph: number): null | CkPath;
+}
+
+export class CkTextBlob {
+    private constructor();
+    public static MakeFromText(text: Buffer, font: CkFont, encoding: TextEncoding): CkTextBlob;
+    public static MakeFromPosTextH(text: Buffer, xpos: Float32Array, constY: number,
+                                   font: CkFont, encoding: TextEncoding): CkTextBlob;
+    public static MakeFromPosText(text: Buffer, pos: Array<CkPoint>, font: CkFont,
+                                  encoding: TextEncoding): CkTextBlob;
+
+    readonly bounds: CkRect;
+    readonly uniqueID: number;
+
+    public getIntercepts(upperBound: number, lowerBound: number, paint: null | CkPaint): Float32Array;
+}
+
+export interface CanvasSaveLayerRec {
+    bounds: null | CkRect;
+    paint: null | CkPaint;
+    backdrop: null | CkImageFilter;
+    flags: CanvasSaveLayerFlag;
+}
+
+export class CkCanvas {
+    private constructor();
+    public save(): number;
+    public saveLayer(bounds: null | CkRect, paint: null | CkPaint): number;
+    public saveLayerAlpha(bounds: null | CkRect, alpha: number): number;
+    public saveLayerRec(rec: CanvasSaveLayerRec): number;
+    public restore(): void;
+    public restoreToCount(saveCount: number): void;
+    public translate(dx: number, dy: number): void;
+    public scale(sx: number, sy: number): void;
+    public rotate(rad: number, px: number, py: number): void;
+    public skew(sx: number, sy: number)
+    public concat(matrix: CkMatrix): void;
+    public setMatrix(matrix: CkMatrix): void;
+    public resetMatrix(): void;
+    public clipRect(rect: CkRect, op: ClipOp, AA: boolean): void;
+    public clipRRect(rrect: CkRRect, op: ClipOp, AA: boolean): void;
+    public clipPath(path: CkPath, op: ClipOp, AA: boolean): void;
+    public clipShader(shader: CkShader, op: ClipOp): void;
+    public quickRejectRect(rect: CkRect): boolean;
+    public quickRejectPath(path: CkPath): boolean;
+    public getLocalClipBounds(): CkRect
+    public getDeviceClipBounds(): CkRect
+    public drawColor(color: CkColor4f, mode: BlendMode): void;
+    public clear(color: CkColor4f): void;
+    public drawPaint(paint: CkPaint): void;
+    public drawPoints(mode: CanvasPointMode, points: Array<CkPoint>, paint: CkPaint): void;
+    public drawPoint(x: number, y: number, paint: CkPaint): void;
+    public drawLine(p1: CkPoint, p2: CkPoint, paint: CkPaint): void;
+    public drawRect(rect: CkRect, paint: CkPaint): void;
+    public drawOval(oval: CkRect, paint: CkPaint): void;
+    public drawRRect(rrect: CkRRect, paint: CkPaint): void;
+    public drawDRRect(outer: CkRRect, inner: CkRRect, paint: CkPaint): void;
+    public drawCircle(cx: number, cy: number, r: number, paint: CkPaint): void;
+    public drawArc(oval: CkRect, startAngle: number, sweepAngle: number, useCenter: boolean, paint: CkPaint): void;
+    public drawRoundRect(rect: CkRect, rx: number, ry: number, paint: CkPaint): void;
+    public drawPath(path: CkPath, paint: CkPaint): void;
+    public drawImage(image: CkImage, left: number, top: number, sampling: SamplingOption, paint: null | CkPaint): void;
+    public drawImageRect(image: CkImage, src: CkRect, dst: CkRect, sampling: SamplingOption, paint: null | CkPaint,
+                         constraint: CanvasSrcRectConstraint): void;
+    public drawString(str: string, x: number, y: number, font: CkFont, paint: CkPaint): void;
+    public drawGlyphs(glyphs: Uint16Array, positions: Array<CkPoint>, origin: CkPoint, font: CkFont, paint: CkPaint): void;
+    public drawTextBlob(blob: CkTextBlob, x: number, y: number, paint: CkPaint): void;
+    public drawPicture(picture: CkPicture, matrix: null | CkMatrix, paint: null | CkPaint): void;
+    public drawVertices(vertices: CkVertices, mode: BlendMode, paint: CkPaint): void;
+    public drawPatch(cubics: Array<CkPoint>, colors: Array<CkColor4f>, texCoords: Array<CkPoint>,
+                     mode: BlendMode, paint: CkPaint): void;
+}
+
+export class CkVertices {
+    // TODO(sora): to be implemented
+}
+
 export class CkImageFilter {
     public static MakeFromDSL(dsl: string, kwargs: object): CkImageFilter;
     public static Deserialize(buffer: Buffer): CkImageFilter;
@@ -938,19 +1349,35 @@ export class CkColorFilter {
     public serialize(): Buffer;
 }
 
+export class CkShader {
+    public static MakeFromDSL(dsl: string, kwargs: object): CkShader;
+    
+    public makeWithLocalMatrix(matrix: CkMatrix): CkShader;
+    public makeWithColorFilter(filter: CkColorFilter): CkShader;
+}
+
+export class CkBlender {
+    public static Mode(mode: BlendMode): CkBlender;
+    public static Arithmetic(k1: number, k2: number, k3: number, k4: number, enforcePM: boolean): CkBlender;
+}
+
+export class CkPathEffect {
+    public static MakeFromDSL(dsl: string, kwargs: object): CkPathEffect;
+}
+
 export class CkBitmap {
     public static MakeFromBuffer(buffer: Buffer,
                                  width: number,
                                  height: number,
-                                 colorType: number,
-                                 alphaType: number): CkBitmap;
+                                 colorType: ColorType,
+                                 alphaType: AlphaType): CkBitmap;
     
     public static MakeFromEncodedFile(path: string): CkBitmap;
 
     readonly width: number;
     readonly height: number;
-    readonly alphaType: number;
-    readonly colorType: number;
+    readonly alphaType: AlphaType;
+    readonly colorType: ColorType;
     readonly bytesPerPixel: number;
     readonly rowBytesAsPixels: number;
     readonly shiftPerPixel: number;
@@ -961,17 +1388,28 @@ export class CkBitmap {
     public getPixelBuffer(): Buffer;
 }
 
+export interface ImageExportedPixelsBuffer {
+    buffer: Buffer;
+    width: number;
+    height: number;
+    colorType: ColorType;
+    alphaType: AlphaType;
+    rowBytes: number;
+}
+
 export class CkImage {
     public static MakeFromEncodedData(buffer: Buffer): Promise<CkImage>;
     public static MakeFromEncodedFile(path: string): Promise<CkImage>;
+    public static MakeFromVideoBuffer(vbo: VideoBuffer): CkImage;
 
     readonly width: number;
     readonly height: number;
-    readonly alphaType: number;
-    readonly colorType: number;
+    readonly alphaType: AlphaType;
+    readonly colorType: ColorType;
 
     public uniqueId(): number;
     public encodeToData(format: number, quality: number): Buffer;
+    public makeSharedPixelsBuffer(): ImageExportedPixelsBuffer;
 }
 
 export class CkPicture {
@@ -985,4 +1423,12 @@ export class CkPicture {
     public approximateOpCount(nested: boolean): number;
     public approximateByteUsed(): number;
     public uniqueId(): number;
+}
+
+export class CkPictureRecorder {
+    public constructor();
+    public beginRecording(bounds: CkRect): CkCanvas;
+    public getRecordingCanvas(): CkCanvas | null;
+    public finishRecordingAsPicture(): CkPicture | null;
+    public finishRecordingAsPictureWithCull(cull: CkRect): CkPicture | null;
 }

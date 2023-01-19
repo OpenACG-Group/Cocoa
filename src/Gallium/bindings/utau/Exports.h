@@ -309,6 +309,10 @@ public:
     void setOnPresentVideoBuffer(v8::Local<v8::Value> func);
     v8::Local<v8::Value> getOnPresentVideoBuffer();
 
+    //! TSDecl: onAudioPresentNotify: (ptsInSeconds: number) => void
+    void setOnAudioPresentNotify(v8::Local<v8::Value> func);
+    v8::Local<v8::Value> getOnAudioPresentNotify();
+
     //! TSDecl: onErrorOrEOF: () => void
     void setOnErrorOrEOF(v8::Local<v8::Value> func);
     v8::Local<v8::Value> getOnErrorOrEOF();
@@ -338,6 +342,7 @@ private:
     struct PresentRequest
     {
         bool error_or_eof;
+        bool audio_pts_notify;
         uint64_t send_timestamp;
         double frame_pts_seconds;
         std::shared_ptr<utau::VideoBuffer> vbuffer;
@@ -348,6 +353,7 @@ private:
     v8::Global<v8::Object>          asinkstream_js_obj_;
     AudioSinkStreamWrap            *asinkstream_wrap_;
     v8::Global<v8::Function>        cb_present_video_buffer_;
+    v8::Global<v8::Function>        cb_audio_present_notify_;
     v8::Global<v8::Function>        cb_error_or_eof_;
 
     bool                            disposed_;

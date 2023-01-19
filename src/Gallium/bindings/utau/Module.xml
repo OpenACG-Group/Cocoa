@@ -58,6 +58,7 @@
         <class name="MediaFramePresentDispatcher" wrapper="MediaFramePresentDispatcher">
             <constructor prototype="v8::Local&lt;v8::Value&gt;, v8::Local&lt;v8::Value&gt;"/>
             <property name="onPresentVideoBuffer" getter="@getOnPresentVideoBuffer" setter="@setOnPresentVideoBuffer"/>
+            <property name="onAudioPresentNotify" getter="@getOnAudioPresentNotify" setter="@setOnAudioPresentNotify"/>
             <property name="onErrorOrEOF" getter="@getOnErrorOrEOF" setter="@setOnErrorOrEOF"/>
             <method name="play" value="@play"/>
             <method name="pause" value="@pause"/>

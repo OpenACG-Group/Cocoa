@@ -330,6 +330,22 @@ v8::Local<v8::Value> MediaFramePresentDispatcher::getOnErrorOrEOF()
     return cb_error_or_eof_.Get(isolate);
 }
 
+void MediaFramePresentDispatcher::setOnAudioPresentNotify(v8::Local<v8::Value> func)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (!func->IsFunction())
+        g_throw(TypeError, "Property `onAudioPresentNotify` must be a function");
+    cb_audio_present_notify_.Reset(isolate, v8::Local<v8::Function>::Cast(func));
+}
+
+v8::Local<v8::Value> MediaFramePresentDispatcher::getOnAudioPresentNotify()
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (cb_audio_present_notify_.IsEmpty())
+        return v8::Null(isolate);
+    return cb_audio_present_notify_.Get(isolate);
+}
+
 void MediaFramePresentDispatcher::ThreadRoutine()
 {
     pthread_setname_np(pthread_self(), "MediaPresent");
@@ -451,15 +467,17 @@ void MediaFramePresentDispatcher::TimerCallback(uv_timer_t *timer)
 
 void MediaFramePresentDispatcher::SendPresentRequest(DecodeResult frame, double pts_seconds)
 {
+    bool audio_pts_notify = false;
     if (frame.type == DecodeResult::kAudio)
     {
         asinkstream_wrap_->GetStream()->Enqueue(*frame.audio);
-        return;
+        audio_pts_notify = true;
     }
 
     std::scoped_lock<std::mutex> lock(present_queue_lock_);
     present_queue_.emplace(PresentRequest{
         .error_or_eof = false,
+        .audio_pts_notify = audio_pts_notify,
         .send_timestamp = utau::GlobalContext::Ref().GetCurrentTimestampMs(),
         .frame_pts_seconds = pts_seconds,
         .vbuffer = std::move(frame.video)
@@ -507,6 +525,14 @@ void MediaFramePresentDispatcher::PresentRequestHandler(uv_async_t *handle)
         has_eeof = !cb_eeof->IsNullOrUndefined();
     }
 
+    v8::Local<v8::Function> cb_audiopts;
+    bool has_audiopts = false;
+    if (!dispatcher->cb_audio_present_notify_.IsEmpty())
+    {
+        cb_audiopts = dispatcher->cb_audio_present_notify_.Get(isolate);
+        has_audiopts = !cb_audiopts->IsNullOrUndefined();
+    }
+
     bool exited = false;
     dispatcher->present_queue_lock_.lock();
     while (!dispatcher->present_queue_.empty())
@@ -522,6 +548,11 @@ void MediaFramePresentDispatcher::PresentRequestHandler(uv_async_t *handle)
 
             exited = true;
             break;
+        }
+        else if (req.audio_pts_notify && has_audiopts)
+        {
+            v8::Local<v8::Value> arg = binder::to_v8(isolate, req.frame_pts_seconds);
+            cb_audiopts->Call(context, global, 1, &arg).IsEmpty();
         }
         else if (req.vbuffer && has_vp)
         {

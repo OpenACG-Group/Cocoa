@@ -17,6 +17,15 @@
 
 #include "include/core/SkEncodedImageFormat.h"
 #include "include/core/SkSamplingOptions.h"
+#include "include/core/SkPaint.h"
+#include "include/core/SkPath.h"
+#include "include/core/SkPathTypes.h"
+#include "include/core/SkMatrix.h"
+#include "include/core/SkCanvas.h"
+#include "include/core/SkFontStyle.h"
+#include "include/core/SkFont.h"
+#include "include/effects/Sk1DPathEffect.h"
+#include "include/effects/SkTrimPathEffect.h"
 
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/Scene.h"
@@ -64,6 +73,92 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
         { "ALPHA_TYPE_PREMULTIPLIED",   EV(A::kPremul_SkAlphaType)   },
         { "ALPHA_TYPE_UNPREMULTIPLIED", EV(A::kUnpremul_SkAlphaType) },
         { "ALPHA_TYPE_OPAQUE",          EV(A::kOpaque_SkAlphaType)   },
+
+        { "COLOR_SPACE_SRGB", EV(ColorSpace::kSRGB) },
+
+        { "PAINT_STYLE_FILL", EV(SkPaint::kFill_Style) },
+        { "PAINT_STYLE_STROKE", EV(SkPaint::kStroke_Style) },
+        { "PAINT_STYLE_STROKE_FILL", EV(SkPaint::kStrokeAndFill_Style) },
+        { "PAINT_CAP_BUTT", EV(SkPaint::kButt_Cap) },
+        { "PAINT_CAP_ROUND", EV(SkPaint::kRound_Cap) },
+        { "PAINT_CAP_SQUARE", EV(SkPaint::kSquare_Cap) },
+        { "PAINT_JOIN_MITER", EV(SkPaint::kMiter_Join) },
+        { "PAINT_JOIN_ROUND", EV(SkPaint::kRound_Join) },
+        { "PAINT_JOIN_BEVEL", EV(SkPaint::kBevel_Join) },
+
+        { "PATH_FILL_TYPE_WINDING", EV(SkPathFillType::kWinding) },
+        { "PATH_FILL_TYPE_EVEN_ODD", EV(SkPathFillType::kEvenOdd) },
+        { "PATH_FILL_TYPE_INVERSE_WINDING", EV(SkPathFillType::kInverseWinding) },
+        { "PATH_FILL_TYPE_INVERSE_EVEN_ODD", EV(SkPathFillType::kInverseEvenOdd) },
+        { "PATH_DIRECTION_CW", EV(SkPathDirection::kCW) },
+        { "PATH_DIRECTION_CCW", EV(SkPathDirection::kCCW) },
+        { "PATH_ARC_SIZE_SMALL", EV(SkPath::ArcSize::kSmall_ArcSize) },
+        { "PATH_ARC_SIZE_LARGE", EV(SkPath::ArcSize::kLarge_ArcSize) },
+        { "PATH_ADD_PATH_MODE_APPEND", EV(SkPath::AddPathMode::kAppend_AddPathMode) },
+        { "PATH_ADD_PATH_MODE_EXTEND", EV(SkPath::AddPathMode::kExtend_AddPathMode) },
+
+        { "APPLY_PERSPECTIVE_CLIP_YES", EV(SkApplyPerspectiveClip::kYes) },
+        { "APPLY_PERSPECTIVE_CLIP_NO", EV(SkApplyPerspectiveClip::kNo) },
+
+        { "MATRIX_SCALE_TO_FIT_FILL", EV(SkMatrix::kFill_ScaleToFit) },
+        { "MATRIX_SCALE_TO_FIT_START", EV(SkMatrix::kStart_ScaleToFit) },
+        { "MATRIX_SCALE_TO_FIT_CENTER", EV(SkMatrix::kCenter_ScaleToFit) },
+        { "MATRIX_SCALE_TO_FIT_END", EV(SkMatrix::kEnd_ScaleToFit) },
+
+        { "CANVAS_SAVE_LAYER_PRESERVE_LCD_TEXT", EV(SkCanvas::kPreserveLCDText_SaveLayerFlag) },
+        { "CANVAS_SAVE_LAYER_INIT_WITH_PREVIOUS", EV(SkCanvas::kInitWithPrevious_SaveLayerFlag) },
+        { "CANVAS_SAVE_LAYER_F16_COLOR_TYPE", EV(SkCanvas::kF16ColorType) },
+        { "CANVAS_POINT_MODE_POINTS", EV(SkCanvas::kPoints_PointMode) },
+        { "CANVAS_POINT_MODE_LINES", EV(SkCanvas::kLines_PointMode) },
+        { "CANVAS_POINT_MODE_POLYGON", EV(SkCanvas::kPolygon_PointMode) },
+        { "CANVAS_SRC_RECT_CONSTRAINT_STRICT", EV(SkCanvas::kStrict_SrcRectConstraint) },
+        { "CANVAS_SRC_RECT_CONSTRAINT_FAST", EV(SkCanvas::kFast_SrcRectConstraint) },
+
+        { "CLIP_OP_DIFFERENCE", EV(SkClipOp::kDifference) },
+        { "CLIP_OP_INTERSECT", EV(SkClipOp::kIntersect) },
+
+        { "FONT_STYLE_WEIGHT_INVISIBLE", EV(SkFontStyle::kInvisible_Weight) },
+        { "FONT_STYLE_WEIGHT_THIN", EV(SkFontStyle::kThin_Weight) },
+        { "FONT_STYLE_WEIGHT_EXTRA_LIGHT", EV(SkFontStyle::kExtraLight_Weight) },
+        { "FONT_STYLE_WEIGHT_LIGHT", EV(SkFontStyle::kLight_Weight) },
+        { "FONT_STYLE_WEIGHT_NORMAL", EV(SkFontStyle::kNormal_Weight) },
+        { "FONT_STYLE_WEIGHT_MEDIUM", EV(SkFontStyle::kMedium_Weight) },
+        { "FONT_STYLE_WEIGHT_SEMI_BOLD", EV(SkFontStyle::kSemiBold_Weight) },
+        { "FONT_STYLE_WEIGHT_BOLD", EV(SkFontStyle::kBold_Weight) },
+        { "FONT_STYLE_WEIGHT_EXTRA_BOLD", EV(SkFontStyle::kExtraBold_Weight) },
+        { "FONT_STYLE_WEIGHT_BLACK", EV(SkFontStyle::kBlack_Weight) },
+        { "FONT_STYLE_WEIGHT_EXTRA_BLACK", EV(SkFontStyle::kExtraBlack_Weight) },
+        { "FONT_STYLE_WIDTH_ULTRA_CONDENSED", EV(SkFontStyle::kUltraCondensed_Width) },
+        { "FONT_STYLE_WIDTH_EXTRA_CONDENSED", EV(SkFontStyle::kExtraCondensed_Width) },
+        { "FONT_STYLE_WIDTH_CONDENSED", EV(SkFontStyle::kCondensed_Width) },
+        { "FONT_STYLE_WIDTH_SEMI_CONDENSED", EV(SkFontStyle::kSemiCondensed_Width) },
+        { "FONT_STYLE_WIDTH_NORMAL", EV(SkFontStyle::kNormal_Width) },
+        { "FONT_STYLE_WIDTH_SEMI_EXPANDED", EV(SkFontStyle::kSemiExpanded_Width) },
+        { "FONT_STYLE_WIDTH_EXPANDED", EV(SkFontStyle::kExpanded_Width) },
+        { "FONT_STYLE_WIDTH_EXTRA_EXPANDED", EV(SkFontStyle::kExtraExpanded_Width) },
+        { "FONT_STYLE_WIDTH_ULTRA_EXPANDED", EV(SkFontStyle::kUltraExpanded_Width) },
+        { "FONT_STYLE_SLANT_UPRIGHT", EV(SkFontStyle::kUpright_Slant) },
+        { "FONT_STYLE_SLANT_ITALIC", EV(SkFontStyle::kItalic_Slant) },
+        { "FONT_STYLE_SLANT_OBLIQUE", EV(SkFontStyle::kOblique_Slant) },
+
+        { "FONT_EDGING_ALIAS", EV(SkFont::Edging::kAlias) },
+        { "FONT_EDGING_ANTIALIAS", EV(SkFont::Edging::kAntiAlias) },
+        { "FONT_EDGING_SUBPIXEL_ANTIALIAS", EV(SkFont::Edging::kSubpixelAntiAlias) },
+
+        { "FONT_HINTING_NONE", EV(SkFontHinting::kNone) },
+        { "FONT_HINTING_SLIGHT", EV(SkFontHinting::kSlight) },
+        { "FONT_HINTING_NORMAL", EV(SkFontHinting::kNormal) },
+        { "FONT_HINTING_FULL", EV(SkFontHinting::kFull) },
+
+        { "TEXT_ENCODING_UTF8", EV(SkTextEncoding::kUTF8) },
+        { "TEXT_ENCODING_UTF16", EV(SkTextEncoding::kUTF16) },
+        { "TEXT_ENCODING_UTF32", EV(SkTextEncoding::kUTF32) },
+
+        { "PATH_EFFECT_PATH1D_STYLE_TRANSLATE", EV(SkPath1DPathEffect::kTranslate_Style) },
+        { "PATH_EFFECT_PATH1D_STYLE_ROTATE", EV(SkPath1DPathEffect::kRotate_Style) },
+        { "PATH_EFFECT_PATH1D_STYLE_MORPH", EV(SkPath1DPathEffect::kMorph_Style) },
+        { "PATH_EFFECT_TRIM_NORMAL", EV(SkTrimPathEffect::Mode::kNormal) },
+        { "PATH_EFFECT_TRIM_INVERTED", EV(SkTrimPathEffect::Mode::kInverted) },
 
         { "FORMAT_PNG",     EV(SkEncodedImageFormat::kPNG)  },
         { "FORMAT_JPEG",    EV(SkEncodedImageFormat::kJPEG) },
