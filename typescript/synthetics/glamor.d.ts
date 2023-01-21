@@ -39,7 +39,7 @@ interface CkXYWHRect {
     width: number;
     height: number;
 }
-type CkRect = CkLTRBRect | CkXYWHRect | Array<number> | Float32Array;
+type CkRect = CkLTRBRect | CkXYWHRect | [number, number, number, number] | Float32Array;
 
 export interface CkRRect {
    rect: CkRect;
@@ -71,13 +71,13 @@ export interface CkRRect {
 }
 
 // [x, y]
-export type CkPoint = Array<number>;
+export type CkPoint = [number, number];
 
 // [x, y, z]
-export type CkPoint3 = Array<number>;
+export type CkPoint3 = [number, number, number];
 
 // [R, G, B, A] where R,G,B,A∈[0,1]
-export type CkColor4f = Array<number>;
+export type CkColor4f = [number, number, number, number];
 
 export interface CkImageInfo {
     alphaType: AlphaType;
@@ -106,16 +106,6 @@ export interface ApplicationInfo {
     // Patch version number
     patch: number;
 }
-
-// Experimental API (see `RenderHost.SetTypefaceTransferCallback`)
-export interface TypefaceInfo {
-    family: string;
-    weight: number;
-    width: number;
-    slant: string;
-}
-
-type TypefaceTransferCallbackT = (info: TypefaceInfo) => Uint8Array;
 
 /**
  * Query a certain capability of current Glamor context.
@@ -180,19 +170,6 @@ export class RenderHost {
      * by `JSON.parse` for analysis purpose.
      */
     public static TraceGraphicsResources(): Promise<string>;
-
-    /**
-     * Set a callback function which is used for typeface transferring.
-     * The callback will be fired when a typeface object is required during the
-     * deserialization of Picture objects (if `CkPicture.USAGE_TRANSFER` is specified),
-     * and the callee is supposed to return a certain serialized `SkTypeface` object.
-     * Once a serialized typeface object is received, it will be cached internally
-     * and Glamor will not request for the same typeface object anymore in the future.
-     *
-     * @note This is an internal API which should be used with CanvasKit.
-     *       See `bindWithInitializedRenderHost` function in CanvasKit module.
-     */
-    public static SetTypefaceTransferCallback(callback: TypefaceTransferCallbackT): void;
 
     /**
      * Free all the critical graphics resources (e.g. `CriticalPicture` objects).
@@ -745,6 +722,9 @@ export type FontHinting = number;
 export type TextEncoding = number;
 export type PathEffectPath1DStyle = number;
 export type PathEffectTrim = number;
+export type RuntimeEffectUniformType = number;
+export type RuntimeEffectUniformFlag = number;
+export type RuntimeEffectChildType = number;
 
 interface Constants {
     readonly CAPABILITY_HWCOMPOSE_ENABLED: Capability;
@@ -861,6 +841,28 @@ interface Constants {
     readonly PATH_EFFECT_PATH1D_STYLE_MORPH: PathEffectPath1DStyle;
     readonly PATH_EFFECT_TRIM_NORMAL: PathEffectTrim;
     readonly PATH_EFFECT_TRIM_INVERTED: PathEffectTrim;
+
+    readonly RUNTIME_EFFECT_UNIFORM_TYPE_FLOAT: RuntimeEffectUniformType;
+    readonly RUNTIME_EFFECT_UNIFORM_TYPE_FLOAT2: RuntimeEffectUniformType;
+    readonly RUNTIME_EFFECT_UNIFORM_TYPE_FLOAT3: RuntimeEffectUniformType;
+    readonly RUNTIME_EFFECT_UNIFORM_TYPE_FLOAT4: RuntimeEffectUniformType;
+    readonly RUNTIME_EFFECT_UNIFORM_TYPE_FLOAT2X2: RuntimeEffectUniformType;
+    readonly RUNTIME_EFFECT_UNIFORM_TYPE_FLOAT3X3: RuntimeEffectUniformType;
+    readonly RUNTIME_EFFECT_UNIFORM_TYPE_FLOAT4X4: RuntimeEffectUniformType;
+    readonly RUNTIME_EFFECT_UNIFORM_TYPE_INT: RuntimeEffectUniformType;
+    readonly RUNTIME_EFFECT_UNIFORM_TYPE_INT2: RuntimeEffectUniformType;
+    readonly RUNTIME_EFFECT_UNIFORM_TYPE_INT3: RuntimeEffectUniformType;
+    readonly RUNTIME_EFFECT_UNIFORM_TYPE_INT4: RuntimeEffectUniformType;
+
+    readonly RUNTIME_EFFECT_UNIFORM_FLAG_ARRAY: RuntimeEffectUniformFlag;
+    readonly RUNTIME_EFFECT_UNIFORM_FLAG_COLOR: RuntimeEffectUniformFlag;
+    readonly RUNTIME_EFFECT_UNIFORM_FLAG_VERTEX: RuntimeEffectUniformFlag;
+    readonly RUNTIME_EFFECT_UNIFORM_FLAG_FRAGMENT: RuntimeEffectUniformFlag;
+    readonly RUNTIME_EFFECT_UNIFORM_FLAG_HALF_PRECISION: RuntimeEffectUniformFlag;
+
+    readonly RUNTIME_EFFECT_CHILD_TYPE_SHADER: RuntimeEffectChildType;
+    readonly RUNTIME_EFFECT_CHILD_TYPE_COLOR_FILTER: RuntimeEffectChildType;
+    readonly RUNTIME_EFFECT_CHILD_TYPE_BLENDER: RuntimeEffectChildType;
 
     readonly FORMAT_PNG: CodecFormat;
     readonly FORMAT_JPEG: CodecFormat;
@@ -1361,11 +1363,56 @@ export class CkBlender {
     public static Arithmetic(k1: number, k2: number, k3: number, k4: number, enforcePM: boolean): CkBlender;
 }
 
+export interface RTEffectUniform {
+    name: string;
+    offset: number;
+    type: RuntimeEffectUniformType;
+    count: number;
+    flags: RuntimeEffectUniformFlag;
+    sizeInBytes: number;
+}
+
+export interface RTEffectChild {
+    name: string;
+    type: RuntimeEffectChildType;
+    index: number;
+}
+
+export interface RTEffectChildSpecifier {
+    shader?: CkShader;
+    blender?: CkBlender;
+    colorFilter?: CkColorFilter;
+}
+
+export class CkRuntimeEffect {
+    private constructor();
+
+    public static MakeForColorFilter(source: string, forceUnoptimized: boolean,
+                                     callback: (error: string) => void): CkRuntimeEffect | null;
+    public static MakeForShader(source: string, forceUnoptimized: boolean,
+                                callback: (error: string) => void): CkRuntimeEffect | null;
+    public static MakeForBlender(source: string, forceUnoptimized: boolean,
+                                 callback: (error: string) => void): CkRuntimeEffect | null;
+
+    public uniforms(): Array<RTEffectUniform>;
+    public children(): Array<RTEffectChild>;
+    public findUniform(name: string): RTEffectUniform;
+    public findChild(name: string): RTEffectChild;
+
+    public makeShader(uniforms: Array<number>, children: Array<RTEffectChildSpecifier>,
+                      localMatrix: CkMatrix | null): CkShader | null;
+    public makeBlender(uniforms: Array<number>, children: Array<RTEffectChildSpecifier>): CkBlender | null;
+    public makeColorFilter(uniforms: Array<number>, children: Array<RTEffectChildSpecifier>): CkColorFilter | null;
+}
+
 export class CkPathEffect {
+    private constructor();
     public static MakeFromDSL(dsl: string, kwargs: object): CkPathEffect;
 }
 
 export class CkBitmap {
+    private constructor();
+
     public static MakeFromBuffer(buffer: Buffer,
                                  width: number,
                                  height: number,
@@ -1410,14 +1457,13 @@ export class CkImage {
     public uniqueId(): number;
     public encodeToData(format: number, quality: number): Buffer;
     public makeSharedPixelsBuffer(): ImageExportedPixelsBuffer;
+    public makeShader(tmx: TileMode, tmy: TileMode, sampling: SamplingOption, localMatrix: CkMatrix | null): CkShader | null;
+    public makeRawShader(tmx: TileMode, tmy: TileMode, sampling: SamplingOption, localMatrix: CkMatrix | null): CkShader | null;
 }
 
 export class CkPicture {
-    static readonly USAGE_GENERIC: number;
-    static readonly USAGE_TRANSFER: number;
-
-    public static MakeFromData(buffer: Buffer, usage: number): CkPicture;
-    public static MakeFromFile(path: string, usage: number): CkPicture;
+    public static MakeFromData(buffer: Buffer): CkPicture;
+    public static MakeFromFile(path: string): CkPicture;
 
     public serialize(): Buffer;
     public approximateOpCount(nested: boolean): number;
@@ -1431,4 +1477,12 @@ export class CkPictureRecorder {
     public getRecordingCanvas(): CkCanvas | null;
     public finishRecordingAsPicture(): CkPicture | null;
     public finishRecordingAsPictureWithCull(cull: CkRect): CkPicture | null;
+}
+
+export class CriticalPicture {
+    private constructor();
+    public sanitize(): Promise<CkPicture>;
+    public serialize(): Promise<Buffer>;
+    public discardOwnership(): void;
+    public setCollectionCallback(F: () => void): void;
 }

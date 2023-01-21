@@ -93,17 +93,6 @@ public:
     //! TSDecl: function Connect(name?: string): Promise<Display>
     static v8::Local<v8::Value> Connect(const v8::FunctionCallbackInfo<v8::Value>& info);
 
-    //! TSDecl:
-    //! interface TypefaceSignature {
-    //!   family: string;
-    //!   weight: number;
-    //!   width: number;
-    //!   slant: string;
-    //! }
-
-    //! TSDecl: function SetTypefaceTransferCallback(func: (signature: TypefaceSignature) => Uint8Array): void
-    static void SetTypefaceTransferCallback(v8::Local<v8::Value> func);
-
     //! TSDecl: function WaitForSyncBarrier(timeoutInMs: number): void;
     static void WaitForSyncBarrier(int64_t timeout);
 
@@ -478,26 +467,8 @@ public:
     explicit CkPictureWrap(sk_sp<SkPicture> picture);
     ~CkPictureWrap();
 
-    /**
-     * Skia caches glyphs that have been used to draw. If the picture
-     * is a BigPicture containing serialized typeface and image datas,
-     * Skia will cache the typeface objects for each provided picture,
-     * respectively, which causes a serious memory pressure (memory usage
-     * increases almost linearly).
-     *
-     * Specifying `kTransfer_Usage` makes the picture decoder identify
-     * typefaces contained in the picture and cache them by itself.
-     * That avoids the memory pressure problem described above.
-     */
-    enum PictureUsage
-    {
-        kTransfer_Usage,
-        kGeneric_Usage
-    };
-
-    //! TSDecl: function MakeFromData(buffer: core.Buffer, usage: number): CkPicture
-    static v8::Local<v8::Value> MakeFromData(v8::Local<v8::Value> buffer,
-                                             PictureUsage usage);
+    //! TSDecl: function MakeFromData(buffer: core.Buffer): CkPicture
+    static v8::Local<v8::Value> MakeFromData(v8::Local<v8::Value> buffer);
 
     /**
      * Compared with `MakeFromData`, `MakeFromFile` is a fastpath if the caller
@@ -505,9 +476,8 @@ public:
      * It will map the corresponding file instead of doing unnecessary copies.
      */
 
-    //! TSDecl: function MakeFromFile(path: string, usage: number): CkPicture
-    static v8::Local<v8::Value> MakeFromFile(const std::string& path,
-                                             PictureUsage usage);
+    //! TSDecl: function MakeFromFile(path: string): CkPicture
+    static v8::Local<v8::Value> MakeFromFile(const std::string& path);
 
     g_nodiscard const sk_sp<SkPicture>& getPicture() const;
 
@@ -630,6 +600,16 @@ public:
 
     //! TSDecl: function makeSharedPixelsBuffer(): core.Buffer
     v8::Local<v8::Value> makeSharedPixelsBuffer();
+
+    //! TSDecl: function makeShader(tmx: Enum<TileMode>, tmy: Enum<TileMode>,
+    //!                             sampling: Enum<Sampling>, local_matrix: CkMatrix | null): CkShader | null
+    v8::Local<v8::Value> makeShader(int32_t tmx, int32_t tmy, int32_t sampling,
+                                    v8::Local<v8::Value> local_matrix);
+
+    //! TSDecl: function makeRawShader(tmx: Enum<TileMode>, tmy: Enum<TileMode>,
+    //!                                sampling: Enum<Sampling>, local_matrix: CkMatrix | null): CkShader | null
+    v8::Local<v8::Value> makeRawShader(int32_t tmx, int32_t tmy, int32_t sampling,
+                                       v8::Local<v8::Value> local_matrix);
 
 private:
     sk_sp<SkImage>      image_;

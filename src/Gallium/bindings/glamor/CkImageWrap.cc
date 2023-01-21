@@ -20,6 +20,7 @@
 #include "include/codec/SkCodec.h"
 
 #include "Gallium/bindings/glamor/Exports.h"
+#include "Gallium/bindings/glamor/CkMatrixWrap.h"
 #include "Gallium/bindings/core/Exports.h"
 #include "Gallium/bindings/utau/Exports.h"
 #include "Utau/VideoFrameGLEmbedder.h"
@@ -186,6 +187,63 @@ v8::Local<v8::Value> CkImageWrap::makeSharedPixelsBuffer()
     };
 
     return binder::to_v8(isolate, result);
+}
+
+namespace {
+
+template<bool RAW_SHADER>
+v8::Local<v8::Value> make_shader_generic(const sk_sp<SkImage>& image, int32_t tmx, int32_t tmy,
+                                         int32_t sampling, v8::Local<v8::Value> local_matrix)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (tmx < 0 || tmx > static_cast<int32_t>(SkTileMode::kLastTileMode))
+        g_throw(RangeError, "Invalid enumeration value for argument `tmx`");
+    if (tmy < 0 || tmy > static_cast<int32_t>(SkTileMode::kLastTileMode))
+        g_throw(RangeError, "Invalid enumeration value for argument `tmx`");
+
+    SkMatrix *matrix = nullptr;
+    if (!local_matrix->IsNullOrUndefined())
+    {
+        auto *wrap = binder::Class<CkMatrix>::unwrap_object(isolate, local_matrix);
+        if (!wrap)
+            g_throw(TypeError, "Argument `local_matrix` must be an instance of `CkMatrix` or null");
+        matrix = &wrap->GetMatrix();
+    }
+
+    sk_sp<SkShader> shader;
+    if constexpr (RAW_SHADER)
+    {
+        shader = image->makeRawShader(static_cast<SkTileMode>(tmx),
+                                      static_cast<SkTileMode>(tmy),
+                                      SamplingToSamplingOptions(sampling),
+                                      matrix);
+    }
+    else
+    {
+        shader = image->makeShader(static_cast<SkTileMode>(tmx),
+                                   static_cast<SkTileMode>(tmy),
+                                   SamplingToSamplingOptions(sampling),
+                                   matrix);
+    }
+
+    if (!shader)
+        return v8::Null(isolate);
+
+    return binder::Class<CkShaderWrap>::create_object(isolate, shader);
+}
+
+} // namespace
+
+v8::Local<v8::Value> CkImageWrap::makeShader(int32_t tmx, int32_t tmy, int32_t sampling,
+                                             v8::Local<v8::Value> local_matrix)
+{
+    return make_shader_generic<false>(image_, tmx, tmy, sampling, local_matrix);
+}
+
+v8::Local<v8::Value> CkImageWrap::makeRawShader(int32_t tmx, int32_t tmy, int32_t sampling,
+                                                v8::Local<v8::Value> local_matrix)
+{
+    return make_shader_generic<true>(image_, tmx, tmy, sampling, local_matrix);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

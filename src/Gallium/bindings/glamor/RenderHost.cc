@@ -21,7 +21,6 @@
 #include "Core/Journal.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/PromiseHelper.h"
-#include "Gallium/bindings/glamor/CanvasKitTransferContext.h"
 #include "Gallium/Runtime.h"
 
 #include "Glamor/RenderHost.h"
@@ -31,7 +30,6 @@
 #include "Glamor/RenderClientObject.h"
 #include "Glamor/RenderHostCreator.h"
 #include "Glamor/RenderHostTaskRunner.h"
-#include "Glamor/MaybeGpuObject.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.bindings.Glamor)
@@ -78,31 +76,6 @@ void RenderHostWrap::Initialize(v8::Local<v8::Object> info)
 
     gl::GlobalScope::Ref().Initialize(appInfo);
     QLOG(LOG_INFO, "RenderHost is initialized, application name %fg<gr>\"{}\"%reset", appInfo.name);
-
-    auto canvas_transfer_context = CanvasKitTransferContext::Create(isolate);
-    if (!canvas_transfer_context)
-        g_throw(Error, "Failed to create a CanvasKit transfer context");
-
-    gl::GlobalScope::Ref().SetExternalDataPointer(canvas_transfer_context.release(),
-                                                  [](void *ptr) {
-        std::unique_ptr<CanvasKitTransferContext> adopted(
-                reinterpret_cast<CanvasKitTransferContext*>(ptr));
-    });
-}
-
-void RenderHostWrap::SetTypefaceTransferCallback(v8::Local<v8::Value> func)
-{
-    check_gl_context_init();
-
-    if (!func->IsFunction())
-        g_throw(TypeError, "Argument `func' must be a callback function");
-
-    auto *transfer_context = reinterpret_cast<CanvasKitTransferContext*>(
-            gl::GlobalScope::Ref().GetExternalDataPointer());
-    CHECK(transfer_context);
-
-    transfer_context->SetReadBackJSFunction(
-            v8::Local<v8::Function>::Cast(func));
 }
 
 void RenderHostWrap::Dispose()

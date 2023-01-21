@@ -15,6 +15,7 @@
     <include src="Gallium/bindings/glamor/CkTextBlobWrap.h"/>
     <include src="Gallium/bindings/glamor/CkPathEffectWrap.h"/>
     <include src="Gallium/bindings/glamor/CkPictureRecorder.h"/>
+    <include src="Gallium/bindings/glamor/CkRuntimeEffectWrap.h"/>
     <include src="Glamor/Surface.h"/>
     <include src="Glamor/Monitor.h"/>
     <hook on="instantiate" call="GlamorSetInstanceProperties"/>
@@ -29,7 +30,6 @@
             <method static="true" name="WaitForSyncBarrier" value="@WaitForSyncBarrier"/>
             <method static="true" name="SleepRendererFor" value="@SleepRendererFor"/>
             <method static="true" name="TraceGraphicsResources" value="@TraceGraphicsResources"/>
-            <method static="true" name="SetTypefaceTransferCallback" value="@SetTypefaceTransferCallback"/>
             <method static="true" name="CollectCriticalSharedResources" value="@CollectCriticalSharedResources"/>
         </class>
 
@@ -456,10 +456,25 @@
             <method name="encodeToData" value="@encodeToData"/>
             <method name="uniqueId" value="@uniqueId"/>
             <method name="makeSharedPixelsBuffer" value="@makeSharedPixelsBuffer"/>
+            <method name="makeShader" value="@makeShader"/>
+            <method name="makeRawShader" value="@makeRawShader"/>
             <property name="width" getter="@getWidth"/>
             <property name="height" getter="@getHeight"/>
             <property name="alphaType" getter="@getAlphaType"/>
             <property name="colorType" getter="@getColorType"/>
+        </class>
+
+        <class name="CkRuntimeEffect" wrapper="CkRuntimeEffect">
+            <method static="true" name="MakeForShader" value="@MakeForShader"/>
+            <method static="true" name="MakeForBlender" value="@MakeForBlender"/>
+            <method static="true" name="MakeForColorFilter" value="@MakeForColorFilter"/>
+            <method name="uniforms" value="@uniforms"/>
+            <method name="children" value="@children"/>
+            <method name="findUniform" value="@findUniform"/>
+            <method name="findChild" value="@findChild"/>
+            <method name="makeShader" value="@makeShader"/>
+            <method name="makeBlender" value="@makeBlender"/>
+            <method name="makeColorFilter" value="@makeColorFilter"/>
         </class>
 
         <class name="CkPicture" wrapper="CkPictureWrap">
@@ -469,10 +484,6 @@
             <method name="approximateOpCount" value="@approximateOpCount"/>
             <method name="approximateByteUsed" value="@approximateByteUsed"/>
             <method name="uniqueId" value="@uniqueId"/>
-
-            <!-- Enumeration map for gl::CkPictureWrap::PictureUsage -->
-            <property static="true" name="USAGE_GENERIC" value="V_CAST_U32(@kGeneric_Usage)"/>
-            <property static="true" name="USAGE_TRANSFER" value="V_CAST_U32(@kTransfer_Usage)"/>
         </class>
 
         <class name="CriticalPicture" wrapper="CriticalPictureWrap">

@@ -93,8 +93,6 @@ add_library(Gallium STATIC
         bindings/glamor/SceneBuilder.h
         bindings/glamor/SceneBuilder.cc
         bindings/glamor/CursorWrap.cc
-        bindings/glamor/CanvasKitTransferContext.h
-        bindings/glamor/CanvasKitTransferContext.cc
         bindings/glamor/EffectDSLParser.h
         bindings/glamor/EffectDSLParser.cc
         bindings/glamor/EffectDSLBuilderHelperMacros.h
@@ -121,6 +119,8 @@ add_library(Gallium STATIC
         bindings/glamor/CkPathEffectWrap.cc
         bindings/glamor/CkPictureRecorder.h
         bindings/glamor/CkPictureRecorder.cc
+        bindings/glamor/CkRuntimeEffectWrap.h
+        bindings/glamor/CkRuntimeEffectWrap.cc
 
         bindings/utau/Exports.h
         bindings/utau/Exports.cc

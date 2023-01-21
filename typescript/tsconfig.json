@@ -27,18 +27,8 @@
         "GL/utils.ts",
         "GL/window.ts",
 
-        "samples/canvaskit_offscreen_picture.ts",
-        "samples/canvaskit_offscreen_image.ts",
-        "samples/canvaskit_window.ts",
-        "samples/canvaskit_window_lottie.ts",
-        "samples/canvaskit_window_shader.ts",
         "samples/sknative_window.ts",
-
-        // These files are not included in git version as they are experimental
-        // code, so remove them before compiling TypeScript.
-        "experimental/canvaskit_window_physics.ts",
-        "experimental/canvaskit_window_vn.ts",
-        "experimental/physics_magnetic_field.ts",
-        "experimental/utau_video_player.ts"
+        "samples/sknative_runtime_effect.ts",
+        "samples/direct_musicplayer.ts"
     ]
 }
