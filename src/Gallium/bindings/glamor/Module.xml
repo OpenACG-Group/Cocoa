@@ -16,6 +16,7 @@
     <include src="Gallium/bindings/glamor/CkPathEffectWrap.h"/>
     <include src="Gallium/bindings/glamor/CkPictureRecorder.h"/>
     <include src="Gallium/bindings/glamor/CkRuntimeEffectWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkVerticesWrap.h"/>
     <include src="Glamor/Surface.h"/>
     <include src="Glamor/Monitor.h"/>
     <hook on="instantiate" call="GlamorSetInstanceProperties"/>
@@ -396,6 +397,12 @@
             <property name="bounds" getter="@getBounds"/>
             <property name="uniqueID" getter="@getUniqueID"/>
             <method name="getIntercepts" value="@getIntercepts"/>
+        </class>
+
+        <class name="CkVertices" wrapper="CkVertices">
+            <method static="true" name="MakeCopy" value="@MakeCopy"/>
+            <property name="uniqueID" getter="@getUniqueID"/>
+            <property name="bounds" getter="@getBounds"/>
         </class>
 
         <class name="CkPictureRecorder" wrapper="CkPictureRecorder">

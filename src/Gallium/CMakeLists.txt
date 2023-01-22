@@ -121,6 +121,8 @@ add_library(Gallium STATIC
         bindings/glamor/CkPictureRecorder.cc
         bindings/glamor/CkRuntimeEffectWrap.h
         bindings/glamor/CkRuntimeEffectWrap.cc
+        bindings/glamor/CkVerticesWrap.h
+        bindings/glamor/CkVerticesWrap.cc
 
         bindings/utau/Exports.h
         bindings/utau/Exports.cc

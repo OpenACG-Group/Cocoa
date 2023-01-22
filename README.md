@@ -4,7 +4,7 @@ This project belongs to [OpenACG Group](https://github.com/OpenACG-Group).
 
 わたしわ、高性能ですから！
 
-[User's Documentations](https://openacg-group.github.io/)
+[Documentations](https://openacg-group.github.io/)
 
 ## Motivation & Introduction
 Cocoa is a project inspired by
@@ -23,33 +23,18 @@ Katakana ココア. But it also doesn't matter much if you pronounce it in  Engl
 
 TypeScript is the official programming language of Cocoa. Cocoa itself can be treated
 as a JavaScript engine, which is written in C++17.
-Rendering framework part of Cocoa is mostly built by native C++ and WebAssembly,
+Rendering framework part of Cocoa is mostly built by native C++,
 while the visual novel framework part is completely built by TypeScript.
 
 Cocoa is still being developed and haven't been ready for commercial use.
 Issues / Pull requests are welcome.
 
-## Build Cocoa
-Third parties should be built before building Cocoa.
-See [_build third party_](https://github.com/OpenACG-Group/cocoa-docs/build_third_party.md)
-for more details.
-
-Then `cmake` can be used to build Cocoa:
-```shell
-$ mkdir out
-$ cd out
-$ cmake -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ ..
-$ ninja
-```
-
-A packager for releasing Cocoa is still in development.
+## Build and use Cocoa
+See [documentation](https://openacg-group.github.io) for more details.
 
 ## Rendering Framework
-After building Cocoa successfully, you can run a simple example which can play the lottie
-animations.
-
-More details about how to run this example and explore Cocoa are available
-in the [_quick tutorial_](https://github.com/OpenACG-Group/cocoa-docs/literature/quick_tutorial.md).
+After building Cocoa successfully, you can run a simple example which renders a star filled with
+linear gradient colors.
 
 TypeScript code of that example is like:
 
@@ -73,17 +58,10 @@ TypeScript code of that example is like:
 
 import * as std from 'core';
 import * as GL from 'glamor';
-import * as CanvasKit from 'internal://canvaskit';
-
-const canvaskit = CanvasKit.canvaskit;
 
 // Geometry size of the window
-const WINDOW_WIDTH = 533;
-const WINDOW_HEIGHT = 500;
-
-if (std.args.length != 1) {
-    throw Error('Provide a lottie file in the arguments list');
-}
+const WINDOW_WIDTH = 256;
+const WINDOW_HEIGHT = 256;
 
 // First of all, initialize Glamor context by providing the name 
 // and version of your application for `Initialize` function.
@@ -119,63 +97,6 @@ surface.setTitle('White Eternity');
 // we create a blender so that we can render things through it.
 let blender = await surface.createBlender();
 
-// Now the preparation steps have been done and we can draw something
-// by canvaskit.
-
-let frameSlotConnect = 0;
-
-// Inspired by Skia's official fiddle example:
-// https://jsfiddle.skia.org/canvaskit/e77274c30d63645d3bb82fd366991e27c1e1c3df39def04e999b4fcce9f425a2
-function playLottie(jsonStr: string) {
-    const animation = canvaskit.MakeAnimation(jsonStr);
-    const duration = animation.duration() * 1000;
-    const bounds = canvaskit.LTRBRect(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-    let firstFrame = new Date().getTime();
-
-    function drawFrame() {
-        // Create a recording context
-        let recorder = new canvaskit.PictureRecorder();
-        let canvas = recorder.beginRecording(bounds);
-
-        // Seek animation
-        let now = new Date().getTime();
-        let seek = ((now - firstFrame) / duration) % 1.0;
-        animation.seek(seek);
-
-        // Painting
-        canvas.clear(canvaskit.WHITE);
-        animation.render(canvas, bounds);
-
-        // Post-processing:
-        // Get the generated picture object by `recorder.finishRecordingAsPicture`
-        // (see Skia's documentations). To convert it to the `GL.CkPicture` object,
-        // we should serialize it to a binary buffer and then deserialize it
-        // by `GL.CkPicture.MakeFromData` function.
-        const picture = recorder.finishRecordingAsPicture();
-        let buffer = std.Buffer.MakeFromAdoptBuffer(picture.serialize());
-        let scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
-            .pushOffset(0, 0)
-            .addPicture(GL.CkPicture.MakeFromData(buffer, GL.CkPicture.USAGE_GENERIC), false,0, 0)
-            .build();
-
-        recorder.delete();
-        picture.delete();
-
-        // Finally, submit the constructed `Scene` object to blender, which will rasterize and
-        // represent it on the surface (window).
-        // `scene` must be disposed to release acquired resources after the updating is
-        // completed. `update` implicitly requests next frame, so there is no need to
-        // and should not call `surface.requestNextFrame` explicitly.
-        // It makes the frame scheduler into a wrong state that call `surface.requestNextFrame` for
-        // multiple times before next frame arrives.
-        blender.update(scene).then(() => { scene.dispose(); });
-    }
-
-    frameSlotConnect = surface.connect('frame', drawFrame);
-    surface.requestNextFrame();
-}
-
 // Register a close event callback
 surface.connect('close', () => {
     // When the window is notified by system that it should be closed,
@@ -184,8 +105,6 @@ surface.connect('close', () => {
     // application.
     std.print('Window was closed by user...\n');
 
-    surface.disconnect(frameSlotConnect);
-
     // The invocation of `close` only sends a message to rendering thread,
     // which means it will NOT make the window closed immediately.
     // This request will be processed asynchronously in event loop.
@@ -193,8 +112,55 @@ surface.connect('close', () => {
     surface.close();
 });
 
-let jsonBuffer = await std.Buffer.MakeFromFile(std.args[0]);
-playLottie(jsonBuffer.toString(std.Buffer.ENCODE_UTF8, jsonBuffer.length));
+// Now the preparation steps have been done, and we can draw something
+// by Skia.
+
+// Create a path. Path is a set of contours which we can stroke along with.
+// Closed path can be filled with colors.
+function star(): GL.CkPath {
+    const R = 60.0, C = 128.0;
+    let path = new GL.CkPath();
+    path.moveTo(C + R, C);
+    for (let i = 0; i < 15; i++) {
+        let a = 0.44879895 * i;
+        let r = R + R * (i % 2);
+        path.lineTo(C + r * Math.cos(a), C + r * Math.sin(a));
+    }
+    return path;
+}
+
+// Draw something on the canvas
+function draw(canvas: GL.CkCanvas): void {
+    let paint = new GL.CkPaint();
+    paint.setPathEffect(GL.CkPathEffect.MakeFromDSL('discrete(10, 4, 12)', {}));
+
+    const shader = GL.CkShader.MakeFromDSL(
+        'gradient_linear([0, 0], [256, 256], [[0.26,0.52,0.96,1], [0.06,0.62,0.35,1]], _, %tile)',
+        {tile: GL.Constants.TILE_MODE_CLAMP});
+
+    paint.setShader(shader);
+    paint.setAntiAlias(true);
+
+    canvas.clear([1, 1, 1, 1]);
+    canvas.drawPath(star(), paint);
+}
+
+// Record all the drawing operations in a Picture.
+// Those drawing operations will be replayed by rasterizer later.
+function drawPicture(): GL.CkPicture {
+    let recorder = new GL.CkPictureRecorder();
+    let canvas = recorder.beginRecording([0, 0, 256, 256]);
+    draw(canvas);
+    return recorder.finishRecordingAsPicture();
+}
+
+// Then build a scene with a single picture layer and submit it to blender.
+let scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
+    .pushOffset(0, 0)
+    .addPicture(drawPicture(), false, 0, 0)
+    .build();
+
+blender.update(scene).then(() => { scene.dispose(); });
 ```
 
 ## Visual Novel Framework
@@ -236,4 +202,3 @@ to develop Cocoa without suffering.
 * [FFmpeg - LGPL v2.1+ License](https://ffmpeg.org)
 * [libuv - MIT License](https://libuv.org)
 * ... and other many dependencies
-

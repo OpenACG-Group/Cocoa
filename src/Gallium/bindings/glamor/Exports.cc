@@ -27,6 +27,7 @@
 #include "include/effects/Sk1DPathEffect.h"
 #include "include/effects/SkTrimPathEffect.h"
 #include "include/effects/SkRuntimeEffect.h"
+#include "include/core/SkVertices.h"
 
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/Scene.h"
@@ -182,6 +183,10 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
         { "RUNTIME_EFFECT_CHILD_TYPE_SHADER", EV(SkRuntimeEffect::ChildType::kShader) },
         { "RUNTIME_EFFECT_CHILD_TYPE_COLOR_FILTER", EV(SkRuntimeEffect::ChildType::kColorFilter) },
         { "RUNTIME_EFFECT_CHILD_TYPE_BLENDER", EV(SkRuntimeEffect::ChildType::kBlender) },
+
+        { "VERTICES_VERTEX_MODE_TRIANGLES", EV(SkVertices::kTriangles_VertexMode) },
+        { "VERTICES_VERTEX_MODE_TRIANGLE_STRIP", EV(SkVertices::kTriangleStrip_VertexMode) },
+        { "VERTICES_VERTEX_MODE_TRIANGLE_FAN", EV(SkVertices::kTriangleFan_VertexMode) },
 
         { "FORMAT_PNG",     EV(SkEncodedImageFormat::kPNG)  },
         { "FORMAT_JPEG",    EV(SkEncodedImageFormat::kJPEG) },

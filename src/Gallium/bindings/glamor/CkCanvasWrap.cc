@@ -26,6 +26,7 @@
 #include "Gallium/bindings/glamor/CkMatrixWrap.h"
 #include "Gallium/bindings/glamor/CkFontWrap.h"
 #include "Gallium/bindings/glamor/CkTextBlobWrap.h"
+#include "Gallium/bindings/glamor/CkVerticesWrap.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/binder/Class.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
@@ -498,7 +499,13 @@ void CkCanvas::drawPicture(v8::Local<v8::Value> picture, v8::Local<v8::Value> ma
 void CkCanvas::drawVertices(v8::Local<v8::Value> vertices, int32_t mode,
                             v8::Local<v8::Value> paint)
 {
-    // TODO(sora): implement this
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    CHECK_ENUM_RANGE(mode, SkBlendMode::kLastMode)
+    EXTRACT_PAINT_CHECKED(paint, p)
+    auto *vw = binder::Class<CkVertices>::unwrap_object(isolate, vertices);
+    if (!vw)
+        g_throw(TypeError, "Argument `vertices` must be an instance of `CkVertices`");
+    canvas_->drawVertices(vw->getSkiaObject(), static_cast<SkBlendMode>(mode), p->GetPaint());
 }
 
 void CkCanvas::drawPatch(v8::Local<v8::Value> cubics, v8::Local<v8::Value> colors,

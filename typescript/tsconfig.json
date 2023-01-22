@@ -28,7 +28,6 @@
         "GL/window.ts",
 
         "samples/sknative_window.ts",
-        "samples/sknative_runtime_effect.ts",
-        "samples/direct_musicplayer.ts"
+        "samples/sknative_runtime_effect.ts"
     ]
 }

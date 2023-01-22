@@ -71,7 +71,7 @@ surface.connect('close', () => {
     surface.close();
 });
 
-// Now the preparation steps have been done and we can draw something
+// Now the preparation steps have been done, and we can draw something
 // by Skia.
 
 function star(): GL.CkPath {
