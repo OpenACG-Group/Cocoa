@@ -4,11 +4,13 @@ set(CIB_MODULE_LISTS ${CMAKE_CURRENT_SOURCE_DIR}/bindings/ModuleLists.txt)
 set(CIB_MODULE_XML
         bindings/core/Module.xml
         bindings/glamor/Module.xml
+        bindings/paragraph/Module.xml
         bindings/utau/Module.xml)
 set(CIB_OUTPUT_FILE
         ${CMAKE_CURRENT_BINARY_DIR}/internal_bindings.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_core.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_glamor.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/module_paragraph.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_utau.cc)
 
 add_custom_command(
@@ -96,8 +98,8 @@ add_library(Gallium STATIC
         bindings/glamor/EffectDSLParser.h
         bindings/glamor/EffectDSLParser.cc
         bindings/glamor/EffectDSLBuilderHelperMacros.h
-        bindings/glamor/TrivialSkiaExportedTypes.h
-        bindings/glamor/TrivialSkiaExportedTypes.cc
+        bindings/glamor/TrivialInterface.h
+        bindings/glamor/TrivialInterface.cc
         bindings/glamor/GProfilerWrap.cc
         bindings/glamor/CkMatrixWrap.h
         bindings/glamor/CkMatrixWrap.cc
@@ -111,6 +113,8 @@ add_library(Gallium STATIC
         bindings/glamor/CkTypefaceWrap.cc
         bindings/glamor/CkFontWrap.h
         bindings/glamor/CkFontWrap.cc
+        bindings/glamor/CkFontMgrWrap.h
+        bindings/glamor/CkFontMgrWrap.cc
         bindings/glamor/CkCanvasWrap.h
         bindings/glamor/CkCanvasWrap.cc
         bindings/glamor/CkTextBlobWrap.h
@@ -123,6 +127,14 @@ add_library(Gallium STATIC
         bindings/glamor/CkRuntimeEffectWrap.cc
         bindings/glamor/CkVerticesWrap.h
         bindings/glamor/CkVerticesWrap.cc
+
+        bindings/paragraph/Exports.h
+        bindings/paragraph/Exports.cc
+        bindings/paragraph/TrivialInterfaces.cc
+        bindings/paragraph/TextStyleWrap.cc
+        bindings/paragraph/ParagraphStyleWrap.cc
+        bindings/paragraph/ParagraphBuilderWrap.cc
+        bindings/paragraph/ParagraphWrap.cc
 
         bindings/utau/Exports.h
         bindings/utau/Exports.cc
@@ -142,4 +154,10 @@ target_link_libraries(
         v8
         v8_libplatform
         websockets
+
+        skunicode
+        skshaper
+        ${COCOA_THIRDPARTY_DIR}/build/lib/libskparagraph.a
+        # ${COCOA_THIRDPARTY_DIR}/build/lib/libskunicode.a
+        # ${COCOA_THIRDPARTY_DIR}/build/lib/libskshaper.a
 )

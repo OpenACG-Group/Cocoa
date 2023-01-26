@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <info name="paragraph" description="Text layout and rendering engine"/>
+    <metadata namespace="cocoa::gallium::bindings::paragraph_wrap" class="ParagraphBinding"/>
+    <include src="Gallium/bindings/paragraph/Exports.h"/>
+
+    <hook on="instantiate" call="SetInstanceProperties"/>
+
+    <exports>
+        <toplevel type="declaration" name="Constants"/>
+
+        <class name="TextStyle" wrapper="TextStyleWrap">
+            <constructor prototype=""/>
+            <property name="color" getter="@getColor" setter="@setColor"/>
+            <property name="foreground" getter="@getForeground" setter="@setForeground"/>
+            <property name="background" getter="@getBackground" setter="@setBackground"/>
+            <property name="decoration" getter="@getDecoration" setter="@setDecoration"/>
+            <property name="fontStyle" getter="@getFontStyle" setter="@setFontStyle"/>
+            <property name="fontSize" getter="@getFontSize" setter="@setFontSize"/>
+            <property name="baselineShift" getter="@getBaselineShift" setter="@setBaselineShift"/>
+            <property name="height" getter="@getHeight" setter="@setHeight"/>
+            <property name="heightOverride" getter="@getHeightOverride" setter="@setHeightOverride"/>
+            <property name="halfLeading" getter="@getHalfLeading" setter="@setHalfLeading"/>
+            <property name="letterSpacing" getter="@getLetterSpacing" setter="@setLetterSpacing"/>
+            <property name="wordSpacing" getter="@getWordSpacing" setter="@setWordSpacing"/>
+            <property name="locale" getter="@getLocale" setter="@setLocale"/>
+            <property name="textBaseline" getter="@getTextBaseline" setter="@setTextBaseline"/>
+            <method name="addShadow" value="@addShadow"/>
+            <method name="resetShadows" value="@resetShadows"/>
+            <method name="addFontFeature" value="@addFontFeature"/>
+            <method name="resetFontFeatures" value="@resetFontFeatures"/>
+            <method name="setFontFamilies" value="@setFontFamilies"/>
+            <method name="setTypeface" value="@setTypeface"/>
+            <method name="isPlaceholder" value="@isPlaceholder"/>
+            <method name="setPlaceholder" value="@setPlaceholder"/>
+            <method name="clone" value="@clone"/>
+            <method name="cloneForPlaceholder" value="@cloneForPlaceholder"/>
+        </class>
+
+        <class name="ParagraphStyle" wrapper="ParagraphStyleWrap">
+            <constructor prototype=""/>
+            <property name="strutStyle" getter="@getStrutStyle" setter="@setStrutStyle"/>
+            <property name="textStyle" getter="@getTextStyle" setter="@setTextStyle"/>
+            <property name="textDirection" getter="@getTextDirection" setter="@setTextDirection"/>
+            <property name="textAlign" getter="@getTextAlign" setter="@setTextAlign"/>
+            <property name="maxLines" getter="@getMaxLines" setter="@setMaxLines"/>
+            <property name="height" getter="@getHeight" setter="@setHeight"/>
+            <property name="textHeightBehavior" getter="@getTextHeightBehavior" setter="@setTextHeightBehavior"/>
+            <method name="setEllipsis" value="@setEllipsis"/>
+            <method name="hintingIsOn" value="@hintingIsOn"/>
+            <method name="turnHintingOff" value="@turnHintingOff"/>
+            <method name="getReplaceTabCharacters" value="@getReplaceTabCharacters"/>
+            <method name="setReplaceTabCharacters" value="@setReplaceTabCharacters"/>
+        </class>
+
+        <class name="ParagraphBuilder" wrapper="ParagraphBuilderWrap">
+            <method static="true" name="Make" value="@Make"/>
+            <method name="pushStyle" value="@pushStyle"/>
+            <method name="pop" value="@pop"/>
+            <method name="addText" value="@addText"/>
+            <method name="addPlaceholder" value="@addPlaceholder"/>
+            <method name="reset" value="@reset"/>
+            <method name="build" value="@build"/>
+        </class>
+
+        <class name="Paragraph" wrapper="ParagraphWrap">
+            <property name="maxWidth" getter="@getMaxWidth"/>
+            <property name="height" getter="@getHeight"/>
+            <property name="minIntrinsicWidth" getter="@getMinIntrinsicWidth"/>
+            <property name="maxIntrinsicWidth" getter="@getMaxIntrinsicWidth"/>
+            <property name="alphabeticBaseline" getter="@getAlphabeticBaseline"/>
+            <property name="ideographicBaseline" getter="@getIdeographicBaseline"/>
+            <property name="longestLine" getter="@getLongestLine"/>
+            <property name="exceedMaxLines" getter="@getExceedMaxLines"/>
+            <method name="layout" value="@layout"/>
+            <method name="paint" value="@paint"/>
+            <method name="getRectsForRange" value="@getRectsForRange"/>
+            <method name="getRectsForPlaceholders" value="@getRectsForPlaceholders"/>
+            <method name="getGlyphPositionAtCoordinate" value="@getGlyphPositionAtCoordinate"/>
+            <method name="getWordBoundary" value="@getWordBoundary"/>
+        </class>
+    </exports>
+</module>

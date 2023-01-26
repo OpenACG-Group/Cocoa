@@ -19,7 +19,7 @@
 #include "Gallium/bindings/glamor/CkPictureRecorder.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/CkCanvasWrap.h"
-#include "Gallium/bindings/glamor/TrivialSkiaExportedTypes.h"
+#include "Gallium/bindings/glamor/TrivialInterface.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 v8::Local<v8::Value> CkPictureRecorder::beginRecording(v8::Local<v8::Value> bounds)

@@ -17,6 +17,7 @@
 
 #include "Gallium/bindings/glamor/Scene.h"
 #include "Gallium/bindings/glamor/SceneBuilder.h"
+#include "Gallium/bindings/glamor/CkMatrixWrap.h"
 #include "Gallium/bindings/utau/Exports.h"
 
 #include "Glamor/Layers/TransformLayer.h"
@@ -107,6 +108,16 @@ v8::Local<v8::Value> SceneBuilder::pushRotate(SkScalar rad, SkScalar pivotX, SkS
 {
     pushLayer(std::make_shared<gl::TransformLayer>(
             SkMatrix::RotateDeg(SkRadiansToDegrees(rad), SkPoint::Make(pivotX, pivotY))));
+    return getSelfHandle();
+}
+
+v8::Local<v8::Value> SceneBuilder::pushTransform(v8::Local<v8::Value> matrix)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    auto *wrapper = binder::Class<CkMatrix>::unwrap_object(isolate, matrix);
+    if (!wrapper)
+        g_throw(TypeError, "Argument `matrix` must be an instance of `CkMatrix`");
+    pushLayer(std::make_shared<gl::TransformLayer>(wrapper->GetMatrix()));
     return getSelfHandle();
 }
 

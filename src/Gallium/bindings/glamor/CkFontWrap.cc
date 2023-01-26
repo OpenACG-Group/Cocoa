@@ -21,7 +21,7 @@
 #include "Gallium/bindings/glamor/CkFontWrap.h"
 #include "Gallium/bindings/glamor/CkPathWrap.h"
 #include "Gallium/bindings/glamor/CkPaintWrap.h"
-#include "Gallium/bindings/glamor/TrivialSkiaExportedTypes.h"
+#include "Gallium/bindings/glamor/TrivialInterface.h"
 #include "Gallium/bindings/core/Exports.h"
 #include "Gallium/binder/Class.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN

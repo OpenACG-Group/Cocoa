@@ -31,6 +31,7 @@
 
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/Scene.h"
+#include "Gallium/bindings/glamor/CkFontMgrWrap.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 #define EV(x) static_cast<uint32_t>(x)
@@ -379,6 +380,9 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
 
     instance->Set(ctx, binder::to_v8(isolate, "Constants"),
                   binder::to_v8(isolate, constants)).Check();
+
+    instance->Set(ctx, binder::to_v8(isolate, "defaultFontMgr"),
+                  binder::Class<CkFontMgr>::create_object(isolate, SkFontMgr::RefDefault())).Check();
 }
 
 SkSamplingOptions SamplingToSamplingOptions(int32_t v)

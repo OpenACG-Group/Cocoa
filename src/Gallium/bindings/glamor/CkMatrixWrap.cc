@@ -16,7 +16,7 @@
  */
 
 #include "Gallium/bindings/glamor/CkMatrixWrap.h"
-#include "Gallium/bindings/glamor/TrivialSkiaExportedTypes.h"
+#include "Gallium/bindings/glamor/TrivialInterface.h"
 #include "Gallium/binder/Class.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 

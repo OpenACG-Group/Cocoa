@@ -19,6 +19,9 @@
     "files": [
         "./synthetics/core.d.ts",
         "./synthetics/glamor.d.ts",
+        "./synthetics/utau.d.ts",
+        "./synthetics/paragraph.d.ts",
+
         "./core/format.ts",
         "./core/assert.ts",
         "./core/linked_list.ts",
@@ -27,7 +30,10 @@
         "GL/utils.ts",
         "GL/window.ts",
 
+        "samples/sknative_offscreen_drawtextblob.ts",
+        "samples/sknative_offscreen_hilbert.ts",
         "samples/sknative_window.ts",
-        "samples/sknative_runtime_effect.ts"
+        "samples/sknative_runtime_effect.ts",
+        "samples/paragraph_simple_layout.ts"
     ]
 }

@@ -17,11 +17,13 @@
     <include src="Gallium/bindings/glamor/CkPictureRecorder.h"/>
     <include src="Gallium/bindings/glamor/CkRuntimeEffectWrap.h"/>
     <include src="Gallium/bindings/glamor/CkVerticesWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkFontMgrWrap.h"/>
     <include src="Glamor/Surface.h"/>
     <include src="Glamor/Monitor.h"/>
     <hook on="instantiate" call="GlamorSetInstanceProperties"/>
     <exports>
         <toplevel type="declaration" name="Constants"/>
+        <toplevel type="declaration" name="defaultFontMgr"/>
         <toplevel type="function" name="queryCapabilities" value="QueryCapabilities"/>
 
         <class name="RenderHost" wrapper="RenderHostWrap">
@@ -144,6 +146,7 @@
             <method name="build" value="@build"/>
             <method name="pushOffset" value="@pushOffset"/>
             <method name="pushRotate" value="@pushRotate"/>
+            <method name="pushTransform" value="@pushTransform"/>
             <method name="pushOpacity" value="@pushOpacity"/>
             <method name="pushImageFilter" value="@pushImageFilter"/>
             <method name="pushBackdropFilter" value="@pushBackdropFilter"/>
@@ -388,6 +391,21 @@
             <property name="scaleX" getter="@getScaleX" setter="@setScaleX"/>
             <property name="skewX" getter="@getSkewX" setter="@setSkewX"/>
             <property name="spacing" getter="@getSpacing"/>
+        </class>
+
+        <class name="CkFontStyleSet" wrapper="CkFontStyleSet">
+            <method name="count" value="@count"/>
+            <method name="getStyle" value="@getStyle"/>
+            <method name="getStyleName" value="@getStyleName"/>
+            <method name="createTypeface" value="@createTypeface"/>
+            <method name="matchStyle" value="@matchStyle"/>
+        </class>
+
+        <class name="CkFontMgr" wrapper="CkFontMgr">
+            <method name="countFamilies" value="@countFamilies"/>
+            <method name="getFamilyName" value="@getFamilyName"/>
+            <method name="createStyleSet" value="@createStyleSet"/>
+            <method name="matchFamilyStyle" value="@matchFamilyStyle"/>
         </class>
 
         <class name="CkTextBlob" wrapper="CkTextBlob">

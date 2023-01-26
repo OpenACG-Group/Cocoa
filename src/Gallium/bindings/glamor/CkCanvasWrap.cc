@@ -20,7 +20,7 @@
 #include "fmt/format.h"
 
 #include "Gallium/bindings/glamor/CkCanvasWrap.h"
-#include "Gallium/bindings/glamor/TrivialSkiaExportedTypes.h"
+#include "Gallium/bindings/glamor/TrivialInterface.h"
 #include "Gallium/bindings/glamor/CkPaintWrap.h"
 #include "Gallium/bindings/glamor/CkPathWrap.h"
 #include "Gallium/bindings/glamor/CkMatrixWrap.h"

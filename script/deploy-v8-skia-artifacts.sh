@@ -49,8 +49,6 @@ so_library_files=(
 
 resource_files=(
     "v8/out/${v8_build_type}/snapshot_blob.bin"
-    "skia/out/canvaskit_wasm/canvaskit.js"
-    "skia/out/canvaskit_wasm/canvaskit.wasm"
 )
 
 for so_file in ${so_library_files[@]}; do

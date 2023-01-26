@@ -22,7 +22,7 @@
 
 #include "Gallium/bindings/Base.h"
 #include "Gallium/bindings/glamor/Types.h"
-#include "Gallium/bindings/glamor/TrivialSkiaExportedTypes.h"
+#include "Gallium/bindings/glamor/TrivialInterface.h"
 #include "Gallium/binder/Class.h"
 #include "Glamor/ForwardTypeDecls.h"
 #include "Glamor/RenderClientObject.h"

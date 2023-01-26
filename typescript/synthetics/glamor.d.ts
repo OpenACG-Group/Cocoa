@@ -725,6 +725,7 @@ export type PathEffectTrim = number;
 export type RuntimeEffectUniformType = number;
 export type RuntimeEffectUniformFlag = number;
 export type RuntimeEffectChildType = number;
+export type VerticesVertexMode = number;
 
 interface Constants {
     readonly CAPABILITY_HWCOMPOSE_ENABLED: Capability;
@@ -863,6 +864,10 @@ interface Constants {
     readonly RUNTIME_EFFECT_CHILD_TYPE_SHADER: RuntimeEffectChildType;
     readonly RUNTIME_EFFECT_CHILD_TYPE_COLOR_FILTER: RuntimeEffectChildType;
     readonly RUNTIME_EFFECT_CHILD_TYPE_BLENDER: RuntimeEffectChildType;
+
+    readonly VERTICES_VERTEX_MODE_TRIANGLES: VerticesVertexMode;
+    readonly VERTICES_VERTEX_MODE_TRIANGLE_FAN: VerticesVertexMode;
+    readonly VERTICES_VERTEX_MODE_TRIANGLE_STRIP: VerticesVertexMode;
 
     readonly FORMAT_PNG: CodecFormat;
     readonly FORMAT_JPEG: CodecFormat;
@@ -1263,6 +1268,27 @@ export class CkFont {
     public getPath(glyph: number): null | CkPath;
 }
 
+export class CkFontStyleSet {
+    private constructor();
+
+    public count(): number;
+    public getStyle(index: number): CkFontStyle;
+    public getStyleName(index: number): CkFontStyle;
+    public createTypeface(index: number): CkTypeface | null;
+    public matchStyle(pattern: CkFontStyle): CkTypeface | null;
+}
+
+export class CkFontMgr {
+    private constructor();
+
+    public countFamilies(): number;
+    public getFamilyName(index: number): string;
+    public createStyleSet(index: number): CkFontStyleSet;
+    public matchFamilyStyle(familyName: string | null, style: CkFontStyle): CkTypeface | null;
+}
+
+export const defaultFontMgr: CkFontMgr;
+
 export class CkTextBlob {
     private constructor();
     public static MakeFromText(text: Buffer, font: CkFont, encoding: TextEncoding): CkTextBlob;
@@ -1334,7 +1360,16 @@ export class CkCanvas {
 }
 
 export class CkVertices {
-    // TODO(sora): to be implemented
+    private constructor();
+
+    public static MakeCopy(mode: VerticesVertexMode,
+                           positions: Float32Array,
+                           texCoords: Float32Array | null,
+                           colors: Uint32Array | null,
+                           indices: Uint16Array | null): CkVertices;
+
+    public readonly uniqueID: number;
+    public readonly bounds: CkRect;
 }
 
 export class CkImageFilter {
