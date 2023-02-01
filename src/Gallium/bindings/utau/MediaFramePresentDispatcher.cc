@@ -22,6 +22,7 @@
 
 #include "Core/EventLoop.h"
 #include "Core/Journal.h"
+#include "Core/TraceEvent.h"
 #include "Gallium/bindings/utau/Exports.h"
 #include "Gallium/binder/Class.h"
 #include "Gallium/binder/Convert.h"
@@ -364,6 +365,8 @@ void MediaFramePresentDispatcher::ThreadRoutine()
 
 void MediaFramePresentDispatcher::TimerCallback(uv_timer_t *timer)
 {
+    TRACE_EVENT("multimedia", "MediaFramePresentDispatcher::TimerCallback");
+
     auto *thread_ctx = reinterpret_cast<PresentThreadContext*>(timer->data);
     CHECK(thread_ctx);
 

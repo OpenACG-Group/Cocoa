@@ -19,6 +19,7 @@
 #include "include/core/SkPictureRecorder.h"
 #include "include/utils/SkNWayCanvas.h"
 
+#include "Core/TraceEvent.h"
 #include "Core/Journal.h"
 #include "Glamor/Layers/LayerTree.h"
 #include "Glamor/Layers/ContainerLayer.h"
@@ -35,6 +36,8 @@ LayerTree::~LayerTree() = default;
 
 bool LayerTree::Preroll(Layer::PrerollContext *context)
 {
+    TRACE_EVENT("rendering", "LayerTree::Preroll");
+
     if (!root_layer_)
     {
         QLOG(LOG_ERROR, "No available layer tree to preroll");
@@ -49,6 +52,8 @@ bool LayerTree::Preroll(Layer::PrerollContext *context)
 
 void LayerTree::Paint(Layer::PaintContext *context)
 {
+    TRACE_EVENT("rendering", "LayerTree::Paint");
+
     if (!root_layer_)
         return;
 

@@ -29,6 +29,7 @@
 #include "Core/EventLoop.h"
 #include "Core/QResource.h"
 #include "Core/Data.h"
+#include "Core/TraceEvent.h"
 #include "Gallium/Gallium.h"
 #include "Gallium/Runtime.h"
 #include "Gallium/BindingManager.h"
@@ -133,6 +134,7 @@ create_synthetic_module(v8::Isolate *isolate,
     return scope.Escape(module);
 }
 
+#ifndef COCOA_USE_MONOLITHIC_V8
 v8::StartupData *load_startup_snapshot()
 {
     auto snapshot_data = QResource::Instance()->Lookup("org.cocoa.internal.v8",
@@ -154,6 +156,7 @@ v8::StartupData *load_startup_snapshot()
 
     return startup_data;
 }
+#endif // COCOA_USE_MONOLITHIC_V8
 
 } // namespace anonymous
 
@@ -165,6 +168,7 @@ void Runtime::AdoptV8CommandOptions(const Options& options)
 
 std::shared_ptr<Runtime> Runtime::Make(EventLoop *loop, const Options& options)
 {
+#ifndef COCOA_USE_MONOLITHIC_V8
     v8::StartupData *startup_data = load_startup_snapshot();
     if (!startup_data)
         return nullptr;
@@ -173,6 +177,7 @@ std::shared_ptr<Runtime> Runtime::Make(EventLoop *loop, const Options& options)
         delete[] startup_data->data;
         delete startup_data;
     });
+#endif // COCOA_USE_MONOLITHIC_V8
 
     Options dump_options(options);
     if (dump_options.v8_platform_thread_pool <= 0)
@@ -230,7 +235,10 @@ std::shared_ptr<Runtime> Runtime::Make(EventLoop *loop, const Options& options)
                                             v8::Global<v8::Context>(isolate, context),
                                             std::move(inspector),
                                             options);
+
+#ifndef COCOA_USE_MONOLITHIC_V8
         startup_data_releaser.cancel();
+#endif // COCOA_USE_MONOLITHIC_V8
 
         auto isolateGuard = std::make_unique<GlobalIsolateGuard>(runtime);
         runtime->SetGlobalIsolateGuard(std::move(isolateGuard));
@@ -643,6 +651,8 @@ KeepInLoop Runtime::checkDispatch()
 
 void Runtime::PerformTasksCheckpoint()
 {
+    TRACE_EVENT("main", "Runtime::PerformTasksCheckpoint");
+
     /**
      * We must set `resolved_promises_` counter to zero before `PerformMicrotaskCheckpoint`
      * instead of setting it after that function, because `PerformMicrotaskCheckpoint`

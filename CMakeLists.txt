@@ -23,6 +23,7 @@ include_directories(
         third_party/skia
         third_party/v8
         third_party/v8/include
+        third_party/v8/out/debug.static/gen
         third_party/build/include)
 
 link_directories(third_party/build/lib)
@@ -37,6 +38,7 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     ## See: https://bugs.llvm.org/show_bug.cgi?id=24202
     add_compile_options(-fstandalone-debug)
 endif()
+
 
 add_subdirectory(src/Core)
 add_subdirectory(src/Glamor)
@@ -66,6 +68,5 @@ target_link_libraries(
 
 add_subdirectory(tests)
 
-if (${COCOA_BUILD_TOY_NATIVES})
-    # Adding something
-endif()
+add_library(perfetto STATIC ${COCOA_THIRDPARTY_DIR}/perfetto/sdk/perfetto.cc)
+target_link_libraries(Cocoa perfetto)

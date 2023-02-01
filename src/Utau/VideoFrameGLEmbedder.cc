@@ -18,8 +18,6 @@
 #include <future>
 #include <chrono>
 
-#include "fmt/format.h"
-
 #include "include/core/SkPixmap.h"
 #include "include/core/SkImage.h"
 #include "include/core/SkYUVAInfo.h"
@@ -30,6 +28,7 @@
 
 #include "Core/EventLoop.h"
 #include "Core/Journal.h"
+#include "Core/TraceEvent.h"
 #include "Glamor/Layers/ExternalTextureLayer.h"
 #include "Utau/VideoFrameGLEmbedder.h"
 #include "Utau/VideoBuffer.h"
@@ -529,6 +528,8 @@ public:
      */
     sk_sp<SkImage> Acquire(GrDirectContext *direct_context) override
     {
+        TRACE_EVENT("multimedia", "VAAPIVBOAccessor::Acquire");
+
         map_frame_ = async_map_promise_->get_future().get();
         async_map_pending_ = false;
         if (!map_frame_)
@@ -601,6 +602,8 @@ public:
 
     sk_sp<SkImage> Acquire(GrDirectContext *direct) override
     {
+        TRACE_EVENT("multimedia", "HostVBOAccessor");
+
         return create_skimage_from_frame(direct, frame_,
                                          scale_size_, sampling_,
                                          embedder_->GetSwsContextCache(), false);
@@ -628,6 +631,8 @@ VideoFrameGLEmbedder::Commit(const std::shared_ptr<VideoBuffer>& buffer,
                               const SkISize& size,
                               const SkSamplingOptions& sampling)
 {
+    TRACE_EVENT("multimedia", "VideoFrameGLEmbedder::Commit");
+
     CHECK(buffer);
 
     auto *frame = buffer->CastUnderlyingPointer<AVFrame>();
@@ -665,6 +670,8 @@ VideoFrameGLEmbedder::Commit(const std::shared_ptr<VideoBuffer>& buffer,
 
 sk_sp<SkImage> VideoFrameGLEmbedder::ConvertToRasterImage(const std::shared_ptr<VideoBuffer>& buffer)
 {
+    TRACE_EVENT("multimedia", "VideoFrameGLEmbedder::ConvertToRasterImage");
+
     CHECK(buffer);
 
     auto *frame = buffer->CastUnderlyingPointer<AVFrame>();

@@ -23,7 +23,9 @@
 
 #include "include/v8.h"
 
+#include "Core/TraceEvent.h"
 #include "Gallium/Gallium.h"
+
 GALLIUM_NS_BEGIN
 
 class VMIntrospect
@@ -88,7 +90,7 @@ public:
     static std::unique_ptr<VMIntrospect> InstallGlobal(v8::Isolate *isolate);
 
     g_nodiscard inline v8::Isolate *getIsolate() const {
-        return fIsolate;
+        return isolate_;
     }
 
     /**
@@ -105,14 +107,23 @@ public:
     v8::MaybeLocal<v8::Function> getCallbackFromSlot(CallbackSlot slot);
 
     inline void scheduledTaskEnqueue(ScheduledTask task) {
-        fScheduledTaskQueue.emplace(std::move(task));
+        scheduled_task_queue_.emplace(std::move(task));
     }
     PerformCheckpointResult performScheduledTasksCheckpoint();
 
+    g_private_api void SetCurrentTracingSession(std::unique_ptr<perfetto::TracingSession> session) {
+        current_tracing_session_ = std::move(session);
+    }
+
+    g_private_api std::unique_ptr<perfetto::TracingSession>& GetTracingSession() {
+        return current_tracing_session_;
+    }
+
 private:
-    CallbackMap     fCallbackMap;
-    TaskQueue       fScheduledTaskQueue;
-    v8::Isolate    *fIsolate;
+    CallbackMap                                  callback_map_;
+    TaskQueue                                    scheduled_task_queue_;
+    v8::Isolate                                 *isolate_;
+    std::unique_ptr<perfetto::TracingSession>    current_tracing_session_;
 };
 
 GALLIUM_NS_END

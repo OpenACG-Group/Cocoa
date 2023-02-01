@@ -15,6 +15,7 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Core/TraceEvent.h"
 #include "Core/EventLoop.h"
 #include "Core/Errors.h"
 #include "Core/Journal.h"
@@ -343,6 +344,8 @@ bool AVStreamDecoder::FlushDecoderBuffers(StreamSelector stream)
 
 AVStreamDecoder::AVGenericDecoded AVStreamDecoder::DecodeNextFrame()
 {
+    TRACE_EVENT("multimedia", "AVStreamDecoder::DecodeNextFrame");
+
     if (!decoder_priv_->packet_)
     {
         decoder_priv_->packet_ = av_packet_alloc();

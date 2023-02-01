@@ -18,6 +18,7 @@
 #include "include/core/SkCanvas.h"
 
 #include "Core/Journal.h"
+#include "Core/TraceEvent.h"
 #include "Glamor/Wayland/WaylandUtils.h"
 #include "Glamor/Wayland/WaylandDisplay.h"
 #include "Glamor/Wayland/WaylandSHMRenderTarget.h"
@@ -206,6 +207,8 @@ int32_t WaylandSHMRenderTarget::GetNextDrawingBuffer()
 
 SkSurface *WaylandSHMRenderTarget::OnBeginFrame()
 {
+    TRACE_EVENT("rendering", "WaylandSHMRenderTarget::OnBeginFrame");
+
     if (drawing_buffer_idx_ < 0)
         return nullptr;
 
@@ -233,6 +236,8 @@ const wl_callback_listener g_frame_callback_listener = {
 
 void WaylandSHMRenderTarget::OnSubmitFrame(SkSurface *surface, const SkRegion& damage)
 {
+    TRACE_EVENT("rendering", "WaylandSHMRenderTarget::OnSubmitFrame");
+
     CHECK(drawing_buffer_idx_ >= 0);
     if (surface != buffers_[drawing_buffer_idx_]->surface.get())
     {

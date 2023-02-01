@@ -241,7 +241,7 @@ uint32_t RenderClientObjectWrap::connect(const std::string& name, v8::Local<v8::
     }
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto closure = SlotClosure::New(isolate, code, getObject(), callback, acceptors_map_[code]);
+    auto closure = SlotClosure::New(isolate, code, name, getObject(), callback, acceptors_map_[code]);
     uint32_t slot_id = closure->slot_id_;
     slot_closures_map_[closure->slot_id_] = std::move(closure);
 

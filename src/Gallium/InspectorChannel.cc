@@ -54,6 +54,7 @@ void send_frontend_message(InspectorClient *client,
                            std::unique_ptr<v8_inspector::StringBuffer> message)
 {
     v8::Isolate *isolate = client->GetIsolate();
+    v8::Isolate::AllowJavascriptExecutionScope allow_js_scope(isolate);
     v8::HandleScope scope(isolate);
 
     std::string string = inspector_string_view_extract(isolate, message->string());

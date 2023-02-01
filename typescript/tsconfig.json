@@ -34,6 +34,10 @@
         "samples/sknative_offscreen_hilbert.ts",
         "samples/sknative_window.ts",
         "samples/sknative_runtime_effect.ts",
-        "samples/paragraph_simple_layout.ts"
+        "samples/paragraph_simple_layout.ts",
+
+        "vizmoe/compiler/viz-scanner.ts",
+        "vizmoe/compiler/viz-parser.ts",
+        "vizmoe/compiler/viz-scanner-test.ts"
     ]
 }

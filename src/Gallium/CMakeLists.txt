@@ -151,8 +151,9 @@ target_include_directories(Gallium PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(
         Gallium
         tinyxml2
-        v8
-        v8_libplatform
+        #v8
+        #v8_libplatform
+        ${COCOA_THIRDPARTY_DIR}/build/lib/libv8_monolith.a
         websockets
 
         skunicode
@@ -161,3 +162,5 @@ target_link_libraries(
         # ${COCOA_THIRDPARTY_DIR}/build/lib/libskunicode.a
         # ${COCOA_THIRDPARTY_DIR}/build/lib/libskshaper.a
 )
+
+target_compile_definitions(Gallium PRIVATE COCOA_USE_MONOLITHIC_V8=1)

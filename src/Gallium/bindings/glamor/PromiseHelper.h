@@ -55,6 +55,7 @@ struct SlotClosure
 {
     static std::unique_ptr<SlotClosure> New(v8::Isolate *isolate,
                                             int32_t signal,
+                                            const std::string& signal_name,
                                             const gl::Shared<gl::RenderClientObject>& client,
                                             v8::Local<v8::Function> callback,
                                             InfoAcceptor acceptor);
@@ -67,6 +68,7 @@ struct SlotClosure
     InfoAcceptor acceptor_;
     uint32_t slot_id_;
     int32_t signal_code_;
+    std::string signal_name_;
 };
 
 template<typename RealT, typename CastT, bool CreateObj = false, bool ExtractValue = false>

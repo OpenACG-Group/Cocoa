@@ -17,6 +17,7 @@
 
 #include "Glamor/Blender.h"
 
+#include "Core/TraceEvent.h"
 #include "Gallium/bindings/core/Exports.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/PromiseHelper.h"
@@ -92,6 +93,8 @@ v8::Local<v8::Value> BlenderWrap::dispose()
 
 v8::Local<v8::Value> BlenderWrap::update(v8::Local<v8::Value> sceneObject)
 {
+    TRACE_EVENT("main", "BlenderWrap::update");
+
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
     Scene *scene = binder::Class<Scene>::unwrap_object(isolate, sceneObject);
@@ -109,6 +112,8 @@ v8::Local<v8::Value> BlenderWrap::update(v8::Local<v8::Value> sceneObject)
 
 v8::Local<v8::Value> BlenderWrap::deleteTexture(int64_t id)
 {
+    TRACE_EVENT("main", "BlenderWrap::deleteTexture");
+
     return invoke_void_return(v8::Isolate::GetCurrent(),
                               GLOP_BLENDER_DELETE_TEXTURE,
                               this,
@@ -119,6 +124,8 @@ v8::Local<v8::Value>
 BlenderWrap::newTextureDeletionSubscriptionSignal(int64_t id,
                                                   const std::string& sigName)
 {
+    TRACE_EVENT("main", "BlenderWrap::newTextureDeletionSubscriptionSignal");
+
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
     auto acceptor = [this, sigName](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
@@ -141,6 +148,8 @@ BlenderWrap::newTextureDeletionSubscriptionSignal(int64_t id,
 v8::Local<v8::Value> BlenderWrap::createTextureFromImage(v8::Local<v8::Value> image,
                                                          const std::string& annotation)
 {
+    TRACE_EVENT("main", "BlenderWrap::createTextureFromImage");
+
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
     CkImageWrap *wrapper = binder::Class<CkImageWrap>::unwrap_object(isolate, image);
@@ -163,6 +172,8 @@ BlenderWrap::createTextureFromEncodedData(v8::Local<v8::Value> buffer,
                                           v8::Local<v8::Value> alphaType,
                                           const std::string& annotation)
 {
+    TRACE_EVENT("main", "BlenderWrap::createTextureFromEncodedData");
+
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
     Buffer *wrapper = binder::Class<Buffer>::unwrap_object(isolate, buffer);
@@ -216,6 +227,8 @@ BlenderWrap::createTextureFromPixmap(v8::Local<v8::Value> buffer,
                                      int32_t alphaType,
                                      const std::string& annotation)
 {
+    TRACE_EVENT("main", "BlenderWrap::createTextureFromPixmap");
+
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
     Buffer *wrapped = binder::Class<Buffer>::unwrap_object(isolate, buffer);
@@ -261,6 +274,8 @@ BlenderWrap::createTextureFromPixmap(v8::Local<v8::Value> buffer,
 
 v8::Local<v8::Value> BlenderWrap::captureNextFrameAsPicture()
 {
+    TRACE_EVENT("main", "BlenderWrap::captureNextFrameAsPicture");
+
     return invoke_primitive_type_return<int32_t>(v8::Isolate::GetCurrent(),
                                                  GLOP_BLENDER_CAPTURE_NEXT_FRAME_AS_PICTURE,
                                                  this);
@@ -268,6 +283,8 @@ v8::Local<v8::Value> BlenderWrap::captureNextFrameAsPicture()
 
 v8::Local<v8::Value> BlenderWrap::purgeRasterCacheResources()
 {
+    TRACE_EVENT("main", "BlenderWrap::purgeRasterCacheResources");
+
     return invoke_void_return(v8::Isolate::GetCurrent(),
                               GLOP_BLENDER_PURGE_RASTER_CACHE_RESOURCES, this);
 }

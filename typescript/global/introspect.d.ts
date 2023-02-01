@@ -152,6 +152,9 @@ interface Introspect {
      * @returns An array containing stack frames.
      */
     inspectStackTrace(frameLimit?: number): Array<StackTraceFrame>;
+
+    startProcessTracing(categories: string[], maxBufferKB: number): void;
+    finishProcessTracing(file: string): Promise<number>;
 }
 
 declare let introspect: Introspect;

@@ -15,10 +15,13 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "Core/Exception.h"
-#include "Gallium/bindings/glamor/PromiseHelper.h"
-
 #include <utility>
+
+#include "fmt/format.h"
+
+#include "Core/Exception.h"
+#include "Core/TraceEvent.h"
+#include "Gallium/bindings/glamor/PromiseHelper.h"
 #include "Gallium/Runtime.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
@@ -99,6 +102,9 @@ namespace {
 
 void slot_closure_callback(SlotClosure *closure, gl::RenderHostSlotCallbackInfo& info)
 {
+    std::string event_name = fmt::format("GLSignal:{}", closure->signal_name_);
+    TRACE_EVENT("main", perfetto::DynamicString(event_name));
+
     v8::HandleScope scope(closure->isolate_);
     v8::Local<v8::Context> ctx = closure->isolate_->GetCurrentContext();
 
@@ -137,6 +143,7 @@ void slot_closure_callback(SlotClosure *closure, gl::RenderHostSlotCallbackInfo&
 
 std::unique_ptr<SlotClosure> SlotClosure::New(v8::Isolate *isolate,
                                               int32_t signal,
+                                              const std::string& signal_name,
                                               const gl::Shared<gl::RenderClientObject>& client,
                                               v8::Local<v8::Function> callback,
                                               InfoAcceptor acceptor)
@@ -153,6 +160,7 @@ std::unique_ptr<SlotClosure> SlotClosure::New(v8::Isolate *isolate,
         slot_closure_callback(ptr, std::forward<decltype(info)>(info));
     });
     closure->signal_code_ = signal;
+    closure->signal_name_ = signal_name;
 
     return closure;
 }

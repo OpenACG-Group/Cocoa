@@ -53,6 +53,7 @@ add_library(
         ConcurrentTaskQueue.h
         ApplicationInfo.h
         ApplicationInfo.cc
+        TraceEvent.h
         ${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
 
         subprocess/SubprocessHost.h

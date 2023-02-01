@@ -22,6 +22,7 @@
 #include "include/core/SkSurface.h"
 #include "include/core/SkCanvas.h"
 
+#include "Core/TraceEvent.h"
 #include "Core/Journal.h"
 #include "Core/Exception.h"
 #include "Glamor/Glamor.h"
@@ -146,12 +147,14 @@ void WaylandHWComposeRenderTarget::OnClearFrameBuffers()
 
 SkSurface *WaylandHWComposeRenderTarget::OnBeginFrame()
 {
+    TRACE_EVENT("rendering", "WaylandHWComposeRenderTarget::OnBeginFrame");
     WaylandRoundtripScope scope(GetDisplay()->Cast<WaylandDisplay>());
     return swapchain_->NextFrame();
 }
 
 void WaylandHWComposeRenderTarget::OnSubmitFrame(SkSurface *surface, const SkRegion& damage)
 {
+    TRACE_EVENT("rendering", "WaylandHWComposeRenderTarget::OnSubmitFrame");
     WaylandRoundtripScope scope(GetDisplay()->Cast<WaylandDisplay>());
     swapchain_->SubmitFrame();
 }

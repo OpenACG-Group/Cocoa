@@ -28,6 +28,7 @@
 
 #include "Core/Errors.h"
 #include "Core/Journal.h"
+#include "Core/TraceEvent.h"
 #include "Glamor/HWComposeContext.h"
 #include "Glamor/HWComposeSwapchain.h"
 GLAMOR_NAMESPACE_BEGIN
@@ -525,6 +526,8 @@ bool HWComposeSwapchain::Resize(int32_t width, int32_t height)
 
 SkSurface *HWComposeSwapchain::NextFrame()
 {
+    TRACE_EVENT("rendering", "HWComposeSwapchain::NextFrame");
+
     GpuBufferInfo& buffer = gpu_buffers_[current_buffer_idx_];
     sk_sp<SkSurface> surface;
 
@@ -565,6 +568,8 @@ SkSurface *HWComposeSwapchain::NextFrame()
 
 void HWComposeSwapchain::SubmitFrame()
 {
+    TRACE_EVENT("rendering", "HWComposeSwapchain::SubmitFrame");
+
     GpuBufferInfo& buffer = gpu_buffers_[current_buffer_idx_];
     if (!buffer.acquired)
     {

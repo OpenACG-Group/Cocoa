@@ -166,12 +166,14 @@ blender.update(scene).then(() => { scene.dispose(); });
 ## Visual Novel Framework
 Cocoa based visual novel framework is still developing and undocumented.
 
-## Tracing APIs
+## Tracing and Inspecting APIs
 Tracing APIs are designed to trace resources and generate profiling
 to help developers and users improve performance of the application,
-or discover latent leaking of resources. Cocoa supports two tracing APIs now,
+or discover latent leaking of resources. Cocoa supports three four APIs now,
 by which you can trace graphic resources and message delivery between rendering
 thread and main thread.
+
+### Inspect alive graphic objects
 
 To generate a graphic resources report in JSON format, call `TraceGraphicsResources`
 function in JavaScript:
@@ -184,13 +186,53 @@ let json = await GL.RenderHost.TraceGraphicsResources();
 // `json` is a string in JSON format
 ```
 
+### Inspect message delivery of rendering thread
+
 To trace the message delivery of rendering thread, just add a `--gl-transfer-queue-profile`
 option to the commandline of Cocoa.
 And Cocoa will generate a JSON file named `transfer-profiling-<pid>.json` in the working directory.
+Format of that JSON file is introduced in our
+[documentation](https://openacg-group.github.io/rdrfw_async_rendering_model.html#id4).
 
 Note that the tracing of message delivery may cause slight loss of performance
 and increases CPU time. But the tracing of resources will not have obvious effect
 on the performance.
+
+### Use GProfiler
+GProfiler API provides an interface by which users can profile Cocoa's graphics
+pipeline. This API can be enabled by commandline option `--gl-enable-profiler`.
+
+A property named `profiler` will be available automatically on `Blender` object,
+then users should use this property to access GProfiler and generate a report.
+A GProfiler report contains timing measurement datas of several recent frames.
+
+```javascript
+// ... Assuming the Blender object is `blender`
+const report = blender.profiler.generateCurrentReport();
+```
+
+See our API reference for more details.
+
+### Google Perfetto
+Cocoa also supports Google's [Perfetto](https://perfetto.dev), a powerful tracing framework,
+to trace the execution of whole Cocoa process. Use the global `introspect` object to start a
+tracing session, and do something you want to trace, then finish the tracing session and save
+results into a file:
+
+```javascript
+// Start a tracing session
+introspect.startProcessTracing(['main', 'rendering', 'multimedia'], 10240);
+
+// ... do something you want to trace
+
+// Finish the tracing session and save results into a file.
+// This is an asynchronous API.
+await introspect.finishProcessTracing('./tracing.perfetto-trace');
+```
+
+Finally, visualize the tracing results by [Perfetto's online viewer](https://ui.perfetto.dev).
+
+See our documentation for more details about using Perfetto.
 
 ## Third Parties
 Cocoa depends on many opensource projects and thanks to them give us a more convenient way

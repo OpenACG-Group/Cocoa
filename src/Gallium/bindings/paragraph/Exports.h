@@ -390,8 +390,6 @@ public:
     //! TSDecl: function getWordBoundary(offset: number): [number, number]
     v8::Local<v8::Value> getWordBoundary(int32_t offset);
 
-    // TODO(sora): API: getLineMetrics(...)
-
 private:
     std::unique_ptr<skia::textlayout::Paragraph> paragraph_;
 };

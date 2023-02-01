@@ -15,9 +15,15 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <fstream>
+
+#include "uv.h"
+
+#include "Core/EventLoop.h"
 #include "Core/Errors.h"
 #include "Core/Journal.h"
 #include "Core/Utils.h"
+#include "Core/TraceEvent.h"
 #include "Gallium/VMIntrospect.h"
 #include "Gallium/binder/Convert.h"
 #include "Gallium/binder/ThrowExcept.h"
@@ -240,6 +246,140 @@ void introspect_stacktrace(const v8::FunctionCallbackInfo<v8::Value>& args)
     args.GetReturnValue().Set(result);
 }
 
+//! TSDecl: function startProcessTracing(categories: string[], maxBufferKB: number): void
+void introspect_start_process_tracing(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+    VMIntrospect *introspect = get_bare_introspect_ptr(info);
+    if (introspect->GetTracingSession())
+        g_throw(Error, "A tracing session has already started");
+
+    if (info.Length() != 2)
+        g_throw(TypeError, fmt::format("Function expects 2 arguments but {} provided", info.Length()));
+    if (!info[0]->IsArray())
+        g_throw(TypeError, "Argument `categories` must be an array of strings");
+    if (!info[1]->IsNumber())
+        g_throw(TypeError, "Argument `maxBufferKB` must be a number");
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::HandleScope scope(isolate);
+
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    auto categories_arr = v8::Local<v8::Array>::Cast(info[0]);
+
+    uint32_t nb_categories = categories_arr->Length();
+    perfetto::protos::gen::TrackEventConfig track_event_cfg;
+    for (uint32_t i = 0; i < nb_categories; i++)
+    {
+        auto v = categories_arr->Get(context, i).FromMaybe(v8::Local<v8::Value>());
+        if (!v->IsString())
+            g_throw(TypeError, "Argument `categories` must be an array of strings");
+        track_event_cfg.add_enabled_categories(binder::from_v8<std::string>(isolate, v));
+    }
+
+    auto max_buffer_kb = binder::from_v8<int32_t>(isolate, info[1]);
+    if (max_buffer_kb < 0)
+        g_throw(RangeError, "Invalid value for argument `maxBufferKB`");
+
+    perfetto::TraceConfig cfg;
+    cfg.add_buffers()->set_size_kb(max_buffer_kb);
+
+    auto* ds_cfg = cfg.add_data_sources()->mutable_config();
+    ds_cfg->set_name("track_event");
+    ds_cfg->set_track_event_config_raw(track_event_cfg.SerializeAsString());
+
+    std::unique_ptr<perfetto::TracingSession> tracing_session(perfetto::Tracing::NewTrace());
+    tracing_session->Setup(cfg);
+    tracing_session->StartBlocking();
+
+    introspect->SetCurrentTracingSession(std::move(tracing_session));
+}
+
+// NOLINTNEXTLINE
+struct ReadTraceClosure
+{
+    v8::Isolate *isolate;
+    v8::Global<v8::Promise::Resolver> resolver;
+    size_t total_protobuf_size;
+    uv_async_t async;
+    std::string filepath;
+    std::ofstream file_stream;
+    std::unique_ptr<perfetto::TracingSession> tracing_session;
+};
+
+//! TSDecl: function finishProcessTracing(file: string): Promise<number>
+void introspect_finish_process_tracing(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+    VMIntrospect *introspect = get_bare_introspect_ptr(info);
+    if (!introspect->GetTracingSession())
+        g_throw(Error, "A tracing session has not started yet");
+
+    if (info.Length() != 1)
+        g_throw(TypeError, fmt::format("Function expects 1 argument but {} provided"));
+    if (!info[0]->IsString())
+        g_throw(TypeError, "Argument `file` must be a string");
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::EscapableHandleScope scope(isolate);
+
+    auto resolver = v8::Promise::Resolver::New(isolate->GetCurrentContext()).ToLocalChecked();
+
+    // The `closure` will only be deleted in the callback of async handle
+    auto *closure = new ReadTraceClosure;
+    closure->isolate = isolate;
+    closure->resolver.Reset(isolate, resolver);
+    closure->total_protobuf_size = 0;
+    closure->async.data = closure;
+    closure->filepath = binder::from_v8<std::string>(isolate, info[0]);
+    closure->file_stream.open(closure->filepath, std::ios::out | std::ios::binary);
+    if (!closure->file_stream.is_open())
+        g_throw(Error, fmt::format("Could not open file {}", closure->filepath));
+
+    uv_async_init(EventLoop::Ref().handle(), &closure->async, [](uv_async_t *handle) {
+        auto *closure = reinterpret_cast<ReadTraceClosure*>(handle->data);
+        CHECK(closure);
+
+        v8::HandleScope scope(closure->isolate);
+        v8::Local<v8::Context> ctx = closure->isolate->GetCurrentContext();
+        v8::Local<v8::Promise::Resolver> resolver =
+                closure->resolver.Get(closure->isolate);
+
+        resolver->Resolve(ctx, binder::to_v8(
+                closure->isolate, closure->total_protobuf_size)).Check();
+
+        closure->tracing_session.reset();
+
+        // Destroy closure immediately as it will not be used again
+        uv_close(reinterpret_cast<uv_handle_t*>(handle), [](uv_handle_t *h) {
+            delete reinterpret_cast<ReadTraceClosure*>(h->data);
+        });
+    });
+
+    std::unique_ptr<perfetto::TracingSession> session = std::move(introspect->GetTracingSession());
+    session->StopBlocking();
+    session->ReadTrace([closure](perfetto::TracingSession::ReadTraceCallbackArgs args) {
+        if (args.size > 0)
+        {
+            CHECK(args.data);
+            closure->total_protobuf_size += args.size;
+            closure->file_stream.write(args.data, static_cast<std::streamsize>(args.size));
+        }
+
+        if (args.size == 0 || !args.has_more)
+        {
+            // Reading has finished; close the stream.
+            closure->file_stream.close();
+
+            // Notify main thread that we have finished reading, then the callback
+            // we registered above will be called from main thread sooner.
+            uv_async_send(&closure->async);
+        }
+    });
+
+    closure->tracing_session = std::move(session);
+
+    info.GetReturnValue().Set(resolver->GetPromise());
+}
+
 } // namespace anonymous
 
 std::unique_ptr<VMIntrospect> VMIntrospect::InstallGlobal(v8::Isolate *isolate)
@@ -287,6 +427,12 @@ std::unique_ptr<VMIntrospect> VMIntrospect::InstallGlobal(v8::Isolate *isolate)
     object->Set(isolate,
                 "inspectStackTrace",
                 FT::New(isolate, introspect_stacktrace));
+    object->Set(isolate,
+                "startProcessTracing",
+                FT::New(isolate, introspect_start_process_tracing));
+    object->Set(isolate,
+                "finishProcessTracing",
+                FT::New(isolate, introspect_finish_process_tracing));
 
     auto introspect = std::make_unique<VMIntrospect>(isolate);
     CHECK(introspect);
@@ -297,27 +443,27 @@ std::unique_ptr<VMIntrospect> VMIntrospect::InstallGlobal(v8::Isolate *isolate)
 }
 
 VMIntrospect::VMIntrospect(v8::Isolate *isolate)
-    : fIsolate(isolate)
+    : isolate_(isolate)
 {
 }
 
 VMIntrospect::~VMIntrospect()
 {
-    for (auto& item : fCallbackMap)
+    for (auto& item : callback_map_)
         item.second.Reset();
 }
 
 void VMIntrospect::setCallbackSlot(CallbackSlot slot, v8::Local<v8::Function> func)
 {
-    fCallbackMap[slot].Reset();
-    fCallbackMap[slot] = v8::Global<v8::Function>(fIsolate, func);
+    callback_map_[slot].Reset();
+    callback_map_[slot] = v8::Global<v8::Function>(isolate_, func);
 }
 
 v8::MaybeLocal<v8::Function> VMIntrospect::getCallbackFromSlot(CallbackSlot slot)
 {
-    if (!utils::MapContains(fCallbackMap, slot))
+    if (!utils::MapContains(callback_map_, slot))
         return {};
-    return fCallbackMap[slot].Get(fIsolate);
+    return callback_map_[slot].Get(isolate_);
 }
 
 namespace {
@@ -375,20 +521,20 @@ bool VMIntrospect::notifyPromiseMultipleResolve(v8::Local<v8::Promise> promise, 
 
 VMIntrospect::PerformCheckpointResult VMIntrospect::performScheduledTasksCheckpoint()
 {
-    Runtime *rt = Runtime::GetBareFromIsolate(fIsolate);
-    v8::HandleScope scope(fIsolate);
-    v8::Local<v8::Object> recv = fIsolate->GetCurrentContext()->Global();
-    while (!fScheduledTaskQueue.empty())
+    Runtime *rt = Runtime::GetBareFromIsolate(isolate_);
+    v8::HandleScope scope(isolate_);
+    v8::Local<v8::Object> recv = isolate_->GetCurrentContext()->Global();
+    while (!scheduled_task_queue_.empty())
     {
-        ScheduledTask task(std::move(fScheduledTaskQueue.front()));
-        fScheduledTaskQueue.pop();
+        ScheduledTask task(std::move(scheduled_task_queue_.front()));
+        scheduled_task_queue_.pop();
         CHECK(task.type != ScheduledTask::Type::kInvalid);
 
         v8::Local<v8::Value> value;
         bool hasCaught;
         v8::Local<v8::Value> exception;
         {
-            v8::TryCatch tryCatch(fIsolate);
+            v8::TryCatch tryCatch(isolate_);
             if (task.type == ScheduledTask::Type::kEvalScript)
             {
                 value = rt->ExecuteScript("<anonymous@scheduled>", task.param.c_str())
@@ -399,33 +545,33 @@ VMIntrospect::PerformCheckpointResult VMIntrospect::performScheduledTasksCheckpo
                 try {
                     value = rt->EvaluateModule(task.param).FromMaybe(v8::Local<v8::Value>());
                 } catch (const std::exception& e) {
-                    binder::throw_(fIsolate, e.what(), v8::Exception::Error);
+                    binder::throw_(isolate_, e.what(), v8::Exception::Error);
                 }
             }
             hasCaught = tryCatch.HasCaught();
             exception = tryCatch.Exception();
         }
 
-        v8::TryCatch tryCatch(fIsolate);
+        v8::TryCatch tryCatch(isolate_);
         tryCatch.SetVerbose(true);
         if (hasCaught)
         {
             if (!task.reject.IsEmpty())
-                binder::Invoke(fIsolate, task.reject.Get(fIsolate), recv, exception);
+                binder::Invoke(isolate_, task.reject.Get(isolate_), recv, exception);
             else
             {
-                v8::Local<v8::String> str = exception->ToString(fIsolate->GetCurrentContext())
+                v8::Local<v8::String> str = exception->ToString(isolate_->GetCurrentContext())
                                             .FromMaybe(v8::Local<v8::String>());
                 std::string str_native = "<unknown>";
                 if (!str.IsEmpty())
-                    str_native = binder::from_v8<decltype(str_native)>(fIsolate, str);
+                    str_native = binder::from_v8<decltype(str_native)>(isolate_, str);
                 QLOG(LOG_ERROR, "%fg<re>Uncaught exception from scheduled evaluation: {}%reset", str_native);
                 return PerformCheckpointResult::kThrow;
             }
         }
         else if (!task.callback.IsEmpty())
         {
-            binder::Invoke(fIsolate, task.callback.Get(fIsolate), recv, value);
+            binder::Invoke(isolate_, task.callback.Get(isolate_), recv, value);
         }
         if (tryCatch.HasCaught())
             return PerformCheckpointResult::kThrow;

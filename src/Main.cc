@@ -27,7 +27,6 @@
 #include "Core/CmdParser.h"
 #include "Core/Errors.h"
 #include "Core/Utils.h"
-#include "Core/MeasuredTable.h"
 #include "Core/Journal.h"
 #include "Core/Exception.h"
 #include "Core/EventLoop.h"
@@ -35,6 +34,7 @@
 #include "Core/QResource.h"
 #include "Core/ProcessSignalHandler.h"
 #include "Core/ApplicationInfo.h"
+#include "Core/TraceEvent.h"
 #include "Core/subprocess/SubprocessHost.h"
 
 #include "Gallium/Runtime.h"
@@ -45,6 +45,8 @@
 #include "Utau/Utau.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Main)
+
+PERFETTO_TRACK_EVENT_STATIC_STORAGE();
 
 namespace cocoa {
 
@@ -123,6 +125,8 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
                                    gl::ContextOptions& glamor_options,
                                    utau::ContextOptions& utau_options)
 {
+    TRACE_EVENT("main", "cocoa::startup_initialize");
+
     cmd::ParseResult args;
     cmd::ParseState state = cmd::Parse(argc, argv, args);
     if (state == cmd::ParseState::kError)
@@ -347,7 +351,9 @@ void mainloop_execute(bool justInitialize,
     subproc::SubprocessHostRegistry::New();
 
     for (const auto& lib : ApplicationInfo::Ref().js_native_preloads)
+    {
         gallium::BindingManager::Ref().loadDynamicObject(lib);
+    }
 
     if (!justInitialize)
     {
@@ -400,6 +406,13 @@ void mainloop_execute(bool justInitialize,
 int startup_main(int argc, char const **argv)
 {
     InstallPrimarySignalHandler();
+
+    {
+        perfetto::TracingInitArgs args;
+        args.backends |= perfetto::kInProcessBackend;
+        perfetto::Tracing::Initialize(args);
+        perfetto::TrackEvent::Register();
+    }
 
     ScopeExitAutoInvoker epilogue([]() -> void {
         ApplicationInfo::Delete();

@@ -25,6 +25,7 @@
 #include "Core/Journal.h"
 #include "Core/Errors.h"
 #include "Core/ConcurrentTaskQueue.h"
+#include "Core/TraceEvent.h"
 #include "Gallium/Platform.h"
 GALLIUM_NS_BEGIN
 
@@ -76,6 +77,8 @@ private:
 
         while (std::unique_ptr<v8::Task> task = task_queue_.WaitPop())
         {
+            TRACE_EVENT("main", "AsyncTask");
+
             QLOG(LOG_DEBUG, "worker#{}: performing asynchronous task on the worker thread",
                  worker_index);
             task->Run();
@@ -161,7 +164,10 @@ private:
         CHECK(handle && handle->data);
         auto *sched = reinterpret_cast<DelayedTaskScheduler*>(handle->data);
         while (std::unique_ptr<v8::Task> task = sched->queue_.Pop())
+        {
+            TRACE_EVENT("main", "SchedulerTask");
             task->Run();
+        }
     }
 
     static void OnTimerExpired(uv_timer_t *timer)

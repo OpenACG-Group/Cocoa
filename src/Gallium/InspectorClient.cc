@@ -19,6 +19,7 @@
 #include "fmt/format.h"
 
 #include "Core/Journal.h"
+#include "Core/Errors.h"
 #include "Gallium/Inspector.h"
 #include "Gallium/InspectorClient.h"
 #include "Gallium/InspectorChannel.h"
@@ -65,8 +66,8 @@ void InspectorClient::NotifyFrontendMessageArrival()
 
 void InspectorClient::runMessageLoopOnPause(int contextGroupId)
 {
-    if (is_nested_message_loop_)
-        return;
+    // if (is_nested_message_loop_)
+    //    return;
 
     should_quit_loop_ = false;
     is_nested_message_loop_ = true;
@@ -95,14 +96,23 @@ void InspectorClient::DisconnectedFromFrontend()
 
 v8::Local<v8::Context> InspectorClient::ensureDefaultContextInGroup(int contextGroupId)
 {
+    CHECK(contextGroupId == kContextGroupId);
     return context_.Get(isolate_);
 }
 
 void InspectorClient::DispatchMessage(const std::string& view)
 {
-    // fmt::print("\033[32;1mReceive:\033[0m {}\n", view);
-    auto *string_data = reinterpret_cast<const uint8_t*>(view.c_str());
-    v8_inspector_session_->dispatchProtocolMessage({ string_data, view.length() });
+    v8::HandleScope handle_scope(isolate_);
+    auto message = v8::String::NewFromUtf8(isolate_, view.c_str(),
+                                           v8::NewStringType::kNormal).ToLocalChecked();
+    int length = message->Length();
+    std::unique_ptr<uint16_t[]> buffer(new uint16_t[length]);
+    message->Write(isolate_, buffer.get(), 0, length);
+
+    v8_inspector::StringView message_view(buffer.get(), length);
+
+    v8::SealHandleScope seal_handle_scope(isolate_);
+    v8_inspector_session_->dispatchProtocolMessage(message_view);
 }
 
 GALLIUM_NS_END

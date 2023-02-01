@@ -25,6 +25,7 @@
 #include "include/utils/SkNWayCanvas.h"
 
 #include "Core/StandaloneThreadPool.h"
+#include "Core/TraceEvent.h"
 #include "Core/Journal.h"
 #include "Glamor/Blender.h"
 #include "Glamor/RenderTarget.h"
@@ -257,6 +258,8 @@ SkColorInfo Blender::GetOutputColorInfo() const
 
 void Blender::SurfaceFrameSlot()
 {
+    TRACE_EVENT("rendering", "Blender::SurfaceFrameSlot");
+
     if (frame_schedule_state_ == FrameScheduleState::kIdle)
     {
         QLOG(LOG_WARNING, "Frame scheduler: Expecting PendingFrame state instead of Idle");
@@ -284,6 +287,7 @@ void Blender::SurfaceFrameSlot()
 
 int32_t Blender::CaptureNextFrameAsPicture()
 {
+    TRACE_EVENT("rendering", "Blender::CaptureNextFrameAsPicture");
     if (!should_capture_next_frame_)
     {
         should_capture_next_frame_ = true;
@@ -294,6 +298,8 @@ int32_t Blender::CaptureNextFrameAsPicture()
 
 void Blender::Update(const Shared<LayerTree> &layer_tree)
 {
+    TRACE_EVENT("rendering", "Blender::Update");
+
     if (frame_schedule_state_ == FrameScheduleState::kPendingFrame)
     {
         QLOG(LOG_WARNING, "Frame scheduler: frame is dropped (updating in PendingFrame state)");
@@ -412,16 +418,20 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
 
 void Blender::SurfaceResizeSlot(int32_t width, int32_t height)
 {
+    TRACE_EVENT("rendering", "Blender::SurfaceResizeSlot");
     layer_tree_->SetFrameSize(SkISize::Make(width, height));
 }
 
 bool Blender::DeleteTexture(Texture::TextureId id)
 {
+    TRACE_EVENT("rendering", "Blender::DeleteTexture");
     return texture_manager_->Delete(id);
 }
 
 int32_t Blender::NewTextureDeletionSubscriptionSignal(Texture::TextureId id)
 {
+    TRACE_EVENT("rendering", "Blender::NewTextureDeletionSubscriptionSignal");
+
     // Dynamic signal number starts from 16 because it is a number which
     // is big enough to avoid overriding the existing static signal numbers.
     static int32_t signal_counter = 16;
@@ -438,6 +448,8 @@ Blender::MaybeTextureId Blender::CreateTextureFromEncodedData(const Shared<Data>
                                                               std::optional<SkAlphaType> alpha_type,
                                                               const std::string& annotation)
 {
+    TRACE_EVENT("rendering", "Blender::CreateTextureFromEncodedData");
+
     CHECK(data);
     return texture_manager_->Create([data, alpha_type](const Unique<TextureFactory>& factory) {
         return factory->MakeFromEncodedData(data, alpha_type);
@@ -447,6 +459,8 @@ Blender::MaybeTextureId Blender::CreateTextureFromEncodedData(const Shared<Data>
 Blender::MaybeTextureId Blender::CreateTextureFromImage(const sk_sp<SkImage>& image,
                                                         const std::string& annotation)
 {
+    TRACE_EVENT("rendering", "Blender::CreateTextureFromImage");
+
     CHECK(image);
     return texture_manager_->Create([image](const Unique<TextureFactory>& factory) {
         return factory->MakeFromImage(image);
@@ -457,6 +471,8 @@ Blender::MaybeTextureId Blender::CreateTextureFromPixmap(const void *pixels,
                                                          const SkImageInfo& image_info,
                                                          const std::string& annotation)
 {
+    TRACE_EVENT("rendering", "Blender::CreateTextureFromPixmap");
+
     CHECK(pixels);
     return texture_manager_->Create([pixels, image_info](const Unique<TextureFactory>& factory) {
         SkPixmap pixmap(image_info, pixels, image_info.minRowBytes());
@@ -503,6 +519,7 @@ void Blender::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept
 
 void Blender::PurgeRasterCacheResources()
 {
+    TRACE_EVENT("rendering", "Blender::PurgeRasterCacheResources");
     raster_cache_->PurgeAllCaches();
 }
 

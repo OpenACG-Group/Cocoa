@@ -159,6 +159,9 @@ void Inspector::AsyncHandler(uv_async_t *async)
 
             try
             {
+                v8::HandleScope handle_scope(inspector->isolate_);
+                v8::Context::Scope context_scope(inspector->isolate_->GetCurrentContext());
+
                 v8::Local<v8::Value> result;
                 bool success = runtime->EvaluateModule(url).ToLocal(&result);
                 if (!success)

@@ -15,6 +15,7 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Core/TraceEvent.h"
 #include "Glamor/RenderTarget.h"
 GLAMOR_NAMESPACE_BEGIN
 
@@ -32,6 +33,7 @@ RenderTarget::RenderTarget(const Shared<Display>& display, RenderDevice device,
 
 SkSurface *RenderTarget::BeginFrame()
 {
+    TRACE_EVENT("rendering", "RenderTarget::BeginFrame");
     current_frame_ = this->OnBeginFrame();
     return current_frame_;
 }
@@ -43,6 +45,7 @@ SkSurface *RenderTarget::GetCurrentFrameSurface()
 
 void RenderTarget::Submit(const SkRegion& damage)
 {
+    TRACE_EVENT("rendering", "RenderTarget::Submit");
     this->OnSubmitFrame(current_frame_, damage);
     current_frame_ = nullptr;
 }
@@ -78,6 +81,7 @@ sk_sp<SkSurface> RenderTarget::CreateOffscreenBackendSurface(const SkImageInfo& 
 
 uint32_t RenderTarget::RequestNextFrame()
 {
+    TRACE_EVENT("rendering", "RenderTarget::RequestNextFrame");
     return this->OnRequestNextFrame();
 }
 
