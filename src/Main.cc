@@ -39,7 +39,6 @@
 #include "Gallium/BindingManager.h"
 #include "Glamor/Glamor.h"
 #include "Utau/Utau.h"
-#include "Clutter/Clutter.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Main)
 
@@ -338,9 +337,6 @@ void mainloop_execute(bool justInitialize,
     // Initialize QResource module, loading internal resources
     QResource::New();
 
-    // Initialize Clutter (subprocess services)
-    clutter::GlobalContext::New();
-
     // Initialize Glamor (rendering engine)
     gl::GlobalScope::New(gl_options, EventLoop::Instance());
 
@@ -397,8 +393,6 @@ void mainloop_execute(bool justInitialize,
     // RenderHost message queue profiler may register a threadpool work.
     // To make sure the task performed properly, we run event loop again.
     EventLoop::Ref().run();
-
-    clutter::GlobalContext::Delete();
 
     QResource::Delete();
     EventLoop::Delete();

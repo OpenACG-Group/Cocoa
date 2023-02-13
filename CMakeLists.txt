@@ -44,7 +44,6 @@ add_subdirectory(src/Glamor)
 add_subdirectory(src/Gallium)
 # add_subdirectory(src/Reactor)
 add_subdirectory(src/Utau)
-add_subdirectory(src/Clutter)
 add_subdirectory(qresource/qresourcekit)
 
 add_executable(Cocoa src/Main.cc)
@@ -60,7 +59,6 @@ target_link_libraries(
         Gallium
         Utau
         Glamor
-        Clutter
         # Reactor
         Core
         ${LINK_STATIC_JSONCPP}
