@@ -77,10 +77,7 @@ private:
 
         while (std::unique_ptr<v8::Task> task = task_queue_.WaitPop())
         {
-            TRACE_EVENT("main", "AsyncTask");
-
-            QLOG(LOG_DEBUG, "worker#{}: performing asynchronous task on the worker thread",
-                 worker_index);
+            QLOG(LOG_DEBUG, "worker#{}: performing asynchronous task on the worker thread", worker_index);
             task->Run();
             task_queue_.NotifyOfCompletion();
         }

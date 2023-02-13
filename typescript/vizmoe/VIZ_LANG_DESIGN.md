@@ -1,2 +1,0 @@
-Viz Language Design
-====================

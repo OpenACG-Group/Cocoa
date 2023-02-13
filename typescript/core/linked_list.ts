@@ -7,7 +7,7 @@ export class LinkedListNode<T> {
 }
 
 export class LinkedList<T> {
-    #head: LinkedListNode<T>;
+    readonly #head: LinkedListNode<T>;
 
     constructor() {
         this.#head = new LinkedListNode<T>(this, undefined, true, null, null);

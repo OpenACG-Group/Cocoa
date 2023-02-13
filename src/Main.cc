@@ -35,14 +35,11 @@
 #include "Core/ProcessSignalHandler.h"
 #include "Core/ApplicationInfo.h"
 #include "Core/TraceEvent.h"
-#include "Core/subprocess/SubprocessHost.h"
-
 #include "Gallium/Runtime.h"
 #include "Gallium/BindingManager.h"
-
 #include "Glamor/Glamor.h"
-
 #include "Utau/Utau.h"
+#include "Clutter/Clutter.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Main)
 
@@ -341,14 +338,17 @@ void mainloop_execute(bool justInitialize,
     // Initialize QResource module, loading internal resources
     QResource::New();
 
-    // Initialize Glamor (rendering engine) and Utau (multimedia processing engine)
+    // Initialize Clutter (subprocess services)
+    clutter::GlobalContext::New();
+
+    // Initialize Glamor (rendering engine)
     gl::GlobalScope::New(gl_options, EventLoop::Instance());
+
+    // Initialize Utau (multimedia processing engine)
     utau::InitializePlatform(utau_options);
 
     // Initialize binding manager
     gallium::BindingManager::New(options);
-
-    subproc::SubprocessHostRegistry::New();
 
     for (const auto& lib : ApplicationInfo::Ref().js_native_preloads)
     {
@@ -398,7 +398,8 @@ void mainloop_execute(bool justInitialize,
     // To make sure the task performed properly, we run event loop again.
     EventLoop::Ref().run();
 
-    subproc::SubprocessHostRegistry::Delete();
+    clutter::GlobalContext::Delete();
+
     QResource::Delete();
     EventLoop::Delete();
 }

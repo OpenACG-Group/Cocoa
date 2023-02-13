@@ -17,15 +17,17 @@
         "./global/introspect.d.ts"
     ],
     "files": [
-        "./synthetics/core.d.ts",
-        "./synthetics/glamor.d.ts",
-        "./synthetics/utau.d.ts",
-        "./synthetics/paragraph.d.ts",
+        "synthetics/core.d.ts",
+        "synthetics/typetraits.d.ts",
+        "synthetics/glamor.d.ts",
+        "synthetics/utau.d.ts",
+        "synthetics/paragraph.d.ts",
 
+        "./core/typetraits.ts",
         "./core/format.ts",
         "./core/assert.ts",
         "./core/linked_list.ts",
-        "./core/pretty_printer.ts",
+        "./core/formatter.ts",
 
         "GL/utils.ts",
         "GL/window.ts",
@@ -34,10 +36,6 @@
         "samples/sknative_offscreen_hilbert.ts",
         "samples/sknative_window.ts",
         "samples/sknative_runtime_effect.ts",
-        "samples/paragraph_simple_layout.ts",
-
-        "vizmoe/compiler/viz-scanner.ts",
-        "vizmoe/compiler/viz-parser.ts",
-        "vizmoe/compiler/viz-scanner-test.ts"
+        "samples/paragraph_simple_layout.ts"
     ]
 }

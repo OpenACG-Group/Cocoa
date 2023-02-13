@@ -1,4 +1,5 @@
 core ./core
+typetraits ./typetraits
 glamor ./glamor
 utau ./utau
 paragraph ./paragraph

@@ -15,19 +15,16 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COCOA_CORE_SUBPROCESS_SUBPROCESSCLIENT_H
-#define COCOA_CORE_SUBPROCESS_SUBPROCESSCLIENT_H
+#ifndef COCOA_CLUTTER_PROCESSLISTENER_H
+#define COCOA_CLUTTER_PROCESSLISTENER_H
 
-#include "Core/Project.h"
-#include "Core/UniquePersistent.h"
-#include "Core/Data.h"
-namespace cocoa::subproc {
+#include "Clutter/Clutter.h"
+CLUTTER_BEGIN_NAMESPACE
 
-class SubprocessClient
+class ProcessListener
 {
 public:
-    g_nodiscard static std::shared_ptr<SubprocessClient> ConnectHost();
 };
 
-} // namespace cocoa::subproc
-#endif //COCOA_CORE_SUBPROCESS_SUBPROCESSCLIENT_H
+CLUTTER_END_NAMESPACE
+#endif //COCOA_CLUTTER_PROCESSLISTENER_H

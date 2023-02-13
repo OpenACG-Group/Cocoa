@@ -55,15 +55,6 @@ add_library(
         ApplicationInfo.cc
         TraceEvent.h
         ${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
-
-        subprocess/SubprocessHost.h
-        subprocess/SubprocessHost.cc
-        subprocess/HostMessageListener.h
-        subprocess/Message.h
-        subprocess/Message.cc
-
-        subprocess/SubprocessClient.h
-        subprocess/SubprocessClient.cc
 )
 
 target_link_libraries(Core
@@ -77,14 +68,3 @@ target_link_libraries(Core
 
 ## For symbol analyzing in RuntimeException
 add_link_options(-rdynamic)
-
-add_executable(
-        ipc-test-subprocess
-        subprocess/IpcTestSubprocess.cc
-)
-set_target_properties(ipc-test-subprocess PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-target_link_libraries(
-        ipc-test-subprocess
-        PRIVATE
-        Core
-)

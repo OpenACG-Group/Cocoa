@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <info name="typetraits" description="JavaScript runtime type information"/>
+    <metadata namespace="cocoa::gallium::bindings::typetraits" class="TypetraitsBinding"/>
+    <include src="Gallium/bindings/typetraits/Exports.h"/>
+    <hook on="instantiate" call="SetInstanceProperties"/>
+
+    <exports>
+        <toplevel type="declaration" name="Constants"/>
+
+        <toplevel type="function" name="IsExternal" value="IsExternal"/>
+        <toplevel type="function" name="IsTypedArray" value="IsTypedArray"/>
+        <toplevel type="function" name="IsDate" value="IsDate"/>
+        <toplevel type="function" name="IsArgumentsObject" value="IsArgumentsObject"/>
+        <toplevel type="function" name="IsBigIntObject" value="IsBigIntObject"/>
+        <toplevel type="function" name="IsBooleanObject" value="IsBooleanObject"/>
+        <toplevel type="function" name="IsNumberObject" value="IsNumberObject"/>
+        <toplevel type="function" name="IsStringObject" value="IsStringObject"/>
+        <toplevel type="function" name="IsSymbolObject" value="IsSymbolObject"/>
+        <toplevel type="function" name="IsNativeError" value="IsNativeError"/>
+        <toplevel type="function" name="IsRegExp" value="IsRegExp"/>
+        <toplevel type="function" name="IsAsyncFunction" value="IsAsyncFunction"/>
+        <toplevel type="function" name="IsGeneratorFunction" value="IsGeneratorFunction"/>
+        <toplevel type="function" name="IsGeneratorObject" value="IsGeneratorObject"/>
+        <toplevel type="function" name="IsPromise" value="IsPromise"/>
+        <toplevel type="function" name="IsMap" value="IsMap"/>
+        <toplevel type="function" name="IsSet" value="IsSet"/>
+        <toplevel type="function" name="IsMapIterator" value="IsMapIterator"/>
+        <toplevel type="function" name="IsSetIterator" value="IsSetIterator"/>
+        <toplevel type="function" name="IsWeakMap" value="IsWeakMap"/>
+        <toplevel type="function" name="IsWeakSet" value="IsWeakSet"/>
+        <toplevel type="function" name="IsArrayBuffer" value="IsArrayBuffer"/>
+        <toplevel type="function" name="IsDataView" value="IsDataView"/>
+        <toplevel type="function" name="IsSharedArrayBuffer" value="IsSharedArrayBuffer"/>
+        <toplevel type="function" name="IsProxy" value="IsProxy"/>
+        <toplevel type="function" name="IsModuleNamespaceObject" value="IsModuleNamespaceObject"/>
+        <toplevel type="function" name="IsAnyArrayBuffer" value="IsAnyArrayBuffer"/>
+        <toplevel type="function" name="IsBoxedPrimitive" value="IsBoxedPrimitive"/>
+
+        <toplevel type="function" name="GetOwnNonIndexProperties" value="GetOwnNonIndexProperties"/>
+        <toplevel type="function" name="GetConstructorName" value="GetConstructorName"/>
+        <toplevel type="function" name="GetPromiseDetails" value="GetPromiseDetails"/>
+        <toplevel type="function" name="GetProxyDetails" value="GetProxyDetails"/>
+        <toplevel type="function" name="PreviewEntries" value="PreviewEntries"/>
+    </exports>
+</module>

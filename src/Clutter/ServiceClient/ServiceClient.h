@@ -15,21 +15,36 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COCOA_CORE_SUBPROCESS_HOSTMESSAGELISTENER_H
-#define COCOA_CORE_SUBPROCESS_HOSTMESSAGELISTENER_H
+#ifndef COCOA_CLUTTER_SERVICE_CLIENT_SERVICECLIENT_H
+#define COCOA_CLUTTER_SERVICE_CLIENT_SERVICECLIENT_H
 
-#include "Core/Data.h"
+#include <memory>
+#include <cstdint>
 
-namespace cocoa::subproc {
+#include "uv.h"
 
-class Message;
+#include "Core/Project.h"
 
-class HostMessageListener
+#define CLUTTER_SERVICE_CLIENT_NS_BEGIN namespace cocoa::clutter {
+#define CLUTTER_SERVICE_CLIENT_NS_END   }
+
+CLUTTER_SERVICE_CLIENT_NS_BEGIN
+
+class HostConnection
 {
 public:
-    virtual void OnClientMessage(Message *message) {}
-    virtual void OnSubprocessExit(int64_t status, int signal) {}
+    HostConnection();
+    ~HostConnection();
+
+    static std::unique_ptr<HostConnection> Connect();
+
+    g_nodiscard g_inline int GetIpcSocketPairFd() const {
+        return ipc_socketpair_fd_;
+    }
+
+private:
+    int             ipc_socketpair_fd_;
 };
 
-} // namespace cocoa::coproc
-#endif //COCOA_CORE_SUBPROCESS_HOSTMESSAGELISTENER_H
+CLUTTER_SERVICE_CLIENT_NS_END
+#endif //COCOA_CLUTTER_SERVICE_CLIENT_SERVICECLIENT_H

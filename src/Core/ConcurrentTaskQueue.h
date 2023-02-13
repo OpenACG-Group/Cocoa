@@ -27,7 +27,7 @@ namespace cocoa {
 
 /**
  * A thread-safe queue which can be accessed concurrently.
- * Typically the queue can be used with a implementation which
+ * Typically the queue can be used with an implementation which
  * uses the producer and consumer model, for example a thread pool.
  */
 
@@ -182,4 +182,4 @@ void ConcurrentTaskQueue<T>::Dispose()
 }
 
 } // namespace cocoa
-#endif //COCOA_CONCURRENTTASKQUEUE_H
+#endif //COCOA_CORE_CONCURRENTTASKQUEUE_H

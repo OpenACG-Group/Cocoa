@@ -1,5 +1,0 @@
-extern image_src: Image;
-
-Window {
-
-}

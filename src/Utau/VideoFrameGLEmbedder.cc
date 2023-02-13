@@ -468,6 +468,7 @@ public:
             AVFrame *map_frame = av_frame_alloc();
             CHECK(map_frame && "Failed to allocate memory");
 
+            TRACE_EVENT("multimedia", "VAAPIVBOAccessor:av_hwframe_map");
             int ret = av_hwframe_map(map_frame, frame, AV_HWFRAME_MAP_READ);
 
             /**
@@ -602,7 +603,7 @@ public:
 
     sk_sp<SkImage> Acquire(GrDirectContext *direct) override
     {
-        TRACE_EVENT("multimedia", "HostVBOAccessor");
+        TRACE_EVENT("multimedia", "HostVBOAccessor::Acquire");
 
         return create_skimage_from_frame(direct, frame_,
                                          scale_size_, sampling_,

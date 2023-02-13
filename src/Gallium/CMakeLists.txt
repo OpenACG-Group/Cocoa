@@ -3,12 +3,15 @@ set(CIB_SUBSCRIPT ${CMAKE_HOME_DIRECTORY}/script/modulec.py)
 set(CIB_MODULE_LISTS ${CMAKE_CURRENT_SOURCE_DIR}/bindings/ModuleLists.txt)
 set(CIB_MODULE_XML
         bindings/core/Module.xml
+        bindings/typetraits/Module.xml
         bindings/glamor/Module.xml
         bindings/paragraph/Module.xml
         bindings/utau/Module.xml)
+
 set(CIB_OUTPUT_FILE
         ${CMAKE_CURRENT_BINARY_DIR}/internal_bindings.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_core.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/module_typetraits.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_glamor.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_paragraph.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_utau.cc)
@@ -72,6 +75,9 @@ add_library(Gallium STATIC
         bindings/core/Buffer.cc
         bindings/core/Process.cc
         bindings/core/Stream.cc
+
+        bindings/typetraits/Exports.h
+        bindings/typetraits/Exports.cc
 
         bindings/glamor/Types.h
         bindings/glamor/Exports.h
@@ -151,9 +157,8 @@ target_include_directories(Gallium PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(
         Gallium
         tinyxml2
-        #v8
-        #v8_libplatform
-        ${COCOA_THIRDPARTY_DIR}/build/lib/libv8_monolith.a
+        _v8
+        _v8_libplatform
         websockets
 
         skunicode

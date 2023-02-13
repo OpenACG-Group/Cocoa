@@ -27,8 +27,6 @@
 #include "Core/Exception.h"
 #include "Core/Errors.h"
 #include "Core/ProcessSignalHandler.h"
-#include "Core/subprocess/SubprocessHost.h"
-#include "Core/subprocess/Message.h"
 #include "Core/EventLoop.h"
 namespace cocoa {
 

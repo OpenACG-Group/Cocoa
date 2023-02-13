@@ -2,5 +2,6 @@
   "esversion": 11,
   "undef": true,
   "unused": false,
+
   "module": true
 }

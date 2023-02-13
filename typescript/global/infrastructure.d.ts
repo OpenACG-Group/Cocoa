@@ -16,7 +16,7 @@ interface Global {
     introspect: Introspect;
 }
 
-declare let __global__: Global;
+declare let global: Global;
 declare let __runtime__: RuntimeInfo;
 
 declare function setTimeout(callback: Function, timeout: number, ...argv: any[]): number;
