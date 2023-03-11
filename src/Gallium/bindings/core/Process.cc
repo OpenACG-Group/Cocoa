@@ -260,6 +260,7 @@ v8::Local<v8::Value> ProcessWrap::Fork(v8::Local<v8::Object> options)
             }
             else if (bits == GAL_PROC_STREAM_REDIRECT)
             {
+                /*
                 auto *pipe = StreamWrap::Allocate<uv_pipe_t>();
                 uv_pipe_init(EventLoop::Ref().handle(), pipe, false);
 
@@ -271,6 +272,11 @@ v8::Local<v8::Value> ProcessWrap::Fork(v8::Local<v8::Object> options)
 
                 streams[field.second] = binder::Class<StreamWrap>::create_object(isolate,
                         reinterpret_cast<uv_stream_t *>(pipe));
+                */
+
+                // TODO(sora): ! Implement this as soon as possible
+
+                CHECK_FAILED("Not implemented yet!");
             }
             else if (bits)
             {

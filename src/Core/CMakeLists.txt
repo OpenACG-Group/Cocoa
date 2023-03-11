@@ -1,23 +1,3 @@
-set(BINARY_QRES_DIR ${CMAKE_BINARY_DIR}/qresource)
-file(MAKE_DIRECTORY ${BINARY_QRES_DIR})
-file(MAKE_DIRECTORY ${BINARY_QRES_DIR}/packages)
-
-set(CRPKG_INTERNAL_V8 ${BINARY_QRES_DIR}/packages/org.cocoa.internal.v8.crpkg)
-
-file(GLOB CRPKG_INTERNAL_V8_FILES ${QRESOURCE_DIR}/packages/internal_v8/*)
-add_custom_command(
-        OUTPUT ${CRPKG_INTERNAL_V8}
-        COMMAND ${CMAKE_BINARY_DIR}/cocoa-qresc ${QRESOURCE_DIR}/packages/internal_v8 ${BINARY_QRES_DIR}/packages
-        DEPENDS cocoa-qresc ${CRPKG_INTERNAL_V8_FILES}
-)
-
-add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
-        COMMAND ${CMAKE_HOME_DIRECTORY}/script/intern-crpkgs.py ${CRPKG_INTERNAL_V8}
-                >${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
-        DEPENDS ${CRPKG_INTERNAL_V8}
-)
-
 add_library(
         Core STATIC
         CmdParser.h
@@ -33,8 +13,6 @@ add_library(
         EventLoop.cc
         Filesystem.h
         FilesystemLinuxImpl.cc
-        CrpkgImage.h
-        CrpkgImage.cc
         Data.h
         Data.cc
         ScalableWriteBuffer.h
@@ -42,19 +20,18 @@ add_library(
         Errors.h
         Errors.cc
         EnumClassBitfield.h
-        QResource.h
-        QResource.cc
         StandaloneThreadPool.h
         StandaloneThreadPool.cc
         ProcessSignalHandler.h
         ProcessSignalHandler.cc
         HuffmanCodec.h
         HuffmanCodec.cc
+        ByteArrayCodecs.h
+        ByteArrayCodecs.cc
         ConcurrentTaskQueue.h
         ApplicationInfo.h
         ApplicationInfo.cc
         TraceEvent.h
-        ${CMAKE_CURRENT_BINARY_DIR}/QResourceAutoloadTbl.cc
 )
 
 target_link_libraries(Core

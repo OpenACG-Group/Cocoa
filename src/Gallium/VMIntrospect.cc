@@ -30,6 +30,8 @@
 #include "Gallium/binder/CallV8.h"
 #include "Gallium/BindingManager.h"
 #include "Gallium/bindings/Base.h"
+#include "Gallium/TracingController.h"
+#include "Glamor/SkEventTracerImpl.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.Introspect)
 
@@ -246,50 +248,119 @@ void introspect_stacktrace(const v8::FunctionCallbackInfo<v8::Value>& args)
     args.GetReturnValue().Set(result);
 }
 
-//! TSDecl: function startProcessTracing(categories: string[], maxBufferKB: number): void
+//! TSDecl:
+//! interface TracingConfig {
+//!   recordingBufferKB: number;
+//!   enable: Array<{
+//!     name: string;
+//!     options?: Array<string>;
+//!   }>;
+//! }
+
+// NOLINTNEXTLINE
+struct TracingConfig
+{
+    size_t buffer_size_kb;
+    perfetto::protos::gen::TrackEventConfig track_event_config;
+    std::vector<std::string> v8_trace_options;
+    std::vector<std::string> skia_trace_options;
+};
+
+void parse_tracing_config(v8::Local<v8::Object> obj, TracingConfig& out)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::HandleScope scope(isolate);
+
+    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+    v8::Local<v8::Value> empty;
+
+    v8::Local<v8::Value> recording_buf_kb = obj->Get(
+            ctx, v8::String::NewFromUtf8Literal(isolate, "recordingBufferKB")).FromMaybe(empty);
+    if (recording_buf_kb.IsEmpty())
+        g_throw(TypeError, "Missing `recordingBufferKB` property in tracing config");
+    if (!recording_buf_kb->IsUint32())
+        g_throw(TypeError, "Property `recordingBufferKB` must be an positive integer");
+    out.buffer_size_kb = recording_buf_kb.As<v8::Uint32>()->Value();
+
+    v8::Local<v8::Value> enable = obj->Get(
+            ctx, v8::String::NewFromUtf8Literal(isolate, "enable")).FromMaybe(empty);
+    if (enable.IsEmpty())
+        g_throw(TypeError, "Missing `enable` property in tracing config");
+    if (!enable->IsArray())
+        g_throw(TypeError, "Property `enable` must be an array");
+
+    out.track_event_config.add_disabled_categories("*");
+    uint32_t nb_enable = enable.As<v8::Array>()->Length();
+    for (uint32_t i = 0; i < nb_enable; i++)
+    {
+        auto e = enable.As<v8::Array>()->Get(ctx, i).FromMaybe(empty);
+        if (e.IsEmpty() || !e->IsObject())
+            g_throw(TypeError, "Invalid array provided by property `enable`");
+
+        auto name = e.As<v8::Object>()->Get(
+                ctx, v8::String::NewFromUtf8Literal(isolate, "name")).FromMaybe(empty);
+        if (name.IsEmpty() || !name->IsString())
+            g_throw(TypeError, fmt::format("Missing `name` property or not a string in `enable[{}]`", i));
+
+        auto name_str = binder::from_v8<std::string>(isolate, name);
+        out.track_event_config.add_enabled_categories(name_str);
+
+        if (name_str != "skia" && name_str != "v8")
+            continue;
+
+        auto options = e.As<v8::Object>()->Get(
+                ctx, v8::String::NewFromUtf8Literal(isolate, "options")).FromMaybe(empty);
+        if (options.IsEmpty() || options->IsNullOrUndefined())
+            continue;
+        if (!options->IsArray())
+            g_throw(TypeError, fmt::format("Invalid property `enable[{}].options`", i));
+
+        std::vector<std::string> *options_vec;
+        if (name_str == "skia")
+            options_vec = &out.skia_trace_options;
+        else
+            options_vec = &out.v8_trace_options;
+
+        uint32_t nb_options = options.As<v8::Array>()->Length();
+        for (uint32_t j = 0; j < nb_options; j++)
+        {
+            auto str = options.As<v8::Array>()->Get(ctx, j).FromMaybe(empty);
+            if (str.IsEmpty() || !str->IsString())
+                g_throw(TypeError, fmt::format("Invalid property `enable[{}].options[{}]`", i, j));
+            options_vec->emplace_back(binder::from_v8<std::string>(isolate, str));
+        }
+    }
+}
+
+//! TSDecl: function startProcessTracing(config: TracingConfig): void
 void introspect_start_process_tracing(const v8::FunctionCallbackInfo<v8::Value>& info)
 {
     VMIntrospect *introspect = get_bare_introspect_ptr(info);
     if (introspect->GetTracingSession())
         g_throw(Error, "A tracing session has already started");
 
-    if (info.Length() != 2)
-        g_throw(TypeError, fmt::format("Function expects 2 arguments but {} provided", info.Length()));
-    if (!info[0]->IsArray())
-        g_throw(TypeError, "Argument `categories` must be an array of strings");
-    if (!info[1]->IsNumber())
-        g_throw(TypeError, "Argument `maxBufferKB` must be a number");
+    if (info.Length() != 1)
+        g_throw(TypeError, fmt::format("Function expects 1 argument but {} provided", info.Length()));
+    if (!info[0]->IsObject())
+        g_throw(TypeError, "Argument `config` must be an object");
 
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::HandleScope scope(isolate);
-
-    v8::Local<v8::Context> context = isolate->GetCurrentContext();
-    auto categories_arr = v8::Local<v8::Array>::Cast(info[0]);
-
-    uint32_t nb_categories = categories_arr->Length();
-    perfetto::protos::gen::TrackEventConfig track_event_cfg;
-    for (uint32_t i = 0; i < nb_categories; i++)
-    {
-        auto v = categories_arr->Get(context, i).FromMaybe(v8::Local<v8::Value>());
-        if (!v->IsString())
-            g_throw(TypeError, "Argument `categories` must be an array of strings");
-        track_event_cfg.add_enabled_categories(binder::from_v8<std::string>(isolate, v));
-    }
-
-    auto max_buffer_kb = binder::from_v8<int32_t>(isolate, info[1]);
-    if (max_buffer_kb < 0)
-        g_throw(RangeError, "Invalid value for argument `maxBufferKB`");
+    TracingConfig config;
+    parse_tracing_config(info[0].As<v8::Object>(), config);
 
     perfetto::TraceConfig cfg;
-    cfg.add_buffers()->set_size_kb(max_buffer_kb);
+    cfg.add_buffers()->set_size_kb(config.buffer_size_kb);
 
     auto* ds_cfg = cfg.add_data_sources()->mutable_config();
     ds_cfg->set_name("track_event");
-    ds_cfg->set_track_event_config_raw(track_event_cfg.SerializeAsString());
+    ds_cfg->set_track_event_config_raw(config.track_event_config.SerializeAsString());
 
     std::unique_ptr<perfetto::TracingSession> tracing_session(perfetto::Tracing::NewTrace());
     tracing_session->Setup(cfg);
     tracing_session->StartBlocking();
+
+    Runtime *runtime = Runtime::GetBareFromIsolate(v8::Isolate::GetCurrent());
+    runtime->GetTracingController()->StartTracing(config.v8_trace_options);
+    gl::GlobalScope::Ref().GetSkEventTracerImpl()->StartTracing(config.skia_trace_options);
 
     introspect->SetCurrentTracingSession(std::move(tracing_session));
 }
@@ -354,8 +425,15 @@ void introspect_finish_process_tracing(const v8::FunctionCallbackInfo<v8::Value>
         });
     });
 
+    // Stop subsystem tracing
+    Runtime *runtime = Runtime::GetBareFromIsolate(isolate);
+    runtime->GetTracingController()->StopTracing();
+    gl::GlobalScope::Ref().GetSkEventTracerImpl()->StopTracing();
+
+    // Stop tracing session
     std::unique_ptr<perfetto::TracingSession> session = std::move(introspect->GetTracingSession());
     session->StopBlocking();
+
     session->ReadTrace([closure](perfetto::TracingSession::ReadTraceCallbackArgs args) {
         if (args.size > 0)
         {

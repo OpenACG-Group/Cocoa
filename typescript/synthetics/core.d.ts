@@ -21,11 +21,23 @@ export function getEnviron(): Map<string, string>;
 
 export function dumpNativeHeapProfile(): void;
 
-export class Stream implements AsyncIterable<any> {
+export interface StreamReadResult {
+    length: number;
+    buffer: Buffer;
+}
+
+declare class Stream implements AsyncIterable<StreamReadResult> {
     readonly readable: boolean;
     readonly writable: boolean;
 
-    [Symbol.asyncIterator](): AsyncIterator<any>;
+    public [Symbol.asyncIterator](): AsyncIterator<StreamReadResult>;
+    public write(buffers: Array<Buffer>): Promise<void>;
+}
+
+export class TTYStream extends Stream {
+    public static OpenStdin(): TTYStream;
+    public static OpenStdout(): TTYStream;
+    public static OpenStderr(): TTYStream;
 }
 
 export interface ProcessExitStatus {
@@ -229,8 +241,9 @@ export class Buffer {
     static MakeFromSize(size: number): Buffer;
     static MakeFromString(string: string, encoding: BufferEncoding): Buffer;
     static MakeFromFile(path: string): Promise<Buffer>;
-    static MakeFromPackageFile(package: string, path: string): Buffer;
+    static MakeFromPackageFile(packageFile: string, path: string): Buffer;
     static MakeFromAdoptBuffer(array: Uint8Array): Buffer;
+    static MakeFromBase64(base64: string): Buffer;
 
     readonly length: number;
     readonly byteArray: Uint8Array;

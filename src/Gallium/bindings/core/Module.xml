@@ -31,22 +31,24 @@
         <toplevel type="declaration" name="args"/>
         <toplevel type="declaration" name="property"/>
 
-        <class name="StreamWeakBuffer" wrapper="StreamWeakBuffer">
-            <method name="toStrongOwnership" value="@toStrongOwnership"/>
-            <property name="expired" getter="@isExpired"/>
-        </class>
-
-        <class name="StreamReadIterator" wrapper="StreamReadIterator">
+        <class name="StreamAsyncIterator" wrapper="StreamAsyncIterator">
             <method name="next" value="@next"/>
-            <method name="return" value="@return_"/>
             <method name="throw" value="@throw_"/>
+            <method name="return" value="@return_"/>
         </class>
 
-        <class name="Stream" wrapper="StreamWrap">
-            <method static="true" name="OpenTTYStdin" value="@OpenTTYStdin"/>
+        <class name="Stream" wrapper="StreamWrap" invisible="true">
             <property name="writable" getter="@isWritable"/>
             <property name="readable" getter="@isReadable"/>
             <method name="#AsyncIterator" value="@asyncIterator"/>
+            <method name="write" value="@write"/>
+        </class>
+
+        <class name="TTYStream" wrapper="TTYStreamWrap" inherit="StreamWrap">
+            <method static="true" name="OpenStdin" value="@OpenStdin"/>
+            <method static="true" name="OpenStdout" value="@OpenStdout"/>
+            <method static="true" name="OpenStderr" value="@OpenStderr"/>
+            <method name="close" value="@close"/>
         </class>
 
         <class name="Process" wrapper="ProcessWrap">
@@ -161,7 +163,7 @@
             <method static="true" name="MakeFromString" value="@MakeFromString"/>
             <method static="true" name="MakeFromFile" value="@MakeFromFile"/>
             <method static="true" name="MakeFromAdoptBuffer" value="@MakeFromAdoptBuffer"/>
-            <method static="true" name="MakeFromPackageFile" value="@MakeFromPackageFile"/>
+            <method static="true" name="MakeFromBase64" value="@MakeFromBase64"/>
             <property name="length" getter="@length"/>
             <property name="byteArray" getter="@getByteArray"/>
             <method name="byteAt" value="@byteAt"/>

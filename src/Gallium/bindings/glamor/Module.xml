@@ -18,6 +18,7 @@
     <include src="Gallium/bindings/glamor/CkRuntimeEffectWrap.h"/>
     <include src="Gallium/bindings/glamor/CkVerticesWrap.h"/>
     <include src="Gallium/bindings/glamor/CkFontMgrWrap.h"/>
+    <include src="Gallium/bindings/glamor/ConcurrentVertexProcessor.h"/>
     <include src="Glamor/Surface.h"/>
     <include src="Glamor/Monitor.h"/>
     <hook on="instantiate" call="GlamorSetInstanceProperties"/>
@@ -419,6 +420,7 @@
 
         <class name="CkVertices" wrapper="CkVertices">
             <method static="true" name="MakeCopy" value="@MakeCopy"/>
+            <method static="true" name="MakeTransform" value="@MakeTransform"/>
             <property name="uniqueID" getter="@getUniqueID"/>
             <property name="bounds" getter="@getBounds"/>
         </class>
@@ -471,6 +473,7 @@
             <property name="rowBytes" getter="@getRowBytes"/>
             <method name="computeByteSize" value="@computeByteSize"/>
             <method name="toImage" value="@toImage"/>
+            <method name="makeShader" value="@makeShader"/>
             <method name="getPixelBuffer" value="@getPixelBuffer"/>
         </class>
 
@@ -516,6 +519,24 @@
             <method name="discardOwnership" value="@discardOwnership"/>
             <method name="setCollectionCallback" value="@setCollectionCallback"/>
             <method name="serialize" value="@serialize"/>
+        </class>
+
+        <class name="VertexBatch" wrapper="VertexBatch">
+        </class>
+
+        <class name="VertexBatchBuilder" wrapper="VertexBatchBuilder">
+            <constructor prototype=""/>
+            <method name="pushPositionMatrix" value="@pushPositionMatrix"/>
+            <method name="pushTexCoordMatrix" value="@pushTexCoordMatrix"/>
+            <method name="popPositionMatrix" value="@popPositionMatrix"/>
+            <method name="popTexCoordMatrix" value="@popTexCoordMatrix"/>
+            <method name="addVertexGroup" value="@addVertexGroup"/>
+            <method name="build" value="@build"/>
+        </class>
+
+        <class name="ConcurrentVertexProcessor" wrapper="ConcurrentVertexProcessor">
+            <constructor prototype="uint32_t, uint32_t"/>
+            <method name="transform" value="@transform"/>
         </class>
     </exports>
 </module>

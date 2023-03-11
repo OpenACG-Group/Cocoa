@@ -20,7 +20,6 @@
 #include "fmt/format.h"
 
 #include "Core/Errors.h"
-#include "Core/CrpkgImage.h"
 #include "Core/Exception.h"
 #include "Core/Filesystem.h"
 #include "Core/Data.h"
@@ -114,61 +113,6 @@ public:
 private:
     int32_t                    fd_;
     Bitfield<vfs::OpenFlags>   flags_;
-};
-
-class PackageData : public Data
-{
-public:
-    explicit PackageData(std::shared_ptr<CrpkgFile> file)
-        : file_(std::move(file))
-    {
-        CHECK(file_ != nullptr);
-    }
-    ~PackageData() override = default;
-
-    size_t size() override {
-        auto stat = file_->stat();
-        if (!stat)
-        {
-            throw RuntimeException(__func__, "Failed to get file stat in crpkg");
-        }
-        return stat->size;
-    }
-
-    ssize_t read(void *buffer, size_t size) override {
-        return file_->read(buffer, static_cast<ssize_t>(size));
-    }
-
-    ssize_t write(const void *buffer, size_t size) override {
-        CHECK_FAILED("Files in crpkg packages are readonly");
-    }
-
-    off_t seek(vfs::SeekWhence whence, off_t offset) override {
-        return file_->seek(whence, offset);
-    }
-
-    off_t tell() override {
-        return file_->seek(vfs::SeekWhence::kCurrent, 0);
-    }
-
-    std::shared_ptr<DataSlice> slice(size_t offset, size_t size) override {
-        CHECK(offset + size >= this->size() && "Offset and size are out of range");
-        auto *buf = reinterpret_cast<uint8_t*>(malloc(size));
-        CHECK(buf && "Allocation failed");
-
-        Data::ScopedSeekRewind rewind(shared_from_this());
-
-        this->seek(vfs::SeekWhence::kSet, static_cast<off_t>(offset));
-        if (this->read(buf, size) != size)
-        {
-            throw RuntimeException(__func__, "Failed to read from crpkg image");
-        }
-
-        return std::make_shared<MemoryDataViewSlice>(shared_from_this(), buf, size, true);
-    }
-
-private:
-    std::shared_ptr<CrpkgFile>      file_;
 };
 
 class MemoryData : public Data
@@ -313,13 +257,6 @@ std::shared_ptr<Data> Data::MakeFromFile(int32_t fd, Bitfield<vfs::OpenFlags> fl
     if (fd < 0)
         return nullptr;
     return std::make_shared<FileData>(fd, flags);
-}
-
-std::shared_ptr<Data> Data::MakeFromPackage(const std::shared_ptr<CrpkgFile>& file)
-{
-    if (file == nullptr)
-        return nullptr;
-    return std::make_shared<PackageData>(file);
 }
 
 std::shared_ptr<Data> Data::MakeFromPtr(void *ptr, size_t size)

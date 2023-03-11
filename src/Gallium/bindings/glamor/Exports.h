@@ -49,7 +49,6 @@ class Scene;
 class CkPictureWrap;
 class CkImageWrap;
 class CkBitmapWrap;
-class CanvasKitTransferContext;
 
 struct SlotClosure;
 
@@ -507,7 +506,7 @@ public:
                  std::shared_ptr<SkBitmap> bitmap);
     ~CkBitmapWrap() = default;
 
-    g_nodiscard inline const std::shared_ptr<SkBitmap>& getBitmap() const {
+    inline const std::shared_ptr<SkBitmap>& getBitmap() const {
         return bitmap_;
     }
 
@@ -552,6 +551,12 @@ public:
 
     //! TSDecl: function toImage(): Image;
     g_nodiscard v8::Local<v8::Value> toImage();
+
+    //! TSDecl: function makeShader(tmx: Enum<TileMode>, tmy: Enum<TileMode>,
+    //!                             sampling: Enum<Sampling>,
+    //!                             localMatrix: CkMatrix | null): CkShader
+    g_nodiscard v8::Local<v8::Value> makeShader(int32_t tmx, int32_t tmy, int32_t sampling,
+                                                v8::Local<v8::Value> local_matrix);
 
     //! TSDecl: function getPixelBuffer(): Buffer;
     g_nodiscard v8::Local<v8::Value> getPixelBuffer();

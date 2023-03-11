@@ -142,6 +142,9 @@ v8::Local<v8::Value> CkTextBlob::MakeFromPosTextH(v8::Local<v8::Value> text,
 
     GET_TA_WRPTR_CHECKED(Float32Array, xpos, xpos_ptr, xpos_length)
 
+    // To supress a compiler warning of unused variable
+    (void) xpos_length;
+
     // TODO(sora): Length of `pos` should be strictly equal to
     //             number of character points in `text`
 

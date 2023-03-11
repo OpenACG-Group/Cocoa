@@ -21,12 +21,10 @@
 #include <map>
 
 #include "Core/Exception.h"
-#include "Core/QResource.h"
-#include "Core/CrpkgImage.h"
-#include "Core/Data.h"
 #include "Core/Journal.h"
 #include "Core/Errors.h"
-#include "Core/Utils.h"
+#include "CRPKG/ResourceManager.h"
+#include "CRPKG/VirtualDisk.h"
 #include "Gallium/Gallium.h"
 #include "Gallium/Internals.h"
 GALLIUM_NS_BEGIN
@@ -211,29 +209,35 @@ findFromCompressed(const std::string& name, InternalScript::ScopeAttr scope)
         file_name = "/" + name;
     }
 
-    auto data = QResource::Instance()->Lookup("org.cocoa.internal.v8", file_name);
-    if (!data)
+    auto vdisk = crpkg::ResourceManager::Instance()->GetResource("@internal");
+    CHECK(vdisk);
+
+    std::optional<crpkg::VirtualDisk::Storage> storage = vdisk->GetStorage(file_name);
+    if (!storage)
     {
         for (auto possible_postfix : {".js", ".mjs"})
         {
             auto possible_file_name = file_name + possible_postfix;
-            data = QResource::Instance()->Lookup("org.cocoa.internal.v8", possible_file_name);
-            if (data)
+            storage = vdisk->GetStorage(possible_file_name);
+            if (storage)
             {
                 file_name = possible_file_name;
                 break;
             }
         }
 
-        if (!data)
+        if (!storage)
             return {nullptr, InternalScript::Error::kNotFound};
     }
 
     auto *script = new InternalScript;
-    script->contentSize = data->size();
+
+    script->contentSize = storage->size;
     script->content = new char[script->contentSize + 1];
-    script->contentSize = data->read(script->content, script->contentSize);
+    std::memcpy(script->content, storage->addr, storage->size);
+
     script->content[script->contentSize] = '\0';
+
     script->name = file_name;
     ScopeExitAutoInvoker epi([script] { delete script; });
 

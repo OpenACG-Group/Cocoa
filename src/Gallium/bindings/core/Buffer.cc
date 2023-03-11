@@ -19,13 +19,12 @@
 #include <utility>
 
 #include "include/v8.h"
-#include "fmt/format.h"
 
 #include "Core/Errors.h"
 #include "Core/EventLoop.h"
 #include "Core/Utils.h"
 #include "Core/Data.h"
-#include "Core/QResource.h"
+#include "Core/ByteArrayCodecs.h"
 #include "Gallium/Gallium.h"
 #include "Gallium/binder/Class.h"
 #include "Gallium/binder/CallV8.h"
@@ -251,6 +250,26 @@ v8::Local<v8::Object> Buffer::MakeFromString(v8::Local<v8::String> string, uint3
     return buf;
 }
 
+namespace {
+
+} // namespace anonymous
+
+v8::Local<v8::Object> Buffer::MakeFromBase64(v8::Local<v8::String> base64)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::String::Utf8Value str_value(isolate, base64);
+    if (str_value.length() == 0)
+        g_throw(Error, "Empty base64 string");
+
+    std::shared_ptr<Data> decoded = ByteArrayCodecs::DecodeBase64(
+            *str_value, str_value.length());
+    if (!decoded)
+        g_throw(Error, "Failed to decoded provided base64 string");
+
+    return Buffer::MakeFromExternal(const_cast<void*>(decoded->getAccessibleBuffer()),
+                                    decoded->size(), [decoded] {});
+}
+
 v8::Local<v8::Object> Buffer::MakeFromAdoptBuffer(v8::Local<v8::Object> array)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
@@ -265,31 +284,6 @@ v8::Local<v8::Object> Buffer::MakeFromAdoptBuffer(v8::Local<v8::Object> array)
     self->backing_store_ = uint8_array->Buffer()->GetBackingStore();
 
     return buf;
-}
-
-v8::Local<v8::Object> Buffer::MakeFromPackageFile(const std::string& package,
-                                                  const std::string& path)
-{
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    QResource *resources = QResource::Instance();
-
-    std::shared_ptr<Data> image_data = resources->Lookup(package, path);
-    if (!image_data)
-        g_throw(Error, "No such path or package existing in the package manager");
-
-    v8::Local<v8::Object> object = Buffer::MakeFromSize(image_data->size());
-    Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, object);
-    CHECK(self);
-
-    ssize_t result = image_data->read(self->addressU8(),
-                                      image_data->size());
-    if (result != image_data->size())
-    {
-        g_throw(Error, fmt::format("Failed to read file {} in package {}",
-                                   path, package));
-    }
-
-    return object;
 }
 
 v8::Local<v8::Object> Buffer::MakeFromCopy(Buffer *other, off_t offset, ssize_t size)

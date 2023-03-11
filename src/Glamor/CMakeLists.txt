@@ -60,6 +60,8 @@ add_library(
         TextureManager.cc
         GProfiler.h
         GProfiler.cc
+        SkEventTracerImpl.h
+        SkEventTracerImpl.cc
 
         Layers/RasterCacheKey.h
         Layers/RasterCache.h

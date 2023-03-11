@@ -35,11 +35,11 @@ public:
     ~GlobalIsolateGuard();
 
     g_nodiscard inline v8::Isolate *getIsolate() const {
-        return fIsolate;
+        return isolate_;
     }
 
     g_nodiscard inline std::shared_ptr<Runtime> getRuntime() const {
-        return fRuntime.lock();
+        return runtime_.lock();
     }
 
     void pushMaybeUnhandledRejectPromise(v8::Local<v8::Promise> promise, v8::Local<v8::Value> value);
@@ -73,9 +73,9 @@ private:
 
     using PromiseValueList = std::list<PromiseWithValue>;
 
-    std::weak_ptr<Runtime> fRuntime;
-    v8::Isolate           *fIsolate;
-    PromiseValueList       fRejectPromises;
+    std::weak_ptr<Runtime> runtime_;
+    v8::Isolate           *isolate_;
+    PromiseValueList       reject_promises_;
 };
 
 GALLIUM_NS_END

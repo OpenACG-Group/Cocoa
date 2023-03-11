@@ -164,11 +164,17 @@ void RenderHost::Send(const Shared<RenderClientObject>& receiver, RenderClientCa
                       const RenderHostCallback& pCallback)
 {
     CHECK(receiver);
-    CHECK(render_client_);
+
+    RenderClientObject::OpCode opcode = info.GetOpCode();
+    if (!render_client_)
+    {
+        QLOG(LOG_WARNING, "RequestDropped: [no available client] receiver={} opcode={}",
+             RenderClientObject::GetTypeName(receiver->GetRealType()), opcode);
+        return;
+    }
 
     auto invocation = std::make_shared<RenderHostInvocation>(receiver, std::move(info), pCallback);
     invocation->MarkProfileMilestone(ITCProfileMilestone::kHostConstruction);
-
     render_client_->EnqueueHostInvocation(invocation);
     invocation->MarkProfileMilestone(ITCProfileMilestone::kHostEnqueued);
 }

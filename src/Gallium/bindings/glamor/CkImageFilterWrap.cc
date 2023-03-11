@@ -151,6 +151,34 @@ DEF_BUILDER(image)
     }
 }
 
+//! FilterDecl: blend_mode(Integer mode, ImageFilter? bg, ImageFilter? fg)
+DEF_BUILDER(blend_mode)
+{
+    CHECK_ARGC(3, blend_mode)
+
+    POP_ARGUMENT(fg, ImageFilter)
+    POP_ARGUMENT(bg, ImageFilter)
+    POP_ARGUMENT_CHECKED(mode, Integer, blend_mode)
+
+    if (*mode < 0 || *mode > static_cast<int32_t>(SkBlendMode::kLastMode))
+        g_throw(RangeError, "Argument `mode` has an invalid enumeration value");
+
+    return SkImageFilters::Blend(static_cast<SkBlendMode>(*mode),
+                                 AUTO_SELECT(bg), AUTO_SELECT(fg));
+}
+
+//! FilterDecl: blender(Blender blender, ImageFilter? bg, ImageFilter? fg)
+DEF_BUILDER(blender)
+{
+    CHECK_ARGC(3, blender)
+
+    POP_ARGUMENT(fg, ImageFilter)
+    POP_ARGUMENT(bg, ImageFilter)
+    POP_ARGUMENT_CHECKED(blender, Blender, blender)
+
+    return SkImageFilters::Blend(*blender, AUTO_SELECT(bg), AUTO_SELECT(fg));
+}
+
 //! FilterDecl: drop_shadow(Float dx, Float dy, Float sigma_x, Float sigma_y,
 //!                         Color color, ImageFilter? input)
 DEF_BUILDER(drop_shadow)
@@ -349,6 +377,8 @@ EffectDSLParser::EffectorBuildersMap g_image_filter_builders_map = {
     ENTRY(compose),
     ENTRY(arithmetic),
     ENTRY(image),
+    ENTRY(blend_mode),
+    ENTRY(blender),
     ENTRY(drop_shadow),
     ENTRY(drop_shadow_only),
     ENTRY(matrix_convolution),

@@ -24,6 +24,7 @@
 #include "Glamor/RenderClient.h"
 #include "Glamor/MaybeGpuObject.h"
 #include "Glamor/GProfiler.h"
+#include "Glamor/SkEventTracerImpl.h"
 GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor)
@@ -103,7 +104,10 @@ GlobalScope::GlobalScope(const ContextOptions& options, EventLoop *loop)
     , external_data_{nullptr, {}}
     , thread_shared_objs_collector_(
             std::make_unique<GpuThreadSharedObjectsCollector>())
+    , skia_event_tracer_impl_(new SkEventTracerImpl())
 {
+    SkEventTracer::SetInstance(skia_event_tracer_impl_, false);
+
     if (options_.GetSkiaJIT())
         SkGraphics::AllowJIT();
 }

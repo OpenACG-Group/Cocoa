@@ -27,19 +27,20 @@ export interface RenderClientError extends Error {
     opcode: number;
 }
 
-interface CkLTRBRect {
+export interface CkLTRBRect {
     left: number;
     top: number;
     bottom: number;
     right: number;
 }
-interface CkXYWHRect {
+export interface CkXYWHRect {
     x: number;
     y: number;
     width: number;
     height: number;
 }
-type CkRect = CkLTRBRect | CkXYWHRect | [number, number, number, number] | Float32Array;
+export type CkArrayXYWHRect = [number, number, number, number];
+export type CkRect = CkLTRBRect | CkXYWHRect | CkArrayXYWHRect | Float32Array;
 
 export interface CkRRect {
    rect: CkRect;
@@ -1122,7 +1123,7 @@ export class CkMatrix {
     public mapPoints(points: Array<CkPoint>): Array<CkPoint>;
     public mapPoint(point: CkPoint): CkPoint;
     public mapHomogeneousPoints(points: Array<CkPoint3>): Array<CkPoint3>;
-    public mapRect(src: CkRect, pc: ApplyPerspectiveClip): CkRect;
+    public mapRect(src: CkRect, pc: ApplyPerspectiveClip): CkArrayXYWHRect;
     public mapRadius(): number;
     public isFinite(): boolean;
 }
@@ -1355,7 +1356,9 @@ export class CkCanvas {
     public drawTextBlob(blob: CkTextBlob, x: number, y: number, paint: CkPaint): void;
     public drawPicture(picture: CkPicture, matrix: null | CkMatrix, paint: null | CkPaint): void;
     public drawVertices(vertices: CkVertices, mode: BlendMode, paint: CkPaint): void;
-    public drawPatch(cubics: Array<CkPoint>, colors: Array<CkColor4f>, texCoords: Array<CkPoint>,
+    public drawPatch(cubics: Array<CkPoint>,
+                     colors: Array<CkColor4f> | null,
+                     texCoords: Array<CkPoint> | null,
                      mode: BlendMode, paint: CkPaint): void;
 }
 
@@ -1368,8 +1371,16 @@ export class CkVertices {
                            colors: Uint32Array | null,
                            indices: Uint16Array | null): CkVertices;
 
+    public static MakeTransform(mode: VerticesVertexMode,
+                                positions: Float32Array,
+                                positionsMatrix: CkMatrix,
+                                texCoords: Float32Array | null,
+                                texCoordsMatrix: CkMatrix | null,
+                                colors: Uint32Array | null,
+                                indices: Uint16Array | null): Promise<CkVertices>;
+
     public readonly uniqueID: number;
-    public readonly bounds: CkRect;
+    public readonly bounds: CkArrayXYWHRect;
 }
 
 export class CkImageFilter {
@@ -1467,6 +1478,8 @@ export class CkBitmap {
     
     public computeByteSize(): number;
     public toImage(): CkImage;
+    public makeShader(tmx: TileMode, tmy: TileMode, sampling: SamplingOption,
+                      localMatrix: CkMatrix | null): CkShader;
     public getPixelBuffer(): Buffer;
 }
 
@@ -1520,4 +1533,30 @@ export class CriticalPicture {
     public serialize(): Promise<Buffer>;
     public discardOwnership(): void;
     public setCollectionCallback(F: () => void): void;
+}
+
+export class VertexBatch {
+    private constructor();
+}
+
+export class VertexBatchBuilder {
+    constructor();
+
+    public pushPositionMatrix(matrix: CkMatrix): VertexBatchBuilder;
+    public pushTexCoordMatrix(matrix: CkMatrix): VertexBatchBuilder;
+    public popPositionMatrix(): VertexBatchBuilder;
+    public popTexCoordMatrix(): VertexBatchBuilder;
+    public addVertexGroup(positions: Float32Array, texCoords: Float32Array | null): VertexBatchBuilder;
+    public build(): VertexBatch;
+}
+
+export interface VertexTransformResult {
+    positions: Float32Array;
+    texCoords: Float32Array | null;
+}
+
+export class ConcurrentVertexProcessor {
+    constructor(vertexCountHint: number, uvCountHint: number);
+
+    public transform(batch: VertexBatch): Promise<Array<VertexTransformResult>>;
 }

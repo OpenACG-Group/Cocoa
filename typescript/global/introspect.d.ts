@@ -34,6 +34,14 @@ interface StackTraceFrame {
     readonly isUserJavaScript: boolean;
 }
 
+interface TracingConfig {
+    recordingBufferKB: number;
+    enable: Array<{
+        name: string;
+        options?: Array<string>;
+    }>;
+}
+
 interface Introspect {
     /**
      * Register a callback function for uncaught exception.
@@ -153,7 +161,7 @@ interface Introspect {
      */
     inspectStackTrace(frameLimit?: number): Array<StackTraceFrame>;
 
-    startProcessTracing(categories: string[], maxBufferKB: number): void;
+    startProcessTracing(config: TracingConfig): void;
     finishProcessTracing(file: string): Promise<number>;
 }
 

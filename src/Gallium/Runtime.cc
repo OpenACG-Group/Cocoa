@@ -27,7 +27,6 @@
 #include "Core/Exception.h"
 #include "Core/Journal.h"
 #include "Core/EventLoop.h"
-#include "Core/QResource.h"
 #include "Core/Data.h"
 #include "Core/TraceEvent.h"
 #include "Gallium/Gallium.h"
@@ -37,6 +36,7 @@
 #include "Gallium/Infrastructures.h"
 #include "Gallium/Platform.h"
 #include "Gallium/Inspector.h"
+#include "Gallium/TracingController.h"
 
 #include "Gallium/binder/Module.h"
 #include "Gallium/binder/Class.h"
@@ -189,7 +189,8 @@ std::shared_ptr<Runtime> Runtime::Make(EventLoop *loop, const Options& options)
     // std::unique_ptr<v8::Platform> platform =
     //        v8::platform::NewDefaultPlatform(static_cast<int>(options.v8_platform_thread_pool),
     //                                         v8::platform::IdleTaskSupport::kEnabled);
-    auto tracing_controller = std::make_unique<v8::TracingController>();
+    auto tracing_controller = std::make_unique<TracingController>();
+
     std::unique_ptr<Platform> platform = Platform::Make(loop,
                                                         dump_options.v8_platform_thread_pool,
                                                         tracing_controller.get());
@@ -258,7 +259,7 @@ Runtime *Runtime::GetBareFromIsolate(v8::Isolate *isolate)
 
 Runtime::Runtime(EventLoop *loop,
                  v8::StartupData *startupData,
-                 std::unique_ptr<v8::TracingController> tracing_controller,
+                 std::unique_ptr<TracingController> tracing_controller,
                  std::unique_ptr<Platform> platform,
                  v8::ArrayBuffer::Allocator *allocator,
                  v8::Isolate *isolate,

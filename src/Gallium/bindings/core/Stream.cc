@@ -28,25 +28,23 @@ GALLIUM_BINDINGS_NS_BEGIN
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.bindings.core)
 
 StreamWrap::StreamWrap(uv_stream_t *handle)
-    : stream_handle_(handle)
-    , is_reading_(false)
-    , owned_buf_{nullptr, 0}
+    : disposed_(false)
+    , stream_handle_(handle)
 {
-    uv_handle_set_data(reinterpret_cast<uv_handle_t *>(stream_handle_), this);
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    handle->data = this;
+
+    v8::Local<v8::Object> iterator = binder::Class<StreamAsyncIterator>::create_object(isolate, this);
+    async_iterator_ = binder::Class<StreamAsyncIterator>::unwrap_object(isolate, iterator);
+
+    CHECK(async_iterator_);
+    async_iterator_obj_.Reset(isolate, iterator);
 }
 
 StreamWrap::~StreamWrap()
 {
-    if (owned_buf_.base)
-    {
-        ::free(owned_buf_.base);
-        owned_buf_.base = nullptr;
-    }
-    clearIterationState();
-
-    uv_close(reinterpret_cast<uv_handle_t *>(stream_handle_), [](uv_handle_t *hnd) {
-        ::free(hnd);
-    });
+    Dispose();
 }
 
 bool StreamWrap::isWritable() const
@@ -61,92 +59,137 @@ bool StreamWrap::isReadable() const
 
 v8::Local<v8::Value> StreamWrap::asyncIterator()
 {
-    if (is_reading_)
-        g_throw(Error, "Iterating an stream which is in iteration is not allowed");
+    if (disposed_)
+        g_throw(Error, "Stream has already been disposed");
 
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::Local<v8::Object> self = binder::Class<StreamWrap>::find_object(isolate, this);
-    CHECK(!self.IsEmpty() && !self->IsNullOrUndefined());
-    return binder::Class<StreamReadIterator>::create_object(isolate, self, this);
-}
-
-void StreamWrap::clearIterationState()
-{
-    is_reading_ = false;
-    current_iterate_promise_.Reset();
-}
-
-StreamWeakBuffer::StreamWeakBuffer(v8::Local<v8::Object> streamWrap, uv_buf_t *buf,
-                                   size_t readBytes)
-    : stream_wrap_ref_(v8::Isolate::GetCurrent(), streamWrap)
-    , weak_buf_(buf)
-    , read_bytes_(readBytes)
-{
-    CHECK(weak_buf_->base && weak_buf_->len > 0);
-}
-
-StreamWeakBuffer::~StreamWeakBuffer()
-{
-    stream_wrap_ref_.Reset();
-}
-
-v8::Local<v8::Value> StreamWeakBuffer::toStrongOwnership()
-{
-    /* read_bytes_ is always not bigger than weak_buf_->len */
-    void *pb = weak_buf_->base;
-    if (weak_buf_->len != read_bytes_)
-        pb = ::realloc(weak_buf_->base, read_bytes_);
-    v8::Local<v8::Object> buf = Buffer::MakeFromPtrWithoutCopy(pb, read_bytes_,
-        [](void *ptr, g_maybe_unused size_t len, g_maybe_unused void *d) {
-            ::free(ptr);
-        }, nullptr);
-
-    stream_wrap_ref_.Reset();
-    weak_buf_->base = nullptr;
-    weak_buf_->len = 0;
-    return buf;
-}
-
-bool StreamWeakBuffer::isExpired() const
-{
-    return (weak_buf_->base == nullptr);
-}
-
-StreamReadIterator::StreamReadIterator(v8::Local<v8::Object> streamWrap, StreamWrap *pStream)
-    : stream_wrap_ref_(v8::Isolate::GetCurrent(), streamWrap)
-    , stream_(pStream)
-{
-    stream_->is_reading_ = true;
-}
-
-StreamReadIterator::~StreamReadIterator()
-{
-    stream_wrap_ref_.Reset();
+    CHECK(!async_iterator_obj_.IsEmpty());
+    return async_iterator_obj_.Get(v8::Isolate::GetCurrent());
 }
 
 namespace {
 
-void on_allocator_callback(uv_handle_t *hnd, size_t suggestedSize, uv_buf_t *result)
+// NOLINTNEXTLINE
+struct AsyncWriteClosure
 {
-    auto *wrap = reinterpret_cast<StreamWrap *>(uv_handle_get_data(hnd));
-    CHECK(wrap);
+    v8::Isolate *isolate;
+    std::vector<v8::Global<v8::Object>> buffer_objs;
+    std::vector<uv_buf_t> buffers;
+    v8::Global<v8::Promise::Resolver> resolver;
+    uv_write_t req;
+};
 
-    size_t size = suggestedSize;
-    if (!wrap->owned_buf_.base)
+} // namespace anonymous
+
+v8::Local<v8::Value> StreamWrap::write(v8::Local<v8::Value> buffers)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (!buffers->IsArray())
+        g_throw(TypeError, "Argument `buffers` must be an array of `Buffer`");
+
+    v8::Local<v8::Array> array = buffers.As<v8::Array>();
+    uint32_t length = array->Length();
+    if (length == 0)
+        g_throw(TypeError, "No buffer is provided");
+
+    auto *closure = new AsyncWriteClosure;
+    closure->isolate = isolate;
+    closure->buffer_objs.resize(length);
+    closure->buffers.resize(length);
+
+    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+    for (uint32_t i = 0; i < length; i++)
     {
-        wrap->owned_buf_.base = reinterpret_cast<char *>(malloc(size));
-        CHECK(wrap->owned_buf_.base);
-        wrap->owned_buf_.len = size;
+        auto E = array->Get(ctx, i).FromMaybe(v8::Local<v8::Value>());
+        if (E.IsEmpty())
+            g_throw(TypeError, "Argument `buffers` must be an array of `Buffer`");
+
+        Buffer *ptr = binder::Class<Buffer>::unwrap_object(isolate, E);
+        if (!ptr)
+            g_throw(TypeError, "Argument `buffers` must be an array of `Buffer`");
+
+        closure->buffer_objs[i].Reset(isolate, E.As<v8::Object>());
+
+        closure->buffers[i].base = reinterpret_cast<char*>(ptr->addressU8());
+        closure->buffers[i].len = ptr->length();
     }
 
-    result->base = wrap->owned_buf_.base;
-    result->len = wrap->owned_buf_.len;
+    auto resolver = v8::Promise::Resolver::New(ctx).ToLocalChecked();
+    closure->resolver.Reset(isolate, resolver);
+
+    uv_write(&closure->req, stream_handle_, closure->buffers.data(), length,
+             [](uv_write_t *req, int status) {
+        auto *closure = reinterpret_cast<AsyncWriteClosure*>(req->data);
+        CHECK(closure);
+
+        v8::HandleScope scope(closure->isolate);
+
+        v8::Local<v8::Context> ctx = closure->isolate->GetCurrentContext();
+        auto resolver = closure->resolver.Get(closure->isolate);
+        if (status == 0)
+            resolver->Resolve(ctx, v8::Undefined(closure->isolate)).Check();
+        else
+            resolver->Reject(ctx, v8::Int32::New(closure->isolate, status)).Check();
+
+        delete closure;
+    });
+    closure->req.data = closure;
+
+    return resolver->GetPromise();
 }
 
-void on_read_callback(uv_stream_t *st, ssize_t nread, const uv_buf_t *buf)
+void StreamWrap::Dispose()
 {
-    auto *hnd = reinterpret_cast<uv_handle_t *>(st);
-    auto *wrap = reinterpret_cast<StreamWrap *>(uv_handle_get_data(hnd));
+    if (disposed_)
+        return;
+
+    async_iterator_->Dispose();
+    async_iterator_obj_.Reset();
+    disposed_ = true;
+}
+
+StreamAsyncIterator::StreamAsyncIterator(StreamWrap *stream)
+    : disposed_(false)
+    , stream_(stream)
+    , pending_(false)
+{
+}
+
+StreamAsyncIterator::~StreamAsyncIterator() = default;
+
+void StreamAsyncIterator::Dispose()
+{
+    if (disposed_)
+        return;
+
+    if (pending_)
+        FinishPendingState();
+
+    stream_ = nullptr;
+    disposed_ = true;
+}
+
+void StreamWrap::OnAllocateCallback(uv_handle_t *handle, size_t suggested, uv_buf_t *result)
+{
+    auto *stream = reinterpret_cast<StreamWrap*>(handle->data);
+    CHECK(stream);
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::HandleScope scope(isolate);
+
+    v8::Local<v8::Object> buffer_obj = Buffer::MakeFromSize(suggested);
+    stream->async_iterator_->SetCurrentBuffer(isolate, buffer_obj);
+
+    auto *buffer = binder::Class<Buffer>::unwrap_object(isolate, buffer_obj);
+    CHECK(buffer);
+
+    result->base = reinterpret_cast<char*>(buffer->addressU8());
+    result->len = buffer->length();
+}
+
+void StreamWrap::OnReadCallback(uv_stream_t *handle, ssize_t nread, const uv_buf_t *buf)
+{
+    auto *stream = reinterpret_cast<StreamWrap*>(handle->data);
+    CHECK(stream);
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     v8::HandleScope scope(isolate);
@@ -173,78 +216,121 @@ void on_read_callback(uv_stream_t *st, ssize_t nread, const uv_buf_t *buf)
     }
     else
     {
+        CHECK(nread <= 0xffffffffLL);
+
         done = false;
-        v8::Local<v8::Object> streamObject = binder::Class<StreamWrap>::find_object(isolate, wrap);
-        value = binder::Class<StreamWeakBuffer>::create_object(isolate, streamObject, &wrap->owned_buf_, nread);
+        v8::Local<v8::Object> buffer = stream->async_iterator_->GetCurrentBuffer(isolate);
+        std::unordered_map<std::string_view, v8::Local<v8::Value>> result{
+            { "length", v8::Uint32::NewFromUnsigned(isolate, static_cast<uint32_t>(nread)) },
+            { "buffer", buffer }
+        };
+        value = binder::to_v8(isolate, result);
     }
 
-    v8::Local<v8::Promise::Resolver> resolver = wrap->current_iterate_promise_.Get(isolate);
+    v8::Local<v8::Promise::Resolver> resolver =
+            stream->async_iterator_->GetCurrentResolver(isolate);
 
     if (error)
     {
-        resolver->Reject(isolate->GetCurrentContext(),
-                         v8::Exception::Error(value.As<v8::String>())).Check();
+        resolver->Reject(isolate->GetCurrentContext(), value).Check();
     }
     else
     {
-        v8::Local<v8::Object> result = binder::to_v8(isolate, std::map<std::string, bool>{{"done", done}});
-        result->Set(isolate->GetCurrentContext(), binder::to_v8(isolate, "value"), value).Check();
-        resolver->Resolve(isolate->GetCurrentContext(), result).Check();
+        std::unordered_map<std::string_view, v8::Local<v8::Value>> result{
+            { "done", v8::Boolean::New(isolate, done) },
+            { "value", value }
+        };
+        resolver->Resolve(
+                isolate->GetCurrentContext(), binder::to_v8(isolate, result)).Check();
     }
 
-    wrap->current_iterate_promise_.Reset();
-    uv_read_stop(wrap->stream_handle_);
+    stream->async_iterator_->FinishPendingState();
 }
 
-} // namespace anonymous
-
-v8::Local<v8::Value> StreamReadIterator::next() const
+v8::Local<v8::Promise> StreamAsyncIterator::EnterPendingState()
 {
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
-    v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(ctx).ToLocalChecked();
+    CHECK(!pending_);
 
-    int ret = uv_read_start(stream_->stream_handle_, on_allocator_callback, on_read_callback);
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    int ret = uv_read_start(stream_->stream_handle_,
+                            StreamWrap::OnAllocateCallback, StreamWrap::OnReadCallback);
     if (ret < 0)
-    {
         g_throw(Error, fmt::format("Failed to start reading: {}", uv_strerror(ret)));
-    }
-    stream_->current_iterate_promise_.Reset(isolate, resolver);
+
+    auto resolver = v8::Promise::Resolver::New(isolate->GetCurrentContext()).ToLocalChecked();
+    current_resolver_.Reset(isolate, resolver);
+
+    pending_ = true;
     return resolver->GetPromise();
 }
 
-v8::Local<v8::Value> StreamReadIterator::return_() const
+void StreamAsyncIterator::FinishPendingState()
 {
-    if (stream_->owned_buf_.base)
-    {
-        ::free(stream_->owned_buf_.base);
-        stream_->owned_buf_.base = nullptr;
-    }
-    stream_->clearIterationState();
+    CHECK(pending_);
 
-    v8::Isolate *i = v8::Isolate::GetCurrent();
-    return binder::to_v8(i, std::map<std::string, bool>{{"done", true}});
+    uv_read_stop(stream_->stream_handle_);
+
+    pending_ = false;
+    current_resolver_.Reset();
+    current_buffer_.Reset();
 }
 
-v8::Local<v8::Value> StreamReadIterator::throw_()
+v8::Local<v8::Value> StreamAsyncIterator::next()
 {
-    // TODO: should we implement this?
-    return v8::Undefined(v8::Isolate::GetCurrent());
-}
-
-v8::Local<v8::Value> StreamWrap::OpenTTYStdin()
-{
-    v8::Isolate *i = v8::Isolate::GetCurrent();
-
-    auto *tty = StreamWrap::Allocate<uv_tty_t>();
-    int ret = uv_tty_init(EventLoop::Ref().handle(), tty, 0, true);
-    if (ret < 0)
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (disposed_)
     {
-        ::free(tty);
-        g_throw(Error, fmt::format("Failed in reopening TTY: {}", uv_strerror(ret)));
+        std::unordered_map<std::string_view, v8::Local<v8::Value>> result{
+            { "done", v8::True(isolate) }
+        };
+        return binder::to_v8(isolate, result);
     }
 
-    return binder::Class<StreamWrap>::create_object(i, reinterpret_cast<uv_stream_t *>(tty));
+    if (pending_)
+        g_throw(Error, "`next` should not be called before current promise is fulfilled");
+
+    CHECK(stream_);
+
+    v8::Local<v8::Promise> promise = EnterPendingState();
+    CHECK(!promise.IsEmpty());
+
+    return promise;
+}
+
+void StreamAsyncIterator::return_(v8::FunctionCallbackInfo<v8::Value> info)
+{
+    if (pending_)
+        FinishPendingState();
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    v8::Local<v8::Value> value;
+    if (info.Length() >= 1)
+        value = info[0];
+    else
+        value = v8::Undefined(isolate);
+
+    std::unordered_map<std::string_view, v8::Local<v8::Value>> result{
+        { "done", v8::True(isolate) },
+        { "value", value }
+    };
+
+    info.GetReturnValue().Set(binder::to_v8(isolate, result));
+}
+
+void StreamAsyncIterator::throw_(v8::FunctionCallbackInfo<v8::Value> info)
+{
+    if (pending_)
+        FinishPendingState();
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    std::unordered_map<std::string_view, v8::Local<v8::Value>> result{
+        { "done", v8::True(isolate) }
+    };
+
+    info.GetReturnValue().Set(binder::to_v8(isolate, result));
 }
 
 GALLIUM_BINDINGS_NS_END

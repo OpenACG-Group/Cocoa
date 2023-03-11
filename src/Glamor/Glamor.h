@@ -34,6 +34,8 @@ class StandaloneThreadPool;
 
 GLAMOR_NAMESPACE_BEGIN
 
+class SkEventTracerImpl;
+
 template<typename T>
 using Shared = std::shared_ptr<T>;
 
@@ -233,6 +235,10 @@ public:
 
     void TraceSkiaMemoryResources();
 
+    g_nodiscard g_inline SkEventTracerImpl *GetSkEventTracerImpl() {
+        return skia_event_tracer_impl_;
+    }
+
     g_inline void SetExternalDataPointer(void *ptr, ExternalData::Deleter deleter) {
         if (external_data_.ptr && external_data_.deleter)
             external_data_.deleter(external_data_.ptr);
@@ -257,6 +263,8 @@ private:
     ExternalData    external_data_;
     Unique<GpuThreadSharedObjectsCollector>
                     thread_shared_objs_collector_;
+    SkEventTracerImpl
+                    *skia_event_tracer_impl_;
 };
 
 GLAMOR_NAMESPACE_END

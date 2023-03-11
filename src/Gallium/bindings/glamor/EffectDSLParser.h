@@ -141,6 +141,7 @@ struct EffectStackOperand
     Nullable<int32_t> ToIntegerSafe();
     Nullable<Effector> ToEffectorSafe();
     Nullable<sk_sp<SkImage>> ToImageSafe();
+    Nullable<sk_sp<SkBlender>> ToBlenderSafe();
 
     Nullable<sk_sp<SkImageFilter>> ToImageFilterSafe() {
         if (auto e = ToEffectorSafe())

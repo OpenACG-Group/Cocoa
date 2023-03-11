@@ -28,6 +28,8 @@ add_library(Gallium STATIC
         Platform.cc
         Runtime.h
         Runtime.cc
+        TracingController.h
+        TracingController.cc
         ModuleImportURL.h
         ModuleImportURL.cc
         Internals.h
@@ -75,6 +77,7 @@ add_library(Gallium STATIC
         bindings/core/Buffer.cc
         bindings/core/Process.cc
         bindings/core/Stream.cc
+        bindings/core/TTYStreamWrap.cc
 
         bindings/typetraits/Exports.h
         bindings/typetraits/Exports.cc
@@ -133,6 +136,8 @@ add_library(Gallium STATIC
         bindings/glamor/CkRuntimeEffectWrap.cc
         bindings/glamor/CkVerticesWrap.h
         bindings/glamor/CkVerticesWrap.cc
+        bindings/glamor/ConcurrentVertexProcessor.h
+        bindings/glamor/ConcurrentVertexProcessor.cc
 
         bindings/paragraph/Exports.h
         bindings/paragraph/Exports.cc

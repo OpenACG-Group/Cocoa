@@ -44,13 +44,3 @@ global.useBootstrapDefaultHandlers = function() {
 
 useBootstrapDefaultHandlers();
 
-/* Web JavaScript polyfills */
-
-// Polyfill for `performance.now()` to measure time in milliseconds.
-// Some internal libraries like CanvasKit (animation) depend on that.
-global.performance = {
-    now: () => {
-        // Cocoa's implementation (infrastructure module) to measure time in milliseconds.
-        return getMillisecondTimeCounter();
-    }
-};

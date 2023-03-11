@@ -17,9 +17,7 @@
 
 import {Vector2f, Vector3f} from "./vector";
 import {GeoViewBase} from "./geometry_base";
-import * as CanvasKit from "internal://canvaskit";
-
-const canvaskit = CanvasKit.canvaskit;
+import * as GL from 'glamor';
 
 export interface DrawVectorParameters {
     /* Supposing the vector to be drawn is v: */

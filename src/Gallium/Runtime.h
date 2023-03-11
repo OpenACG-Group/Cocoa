@@ -32,6 +32,7 @@
 #include "Gallium/ModuleImportURL.h"
 #include "Gallium/GlobalIsolateGuard.h"
 #include "Gallium/VMIntrospect.h"
+#include "Gallium/TracingController.h"
 GALLIUM_NS_BEGIN
 
 #define ISOLATE_DATA_SLOT_RUNTIME_PTR       0
@@ -137,7 +138,7 @@ public:
 
     Runtime(EventLoop *loop,
             v8::StartupData *startupData,
-            std::unique_ptr<v8::TracingController> tracing_controller,
+            std::unique_ptr<TracingController> tracing_controller,
             std::unique_ptr<Platform> platform,
             v8::ArrayBuffer::Allocator *allocator,
             v8::Isolate *isolate,
@@ -154,14 +155,21 @@ public:
 
     static Runtime *GetBareFromIsolate(v8::Isolate *isolate);
 
-    g_nodiscard inline const Options& getOptions() const
-    { return options_; }
+    g_nodiscard inline const Options& getOptions() const {
+        return options_;
+    }
 
-    inline v8::Local<v8::Context> GetContext()
-    { return context_.Get(isolate_); }
+    inline v8::Local<v8::Context> GetContext() {
+        return context_.Get(isolate_);
+    }
 
-    inline v8::Isolate *GetIsolate()
-    { return isolate_; }
+    inline v8::Isolate *GetIsolate() {
+        return isolate_;
+    }
+
+    g_nodiscard g_inline TracingController *GetTracingController() const {
+        return tracing_controller_.get();
+    }
 
     v8::MaybeLocal<v8::Value> ExecuteScript(const char *scriptName, const char *str);
 
@@ -231,7 +239,8 @@ private:
     bool                            disposed_;
     Options                         options_;
     v8::StartupData                *startup_data_;
-    std::unique_ptr<v8::TracingController> tracing_controller_;
+    std::unique_ptr<TracingController>
+                                    tracing_controller_;
     std::unique_ptr<Platform>       platform_;
     v8::ArrayBuffer::Allocator     *array_buffer_allocator_;
     v8::Isolate                    *isolate_;

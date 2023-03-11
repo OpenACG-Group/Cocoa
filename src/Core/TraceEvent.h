@@ -22,10 +22,14 @@
 
 PERFETTO_DEFINE_CATEGORIES(
         perfetto::Category("rendering")
-                .SetDescription("Events from the rendering thread"),
+                .SetDescription("Events from the rendering subsystem"),
         perfetto::Category("multimedia")
-                .SetDescription("Events related to multimedia processing"),
+                .SetDescription("Events from the multimedia subsystem"),
         perfetto::Category("main")
-                .SetDescription("Events related to JavaScript execution"));
+                .SetDescription("Events related to JavaScript execution"),
+        perfetto::Category("v8")
+                .SetDescription("Trace JavaScript engine V8"),
+        perfetto::Category("skia")
+                .SetDescription("Trace rendering engine Skia"));
 
 #endif //COCOA_CORE_TRACEEVENT_H

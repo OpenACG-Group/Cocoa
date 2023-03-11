@@ -32,10 +32,11 @@
         "GL/utils.ts",
         "GL/window.ts",
 
-        "samples/sknative_offscreen_drawtextblob.ts",
-        "samples/sknative_offscreen_hilbert.ts",
-        "samples/sknative_window.ts",
-        "samples/sknative_runtime_effect.ts",
-        "samples/paragraph_simple_layout.ts"
+        "samples/sknative-offscreen-drawtextblob.ts",
+        "samples/sknative-offscreen-drawpatch.ts",
+        "samples/sknative-offscreen-hilbert.ts",
+        "samples/sknative-window.ts",
+        "samples/sknative-runtime-effect.ts",
+        "samples/paragraph-simple-layout.ts"
     ]
 }

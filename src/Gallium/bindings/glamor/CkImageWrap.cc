@@ -40,23 +40,20 @@ v8::Local<v8::Value> CkImageWrap::MakeFromEncodedData(v8::Local<v8::Value> buffe
     if (buffer == nullptr)
         g_throw(TypeError, "'buffer' must be an instance of core.Buffer");
 
-    // Not used here, but we do need it to prevent `buffer` being freed
-    // by garbage collector before using it.
-    auto global_buffer = std::make_shared<v8::Global<v8::Value>>(isolate, bufferObject);
-
     // Create a promise to resolve later.
     auto resolver = v8::Promise::Resolver::New(isolate->GetCurrentContext()).ToLocalChecked();
     auto global_resolver = std::make_shared<v8::Global<v8::Promise::Resolver>>(isolate, resolver);
 
+    sk_sp<SkData> buffer_data = SkData::MakeWithCopy(buffer->addressU8(), buffer->length());
+
     // Submit a task to thread pool
-    EventLoop::Ref().enqueueThreadPoolTask<sk_sp<SkImage>>([buffer]() -> sk_sp<SkImage> {
+    EventLoop::Ref().enqueueThreadPoolTask<sk_sp<SkImage>>([buffer_data]() -> sk_sp<SkImage> {
         // Do decode here
-        sk_sp<SkData> data = SkData::MakeWithCopy(buffer->addressU8(), buffer->length());
-        std::unique_ptr<SkCodec> codec = SkCodec::MakeFromData(data);
+        std::unique_ptr<SkCodec> codec = SkCodec::MakeFromData(buffer_data);
         auto [image, result] = codec->getImage();
 
         return image;
-    }, [isolate, global_buffer, global_resolver](sk_sp<SkImage>&& image) {
+    }, [isolate, global_resolver](sk_sp<SkImage>&& image) {
         // Receive decoding result here
         v8::HandleScope scope(isolate);
         v8::Local<v8::Promise::Resolver> resolver = global_resolver->Get(isolate);
@@ -67,8 +64,6 @@ v8::Local<v8::Value> CkImageWrap::MakeFromEncodedData(v8::Local<v8::Value> buffe
         else
             resolver->Reject(ctx, binder::to_v8(isolate, "Failed to decode image from buffer")).Check();
 
-        // We do not need them anymore
-        global_buffer->Reset();
         global_resolver->Reset();
     });
 

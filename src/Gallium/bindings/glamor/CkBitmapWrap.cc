@@ -26,6 +26,7 @@
 
 #include "Gallium/bindings/core/Exports.h"
 #include "Gallium/bindings/glamor/Exports.h"
+#include "Gallium/bindings/glamor/CkMatrixWrap.h"
 
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
@@ -179,6 +180,34 @@ v8::Local<v8::Value> CkBitmapWrap::toImage()
     if (!image)
         g_throw(Error, "Cannot convert the bitmap to a CkImage");
     return binder::Class<CkImageWrap>::create_object(v8::Isolate::GetCurrent(), image);
+}
+
+v8::Local<v8::Value> CkBitmapWrap::makeShader(int32_t tmx, int32_t tmy, int32_t sampling,
+                                              v8::Local<v8::Value> local_matrix)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (tmx < 0 || tmx > static_cast<int32_t>(SkTileMode::kLastTileMode))
+        g_throw(RangeError, "Invalid enumeration value for argument `tmx`");
+    if (tmy < 0 || tmy > static_cast<int32_t>(SkTileMode::kLastTileMode))
+        g_throw(RangeError, "Invalid enumeration value for argument `tmy`");
+
+    SkMatrix *matrix = nullptr;
+    if (!local_matrix->IsNullOrUndefined())
+    {
+        auto *w = binder::Class<CkMatrix>::unwrap_object(isolate, local_matrix);
+        if (!w)
+            g_throw(TypeError, "Argument `localMatrix` requires an instance of `CkMatrix` or null");
+        matrix = &w->GetMatrix();
+    }
+
+    sk_sp<SkShader> shader = bitmap_->makeShader(static_cast<SkTileMode>(tmx),
+                                                 static_cast<SkTileMode>(tmy),
+                                                 SamplingToSamplingOptions(sampling),
+                                                 matrix);
+    if (!shader)
+        g_throw(Error, "Failed to create shader from bitmap");
+
+    return binder::Class<CkShaderWrap>::create_object(isolate, shader);
 }
 
 v8::Local<v8::Value> CkBitmapWrap::getPixelBuffer()

@@ -26,7 +26,7 @@
 GALLIUM_BINDINGS_NS_BEGIN
 
 class StreamWeakBuffer;
-class StreamReadIterator;
+class StreamAsyncIterator;
 class StreamWrap;
 class PipeStreamWrap;
 class ProcessWrap;
@@ -39,62 +39,73 @@ void CoreSetInstanceProperties(v8::Local<v8::Object> instance);
 // Stream-based I/O
 // =========================================
 
-class StreamWeakBuffer
+class StreamAsyncIterator
 {
 public:
-    StreamWeakBuffer(v8::Local<v8::Object> streamWrap, uv_buf_t *buf, size_t readBytes);
-    ~StreamWeakBuffer();
-
-    //! TSDecl: readonly expired: boolean
-    g_nodiscard bool isExpired() const;
-
-    //! TSDecl: function toStrongOwnership(): Buffer
-    g_nodiscard v8::Local<v8::Value> toStrongOwnership();
-
-    v8::Global<v8::Object>   stream_wrap_ref_;
-    uv_buf_t                *weak_buf_;
-    size_t                   read_bytes_;
-};
-
-class StreamReadIterator
-{
-public:
-    StreamReadIterator(v8::Local<v8::Object> streamWrap, StreamWrap *pStream);
-    ~StreamReadIterator();
+    explicit StreamAsyncIterator(StreamWrap *stream);
+    ~StreamAsyncIterator();
 
     /**
      * TSDecl:
      * interface IteratorResult {
      *   done: boolean;
-     *   value: StreamWeakBuffer;
+     *   value: {
+     *      length: number;
+     *      buffer: Buffer;
+     *   };
      * }
      */
 
     //! TSDecl: function next(): Promise<IteratorResult>
-    g_nodiscard v8::Local<v8::Value> next() const;
+    v8::Local<v8::Value> next();
 
-    //! TSDecl: function return(): Promise<IteratorResult>
-    g_nodiscard v8::Local<v8::Value> return_() const;
+    //! TSDecl: function return(value?: any): Promise<IteratorResult>
+    void return_(v8::FunctionCallbackInfo<v8::Value> info);
 
-    //! TSDecl: function throw(): Promise<IteratorResult>
-    g_nodiscard v8::Local<v8::Value> throw_();
+    //! TSDecl: function throw(exception?: any): Promise<IteratorResult>
+    void throw_(v8::FunctionCallbackInfo<v8::Value> info);
 
-    v8::Global<v8::Object>  stream_wrap_ref_;
-    StreamWrap             *stream_;
-};
+    void Dispose();
 
-//! TSDecl: #[[core::non-constructible]] class Stream
-class StreamWrap
-{
-public:
-    static v8::Local<v8::Value> OpenTTYStdin();
-
-    template<typename T>
-    static T *Allocate()
-    {
-        return reinterpret_cast<T *>(::malloc(sizeof(T)));
+    g_nodiscard g_inline bool IsPendingState() const {
+        return pending_;
     }
 
+    v8::Local<v8::Promise> EnterPendingState();
+    void FinishPendingState();
+
+    g_inline void SetCurrentBuffer(v8::Isolate *isolate, v8::Local<v8::Object> obj)
+    {
+        current_buffer_.Reset(isolate, obj);
+    }
+
+    g_nodiscard g_inline v8::Local<v8::Object> GetCurrentBuffer(v8::Isolate *isolate)
+    {
+        CHECK(!current_buffer_.IsEmpty());
+        return current_buffer_.Get(isolate);
+    }
+
+    g_nodiscard g_inline
+    v8::Local<v8::Promise::Resolver> GetCurrentResolver(v8::Isolate *isolate)
+    {
+        CHECK(!current_resolver_.IsEmpty());
+        return current_resolver_.Get(isolate);
+    }
+
+private:
+    bool                        disposed_;
+    StreamWrap                 *stream_;
+    bool                                pending_;
+    v8::Global<v8::Promise::Resolver>   current_resolver_;
+    v8::Global<v8::Object>              current_buffer_;
+};
+
+//! TSDecl: class Stream
+class StreamWrap
+{
+    friend class StreamAsyncIterator;
+
+public:
     explicit StreamWrap(uv_stream_t *handle);
     ~StreamWrap();
 
@@ -104,20 +115,52 @@ public:
     //! TSDecl: readonly readable: boolean
     g_nodiscard bool isReadable() const;
 
-    //! TSDecl: function [Symbol.asyncIterator](): StreamReadIterator
-    g_nodiscard v8::Local<v8::Value> asyncIterator();
+    //! TSDecl: function [Symbol.asyncIterator](): StreamAsyncIterator
+    v8::Local<v8::Value> asyncIterator();
 
-    void clearIterationState();
+    //! TSDecl: function write(buffers: Array<Buffer>): Promise<void>
+    v8::Local<v8::Value> write(v8::Local<v8::Value> buffers);
 
+protected:
+    void Dispose();
+
+private:
+    static void OnAllocateCallback(uv_handle_t *hnd, size_t suggested, uv_buf_t *result);
+    static void OnReadCallback(uv_stream_t *st, ssize_t nread, const uv_buf_t *buf);
+
+    bool                     disposed_;
     uv_stream_t             *stream_handle_;
-    bool                     is_reading_;
-    uv_buf_t                 owned_buf_;
-    v8::Global<v8::Promise::Resolver> current_iterate_promise_;
+    v8::Global<v8::Object>   async_iterator_obj_;
+    StreamAsyncIterator     *async_iterator_;
 };
 
-//! TSDecl: class PipeStream extends Stream
-class PipeStreamWrap : public StreamWrap
+//! TSDecl: class TTYStream extends Stream
+class TTYStreamWrap : public StreamWrap
 {
+public:
+    explicit TTYStreamWrap(uv_tty_t *handle)
+        : StreamWrap(reinterpret_cast<uv_stream_t*>(handle))
+        , closed_(false)
+        , handle_(handle) {}
+    ~TTYStreamWrap();
+
+    //! TSDecl: function OpenStdin(): TTYStreamWrap
+    static v8::Local<v8::Value> OpenStdin();
+
+    //! TSDecl: function OpenStdout(): TTYStreamWrap
+    static v8::Local<v8::Value> OpenStdout();
+
+    //! TSDecl: function OpenStderr(): TTYStreamWrap
+    static v8::Local<v8::Value> OpenStderr();
+
+    //! TSDecl: function close(): void
+    void close();
+
+private:
+    static v8::Local<v8::Value> OpenFromFd(int fd);
+
+    bool             closed_;
+    uv_tty_t        *handle_;
 };
 
 // =========================================
@@ -370,9 +413,8 @@ public:
     //! TSDecl: function MakeFromAdoptBuffer(array: Uint8Array): Buffer
     static v8::Local<v8::Object> MakeFromAdoptBuffer(v8::Local<v8::Object> array);
 
-    //! TSDecl: function MakeFromPackageFile(package: string, path: string): Buffer
-    static v8::Local<v8::Object> MakeFromPackageFile(const std::string& package,
-                                                     const std::string& path);
+    //! TSDecl: function MakeFromBase64(base64: string): Buffer
+    static v8::Local<v8::Object> MakeFromBase64(v8::Local<v8::String> base64);
 
     /**
      * Similar to `MakeFromPtrWithoutCopy`, but the caller can use lambda expression

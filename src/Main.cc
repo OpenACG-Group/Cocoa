@@ -31,7 +31,6 @@
 #include "Core/Exception.h"
 #include "Core/EventLoop.h"
 #include "Core/Filesystem.h"
-#include "Core/QResource.h"
 #include "Core/ProcessSignalHandler.h"
 #include "Core/ApplicationInfo.h"
 #include "Core/TraceEvent.h"
@@ -39,6 +38,8 @@
 #include "Gallium/BindingManager.h"
 #include "Glamor/Glamor.h"
 #include "Utau/Utau.h"
+
+#include "CRPKG/ResourceManager.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Main)
 
@@ -334,8 +335,7 @@ void mainloop_execute(bool justInitialize,
                       const gl::ContextOptions& gl_options,
                       const utau::ContextOptions& utau_options)
 {
-    // Initialize QResource module, loading internal resources
-    QResource::New();
+    crpkg::ResourceManager::New();
 
     // Initialize Glamor (rendering engine)
     gl::GlobalScope::New(gl_options, EventLoop::Instance());
@@ -394,7 +394,7 @@ void mainloop_execute(bool justInitialize,
     // To make sure the task performed properly, we run event loop again.
     EventLoop::Ref().run();
 
-    QResource::Delete();
+    crpkg::ResourceManager::Delete();
     EventLoop::Delete();
 }
 

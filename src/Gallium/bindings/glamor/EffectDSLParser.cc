@@ -613,6 +613,26 @@ EffectStackOperand::Nullable<sk_sp<SkImage>> EffectStackOperand::ToImageSafe()
     return wrapped->getImage();
 }
 
+EffectStackOperand::Nullable<sk_sp<SkBlender>> EffectStackOperand::ToBlenderSafe()
+{
+    NULLABLE_CHECK;
+    if (type != kKWArgs)
+        g_throw(Error, "Only kwarg operand can be converted to Blender");
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    CHECK(isolate);
+
+    auto *wrapped = binder::Class<CkBlenderWrap>::unwrap_object(isolate, kwarg_pair.second);
+    if (!wrapped)
+    {
+        g_throw(TypeError,
+                fmt::format("Keyword argument `{}` is not an instance of CkBlender",
+                            kwarg_pair.first));
+    }
+
+    return wrapped->getSkiaObject();
+}
+
 EffectStackOperand::Nullable<SkPath*> EffectStackOperand::ToPathSafe()
 {
     NULLABLE_CHECK;

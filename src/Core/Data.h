@@ -25,7 +25,6 @@
 #include "Core/Project.h"
 namespace cocoa {
 
-class CrpkgFile;
 class DataSlice;
 
 class Data : public std::enable_shared_from_this<Data>
@@ -60,7 +59,6 @@ public:
     static std::shared_ptr<Data> MakeFromFile(int32_t fd, Bitfield<vfs::OpenFlags> flags);
     static std::shared_ptr<Data> MakeFromFileMapped(const std::string& path,
                                                     Bitfield<vfs::OpenFlags> flags);
-    static std::shared_ptr<Data> MakeFromPackage(const std::shared_ptr<CrpkgFile>& file);
 
     static std::shared_ptr<Data> MakeFromPtr(void *ptr, size_t size);
     static std::shared_ptr<Data> MakeFromPtrWithoutCopy(void *ptr, size_t size, bool release = false);

@@ -10,8 +10,7 @@ option(COCOA_BUILD_TOY_NATIVES "Build toy natives for testing purpose" ON)
 find_package(PkgConfig REQUIRED)
 
 set(COCOA_THIRDPARTY_DIR ${CMAKE_HOME_DIRECTORY}/third_party)
-set(QRESOURCE_DIR "${CMAKE_HOME_DIRECTORY}/qresource")
-set(QRESOURCE_COMPILED_DIR "${QRESOURCE_DIR}/compiled")
+set(INTERNAL_RESOURCES_DIR ${CMAKE_HOME_DIRECTORY}/internal)
 
 set(CMAKE_MODULE_PATH ${CMAKE_HOME_DIRECTORY}/cmake)
 
@@ -40,11 +39,11 @@ if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 endif()
 
 add_subdirectory(src/Core)
+add_subdirectory(src/CRPKG)
 add_subdirectory(src/Glamor)
 add_subdirectory(src/Gallium)
 # add_subdirectory(src/Reactor)
 add_subdirectory(src/Utau)
-add_subdirectory(qresource/qresourcekit)
 
 add_executable(Cocoa src/Main.cc)
 
@@ -52,7 +51,6 @@ set(LINK_STATIC_JSONCPP ${COCOA_THIRDPARTY_DIR}/build/lib/libjsoncpp.a CACHE STR
 set(LINK_STATIC_JEMALLOC ${COCOA_THIRDPARTY_DIR}/build/lib/libjemalloc_pic.a CACHE STRING "Path of static library jemalloc")
 set(LINK_STATIC_FMT ${COCOA_THIRDPARTY_DIR}/build/lib/libfmt.a CACHE STRING "Path of static library fmt")
 set(LINK_STATIC_LIBUV ${COCOA_THIRDPARTY_DIR}/build/lib/libuv_a.a CACHE STRING "Path of static library libuv")
-set(LINK_STATIC_LIBSQUASH ${COCOA_THIRDPARTY_DIR}/build/lib/libsquash.a CACHE STRING "Path of static library libsquash")
 
 target_link_libraries(
         Cocoa
@@ -60,6 +58,7 @@ target_link_libraries(
         Utau
         Glamor
         # Reactor
+        CRPKG
         Core
         ${LINK_STATIC_JSONCPP}
         ${LINK_STATIC_JEMALLOC}

@@ -547,6 +547,30 @@ function formatMapValue(value: Map<any, any>, ctx: FormatterContext): Array<Text
     return result;
 }
 
+function formatTypedArray(value: object, ctx: FormatterContext): Array<TextBlock> {
+    const typename = value[Symbol.toStringTag];
+    const length = value['length'];
+
+    const result: Array<TextBlock> = [
+        TB(TextBlockLayoutHint.kPrefix, [
+            TAG(`${typename}(${length})`)
+        ]),
+        TB(TextBlockLayoutHint.kCompoundStructureBegin, [
+            TAG('[')
+        ])
+    ];
+
+    for (let i = 0; i < length; i++) {
+        result.push(...formatAnyValue(value[i], ctx));
+        if (i != length - 1) {
+            result.push(TB(TextBlockLayoutHint.kSeparator, [TAG(',')]));
+        }
+    }
+
+    result.push(TB(TextBlockLayoutHint.kCompoundStructureEnd, [TAG(']')]));
+    return result;
+}
+
 function formatObjectValue(value: object, ctx: FormatterContext): Array<TextBlock> {
     // Fast path for null
     if (value == null) {
@@ -565,6 +589,10 @@ function formatObjectValue(value: object, ctx: FormatterContext): Array<TextBloc
 
     if (TypeTraits.IsMap(value)) {
         return formatMapValue(value as Map<any, any>, ctx);
+    }
+
+    if (TypeTraits.IsTypedArray(value)) {
+        return formatTypedArray(value, ctx);
     }
 
     // TODO(sora): More internal objects (iterator, proxy, promise...)

@@ -512,7 +512,55 @@ void CkCanvas::drawPatch(v8::Local<v8::Value> cubics, v8::Local<v8::Value> color
                          v8::Local<v8::Value> texCoords, int32_t mode,
                          v8::Local<v8::Value> paint)
 {
-    // TODO(sora): implement this
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    CHECK_ENUM_RANGE(mode, SkBlendMode::kLastMode);
+    EXTRACT_PAINT_CHECKED(paint, p)
+
+    if (!cubics->IsArray() || cubics.As<v8::Array>()->Length() != 12)
+        g_throw(TypeError, "Argument `cubics` must be an array of 12 CkPoint");
+    v8::Local<v8::Array> cubics_arr = cubics.As<v8::Array>();
+
+    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+
+    std::array<SkPoint, 12> cubics_data{};
+    for (int32_t i = 0; i < 12; i++)
+        cubics_data[i] = ExtractCkPoint(isolate, cubics_arr->Get(ctx, i).ToLocalChecked());
+
+    SkColor *colors_ptr = nullptr;
+    std::array<SkColor, 4> colors_data{};
+    if (!colors->IsNullOrUndefined())
+    {
+        if (!colors->IsArray() || colors.As<v8::Array>()->Length() != 4)
+            g_throw(TypeError, "Argument `colors` must be an array of 4 CkColor");
+        v8::Local<v8::Array> colors_arr = colors.As<v8::Array>();
+        for (int32_t i = 0; i < 4; i++)
+        {
+            colors_data[i] = ExtractColor4f(
+                    isolate, colors_arr->Get(ctx, i).ToLocalChecked()).toSkColor();
+        }
+        colors_ptr = colors_data.data();
+    }
+
+    SkPoint *tex_coords_ptr = nullptr;
+    std::array<SkPoint, 4> tex_coords_data{};
+    if (!texCoords->IsNullOrUndefined())
+    {
+        if (!texCoords->IsArray() || texCoords.As<v8::Array>()->Length() != 4)
+            g_throw(TypeError, "Argument `texCoords` must be an array of 4 SkPoint");
+        v8::Local<v8::Array> tex_coords_arr = texCoords.As<v8::Array>();
+        for (int32_t i = 0; i < 4; i++)
+        {
+            tex_coords_data[i] = ExtractCkPoint(
+                    isolate, tex_coords_arr->Get(ctx, i).ToLocalChecked());
+        }
+        tex_coords_ptr = tex_coords_data.data();
+    }
+
+    canvas_->drawPatch(cubics_data.data(),
+                       colors_ptr,
+                       tex_coords_ptr,
+                       static_cast<SkBlendMode>(mode),
+                       p->GetPaint());
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

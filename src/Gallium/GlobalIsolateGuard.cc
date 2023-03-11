@@ -18,6 +18,7 @@
 #include "Core/MeasuredTable.h"
 #include "Core/Journal.h"
 #include "Core/Utils.h"
+#include "Core/TraceEvent.h"
 #include "Gallium/GlobalIsolateGuard.h"
 #include "Gallium/Runtime.h"
 #include "Gallium/binder/Convert.h"
@@ -147,40 +148,40 @@ void per_isolate_promise_reject_handler(v8::PromiseRejectMessage message)
 } // namespace anonymous
 
 GlobalIsolateGuard::GlobalIsolateGuard(const std::shared_ptr<Runtime>& rt)
-    : fRuntime(rt)
-    , fIsolate(rt->GetIsolate())
+    : runtime_(rt)
+    , isolate_(rt->GetIsolate())
 {
-    fIsolate->SetCaptureStackTraceForUncaughtExceptions(true);
-    fIsolate->AddMessageListenerWithErrorLevel(per_isolate_message_listener,
+    isolate_->SetCaptureStackTraceForUncaughtExceptions(true);
+    isolate_->AddMessageListenerWithErrorLevel(per_isolate_message_listener,
                                                v8::Isolate::MessageErrorLevel::kMessageError |
                                                v8::Isolate::MessageErrorLevel::kMessageWarning);
-    fIsolate->SetOOMErrorHandler(per_isolate_oom_handler);
-    fIsolate->SetPromiseRejectCallback(per_isolate_promise_reject_handler);
+    isolate_->SetOOMErrorHandler(per_isolate_oom_handler);
+    isolate_->SetPromiseRejectCallback(per_isolate_promise_reject_handler);
 }
 
 GlobalIsolateGuard::~GlobalIsolateGuard()
 {
-    fIsolate->SetPromiseRejectCallback(nullptr);
-    fIsolate->SetOOMErrorHandler(nullptr);
-    fIsolate->RemoveMessageListeners(per_isolate_message_listener);
-    fIsolate->SetCaptureStackTraceForUncaughtExceptions(false);
+    isolate_->SetPromiseRejectCallback(nullptr);
+    isolate_->SetOOMErrorHandler(nullptr);
+    isolate_->RemoveMessageListeners(per_isolate_message_listener);
+    isolate_->SetCaptureStackTraceForUncaughtExceptions(false);
 }
 
 void GlobalIsolateGuard::pushMaybeUnhandledRejectPromise(v8::Local<v8::Promise> promise,
                                                          v8::Local<v8::Value> value)
 {
-    PromiseWithValue pack(fIsolate, promise, value);
-    if (std::find(fRejectPromises.begin(), fRejectPromises.end(), pack) != fRejectPromises.end())
+    PromiseWithValue pack(isolate_, promise, value);
+    if (std::find(reject_promises_.begin(), reject_promises_.end(), pack) != reject_promises_.end())
         return;
-    fRejectPromises.emplace_back(std::move(pack));
+    reject_promises_.emplace_back(std::move(pack));
 }
 
 void GlobalIsolateGuard::removeMaybeUnhandledRejectPromise(v8::Local<v8::Promise> promise)
 {
-    auto pv = std::find(fRejectPromises.begin(), fRejectPromises.end(), promise);
-    if (pv == fRejectPromises.end())
+    auto pv = std::find(reject_promises_.begin(), reject_promises_.end(), promise);
+    if (pv == reject_promises_.end())
         return;
-    fRejectPromises.erase(pv);
+    reject_promises_.erase(pv);
 }
 
 void GlobalIsolateGuard::performUnhandledRejectPromiseCheck()
@@ -189,19 +190,19 @@ void GlobalIsolateGuard::performUnhandledRejectPromiseCheck()
     if (!introspect)
     {
         QLOG(LOG_WARNING, "{} promise(s) was rejected but not handled (introspect not available)",
-             fRejectPromises.size());
-        fRejectPromises.clear();
+             reject_promises_.size());
+        reject_promises_.clear();
         return;
     }
-    for (PromiseWithValue& pv : fRejectPromises)
+    for (PromiseWithValue& pv : reject_promises_)
     {
-        v8::HandleScope scope(fIsolate);
-        v8::Local<v8::Promise> promise = pv.promise.Get(fIsolate);
-        v8::Local<v8::Value> value = pv.value.Get(fIsolate);
+        v8::HandleScope scope(isolate_);
+        v8::Local<v8::Promise> promise = pv.promise.Get(isolate_);
+        v8::Local<v8::Value> value = pv.value.Get(isolate_);
         if (!introspect->notifyUnhandledPromiseRejection(promise, value))
             throw RuntimeException(__func__, "Uncaught and unhandled promise rejection");
     }
-    fRejectPromises.clear();
+    reject_promises_.clear();
 }
 
 void GlobalIsolateGuard::reportUncaughtExceptionFromCallback(const v8::TryCatch& caught)

@@ -41,3 +41,35 @@ export function Initialize(appInfo?: AppInfo): void {
 
     GL.RenderHost.Initialize(initAppInfo);
 }
+
+export namespace RectOperators {
+    export function Clone(from: GL.CkArrayXYWHRect): GL.CkArrayXYWHRect {
+        return [from[0], from[1], from[2], from[3]];
+    }
+
+    export function ClearXY(from: GL.CkArrayXYWHRect): GL.CkArrayXYWHRect {
+        return [0, 0, from[2], from[3]];
+    }
+
+    export function Union(a: GL.CkArrayXYWHRect, b: GL.CkArrayXYWHRect): GL.CkArrayXYWHRect {
+        // Empty rects
+        if (a[2] == 0 && a[3] == 0) {
+            return Clone(b);
+        }
+        if (b[2] == 0 && b[3] == 0) {
+            return Clone(a);
+        }
+
+        // Left, Top, Right, Bottom
+        const L1 = a[0], T1 = a[1], R1 = a[0] + a[2], B1 = a[1] + a[3];
+        const L2 = b[0], T2 = b[1], R2 = b[0] + b[2], B2 = b[1] + b[3];
+        
+        const LR = L1 < L2 ? L1 : L2,
+              TR = T1 < T2 ? T1 : T2,
+              RR = R1 > R2 ? R1 : R2,
+              BR = B1 > B2 ? B1 : B2;
+
+        // Convert to CkRect XYWH format
+        return [LR, TR, RR - LR, BR - TR];
+    }
+}

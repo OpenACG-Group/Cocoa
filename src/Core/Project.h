@@ -42,7 +42,7 @@
 #define COCOA_VERSION   "1.0.0-develop"
 #define COCOA_LICENSE   "General Public License (GPLv3)"
 
-#define COCOA_COPYRIGHT_YEAR    "2022"
+#define COCOA_COPYRIGHT_YEAR    "2023"
 
 // Property specifiers for functions, methods, member variables.
 // Can be used as function signature.
