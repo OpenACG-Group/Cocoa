@@ -312,6 +312,8 @@ void Runtime::Dispose()
 
     CHECK(!isolate_->IsInUse() && "V8 Isolate is still being used when disposing");
 
+    inspector_.reset();
+
     uv_close((uv_handle_t *)&idle_, nullptr);
 
     QLOG(LOG_DEBUG, "Imported modules (URL):");

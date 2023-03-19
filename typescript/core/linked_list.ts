@@ -94,16 +94,19 @@ export class LinkedList<T> {
         node.value = null;
     }
 
-    public removeIf(pred: (value: T, index: number) => boolean): void {
+    public removeIf(pred: (value: T, index: number) => boolean): boolean {
         let current = this.#head.next;
         let index = 0;
+        let removed = false;
         while (!current.head) {
             let next = current.next;
             if (pred(current.value, index)) {
                 this.removeNode(current);
+                removed = true;
             }
             current = next;
             index++;
         }
+        return removed;
     }
 }

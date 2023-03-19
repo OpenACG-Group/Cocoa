@@ -66,8 +66,8 @@ void InspectorClient::NotifyFrontendMessageArrival()
 
 void InspectorClient::runMessageLoopOnPause(int contextGroupId)
 {
-    // if (is_nested_message_loop_)
-    //    return;
+    if (is_nested_message_loop_)
+        return;
 
     should_quit_loop_ = false;
     is_nested_message_loop_ = true;
@@ -90,8 +90,6 @@ void InspectorClient::quitMessageLoopOnPause()
 void InspectorClient::DisconnectedFromFrontend()
 {
     should_quit_loop_ = true;
-    v8_inspector_session_.reset();
-    v8_inspector_.reset();
 }
 
 v8::Local<v8::Context> InspectorClient::ensureDefaultContextInGroup(int contextGroupId)
@@ -102,14 +100,8 @@ v8::Local<v8::Context> InspectorClient::ensureDefaultContextInGroup(int contextG
 
 void InspectorClient::DispatchMessage(const std::string& view)
 {
-    v8::HandleScope handle_scope(isolate_);
-    auto message = v8::String::NewFromUtf8(isolate_, view.c_str(),
-                                           v8::NewStringType::kNormal).ToLocalChecked();
-    int length = message->Length();
-    std::unique_ptr<uint16_t[]> buffer(new uint16_t[length]);
-    message->Write(isolate_, buffer.get(), 0, length);
-
-    v8_inspector::StringView message_view(buffer.get(), length);
+    v8_inspector::StringView message_view(
+            reinterpret_cast<const uint8_t*>(view.c_str()), view.length());
 
     v8::SealHandleScope seal_handle_scope(isolate_);
     v8_inspector_session_->dispatchProtocolMessage(message_view);

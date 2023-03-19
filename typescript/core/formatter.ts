@@ -23,6 +23,23 @@
 
 import * as TypeTraits from './typetraits';
 
+export const kObjectFormatter = Symbol.for('@ObjectFormatter');
+
+/**
+ * Instances of classes which implement this interface can be formatted
+ * by `format` function in the user-defined way.
+ */
+export interface Formattable {
+    /**
+     * A method that will be called when the instance is formatted.
+     * An array of TextBlocks representing the formatted text should be returned.
+     *
+     * @param ctx Current formatter context, which can be used for circular
+     *            reference detection, or being passed to another formatter function.
+     */
+    [kObjectFormatter](ctx: FormatterContext): Array<TextBlock>;
+}
+
 export interface ObjectFormatOptions {
     colorANSI?: boolean;
 
@@ -170,7 +187,7 @@ export class TextAttributeGroup {
 }
 
 // Internal constructor shorthand
-function TAG(content: string, ...args: any[]): TextAttributeGroup {
+export function TAG(content: string, ...args: any[]): TextAttributeGroup {
     return new TextAttributeGroup(content, ...args);
 }
 
@@ -250,7 +267,7 @@ export class TextBlock {
 }
 
 // Internal constructor shorthand
-function TB(hint: TextBlockLayoutHint, contents: Array<TextAttributeGroup>): TextBlock {
+export function TB(hint: TextBlockLayoutHint, contents: Array<TextAttributeGroup>): TextBlock {
     return new TextBlock(hint, contents);
 }
 
@@ -260,7 +277,7 @@ interface CompoundValueStub {
     refcnt: number;
 }
 
-class FormatterContext {
+export class FormatterContext {
     options: ObjectFormatOptions;
     // For circular reference detecting
     compoundValueStubStack: Array<CompoundValueStub>;
@@ -301,7 +318,7 @@ const CLASS_REGEXP = /^(\s+[^(]*?)\s*{/;
 // eslint-disable-next-line node-core/no-unescaped-regexp-dot
 const STRIP_COMMENTS_REGEXP = /(\/\/.*?\n)|(\/\*(.|\n)*?\*\/)/g;
 
-function formatClassValue(value: Function): Array<TextBlock> {
+export function formatClassValue(value: Function): Array<TextBlock> {
     const name = value.name.length > 0 ? value.name : '(anonymous)';
 
     const result = TB(TextBlockLayoutHint.kValue, [
@@ -337,7 +354,7 @@ function formatClassValue(value: Function): Array<TextBlock> {
     return [result];
 }
 
-function formatFunctionValue(value: Function): Array<TextBlock> {
+export function formatFunctionValue(value: Function): Array<TextBlock> {
     // `value` is a class
     const source = value.toString();
 
@@ -379,7 +396,7 @@ function formatFunctionValue(value: Function): Array<TextBlock> {
 
 const INDEX_PROP_REGEXP = /^[0-9]+$/;
 
-function formatArrayValue(value: Array<any>, ctx: FormatterContext): Array<TextBlock> {
+export function formatArrayValue(value: Array<any>, ctx: FormatterContext): Array<TextBlock> {
     const constructor = TypeTraits.GetConstructorName(value);
 
     const result: Array<TextBlock> = [];
@@ -502,7 +519,7 @@ function collectExtraOwnProperties(value: any, firstOne: boolean, ctx: Formatter
     return result;
 }
 
-function formatSetValue(value: Set<any>, ctx: FormatterContext): Array<TextBlock> {
+export function formatSetValue(value: Set<any>, ctx: FormatterContext): Array<TextBlock> {
     const result: Array<TextBlock> = internalObjectPrefix(value, 'Set', value.size);
 
     result.push(TB(TextBlockLayoutHint.kCompoundStructureBegin, [TAG('{')]));
@@ -522,7 +539,7 @@ function formatSetValue(value: Set<any>, ctx: FormatterContext): Array<TextBlock
     return result;
 }
 
-function formatMapValue(value: Map<any, any>, ctx: FormatterContext): Array<TextBlock> {
+export function formatMapValue(value: Map<any, any>, ctx: FormatterContext): Array<TextBlock> {
     const result: Array<TextBlock> = internalObjectPrefix(value, 'Map', value.size);
 
     result.push(TB(TextBlockLayoutHint.kCompoundStructureBegin, [TAG('{')]));
@@ -547,7 +564,7 @@ function formatMapValue(value: Map<any, any>, ctx: FormatterContext): Array<Text
     return result;
 }
 
-function formatTypedArray(value: object, ctx: FormatterContext): Array<TextBlock> {
+export function formatTypedArray(value: object, ctx: FormatterContext): Array<TextBlock> {
     const typename = value[Symbol.toStringTag];
     const length = value['length'];
 
@@ -571,12 +588,17 @@ function formatTypedArray(value: object, ctx: FormatterContext): Array<TextBlock
     return result;
 }
 
-function formatObjectValue(value: object, ctx: FormatterContext): Array<TextBlock> {
+export function formatObjectValue(value: object, ctx: FormatterContext): Array<TextBlock> {
     // Fast path for null
     if (value == null) {
         return [TB(TextBlockLayoutHint.kValue, [
             TAG('null', TextColor.kBlack, TextColor.kDefault, [TextStyle.kBold])
         ])];
+    }
+
+    // User-defined formatter
+    if (value[kObjectFormatter] != undefined) {
+        return value[kObjectFormatter](ctx);
     }
 
     if (Array.isArray(value)) {
@@ -636,7 +658,7 @@ const escapedCtrlChars = [
     '\\x98', '\\x99', '\\x9A', '\\x9B', '\\x9C', '\\x9D', '\\x9E', '\\x9F'  // x9F
 ];
 
-function formatStringValue(value: string, ctx: FormatterContext): Array<TextBlock> {
+export function formatStringValue(value: string, ctx: FormatterContext): Array<TextBlock> {
     const block = TB(TextBlockLayoutHint.kValue, [
         TAG('\'', TextColor.kGreen)
     ]);
@@ -698,7 +720,7 @@ function formatStringValue(value: string, ctx: FormatterContext): Array<TextBloc
     return [block];
 }
 
-function formatAnyValue(value: any, ctx: FormatterContext): Array<TextBlock> {
+export function formatAnyValue(value: any, ctx: FormatterContext): Array<TextBlock> {
     switch (typeof value) {
         case "undefined":
             return [TB(TextBlockLayoutHint.kValue, [

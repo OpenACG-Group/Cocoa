@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 ## Build options
 option(COCOA_BUILD_TOY_NATIVES "Build toy natives for testing purpose" ON)
+option(COCOA_BUILD_WITH_ASAN "Build Cocoa with LLVM address sanitizer" OFF)
 
 find_package(PkgConfig REQUIRED)
 
@@ -22,11 +23,9 @@ include_directories(
         third_party/skia
         third_party/v8
         third_party/v8/include
-        third_party/v8/out/debug.static/gen
         third_party/build/include)
 
 link_directories(third_party/build/lib)
-
 
 ## Compile options and targets
 add_compile_definitions(COCOA_PROJECT=1 V8_COMPRESS_POINTERS SK_VULKAN)
@@ -61,10 +60,15 @@ target_link_libraries(
         CRPKG
         Core
         ${LINK_STATIC_JSONCPP}
-        ${LINK_STATIC_JEMALLOC}
 )
 
-add_subdirectory(tests)
+if (${COCOA_BUILD_WITH_ASAN})
+    add_compile_options(-fsanitize=address)
+    target_link_libraries(Cocoa asan)
+else()
+    ## We do not use jemalloc when the address sanitizer is enabled.
+    target_link_libraries(Cocoa ${LINK_STATIC_JEMALLOC})
+endif()
 
 add_library(perfetto STATIC ${COCOA_THIRDPARTY_DIR}/perfetto/sdk/perfetto.cc)
 target_link_libraries(Cocoa perfetto)

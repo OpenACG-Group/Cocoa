@@ -33,6 +33,15 @@ public:
     using DisconnectNotifier = std::function<void()>;
     using ConnectNotifier = std::function<void()>;
 
+    struct SendBuffer
+    {
+        SendBuffer(std::unique_ptr<uint8_t[]> _ptr, size_t _data_size)
+            : ptr(std::move(_ptr)), data_size(_data_size) {}
+
+        std::unique_ptr<uint8_t[]> ptr;
+        size_t data_size;
+    };
+
     InspectorThread(int32_t port,
                     MessageNotifier message_notifier,
                     DisconnectNotifier disconnect_notifier,
@@ -53,7 +62,7 @@ private:
     MessageNotifier         message_notifier_;
     DisconnectNotifier      disconnect_notifier_;
     ConnectNotifier         connect_notifier_;
-    ConcurrentTaskQueue<std::string> send_queue_;
+    ConcurrentTaskQueue<SendBuffer> send_queue_;
     std::atomic<bool>       disconnected_;
     uv_async_t              message_queue_async_;
 };

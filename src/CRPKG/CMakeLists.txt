@@ -30,15 +30,17 @@ add_library(
 )
 
 add_executable(
-    crpkg-packager
+        crpkg-packager
 
-    crpkg-packager.cc
-    CRPKG.h
-    Composer.h
-    Composer.cc
-    Protocol.h
-    Protocol.cc
+        crpkg-packager.cc
+        CRPKG.h
+        Composer.h
+        Composer.cc
+        Protocol.h
+        Protocol.cc
+
+        ${LINK_STATIC_FMT}
 )
 
-target_link_libraries(crpkg-packager PRIVATE Core ${LINK_STATIC_FMT})
+target_link_libraries(crpkg-packager PRIVATE Core ${LINK_STATIC_FMT} ${LINK_STATIC_LIBUV})
 set_target_properties(crpkg-packager PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

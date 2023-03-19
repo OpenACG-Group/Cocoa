@@ -54,9 +54,15 @@ void InspectorThread::SendFrontendMessage(const std::string& message)
     if (disconnected_)
         return;
 
+    // As the libwebsocket requires, we MUST have LWS_PRE bytes available
+    // BEFORE the actual data. Those bytes will be used for protocol header
+    // by libwebsocket internally.
+    auto buffer = std::make_unique<uint8_t[]>(message.length() + LWS_PRE);
+    std::memcpy(buffer.get() + LWS_PRE, message.data(), message.length());
+
     // Push the message into queue, and it will be sent when the socket is writable
-    // automatically by libwebsockets.
-    send_queue_.Push(std::make_unique<std::string>(message));
+    // automatically by libwebsocket.
+    send_queue_.Push(std::make_unique<SendBuffer>(std::move(buffer), message.length()));
 
     uv_async_send(&message_queue_async_);
 }
@@ -65,7 +71,7 @@ namespace {
 
 struct WsContext
 {
-    ConcurrentTaskQueue<std::string> *message_queue;
+    ConcurrentTaskQueue<InspectorThread::SendBuffer> *message_queue;
     uv_loop_t loop;
     lws_context *lws_context;
     InspectorThread *self;
@@ -115,12 +121,10 @@ int ws_protocol_callback(struct lws *wsi,
     case LWS_CALLBACK_SERVER_WRITEABLE:
         while (auto message = ws_context->message_queue->Pop())
         {
-            auto *buf = reinterpret_cast<uint8_t*>(message->data());
-            int sent = lws_write(wsi, buf, message->length(), LWS_WRITE_TEXT);
-            if (sent != message->length())
+            int sent = lws_write(wsi, message->ptr.get() + LWS_PRE, message->data_size, LWS_WRITE_TEXT);
+            if (sent != message->data_size)
             {
-                // TODO(sora): error handling
-                fmt::print("write error!\n");
+                QLOG(LOG_ERROR, "Websocket: Failed to send message to the inspector frontend");
             }
         }
         break;
@@ -209,6 +213,8 @@ void InspectorThread::IoThreadRoutine()
     lws_service(ws_context.lws_context, 0);
 
     uv_loop_close(&ws_context.loop);
+
+    lws_context_destroy(ws_context.lws_context);
 
     QLOG(LOG_INFO, "Inspector I/O thread has been exited");
 }

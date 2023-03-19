@@ -267,6 +267,9 @@ public:
 
     static TokenList Tokenize(const std::string& input)
     {
+        if (input.empty())
+            g_throw(Error, "Empty effector DSL");
+
         RefStringLexer lexer(input);
 
         TokenList list;

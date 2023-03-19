@@ -420,7 +420,6 @@
 
         <class name="CkVertices" wrapper="CkVertices">
             <method static="true" name="MakeCopy" value="@MakeCopy"/>
-            <method static="true" name="MakeTransform" value="@MakeTransform"/>
             <property name="uniqueID" getter="@getUniqueID"/>
             <property name="bounds" getter="@getBounds"/>
         </class>

@@ -169,8 +169,6 @@ target_link_libraries(
         skunicode
         skshaper
         ${COCOA_THIRDPARTY_DIR}/build/lib/libskparagraph.a
-        # ${COCOA_THIRDPARTY_DIR}/build/lib/libskunicode.a
-        # ${COCOA_THIRDPARTY_DIR}/build/lib/libskshaper.a
 )
 
 target_compile_definitions(Gallium PRIVATE COCOA_USE_MONOLITHIC_V8=1)

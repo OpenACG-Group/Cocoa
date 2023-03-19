@@ -7,7 +7,7 @@ NON_GOOGLE_DEPS_LIST=(
     "libunwind.tar.gz@https://codeload.github.com/libunwind/libunwind/tar.gz/refs/tags/v1.6.2"
     "libuv.tar.gz@https://codeload.github.com/libuv/libuv/tar.gz/refs/tags/v1.44.2"
     "libsquash.tar.gz@https://codeload.github.com/pmq20/libsquash/tar.gz/refs/tags/v0.8.0"
-    "ffmpeg.tar.gz@http://www.ffmpeg.org/releases/ffmpeg-5.1.2.tar.gz"
+    "ffmpeg.tar.gz@http://www.ffmpeg.org/releases/ffmpeg-6.0.tar.gz"
     "libwebsockets.tar.gz@https://codeload.github.com/warmcat/libwebsockets/tar.gz/refs/tags/v4.3.2"
 )
 
@@ -53,7 +53,7 @@ for pkg_descriptor in ${NON_GOOGLE_DEPS_LIST[@]}; do
     pkg_name=$(echo $pkg_filename | cut -d . -f 1)
     print_info "Extracting package ${pkg_filename}..."
 
-    if [[ -n $(find ./third_party -maxdepth 1 -type d -name "${pkg_name}*") ]]; then
+    if [[ -n $(find ./third_party -maxdepth 1 -type d -name "${pkg_name}-*") ]]; then
         print_info "Extracted package already exists, skipped"
         continue
     fi

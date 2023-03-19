@@ -10,10 +10,9 @@ This project belongs to [OpenACG Group](https://github.com/OpenACG-Group).
 Cocoa is a project inspired by
 [*ATRI -My Dear Moments-*](https://atri-mdm.com/),
 initially aiming to improve the VN experience on the Linux platform and provide
-a framework for those who are interested in VN creation.
-
-Although Cocoa is initially created for VN, it is completely a
-general-purposed 2D rendering framework that can fit other similar situations.
+a framework for those who are interested in VN creation.  Although Cocoa is initially
+created for VN, it is completely a general-purposed 2D rendering framework that can
+fit other similar situations.
 
 Cocoa is a type of plant whose bean is the thing from which chocolate is made.
 But _Cocoa_ here doesn't mean that. Instead, it comes from an anime called
@@ -28,6 +27,25 @@ while the visual novel framework part is completely built by TypeScript.
 
 Cocoa is still being developed and haven't been ready for commercial use.
 Issues / Pull requests are welcome.
+
+## Platform
+A typical feature of GNU/Linux platform is that there are usually more than one
+technique/solution to solve the same problem. For example, both PipeWire and
+PulseAudio are designed to be the audio backend on Linux. Some solutions are too
+old (but they are usually more stable and compatible, like X11 vs Wayland) and
+Cocoa **does not and will not** support them.
+
+Generally, Cocoa always supports the newer technique when we have the choice,
+and there is a table showing what are or aren't supported:
+
+| Feature               | Support  | Not support |
+|-----------------------|----------|-------------|
+| Display Server        | Wayland  | X11, Mir    |
+| Graphics Library      | Vulkan   | OpenGL      |
+| Audio Server          | PipeWire | PulseAudio  |
+| Video Decoding Accel. | VAAPI    | VDPAU       |
+
+* For video decoding acceleration, Vulkan may be supported in the future.
 
 ## Build and use Cocoa
 See [documentation](https://openacg-group.github.io) for more details.

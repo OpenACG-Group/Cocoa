@@ -185,11 +185,6 @@ void Inspector::DisconnectedFromFrontend()
     has_connected_ = false;
     client_->DisconnectedFromFrontend();
 
-    context_.Reset();
-
-    io_thread_.reset();
-    client_.reset();
-
     uv_barrier_destroy(&connected_barrier_);
     uv_close(reinterpret_cast<uv_handle_t*>(&async_handle_),
              [](uv_handle_t*) {});
@@ -209,7 +204,6 @@ std::string Inspector::WaitAndTakeFrontendMessage()
 
 void Inspector::SendMessageToFrontend(const std::string& message)
 {
-    // fmt::print("\033[33;1mSend:\033[0m {}\n", message);
     io_thread_->SendFrontendMessage(message);
 }
 
