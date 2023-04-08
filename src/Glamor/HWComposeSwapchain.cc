@@ -16,6 +16,7 @@
  */
 
 #include <optional>
+#include <sstream>
 
 #include <vulkan/vulkan.h>
 
@@ -25,6 +26,8 @@
 #include "include/gpu/vk/GrVkBackendContext.h"
 #include "include/gpu/GrDirectContext.h"
 #include "include/gpu/GrBackendSemaphore.h"
+
+#include "fmt/format.h"
 
 #include "Core/Errors.h"
 #include "Core/Journal.h"
@@ -621,6 +624,36 @@ SkAlphaType HWComposeSwapchain::GetImageAlphaFormat() const
 {
     CHECK(!skia_surfaces_.empty());
     return skia_surfaces_[0]->imageInfo().alphaType();
+}
+
+std::string HWComposeSwapchain::GetBufferStateDescriptor()
+{
+    if (skia_surfaces_.empty())
+        return "<empty>";
+
+    std::ostringstream oss;
+
+    oss << fmt::format("[hwcompose_context={}:swapchain={}]",
+                       fmt::ptr(context_.get()), fmt::ptr(this));
+
+    int32_t index = 0;
+    for (const auto& surface : skia_surfaces_)
+    {
+        if (index > 0)
+            oss << '|';
+
+        oss << fmt::format("#{}:surface={}:size={}x{}:recording_context={}:{}",
+                           index,
+                           fmt::ptr(surface.get()),
+                           surface->width(),
+                           surface->height(),
+                           fmt::ptr(surface->recordingContext()),
+                           current_buffer_idx_ == index ? "drawing" : "free");
+
+        index++;
+    }
+
+    return oss.str();
 }
 
 void HWComposeSwapchain::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept

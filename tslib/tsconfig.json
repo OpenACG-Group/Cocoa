@@ -10,7 +10,8 @@
             "internal://*": [ "internal/*" ],
             "synthetic://*": [ "synthetics/*" ],
             "*": [ "synthetics/*" ]
-        }
+        },
+        "sourceMap": true
     },
     "include": [
         "./global/infrastructure.d.ts",
@@ -29,14 +30,30 @@
         "./core/linked_list.ts",
         "./core/formatter.ts",
 
-        "GL/utils.ts",
-        "GL/window.ts",
-
+        /*
         "samples/sknative-offscreen-drawtextblob.ts",
         "samples/sknative-offscreen-drawpatch.ts",
         "samples/sknative-offscreen-hilbert.ts",
         "samples/sknative-window.ts",
         "samples/sknative-runtime-effect.ts",
-        "samples/paragraph-simple-layout.ts"
+        "samples/paragraph-simple-layout.ts",
+        */
+
+        "vizmoe/base/EventDispatch.ts",
+        "vizmoe/graphics/Color.ts",
+        "vizmoe/graphics/Rect.ts",
+        "vizmoe/graphics/Vector.ts",
+        "vizmoe/graphics/DrawContext.ts",
+
+        "vizmoe/render/RenderObject.ts",
+        "vizmoe/render/CompositorRenderObject.ts",
+        "vizmoe/render/PainterRenderObject.ts",
+        "vizmoe/render/TransformerRenderObject.ts",
+        "vizmoe/render/VideoTextureRenderObject.ts",
+        "vizmoe/render/QuickRenderTreeConstructor.ts",
+        "vizmoe/render/RenderTreeLinearization.ts"
+    ],
+    "exclude": [
+        "out"
     ]
 }

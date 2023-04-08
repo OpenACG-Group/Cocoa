@@ -11,7 +11,7 @@ NON_GOOGLE_DEPS_LIST=(
     "libwebsockets.tar.gz@https://codeload.github.com/warmcat/libwebsockets/tar.gz/refs/tags/v4.3.2"
 )
 
-GOOGLE_V8_CHECKOUT_VER=10.6
+GOOGLE_V8_CHECKOUT_VER=11.1
 
 PACKAGES_DIR="./third_party/packages"
 BUILD_DIR="./third_party/build"

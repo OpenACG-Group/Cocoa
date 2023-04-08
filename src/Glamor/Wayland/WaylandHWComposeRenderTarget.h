@@ -44,6 +44,7 @@ public:
     void OnResize(int32_t width, int32_t height) override;
     const Shared<HWComposeSwapchain>& OnGetHWComposeSwapchain() override;
     sk_sp<SkSurface> OnCreateOffscreenBackendSurface(const SkImageInfo& info) override;
+    std::string GetBufferStateDescriptor() override;
 
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 

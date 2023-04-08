@@ -479,9 +479,9 @@ public:
              * are allocated in advance. When user requests for next frame, decoder will
              * attempt to find a free surface in the pool to use, and it will report
              * an error if there are no any free surfaces.
-             *   The problem is that only a surface is not referenced by any other frames,
-             * can they be treated as a free surface. If we hold references of those surfaces
-             * for a long time, all the surfaces in the pool will become unavailable for decoder.
+             *   The problem is that only a surface which is not referenced by any other frames
+             * can be treated as a free surface. If we hold references of those surfaces for a long
+             * time, all the surfaces in the pool will become unavailable for decoder.
              */
             av_frame_free(&frame);
 

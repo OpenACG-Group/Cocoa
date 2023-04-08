@@ -72,6 +72,8 @@ public:
     g_nodiscard SkColorType GetImageFormat() const;
     g_nodiscard SkAlphaType GetImageAlphaFormat() const;
 
+    g_nodiscard std::string GetBufferStateDescriptor();
+
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 
 private:

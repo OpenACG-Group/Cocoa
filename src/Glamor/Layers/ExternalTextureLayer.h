@@ -21,8 +21,6 @@
 #include "Glamor/Layers/Layer.h"
 GLAMOR_NAMESPACE_BEGIN
 
-class VAAPITextureEmbedder;
-
 /**
  * External texture accessor.
  */

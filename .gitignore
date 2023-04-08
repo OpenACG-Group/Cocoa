@@ -8,11 +8,13 @@
 # Building directories
 /cmake-build-*
 /build
-/typescript/out
-/typescript/experimental
+/tslib/out
+/tslib/devtools/packages
+/tslib/experimental
+/tslib/.vscode
+/tslib/vizmoe/main.ts
 
 /tools
 
 /.idea
 /.vscode
-

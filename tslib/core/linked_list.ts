@@ -6,7 +6,23 @@ export class LinkedListNode<T> {
                 public prev: LinkedListNode<T> = null) {}
 }
 
-export class LinkedList<T> {
+class ListIterator<T> implements Iterator<T> {
+    #current: LinkedListNode<T>;
+
+    constructor(head: LinkedListNode<T>) {
+        this.#current = head;
+    }
+
+    next(): IteratorResult<T> {
+        this.#current = this.#current.next;
+        if (this.#current.head) {
+            return { done: true, value: undefined };
+        }
+        return { done: false, value: this.#current.value };
+    }
+}
+
+export class LinkedList<T> implements Iterable<T> {
     readonly #head: LinkedListNode<T>;
 
     constructor() {
@@ -42,6 +58,19 @@ export class LinkedList<T> {
             current = current.next;
             index++;
         }
+    }
+
+    public forEachNode(callback: (node: LinkedListNode<T>) => void): void {
+        let current = this.#head.next;
+        while (!current.head) {
+            const next = current.next;
+            callback(current);
+            current = next;
+        }
+    }
+
+    public [Symbol.iterator](): Iterator<T> {
+        return new ListIterator(this.#head);
     }
 
     public insertAfter(node: LinkedListNode<T>, value: T): void {

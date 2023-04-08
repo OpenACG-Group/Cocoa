@@ -1229,7 +1229,7 @@ export class CkTypeface {
     readonly postScriptName: string | null;
     readonly bounds: CkRect;
 
-    public getKerningPairAdjuestments(glyphs: Uint16Array): Array<number> | null;
+    public getKerningPairAdjustments(glyphs: Uint16Array): Array<number> | null;
     public unicharsToGlyphs(unichars: Uint32Array): Uint16Array;
     public textToGlyphs(text: Buffer, encoding: TextEncoding): Uint16Array | null;
     public unicharToGlyph(unichar: number): number;
@@ -1261,8 +1261,8 @@ export class CkFont {
 
     public countText(text: Buffer, encoding: TextEncoding): number;
     public measureText(text: Buffer, encoding: TextEncoding, paint: null | CkPaint): number;
-    public measureTextBounds(text: Buffer, encoding: TextEncoding, paint: null | CkPaint): CkRect;
-    public getBounds(glyphs: Uint16Array, paint: null | CkPaint): Array<CkRect>;
+    public measureTextBounds(text: Buffer, encoding: TextEncoding, paint: null | CkPaint): CkArrayXYWHRect;
+    public getBounds(glyphs: Uint16Array, paint: null | CkPaint): Array<CkArrayXYWHRect>;
     public getPos(glyphs: Uint16Array, origin: CkPoint): Array<CkPoint>;
     public getIntercepts(glyphs: Uint16Array, pos: Array<CkPoint>, top: number,
                          bottom: number, paint: null | CkPaint): Float32Array;
@@ -1322,7 +1322,7 @@ export class CkCanvas {
     public translate(dx: number, dy: number): void;
     public scale(sx: number, sy: number): void;
     public rotate(rad: number, px: number, py: number): void;
-    public skew(sx: number, sy: number)
+    public skew(sx: number, sy: number): void;
     public concat(matrix: CkMatrix): void;
     public setMatrix(matrix: CkMatrix): void;
     public resetMatrix(): void;

@@ -24,7 +24,6 @@
 
 #include "Core/TraceEvent.h"
 #include "Core/Journal.h"
-#include "Core/Exception.h"
 #include "Glamor/Glamor.h"
 #include "Glamor/HWComposeContext.h"
 #include "Glamor/Wayland/WaylandHWComposeRenderTarget.h"
@@ -176,6 +175,11 @@ sk_sp<SkSurface> WaylandHWComposeRenderTarget::OnCreateOffscreenBackendSurface(c
     sk_sp<SkSurface> rt = SkSurface::MakeRenderTarget(swapchain_->GetSkiaDirectContext().get(),
                                                       SkBudgeted::kYes, info);
     return rt;
+}
+
+std::string WaylandHWComposeRenderTarget::GetBufferStateDescriptor()
+{
+    return swapchain_->GetBufferStateDescriptor();
 }
 
 void WaylandHWComposeRenderTarget::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept

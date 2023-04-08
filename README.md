@@ -14,11 +14,10 @@ a framework for those who are interested in VN creation.  Although Cocoa is init
 created for VN, it is completely a general-purposed 2D rendering framework that can
 fit other similar situations.
 
-Cocoa is a type of plant whose bean is the thing from which chocolate is made.
-But _Cocoa_ here doesn't mean that. Instead, it comes from an anime called
+The project name **Cocoa** comes from an anime called
 [_Is the Order a Rabbit?_](https://www.gochiusa.com/)
 which has a heroine named _Kokoa Hoto_. So its pronunciation is actually follows the Japanese
-Katakana ココア. But it also doesn't matter much if you pronounce it in  English way.
+Katakana ココア. But it also doesn't matter much if you pronounce it in English way.
 
 TypeScript is the official programming language of Cocoa. Cocoa itself can be treated
 as a JavaScript engine, which is written in C++17.
@@ -38,17 +37,23 @@ Cocoa **does not and will not** support them.
 Generally, Cocoa always supports the newer technique when we have the choice,
 and there is a table showing what are or aren't supported:
 
-| Feature               | Support  | Not support |
-|-----------------------|----------|-------------|
-| Display Server        | Wayland  | X11, Mir    |
-| Graphics Library      | Vulkan   | OpenGL      |
-| Audio Server          | PipeWire | PulseAudio  |
-| Video Decoding Accel. | VAAPI    | VDPAU       |
+| Feature               | Support     | Not support |
+|-----------------------|-------------|-------------|
+| Display Server        | Wayland     | X11, Mir    |
+| Graphics Library      | Vulkan      | OpenGL      |
+| Audio Server          | PipeWire    | PulseAudio  |
+| Video Decoding Accel. | VAAPI (DRM) | VDPAU       |
 
 * For video decoding acceleration, Vulkan may be supported in the future.
 
 ## Build and use Cocoa
 See [documentation](https://openacg-group.github.io) for more details.
+
+## Vizmoe/Cocoa Pipeline
+The UI framework of Cocoa, which is named __Vizmoe__, is still being developed
+and undocumented. Here is a simple chart to show how Vizmoe works with Cocoa.
+
+![Vizmoe/Cocoa Pipeline](./assets/vizmoe_pipeline.png)
 
 ## Rendering Framework
 After building Cocoa successfully, you can run a simple example which renders a star filled with
@@ -57,23 +62,6 @@ linear gradient colors.
 TypeScript code of that example is like:
 
 ```typescript
-/**
- * This file is part of Cocoa.
- *
- * Cocoa is free software: you can redistribute it and/or modify it
- * under the terms of the GNU General Public License as published
- * by the Free Software Foundation, either version 3 of the License,
- * or (at your option) any later version.
- *
- * Cocoa is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
- */
-
 import * as std from 'core';
 import * as GL from 'glamor';
 
@@ -180,77 +168,6 @@ let scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
 
 blender.update(scene).then(() => { scene.dispose(); });
 ```
-
-## Visual Novel Framework
-Cocoa based visual novel framework is still developing and undocumented.
-
-## Tracing and Inspecting APIs
-Tracing APIs are designed to trace resources and generate profiling
-to help developers and users improve performance of the application,
-or discover latent leaking of resources. Cocoa supports three four APIs now,
-by which you can trace graphic resources and message delivery between rendering
-thread and main thread.
-
-### Inspect alive graphic objects
-
-To generate a graphic resources report in JSON format, call `TraceGraphicsResources`
-function in JavaScript:
-
-```javascript
-// import * as GL from 'glamor';
-
-let json = await GL.RenderHost.TraceGraphicsResources();
-
-// `json` is a string in JSON format
-```
-
-### Inspect message delivery of rendering thread
-
-To trace the message delivery of rendering thread, just add a `--gl-transfer-queue-profile`
-option to the commandline of Cocoa.
-And Cocoa will generate a JSON file named `transfer-profiling-<pid>.json` in the working directory.
-Format of that JSON file is introduced in our
-[documentation](https://openacg-group.github.io/rdrfw_async_rendering_model.html#id4).
-
-Note that the tracing of message delivery may cause slight loss of performance
-and increases CPU time. But the tracing of resources will not have obvious effect
-on the performance.
-
-### Use GProfiler
-GProfiler API provides an interface by which users can profile Cocoa's graphics
-pipeline. This API can be enabled by commandline option `--gl-enable-profiler`.
-
-A property named `profiler` will be available automatically on `Blender` object,
-then users should use this property to access GProfiler and generate a report.
-A GProfiler report contains timing measurement datas of several recent frames.
-
-```javascript
-// ... Assuming the Blender object is `blender`
-const report = blender.profiler.generateCurrentReport();
-```
-
-See our API reference for more details.
-
-### Google Perfetto
-Cocoa also supports Google's [Perfetto](https://perfetto.dev), a powerful tracing framework,
-to trace the execution of whole Cocoa process. Use the global `introspect` object to start a
-tracing session, and do something you want to trace, then finish the tracing session and save
-results into a file:
-
-```javascript
-// Start a tracing session
-introspect.startProcessTracing(['main', 'rendering', 'multimedia'], 10240);
-
-// ... do something you want to trace
-
-// Finish the tracing session and save results into a file.
-// This is an asynchronous API.
-await introspect.finishProcessTracing('./tracing.perfetto-trace');
-```
-
-Finally, visualize the tracing results by [Perfetto's online viewer](https://ui.perfetto.dev).
-
-See our documentation for more details about using Perfetto.
 
 ## Third Parties
 Cocoa depends on many opensource projects and thanks to them give us a more convenient way
