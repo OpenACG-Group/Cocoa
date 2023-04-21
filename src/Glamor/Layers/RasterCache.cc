@@ -104,7 +104,7 @@ sk_sp<SkSurface> RasterCache::CreateSurface(SkISize size,
     sk_sp<SkSurface> surface;
     if (direct_context_)
     {
-        surface = SkSurface::MakeRenderTarget(direct_context_, SkBudgeted::kNo, image_info);
+        surface = SkSurface::MakeRenderTarget(direct_context_, skgpu::Budgeted::kNo, image_info);
     }
     else
     {

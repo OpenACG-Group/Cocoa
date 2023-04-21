@@ -6,6 +6,8 @@ set(CIB_MODULE_XML
         bindings/typetraits/Module.xml
         bindings/glamor/Module.xml
         bindings/paragraph/Module.xml
+        bindings/resources/Module.xml
+        bindings/lottie/Module.xml
         bindings/utau/Module.xml)
 
 set(CIB_OUTPUT_FILE
@@ -14,6 +16,8 @@ set(CIB_OUTPUT_FILE
         ${CMAKE_CURRENT_BINARY_DIR}/module_typetraits.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_glamor.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_paragraph.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/module_resources.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/module_lottie.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_utau.cc)
 
 add_custom_command(
@@ -147,6 +151,16 @@ add_library(Gallium STATIC
         bindings/paragraph/ParagraphBuilderWrap.cc
         bindings/paragraph/ParagraphWrap.cc
 
+        bindings/resources/Exports.h
+        bindings/resources/Exports.cc
+        bindings/resources/ResourceProvider.cc
+        bindings/resources/CRPKGResources.cc
+
+        bindings/lottie/Exports.h
+        bindings/lottie/Exports.cc
+        bindings/lottie/AnimationBuilderWrap.cc
+        bindings/lottie/AnimationWrap.cc
+
         bindings/utau/Exports.h
         bindings/utau/Exports.cc
         bindings/utau/AudioDeviceWrap.cc
@@ -166,9 +180,17 @@ target_link_libraries(
         _v8_libplatform
         websockets
 
-        skunicode
-        skshaper
+        ## For `paragraph` binding
         ${COCOA_THIRDPARTY_DIR}/build/lib/libskparagraph.a
+        ${COCOA_THIRDPARTY_DIR}/build/lib/libskunicode.a
+        ${COCOA_THIRDPARTY_DIR}/build/lib/libskshaper.a
+        icuuc
+        harfbuzz
+
+        ## For `lottie` binding
+        ${COCOA_THIRDPARTY_DIR}/build/lib/libskresources.a
+        ${COCOA_THIRDPARTY_DIR}/build/lib/libskottie.a
+        ${COCOA_THIRDPARTY_DIR}/build/lib/libsksg.a
 )
 
 target_compile_definitions(Gallium PRIVATE COCOA_USE_MONOLITHIC_V8=1)

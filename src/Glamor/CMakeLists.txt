@@ -142,7 +142,19 @@ target_compile_definitions(
 target_link_libraries(
         Glamor PRIVATE
         Vulkan::Vulkan
-        skia
+
+        ${COCOA_THIRDPARTY_DIR}/build/lib/libskia.a
+
+        ## Skia dependencies
+        fontconfig
+        freetype
+        png16
+        jpeg
+        webp
+        webpdemux
+        webpmux
+
+        ## Window system
         wayland-client
         wayland-cursor
         xkbcommon

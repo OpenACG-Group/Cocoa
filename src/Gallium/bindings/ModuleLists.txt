@@ -3,3 +3,5 @@ typetraits ./typetraits
 glamor ./glamor
 utau ./utau
 paragraph ./paragraph
+resources ./resources
+lottie ./lottie

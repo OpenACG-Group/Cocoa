@@ -23,6 +23,7 @@
 #include <vulkan/vulkan.h>
 
 #include "include/gpu/GrDirectContext.h"
+#include "include/core/SkSurface.h"
 #include "Glamor/Glamor.h"
 #include "Glamor/GraphicsResourcesTrackable.h"
 GLAMOR_NAMESPACE_BEGIN

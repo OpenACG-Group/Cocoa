@@ -15,15 +15,16 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "uv.h"
-
 #include "include/core/SkPicture.h"
 
 #include "Core/EventLoop.h"
 #include "Core/Errors.h"
+#include "Core/Journal.h"
 #include "Gallium/bindings/glamor/Scene.h"
 #include "Glamor/Layers/LayerTree.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
+
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.bindings.Glamor)
 
 Scene::Scene(const std::shared_ptr<gl::ContainerLayer>& rootLayer,
              const SkISize& frameSize)
@@ -35,7 +36,11 @@ Scene::Scene(const std::shared_ptr<gl::ContainerLayer>& rootLayer,
 
 Scene::~Scene()
 {
-    CHECK(disposed_ && "Scene object must be disposed before destructing");
+    if (!disposed_)
+    {
+        QLOG(LOG_ERROR, "%fg<hl,re>Incorrect usage of resources:%reset"
+                        " Scene object must be disposed before destructing");
+    }
 }
 
 void Scene::dispose()

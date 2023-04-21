@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <info name="resources" description="Generic resources provider interface"/>
+    <metadata namespace="cocoa::gallium::bindings::resources_wrap" class="ResourcesBinding"/>
+    <include src="Gallium/bindings/resources/Exports.h"/>
+
+    <hook on="instantiate" call="SetInstanceProperties"/>
+
+    <exports>
+        <toplevel type="declaration" name="Constants"/>
+
+        <class name="ImageAsset" wrapper="ImageAssetWrap">
+            <method static="true" name="MakeMultiFrame" value="@MakeMultiFrame"/>
+            <method static="true" name="MakeImpl" value="@MakeImpl"/>
+        </class>
+
+        <class name="ExternalTrackAsset" wrapper="ExternalTrackAssetWrap">
+            <method static="true" name="MakeImpl" value="@MakeImpl"/>
+        </class>
+
+        <class name="ResourceProvider" wrapper="ResourceProviderWrap">
+            <method static="true" name="MakeImpl" value="@MakeImpl"/>
+            <method static="true" name="MakeFile" value="@MakeFile"/>
+            <method static="true" name="MakeDataURIProxy" value="@MakeDataURIProxy"/>
+            <method static="true" name="MakeCachingProxy" value="@MakeCachingProxy"/>
+            <method static="true" name="MakeProxyImpl" value="@MakeProxyImpl"/>
+        </class>
+
+        <class name="CRPKGStorage" wrapper="CRPKGStorageWrap">
+            <method name="read" value="@read"/>
+            <method name="readSync" value="@readSync"/>
+            <method name="unref" value="@unref"/>
+            <property name="byteLength" getter="@byteLength"/>
+        </class>
+
+        <class name="CRPKGVirtualDisk" wrapper="CRPKGVirtualDiskWrap">
+            <method static="true" name="MakeLayers" value="@MakeLayers"/>
+            <method name="resolve" value="@resolve"/>
+            <method name="unref" value="@unref"/>
+        </class>
+    </exports>
+</module>

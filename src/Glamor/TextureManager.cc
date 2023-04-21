@@ -32,7 +32,7 @@ TextureManager::TextureManager(Unique<TextureFactory> factory)
 
 TextureManager::~TextureManager()
 {
-    // Texture textures
+    // Delete textures
     for (auto& wrapper_pair : wrappers_)
     {
         CHECK(wrapper_pair.second->acquired_count == 0);

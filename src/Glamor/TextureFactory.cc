@@ -20,6 +20,7 @@
 #include "include/core/SkSurface.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkBitmap.h"
+#include "include/core/SkImage.h"
 
 #include "Core/Errors.h"
 #include "Core/Journal.h"
@@ -153,13 +154,9 @@ Shared<Texture> RasterTextureFactory::OnMakeFromImage(const sk_sp<SkImage>& imag
 Shared<Texture> RasterTextureFactory::OnMakeFromRawData(const void *pixels, const SkImageInfo& info)
 {
     CHECK(pixels);
+
     SkPixmap pixmap(info, pixels, info.minRowBytes());
-
-    // The created image shares the same pixel memory with `pixmap`,
-    // which means no memory copying will be performed.
-    sk_sp<SkImage> image = SkImage::MakeFromRaster(pixmap, nullptr, nullptr);
-
-    return OnMakeFromImage(image);
+    return OnMakeFromImage(SkImages::RasterFromPixmapCopy(pixmap));
 }
 
 Shared<Texture> HWComposeTextureFactory::OnMakeFromImage(const sk_sp<SkImage>& image)
@@ -188,7 +185,7 @@ Shared<Texture> HWComposeTextureFactory::OnMakeFromImage(const sk_sp<SkImage>& i
                                             target_alpha_type,
                                             SkColorSpace::MakeSRGB());
 
-        auto surface = SkSurface::MakeRenderTarget(context, SkBudgeted::kNo, image_info);
+        auto surface = SkSurface::MakeRenderTarget(context, skgpu::Budgeted::kNo, image_info);
         if (!surface)
         {
             // `SkSurface::MakeRenderTarget` fails for many reasons. In most cases
@@ -212,13 +209,9 @@ Shared<Texture> HWComposeTextureFactory::OnMakeFromRawData(const void *pixels,
                                                            const SkImageInfo& info)
 {
     CHECK(pixels);
+
     SkPixmap pixmap(info, pixels, info.minRowBytes());
-
-    // The created image shares the same pixel memory with `pixmap`,
-    // which means no memory copying will be performed.
-    sk_sp<SkImage> image = SkImage::MakeFromRaster(pixmap, nullptr, nullptr);
-
-    return OnMakeFromImage(image);
+    return OnMakeFromImage(SkImages::RasterFromPixmapCopy(pixmap));
 }
 
 GLAMOR_NAMESPACE_END

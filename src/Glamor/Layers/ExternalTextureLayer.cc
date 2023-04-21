@@ -15,6 +15,8 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "include/core/SkImage.h"
+
 #include "fmt/format.h"
 
 #include "Glamor/Layers/ExternalTextureLayer.h"

@@ -28,7 +28,7 @@ include_directories(
 link_directories(third_party/build/lib)
 
 ## Compile options and targets
-add_compile_definitions(COCOA_PROJECT=1 V8_COMPRESS_POINTERS SK_VULKAN)
+add_compile_definitions(COCOA_PROJECT=1 V8_COMPRESS_POINTERS SK_VULKAN SK_GANESH)
 add_compile_options(-Wall)
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")

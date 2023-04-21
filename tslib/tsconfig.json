@@ -23,21 +23,14 @@
         "synthetics/glamor.d.ts",
         "synthetics/utau.d.ts",
         "synthetics/paragraph.d.ts",
+        "synthetics/resources.d.ts",
+        "synthetics/lottie.d.ts",
 
         "./core/typetraits.ts",
         "./core/format.ts",
         "./core/assert.ts",
         "./core/linked_list.ts",
         "./core/formatter.ts",
-
-        /*
-        "samples/sknative-offscreen-drawtextblob.ts",
-        "samples/sknative-offscreen-drawpatch.ts",
-        "samples/sknative-offscreen-hilbert.ts",
-        "samples/sknative-window.ts",
-        "samples/sknative-runtime-effect.ts",
-        "samples/paragraph-simple-layout.ts",
-        */
 
         "vizmoe/base/EventDispatch.ts",
         "vizmoe/graphics/Color.ts",
@@ -51,7 +44,9 @@
         "vizmoe/render/TransformerRenderObject.ts",
         "vizmoe/render/VideoTextureRenderObject.ts",
         "vizmoe/render/QuickRenderTreeConstructor.ts",
-        "vizmoe/render/RenderTreeLinearization.ts"
+        "vizmoe/render/RenderTreeLinearization.ts",
+
+        "vizmoe/components/Base.ts"
     ],
     "exclude": [
         "out"

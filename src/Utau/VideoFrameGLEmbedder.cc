@@ -19,10 +19,12 @@
 #include <chrono>
 
 #include "include/core/SkPixmap.h"
+#include "include/core/SkBitmap.h"
 #include "include/core/SkImage.h"
 #include "include/core/SkYUVAInfo.h"
 #include "include/core/SkYUVAPixmaps.h"
 #include "include/core/SkColorSpace.h"
+#include "include/gpu/ganesh/SkImageGanesh.h"
 
 #define FFWRAP_AVUTIL_USE_HWCONTEXT_VAAPI
 
@@ -200,17 +202,17 @@ sk_sp<SkImage> create_skimage_from_rgb_frame(GrDirectContext *direct, AVFrame *f
     sk_sp<SkImage> raster_image;
     if (copy_pixels)
     {
-        raster_image = SkImage::MakeRasterCopy(pixmap);
+        raster_image = SkImages::RasterFromPixmapCopy(pixmap);
     }
     else
     {
         // Pixels are shared with `SkImage` without any copy
-        raster_image = SkImage::MakeFromRaster(pixmap,
-                                               [](const void *pixels, void *closure) {
-                                                   CHECK(pixels && closure);
-                                                   auto *frame = reinterpret_cast<AVFrame*>(closure);
-                                                   av_frame_free(&frame);
-                                               }, frame_dup);
+        raster_image = SkImages::RasterFromPixmap(pixmap,
+                                                  [](const void *pixels, void *closure) {
+                                                      CHECK(pixels && closure);
+                                                      auto *frame = reinterpret_cast<AVFrame*>(closure);
+                                                      av_frame_free(&frame);
+                                                  }, frame_dup);
     }
 
     if (!raster_image)
@@ -222,8 +224,7 @@ sk_sp<SkImage> create_skimage_from_rgb_frame(GrDirectContext *direct, AVFrame *f
     if (!direct)
         return raster_image;
 
-    sk_sp<SkImage> texture_image = raster_image->makeTextureImage(
-            direct, GrMipmapped::kNo, SkBudgeted::kYes);
+    sk_sp<SkImage> texture_image = raster_image->makeSubset(raster_image->bounds(), direct);
     if (!texture_image)
         QLOG(LOG_ERROR, "Could not create a GPU-backed texture image");
 
@@ -391,7 +392,7 @@ sk_sp<SkImage> create_skimage_gpu_from_yuv_frame(GrDirectContext *direct, AVFram
     if (!pixmaps.isValid())
         return nullptr;
 
-    return SkImage::MakeFromYUVAPixmaps(direct, pixmaps, GrMipmapped::kNo, false);
+    return SkImages::TextureFromYUVAPixmaps(direct, pixmaps, GrMipmapped::kNo, false);
 }
 
 sk_sp<SkImage> create_skimage_raster_from_frame(AVFrame *frame,

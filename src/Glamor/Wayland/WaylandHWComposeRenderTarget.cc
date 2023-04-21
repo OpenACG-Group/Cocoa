@@ -173,7 +173,7 @@ const Shared<HWComposeSwapchain>& WaylandHWComposeRenderTarget::OnGetHWComposeSw
 sk_sp<SkSurface> WaylandHWComposeRenderTarget::OnCreateOffscreenBackendSurface(const SkImageInfo& info)
 {
     sk_sp<SkSurface> rt = SkSurface::MakeRenderTarget(swapchain_->GetSkiaDirectContext().get(),
-                                                      SkBudgeted::kYes, info);
+                                                      skgpu::Budgeted::kYes, info);
     return rt;
 }
 

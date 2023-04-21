@@ -15,6 +15,9 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "include/core/SkPicture.h"
+#include "include/core/SkImage.h"
+
 #include "fmt/format.h"
 
 #include "Glamor/Layers/PictureLayer.h"

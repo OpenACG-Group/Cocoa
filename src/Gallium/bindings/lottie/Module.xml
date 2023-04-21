@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <info name="lottie" description="Rendering JSON Lottie animations"/>
+    <metadata namespace="cocoa::gallium::bindings::lottie_wrap" class="LottieBinding"/>
+    <include src="Gallium/bindings/lottie/Exports.h"/>
+
+    <hook on="instantiate" call="SetInstanceProperties"/>
+
+    <exports>
+        <toplevel type="declaration" name="Constants"/>
+
+        <class name="AnimationBuilder" wrapper="AnimationBuilderWrap">
+            <constructor prototype="uint32_t"/>
+            <method name="setResourceProvider" value="@setResourceProvider"/>
+            <method name="setFontManager" value="@setFontManager"/>
+            <method name="setLogger" value="@setLogger"/>
+            <method name="setMarkerObserver" value="@setMarkerObserver"/>
+            <method name="setPrecompInterceptor" value="@setPrecompInterceptor"/>
+            <method name="setExpressionManager" value="@setExpressionManager"/>
+            <method name="make" value="@make"/>
+            <method name="makeFromFile" value="@makeFromFile"/>
+        </class>
+
+        <class name="Animation" wrapper="AnimationWrap">
+            <method name="render" value="@render"/>
+            <method name="seekFrame" value="@seekFrame"/>
+            <method name="seekFrameTime" value="@seekFrameTime"/>
+            <property name="duration" getter="@getDuration"/>
+            <property name="fps" getter="@getFps"/>
+            <property name="inPoint" getter="@getInPoint"/>
+            <property name="outPoint" getter="@getOutPoint"/>
+        </class>
+    </exports>
+</module>

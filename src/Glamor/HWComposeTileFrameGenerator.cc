@@ -142,7 +142,7 @@ HWComposeTileFrameGenerator::HWComposeTileFrameGenerator(const Shared<Blender>& 
 
         SkImageInfo textureImageInfo = SkImageInfo::Make(SkISize::Make(clip.width(), clip.height()),
                                                          blender->GetOutputColorInfo());
-        sk_sp<SkSurface> texture = SkSurface::MakeRenderTarget(directCtx.get(), SkBudgeted::kNo,
+        sk_sp<SkSurface> texture = SkSurface::MakeRenderTarget(directCtx.get(), skgpu::Budgeted::kNo,
                                                                textureImageInfo);
 
         if (!texture)
