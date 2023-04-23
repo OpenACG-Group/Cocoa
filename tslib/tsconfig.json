@@ -32,6 +32,8 @@
         "./core/linked_list.ts",
         "./core/formatter.ts",
 
+        "samples/sknative-lottie-viewer.ts",
+
         "vizmoe/base/EventDispatch.ts",
         "vizmoe/graphics/Color.ts",
         "vizmoe/graphics/Rect.ts",
