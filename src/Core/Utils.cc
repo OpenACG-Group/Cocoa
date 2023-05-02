@@ -36,7 +36,8 @@ namespace {
 
 // NOLINTNEXTLINE
 std::vector<std::tuple<const char*, const std::type_info*>> cxa_symbol_simpl_typeinfo_ = {
-        { "std::string", &typeid(std::string) }
+    // TODO(sora): We leave this table empty temporarily as RTTI is disabled
+    // { "std::string", &typeid(std::string) }
 };
 std::vector<std::tuple<const char*, std::string>> cxa_symbol_simpl_types_tbl_;
 

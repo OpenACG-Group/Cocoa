@@ -92,27 +92,27 @@ public:
 
     //! TSDecl: readonly bold: boolean
     g_inline bool getBold() {
-        return getSkiaObject()->isBold();
+        return GetSkObject()->isBold();
     }
 
     //! TSDecl: readonly italic: boolean
     g_inline bool getItalic() {
-        return getSkiaObject()->isItalic();
+        return GetSkObject()->isItalic();
     }
 
     //! TSDecl: readonly fixedPitch: boolean
     g_inline bool getFixedPitch() {
-        return getSkiaObject()->isFixedPitch();
+        return GetSkObject()->isFixedPitch();
     }
 
     //! TSDecl: readonly uniqueID: number
     g_inline SkTypefaceID getUniqueID() {
-        return getSkiaObject()->uniqueID();
+        return GetSkObject()->uniqueID();
     }
 
     //! TSDecl: readonly unitsPerEm: number
     g_inline int32_t getUnitsPerEm() {
-        return getSkiaObject()->getUnitsPerEm();
+        return GetSkObject()->getUnitsPerEm();
     }
 
     //! TSDecl: readonly familyName: string
@@ -130,7 +130,7 @@ public:
     //! TSDecl: function unicharsToGlyphs(unichars: Uint32Array): Uint16Array
     v8::Local<v8::Value> unicharsToGlyphs(v8::Local<v8::Value> unichars);
 
-    //! TSDecl: function textToGlyphs(buffer: core.Buffer, encoding: Enum<TextEncoding>): Uint16Array | null
+    //! TSDecl: function textToGlyphs(buffer: Uint8Array, encoding: Enum<TextEncoding>): Uint16Array | null
     v8::Local<v8::Value> textToGlyphs(v8::Local<v8::Value> buffer, int32_t encoding);
 
     //! TSDecl: function unicharToGlyph(unichar: number): number
@@ -148,7 +148,7 @@ public:
     //! TSDecl: function getTableSize(tag: number): number
     uint32_t getTableSize(uint32_t tag);
 
-    //! TSDecl: function copyTableData(tag: number): core.Buffer
+    //! TSDecl: function copyTableData(tag: number): Uint8Array
     v8::Local<v8::Value> copyTableData(uint32_t tag);
 };
 

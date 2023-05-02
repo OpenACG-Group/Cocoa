@@ -8,6 +8,7 @@ set(CIB_MODULE_XML
         bindings/paragraph/Module.xml
         bindings/resources/Module.xml
         bindings/lottie/Module.xml
+        bindings/svg/Module.xml
         bindings/utau/Module.xml)
 
 set(CIB_OUTPUT_FILE
@@ -18,6 +19,7 @@ set(CIB_OUTPUT_FILE
         ${CMAKE_CURRENT_BINARY_DIR}/module_paragraph.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_resources.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_lottie.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/module_svg.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_utau.cc)
 
 add_custom_command(
@@ -82,6 +84,7 @@ add_library(Gallium STATIC
         bindings/core/Process.cc
         bindings/core/Stream.cc
         bindings/core/TTYStreamWrap.cc
+        bindings/core/CallbackScopedBuffer.cc
 
         bindings/typetraits/Exports.h
         bindings/typetraits/Exports.cc
@@ -140,6 +143,8 @@ add_library(Gallium STATIC
         bindings/glamor/CkRuntimeEffectWrap.cc
         bindings/glamor/CkVerticesWrap.h
         bindings/glamor/CkVerticesWrap.cc
+        bindings/glamor/CkPathMeasureWrap.h
+        bindings/glamor/CkPathMeasureWrap.cc
         bindings/glamor/ConcurrentVertexProcessor.h
         bindings/glamor/ConcurrentVertexProcessor.cc
 
@@ -161,6 +166,15 @@ add_library(Gallium STATIC
         bindings/lottie/AnimationBuilderWrap.cc
         bindings/lottie/AnimationWrap.cc
 
+        bindings/svg/Exports.h
+        bindings/svg/Exports.cc
+        bindings/svg/TrivialInterfaces.h
+        bindings/svg/TrivialInterfaces.cc
+        bindings/svg/SVGCanvasWrap.cc
+        bindings/svg/SVGDOMLoaderWrap.cc
+        bindings/svg/SVGDOMWrap.cc
+        bindings/svg/SVGLengthContextWrap.cc
+
         bindings/utau/Exports.h
         bindings/utau/Exports.cc
         bindings/utau/AudioDeviceWrap.cc
@@ -175,7 +189,7 @@ target_include_directories(Gallium PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(
         Gallium
-        tinyxml2
+        expat
         _v8
         _v8_libplatform
         websockets
@@ -191,6 +205,9 @@ target_link_libraries(
         ${COCOA_THIRDPARTY_DIR}/build/lib/libskresources.a
         ${COCOA_THIRDPARTY_DIR}/build/lib/libskottie.a
         ${COCOA_THIRDPARTY_DIR}/build/lib/libsksg.a
+
+        ## For `svg` bindings
+        ${COCOA_THIRDPARTY_DIR}/build/lib/libsvg.a
 )
 
 target_compile_definitions(Gallium PRIVATE COCOA_USE_MONOLITHIC_V8=1)

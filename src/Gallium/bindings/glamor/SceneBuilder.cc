@@ -137,8 +137,8 @@ v8::Local<v8::Value> SceneBuilder::pushImageFilter(v8::Local<v8::Value> filter)
     if (!wrapper)
         g_throw(TypeError, "Argument 'filter' must be an instance of `CkImageFilter`");
 
-    CHECK(wrapper->getSkiaObject());
-    pushLayer(std::make_shared<gl::ImageFilterLayer>(wrapper->getSkiaObject()));
+    CHECK(wrapper->GetSkObject());
+    pushLayer(std::make_shared<gl::ImageFilterLayer>(wrapper->GetSkObject()));
 
     return getSelfHandle();
 }
@@ -152,13 +152,13 @@ v8::Local<v8::Value> SceneBuilder::pushBackdropFilter(v8::Local<v8::Value> filte
     if (!wrapper)
         g_throw(TypeError, "Argument 'filter' must be an instance of `CkImageFilter`");
 
-    CHECK(wrapper->getSkiaObject());
+    CHECK(wrapper->GetSkObject());
 
     if (blendMode < 0 || blendMode > static_cast<int>(SkBlendMode::kLastMode))
         g_throw(RangeError, "Argument 'blendMode' has an invalid enumeration value");
 
     auto mode = static_cast<SkBlendMode>(blendMode);
-    pushLayer(std::make_shared<gl::BackdropFilterLayer>(wrapper->getSkiaObject(),
+    pushLayer(std::make_shared<gl::BackdropFilterLayer>(wrapper->GetSkObject(),
                                                         mode, autoChildClip));
 
     return getSelfHandle();

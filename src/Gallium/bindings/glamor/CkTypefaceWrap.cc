@@ -108,27 +108,27 @@ v8::Local<v8::Value> CkTypeface::getFontStyle()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     return binder::Class<CkFontStyle>::create_object(
-            isolate, getSkiaObject()->fontStyle());
+            isolate, GetSkObject()->fontStyle());
 }
 
 std::string CkTypeface::getFamilyName()
 {
     SkString str;
-    getSkiaObject()->getFamilyName(&str);
+    GetSkObject()->getFamilyName(&str);
     return str.c_str();
 }
 
 v8::Local<v8::Value> CkTypeface::getPostScriptName()
 {
     SkString str;
-    if (!getSkiaObject()->getPostScriptName(&str))
+    if (!GetSkObject()->getPostScriptName(&str))
         return v8::Null(v8::Isolate::GetCurrent());
     return binder::to_v8(v8::Isolate::GetCurrent(), str.c_str());
 }
 
 v8::Local<v8::Value> CkTypeface::getBounds()
 {
-    return WrapCkRect(v8::Isolate::GetCurrent(), getSkiaObject()->getBounds());
+    return NewCkRect(v8::Isolate::GetCurrent(), GetSkObject()->getBounds());
 }
 
 
@@ -143,15 +143,15 @@ v8::Local<v8::Value> CkTypeface::getBounds()
 v8::Local<v8::Value> CkTypeface::getKerningPairAdjustments(v8::Local<v8::Value> glyphs)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    if (!getSkiaObject()->getKerningPairAdjustments(nullptr, 0, nullptr))
+    if (!GetSkObject()->getKerningPairAdjustments(nullptr, 0, nullptr))
         return v8::Null(isolate);
 
     GET_TA_WRPTR_CHECKED(Uint16Array, glyphs, glyphs_ptr, glyphs_count)
 
     std::vector<int32_t> adjustments(glyphs_count - 1);
-    getSkiaObject()->getKerningPairAdjustments(reinterpret_cast<const SkGlyphID*>(glyphs_ptr),
-                                               static_cast<int32_t>(glyphs_count),
-                                               adjustments.data());
+    GetSkObject()->getKerningPairAdjustments(reinterpret_cast<const SkGlyphID*>(glyphs_ptr),
+                                             static_cast<int32_t>(glyphs_count),
+                                             adjustments.data());
 
     return binder::to_v8(isolate, adjustments);
 }
@@ -164,9 +164,9 @@ v8::Local<v8::Value> CkTypeface::unicharsToGlyphs(v8::Local<v8::Value> unichars)
     auto out = v8::Uint16Array::New(v8::ArrayBuffer::New(isolate, unichars_len * 2),
                                     0, unichars_len);
 
-    getSkiaObject()->unicharsToGlyphs(reinterpret_cast<const SkUnichar*>(unichars_ptr),
-                                      static_cast<int32_t>(unichars_len),
-                                      reinterpret_cast<SkGlyphID*>(out->Buffer()->Data()));
+    GetSkObject()->unicharsToGlyphs(reinterpret_cast<const SkUnichar*>(unichars_ptr),
+                                    static_cast<int32_t>(unichars_len),
+                                    reinterpret_cast<SkGlyphID*>(out->Buffer()->Data()));
 
     return out;
 }
@@ -176,74 +176,72 @@ v8::Local<v8::Value> CkTypeface::textToGlyphs(v8::Local<v8::Value> buffer, int32
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK_ENUM_RANGE(encoding, SkTextEncoding::kGlyphID)
 
-    auto *w = binder::Class<Buffer>::unwrap_object(isolate, buffer);
-    if (!w)
-        g_throw(TypeError, "Argument `buffer` must be an instance of `core.Buffer`");
+    GET_TA_WRPTR_CHECKED(Uint8Array, buffer, text_ptr, text_ptr_len)
 
-    int32_t nb_glyphs = getSkiaObject()->textToGlyphs(w->addressU8(), w->length(),
-                                                      static_cast<SkTextEncoding>(encoding),
-                                                      nullptr, 0);
+    int32_t nb_glyphs = GetSkObject()->textToGlyphs(text_ptr, text_ptr_len,
+                                                    static_cast<SkTextEncoding>(encoding),
+                                                    nullptr, 0);
     if (nb_glyphs == 0)
         return v8::Null(isolate);
 
     auto out = v8::Uint16Array::New(v8::ArrayBuffer::New(isolate, nb_glyphs * 2),
                                     0, nb_glyphs);
 
-    getSkiaObject()->textToGlyphs(w->addressU8(), w->length(),
-                                  static_cast<SkTextEncoding>(encoding),
-                                  static_cast<SkGlyphID*>(out->Buffer()->Data()),
-                                  nb_glyphs);
+    GetSkObject()->textToGlyphs(text_ptr, text_ptr_len,
+                                static_cast<SkTextEncoding>(encoding),
+                                static_cast<SkGlyphID*>(out->Buffer()->Data()),
+                                nb_glyphs);
 
     return out;
 }
 
 int32_t CkTypeface::unicharToGlyph(int32_t unichar)
 {
-    return getSkiaObject()->unicharToGlyph(unichar);
+    return GetSkObject()->unicharToGlyph(unichar);
 }
 
 int32_t CkTypeface::countGlyphs()
 {
-    return getSkiaObject()->countGlyphs();
+    return GetSkObject()->countGlyphs();
 }
 
 int32_t CkTypeface::countTables()
 {
-    return getSkiaObject()->countTables();
+    return GetSkObject()->countTables();
 }
 
 v8::Local<v8::Value> CkTypeface::getTableTags()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    int32_t nb_tables = getSkiaObject()->countTables();
+    int32_t nb_tables = GetSkObject()->countTables();
 
     auto out = v8::Uint32Array::New(v8::ArrayBuffer::New(isolate, nb_tables * 4),
                                     0, nb_tables);
 
-    getSkiaObject()->getTableTags(reinterpret_cast<SkFontTableTag*>(out->Buffer()->Data()));
+    GetSkObject()->getTableTags(reinterpret_cast<SkFontTableTag*>(out->Buffer()->Data()));
 
     return out;
 }
 
 uint32_t CkTypeface::getTableSize(uint32_t tag)
 {
-    return getSkiaObject()->getTableSize(tag);
+    return GetSkObject()->getTableSize(tag);
 }
 
 v8::Local<v8::Value> CkTypeface::copyTableData(uint32_t tag)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    size_t table_size = getSkiaObject()->getTableSize(tag);
+    size_t table_size = GetSkObject()->getTableSize(tag);
     if (table_size == 0)
         g_throw(Error, "Invalid table tag");
 
-    auto out_buffer = Buffer::MakeFromSize(table_size);
-    auto *pbuf = binder::Class<Buffer>::unwrap_object(isolate, out_buffer);
+    v8::Local<v8::ArrayBuffer> array_buffer = v8::ArrayBuffer::New(isolate, table_size);
+    v8::Local<v8::Uint8Array> u8array = v8::Uint8Array::New(array_buffer, 0, table_size);
 
-    getSkiaObject()->getTableData(tag, 0, table_size, pbuf->addressU8());
+    GetSkObject()->getTableData(tag, 0, table_size, array_buffer->Data());
 
-    return out_buffer;
+    return u8array;
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

@@ -76,7 +76,7 @@ export class ResourceProvider {
     public static MakeFile(baseDir: string, predecode: boolean): ResourceProvider;
     public static MakeImpl(impl: IResourceProvider): ResourceProvider;
     public static MakeCachingProxy(rp: ResourceProvider): ResourceProvider;
-    public static MakeDataURIProxy(rp: ResourceProvider): ResourceProvider;
+    public static MakeDataURIProxy(rp: ResourceProvider, predecode: boolean): ResourceProvider;
     public static MakeProxyImpl(impl: IResourceProviderProxy): ResourceProvider;
 }
 

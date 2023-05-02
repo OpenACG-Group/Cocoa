@@ -23,7 +23,6 @@
 #include "Gallium/bindings/glamor/CkTextBlobWrap.h"
 #include "Gallium/bindings/glamor/CkFontWrap.h"
 #include "Gallium/bindings/glamor/CkPaintWrap.h"
-#include "Gallium/bindings/core/Exports.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 #define CHECK_ENUM_RANGE(v, last) \
@@ -48,13 +47,14 @@ std::tuple<void*, size_t> extract_text_buffer_pair(v8::Isolate *isolate,
                                                    v8::Local<v8::Value> b,
                                                    const char *argname)
 {
-    auto *w = binder::Class<Buffer>::unwrap_object(isolate, b);
-    if (!w)
-    {
-        g_throw(TypeError, fmt::format("Argument `{}` must be"
-                                       " an instance of `core.Buffer`", argname));
-    }
-    return {w->addressU8(), w->length()};
+    if (!b->IsUint8Array() || !b.As<v8::Uint8Array>()->HasBuffer())
+        g_throw(TypeError, fmt::format("Argument `{}` must be an allocated Uint8Array", argname));
+
+    v8::Local<v8::Uint8Array> array = b.As<v8::Uint8Array>();
+    uint8_t *ptr = reinterpret_cast<uint8_t*>(array->Buffer()->Data())
+            + array->ByteOffset();
+
+    return {ptr, array->ByteLength()};
 }
 
 SkPaint *extract_maybe_paint(v8::Isolate *isolate, v8::Local<v8::Value> v, const char *argname)
@@ -159,15 +159,52 @@ v8::Local<v8::Value> CkTextBlob::MakeFromPosTextH(v8::Local<v8::Value> text,
     return binder::Class<CkTextBlob>::create_object(isolate, blob);
 }
 
+v8::Local<v8::Value> CkTextBlob::MakeFromRSXformText(v8::Local<v8::Value> text,
+                                                     v8::Local<v8::Value> forms,
+                                                     v8::Local<v8::Value> font,
+                                                     int32_t encoding)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    CHECK_ENUM_RANGE(encoding, SkTextEncoding::kGlyphID)
+    EXTRACT_FONT_CHECKED(font, ft)
+    auto [text_ptr, text_byte_length] =
+            extract_text_buffer_pair(isolate, text, "text");
+
+    if (!forms->IsArray())
+        g_throw(TypeError, "Argument `forms` must be an array of `CkRSXform`");
+
+    v8::Local<v8::Array> forms_arr = forms.As<v8::Array>();
+    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+    std::vector<SkRSXform> vec_forms(forms_arr->Length());
+    for (uint32_t i = 0; i < forms_arr->Length(); i++)
+    {
+        v8::Local<v8::Value> v;
+        if (!forms_arr->Get(ctx, i).ToLocal(&v))
+            g_throw(TypeError, "Argument `forms` must be an array of `CkRSXform`");
+
+        vec_forms[i] = ExtractCkRSXform(isolate, v);
+    }
+
+    sk_sp<SkTextBlob> blob = SkTextBlob::MakeFromRSXform(text_ptr,
+                                                         text_byte_length,
+                                                         vec_forms.data(),
+                                                         ft->GetFont(),
+                                                         static_cast<SkTextEncoding>(encoding));
+
+    CHECK_CREATED_BLOB(blob)
+
+    return binder::Class<CkTextBlob>::create_object(isolate, blob);
+}
+
 v8::Local<v8::Value> CkTextBlob::getBounds()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return WrapCkRect(isolate, getSkiaObject()->bounds());
+    return NewCkRect(isolate, GetSkObject()->bounds());
 }
 
 uint32_t CkTextBlob::getUniqueID()
 {
-    return getSkiaObject()->uniqueID();
+    return GetSkObject()->uniqueID();
 }
 
 v8::Local<v8::Value> CkTextBlob::getIntercepts(SkScalar upperBound, SkScalar lowerBound,
@@ -177,12 +214,12 @@ v8::Local<v8::Value> CkTextBlob::getIntercepts(SkScalar upperBound, SkScalar low
     SkPaint *p = extract_maybe_paint(isolate, paint, "paint");
 
     SkScalar bounds[2] = {upperBound, lowerBound};
-    int32_t nb_intervals = getSkiaObject()->getIntercepts(bounds, nullptr, p);
+    int32_t nb_intervals = GetSkObject()->getIntercepts(bounds, nullptr, p);
 
     auto out = v8::Float32Array::New(v8::ArrayBuffer::New(isolate, nb_intervals * sizeof(SkScalar)),
                           0, nb_intervals * sizeof(SkScalar));
 
-    getSkiaObject()->getIntercepts(
+    GetSkObject()->getIntercepts(
             bounds, reinterpret_cast<SkScalar*>(out->Buffer()->Data()), p);
 
     return out;

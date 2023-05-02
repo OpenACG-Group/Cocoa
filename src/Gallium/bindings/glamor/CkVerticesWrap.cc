@@ -122,7 +122,7 @@ CkVertices::~CkVertices()
 v8::Local<v8::Value> CkVertices::getBounds()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return WrapCkRect(isolate, getSkiaObject()->bounds());
+    return NewCkRect(isolate, GetSkObject()->bounds());
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

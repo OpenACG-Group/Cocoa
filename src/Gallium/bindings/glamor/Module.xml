@@ -9,6 +9,7 @@
     <include src="Gallium/bindings/glamor/CkPaintWrap.h"/>
     <include src="Gallium/bindings/glamor/CkSurfaceWrap.h"/>
     <include src="Gallium/bindings/glamor/CkPathWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkPathMeasureWrap.h"/>
     <include src="Gallium/bindings/glamor/CkCanvasWrap.h"/>
     <include src="Gallium/bindings/glamor/CkTypefaceWrap.h"/>
     <include src="Gallium/bindings/glamor/CkFontWrap.h"/>
@@ -274,6 +275,15 @@
             <method name="toString" value="@toString"/>
         </class>
 
+        <class name="CkPathMeasure" wrapper="CkPathMeasureWrap">
+            <method static="true" name="Make" value="@Make"/>
+            <method name="getLength" value="@getLength"/>
+            <method name="getPositionTangent" value="@getPositionTangent"/>
+            <method name="getSegment" value="@getSegment"/>
+            <method name="isClosed" value="@isClosed"/>
+            <method name="nextContour" value="@nextContour"/>
+        </class>
+
         <class name="CkSurface" wrapper="CkSurface">
             <property name="width" getter="@getWidth"/>
             <property name="height" getter="@getHeight"/>
@@ -407,12 +417,15 @@
             <method name="getFamilyName" value="@getFamilyName"/>
             <method name="createStyleSet" value="@createStyleSet"/>
             <method name="matchFamilyStyle" value="@matchFamilyStyle"/>
+            <method name="makeFromFile" value="@makeFromFile"/>
+            <method name="makeFromData" value="@makeFromData"/>
         </class>
 
         <class name="CkTextBlob" wrapper="CkTextBlob">
             <method static="true" name="MakeFromText" value="@MakeFromText"/>
             <method static="true" name="MakeFromPosTextH" value="@MakeFromPosTextH"/>
             <method static="true" name="MakeFromPosText" value="@MakeFromPosText"/>
+            <method static="true" name="MakeFromRSXformText" value="@MakeFromRSXformText"/>
             <property name="bounds" getter="@getBounds"/>
             <property name="uniqueID" getter="@getUniqueID"/>
             <method name="getIntercepts" value="@getIntercepts"/>

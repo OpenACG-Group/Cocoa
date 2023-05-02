@@ -111,11 +111,11 @@ std::vector<std::shared_ptr<Token>> parse_decorators(const std::string_view& ori
     int state = 0;
 
     auto as_fragment = [&current]() -> std::shared_ptr<Fragment> {
-        return std::dynamic_pointer_cast<Fragment>(current);
+        return std::static_pointer_cast<Fragment>(current);
     };
 
     auto as_decorator = [&current]() -> std::shared_ptr<Decorator> {
-        return std::dynamic_pointer_cast<Decorator>(current);
+        return std::static_pointer_cast<Decorator>(current);
     };
 
     for (int i = 0; i < len + 1; i++)
@@ -430,7 +430,7 @@ std::string translate_decorators(const std::string_view& origin,
     {
         if (t->type == Token::Type::kDecorator)
         {
-            auto decorator = std::dynamic_pointer_cast<Decorator>(t);
+            auto decorator = std::static_pointer_cast<Decorator>(t);
             ctx.decorator = decorator;
             const Translator *translator = nullptr;
             for (const Translator& trans : translators)
@@ -456,7 +456,7 @@ std::string translate_decorators(const std::string_view& origin,
         }
         else
         {
-            auto f = std::dynamic_pointer_cast<Fragment>(t);
+            auto f = std::static_pointer_cast<Fragment>(t);
             finalString << f->view;
         }
     }

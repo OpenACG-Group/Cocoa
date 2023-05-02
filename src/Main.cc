@@ -21,7 +21,6 @@
 #include <string_view>
 
 #include "fmt/format.h"
-#include "fmt/ostream.h"
 
 #include "Core/Project.h"
 #include "Core/CmdParser.h"
@@ -74,7 +73,7 @@ cmd::ParseState initialize_logger(cmd::ParseResult& args)
             else if (arg.value->v_str == "disabled") level = LOG_LEVEL_DISABLED;
             else
             {
-                fmt::print(std::cerr, "Illegal specifier for log level: {}\n", arg.value->v_str);
+                fmt::print(stderr, "Illegal specifier for log level: {}\n", arg.value->v_str);
                 return cmd::ParseState::kError;
             }
         }
@@ -133,14 +132,14 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
     // to make sure `ApplicationInfo` get user-specified working directory.
     if (args.orphans.size() > 1)
     {
-        fmt::print(std::cerr, "Too many arguments\n");
+        fmt::print(stderr, "Too many arguments\n");
         return cmd::ParseState::kError;
     }
     else if (!args.orphans.empty())
     {
         if (vfs::Chdir(args.orphans[0]) < 0)
         {
-            fmt::print(std::cerr, "Failed to chdir to \"{}\": {}\n", args.orphans[0], strerror(errno));
+            fmt::print(stderr, "Failed to chdir to \"{}\": {}\n", args.orphans[0], strerror(errno));
             return cmd::ParseState::kError;
         }
     }
@@ -190,7 +189,7 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
         {
             if (arg.value->v_int < 0)
             {
-                fmt::print(std::cerr, "v8-concurrent-workers should ba a positive integer\n");
+                fmt::print(stderr, "v8-concurrent-workers should ba a positive integer\n");
                 return cmd::ParseState::kError;
             }
             gallium_options.v8_platform_thread_pool = arg.value->v_int;
@@ -247,7 +246,7 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
         {
             if (arg.value->v_str.size() > 1)
             {
-                fmt::print(std::cerr, "Delimiter must be a single character\n");
+                fmt::print(stderr, "Delimiter must be a single character\n");
                 return cmd::ParseState::kError;
             }
             delimiter = arg.value->v_str[0];
@@ -267,7 +266,7 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
                     gallium_options.introspect_allow_write_journal = false;
                 else
                 {
-                    fmt::print(std::cerr, "Error: Unrecognized introspect policy: {}\n", policy);
+                    fmt::print(stderr, "Error: Unrecognized introspect policy: {}\n", policy);
                     return cmd::ParseState::kError;
                 }
             }

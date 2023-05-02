@@ -140,14 +140,14 @@ void RenderHost::OnResponseFromClient()
         transfer->MarkProfileMilestone(ITCProfileMilestone::kHostReceived);
         if (transfer->IsInvocationResponse())
         {
-            auto invocation = std::dynamic_pointer_cast<RenderHostInvocation>(transfer);
+            auto invocation = std::static_pointer_cast<RenderHostInvocation>(transfer);
             invocation->MarkProfileMilestone(ITCProfileMilestone::kHostReceived);
             RenderHostCallbackInfo callbackInfo(invocation.get());
             invocation->GetHostCallback()(callbackInfo);
         }
         else if (transfer->IsSignalEmit())
         {
-            auto emit = std::dynamic_pointer_cast<RenderClientSignalEmit>(transfer);
+            auto emit = std::static_pointer_cast<RenderClientSignalEmit>(transfer);
             Shared<RenderClientObject> emitter = emit->GetEmitter();
             emitter->EmitterTrampoline(emit, false);
         }
@@ -278,7 +278,7 @@ struct RenderHost::TransferProfileSample
         if (transfer->IsInvocationResponse())
         {
             type = SampleType::kInvocationResponse;
-            auto *ptr = dynamic_cast<RenderHostInvocation *>(transfer);
+            auto *ptr = static_cast<RenderHostInvocation *>(transfer);
             opcode = ptr->GetClientCallInfo().GetOpCode();
             obj = ptr->GetReceiver().get();
             obj_type = ptr->GetReceiver()->GetRealType();
@@ -287,7 +287,7 @@ struct RenderHost::TransferProfileSample
         else if (transfer->IsSignalEmit())
         {
             type = SampleType::kSignalEmit;
-            auto *ptr = dynamic_cast<RenderClientSignalEmit *>(transfer);
+            auto *ptr = static_cast<RenderClientSignalEmit *>(transfer);
             sigcode = ptr->GetSignalCode();
             obj = ptr->GetEmitter().get();
             obj_type = ptr->GetEmitter()->GetRealType();

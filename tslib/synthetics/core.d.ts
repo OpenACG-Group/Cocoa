@@ -254,3 +254,13 @@ export class Buffer {
     toString(coding: number, length: SizeT): string;
     memsetZero(offset: OffsetT, length: SizeT): void;
 }
+
+export class CallbackScopedBuffer {
+    private constructor();
+
+    public readonly length: number;
+    public readonly writable: boolean;
+
+    public read(dst: Uint8Array, offset: number, size: number): number;
+    public write(src: Uint8Array, offset: number, size: number): number;
+}

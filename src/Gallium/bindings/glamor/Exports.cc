@@ -24,6 +24,7 @@
 #include "include/core/SkCanvas.h"
 #include "include/core/SkFontStyle.h"
 #include "include/core/SkFont.h"
+#include "include/core/SkPathMeasure.h"
 #include "include/effects/Sk1DPathEffect.h"
 #include "include/effects/SkTrimPathEffect.h"
 #include "include/effects/SkRuntimeEffect.h"
@@ -99,6 +100,9 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
         { "PATH_ARC_SIZE_LARGE", EV(SkPath::ArcSize::kLarge_ArcSize) },
         { "PATH_ADD_PATH_MODE_APPEND", EV(SkPath::AddPathMode::kAppend_AddPathMode) },
         { "PATH_ADD_PATH_MODE_EXTEND", EV(SkPath::AddPathMode::kExtend_AddPathMode) },
+
+        { "PATH_MEASURE_MATRIX_FLAGS_GET_POSITION", EV(SkPathMeasure::kGetPosition_MatrixFlag) },
+        { "PATH_MEASURE_MATRIX_FLAGS_GET_TANGENT",  EV(SkPathMeasure::kGetTangent_MatrixFlag) },
 
         { "APPLY_PERSPECTIVE_CLIP_YES", EV(SkApplyPerspectiveClip::kYes) },
         { "APPLY_PERSPECTIVE_CLIP_NO", EV(SkApplyPerspectiveClip::kNo) },

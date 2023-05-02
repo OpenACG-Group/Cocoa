@@ -284,7 +284,7 @@ public:
         if (!wrap)
             g_throw(TypeError, "ResourceProvider: Invalid return value from 'loadTypeface' method");
 
-        return wrap->getSkiaObject();
+        return wrap->GetSkObject();
     }
 };
 

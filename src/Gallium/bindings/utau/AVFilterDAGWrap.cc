@@ -62,8 +62,12 @@ AVBufferRef *extract_possible_hw_frame_ctx_from_inparams(v8::Local<v8::Object> o
 
     if (maybe_buf.IsEmpty())
         return nullptr;
+    auto buf = maybe_buf.ToLocalChecked();
 
-    auto *wrapper = binder::Class<VideoBufferWrap>::unwrap_object(isolate, maybe_buf.ToLocalChecked());
+    if (buf->IsNullOrUndefined())
+        return nullptr;
+
+    auto *wrapper = binder::Class<VideoBufferWrap>::unwrap_object(isolate, buf);
     if (!wrapper)
         g_throw(TypeError, "Property `hwFrameContextFrom` must be an instance of `VideoBuffer`");
 

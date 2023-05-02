@@ -337,7 +337,7 @@ v8::Local<v8::Value> AnimationBuilderWrap::setFontManager(v8::Local<v8::Value> m
     if (!mgr_wrap)
         g_throw(TypeError, "Argument `mgr` must be an instance of `CkFontMgr`");
 
-    builder_.setFontManager(mgr_wrap->getSkiaObject());
+    builder_.setFontManager(mgr_wrap->GetSkObject());
 
     return ReturnThis();
 }

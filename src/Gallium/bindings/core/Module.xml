@@ -176,5 +176,12 @@
             <property static="true" name="ENCODE_UTF8" value="V_CAST_U32(@Encoding::kUtf8)"/>
             <property static="true" name="ENCODE_HEX" value="V_CAST_U32(@Encoding::kHex)"/>
         </class>
+
+        <class name="CallbackScopedBuffer" wrapper="CallbackScopedBuffer">
+            <property name="length" getter="@length"/>
+            <property name="writable" getter="@writable"/>
+            <method name="read" value="@read"/>
+            <method name="write" value="@write"/>
+        </class>
     </exports>
 </module>

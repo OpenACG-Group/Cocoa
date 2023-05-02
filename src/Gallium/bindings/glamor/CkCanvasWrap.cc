@@ -113,10 +113,15 @@ sk_sp<SkImageFilter> extract_maybe_imagefilter(v8::Isolate *isolate,
     auto *w = binder::Class<CkImageFilterWrap>::unwrap_object(isolate, v);
     if (!w)
         g_throw(TypeError, fmt::format("Argument `{}` must be an instance of `CkImageFilter`", argname));
-    return w->getSkiaObject();
+    return w->GetSkObject();
 }
 
 } // namespace anonymous
+
+void CkCanvas::InvalidateCanvasRef()
+{
+    canvas_.SetNull();
+}
 
 int CkCanvas::save()
 {
@@ -252,7 +257,7 @@ void CkCanvas::clipShader(v8::Local<v8::Value> shader, int32_t op)
     auto *wrapper = binder::Class<CkShaderWrap>::unwrap_object(isolate, shader);
     if (!wrapper)
         g_throw(TypeError, "Argument `shader` must be an instance of `CkShader`");
-    canvas_->clipShader(wrapper->getSkiaObject(), static_cast<SkClipOp>(op));
+    canvas_->clipShader(wrapper->GetSkObject(), static_cast<SkClipOp>(op));
 }
 
 bool CkCanvas::quickRejectRect(v8::Local<v8::Value> rect)
@@ -271,13 +276,13 @@ bool CkCanvas::quickRejectPath(v8::Local<v8::Value> path)
 v8::Local<v8::Value> CkCanvas::getLocalClipBounds()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return WrapCkRect(isolate, canvas_->getLocalClipBounds());
+    return NewCkRect(isolate, canvas_->getLocalClipBounds());
 }
 
 v8::Local<v8::Value> CkCanvas::getDeviceClipBounds()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return WrapCkRect(isolate, SkRect::Make(canvas_->getDeviceClipBounds()));
+    return NewCkRect(isolate, SkRect::Make(canvas_->getDeviceClipBounds()));
 }
 
 void CkCanvas::drawColor(v8::Local<v8::Value> color, int32_t mode)
@@ -481,7 +486,7 @@ void CkCanvas::drawTextBlob(v8::Local<v8::Value> blob, SkScalar x, SkScalar y,
         g_throw(TypeError, "Argument `blob` must be an instance of `CkTextBlob`");
 
     EXTRACT_PAINT_CHECKED(paint, p)
-    canvas_->drawTextBlob(blobwrap->getSkiaObject(), x, y, p->GetPaint());
+    canvas_->drawTextBlob(blobwrap->GetSkObject(), x, y, p->GetPaint());
 }
 
 void CkCanvas::drawPicture(v8::Local<v8::Value> picture, v8::Local<v8::Value> matrix,
@@ -505,7 +510,7 @@ void CkCanvas::drawVertices(v8::Local<v8::Value> vertices, int32_t mode,
     auto *vw = binder::Class<CkVertices>::unwrap_object(isolate, vertices);
     if (!vw)
         g_throw(TypeError, "Argument `vertices` must be an instance of `CkVertices`");
-    canvas_->drawVertices(vw->getSkiaObject(), static_cast<SkBlendMode>(mode), p->GetPaint());
+    canvas_->drawVertices(vw->GetSkObject(), static_cast<SkBlendMode>(mode), p->GetPaint());
 }
 
 void CkCanvas::drawPatch(v8::Local<v8::Value> cubics, v8::Local<v8::Value> colors,

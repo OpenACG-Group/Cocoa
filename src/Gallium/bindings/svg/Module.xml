@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <info name="svg" description="Parse and generate Scalable Vector Graphics"/>
+    <metadata namespace="cocoa::gallium::bindings::svg_wrap" class="SVGBinding"/>
+    <include src="Gallium/bindings/svg/Exports.h"/>
+
+    <import-synthetic name="glamor"/>
+    <import-synthetic name="core"/>
+
+    <hook on="instantiate" call="SetInstanceProperties"/>
+
+    <exports>
+        <toplevel type="declaration" name="Constants"/>
+
+        <class name="SVGCanvas" wrapper="SVGCanvasWrap" inherit="glamor_wrap::CkCanvas">
+            <method static="true" name="Make" value="@Make"/>
+            <method name="finish" value="@finish"/>
+        </class>
+
+        <class name="SVGDOMLoader" wrapper="SVGDOMLoaderWrap">
+            <constructor prototype=""/>
+            <method name="setFontManager" value="@setFontManager"/>
+            <method name="setResourceProvider" value="@setResourceProvider"/>
+            <method name="makeFromString" value="@makeFromString"/>
+            <method name="makeFromData" value="@makeFromData"/>
+            <method name="makeFromFile" value="@makeFromFile"/>
+        </class>
+
+        <class name="SVGDOM" wrapper="SVGDOMWrap">
+            <property name="width" getter="@width"/>
+            <property name="height" getter="@height"/>
+            <method name="setContainerSize" value="@setContainerSize"/>
+            <method name="render" value="@render"/>
+            <method name="intrinsicSize" value="@intrinsicSize"/>
+        </class>
+
+        <class name="SVGLengthContext" wrapper="SVGLengthContextWrap">
+            <method static="true" name="Make" value="@Make"/>
+            <property name="viewport" getter="@viewport"/>
+            <method name="setViewport" value="@setViewport"/>
+            <method name="resolve" value="@resolve"/>
+            <method name="resolveRect" value="@resolveRect"/>
+        </class>
+    </exports>
+</module>

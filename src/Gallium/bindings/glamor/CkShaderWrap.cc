@@ -262,7 +262,7 @@ v8::Local<v8::Value> CkShaderWrap::makeWithLocalMatrix(v8::Local<v8::Value> matr
     if (!m)
         g_throw(TypeError, "Argument `matrix` must be an instance of `CkMatrix`");
 
-    sk_sp<SkShader> result = getSkiaObject()->makeWithLocalMatrix(m->GetMatrix());
+    sk_sp<SkShader> result = GetSkObject()->makeWithLocalMatrix(m->GetMatrix());
     if (!result)
         g_throw(Error, "Failed to make shader with local matrix");
 
@@ -276,7 +276,7 @@ v8::Local<v8::Value> CkShaderWrap::makeWithColorFilter(v8::Local<v8::Value> filt
     if (!f)
         g_throw(TypeError, "Argument `filter` must be an instance of `CkFilter`");
 
-    sk_sp<SkShader> result = getSkiaObject()->makeWithColorFilter(f->getSkiaObject());
+    sk_sp<SkShader> result = GetSkObject()->makeWithColorFilter(f->GetSkObject());
     if (!result)
         g_throw(Error, "Failed to make shader with color filter");
 

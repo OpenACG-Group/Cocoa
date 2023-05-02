@@ -25,6 +25,25 @@
 #include "Gallium/bindings/glamor/Exports.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
+#define CHECK_OBJECT_TYPE(typename, isolate, obj)           \
+    if (!obj->IsObject()) {                                 \
+        g_throw(TypeError, "Provided " #typename " is not an object");  \
+    }
+
+#define GET_PROPERTY(typename, isolate, ctx, obj, key, typechecker, store) \
+    v8::Local<v8::Value> store; \
+    if (!obj->Get(ctx, v8::String::NewFromUtf8Literal(isolate, key)).ToLocal(&store)) {          \
+        g_throw(TypeError, "Missing property `" key "` on the provided `" #typename "` object"); \
+    }                                                                      \
+    if (!store->typechecker()) {                                           \
+        g_throw(TypeError, "Wrong type of property `" key "` on the provided `" #typename "` object"); \
+    }
+
+#define THROW_ENUM_ERROR_OF_PROPERTY(key, typename) \
+    g_throw(RangeError, "Invalid enumeration value of property `" key "` on the provided `" #typename "` object")
+
+using ObjectProtoMap = std::unordered_map<std::string_view, v8::Local<v8::Value>>;
+
 namespace {
 
 SkRect extract_sk_rect_from_object(v8::Isolate *isolate, v8::Local<v8::Object> object)
@@ -303,7 +322,7 @@ SkImageInfo ExtractCkImageInfo(v8::Isolate *isolate, v8::Local<v8::Value> object
     return SkImageInfo::Make(width, height, ct, at, cs);
 }
 
-v8::Local<v8::Value> WrapCkImageInfo(v8::Isolate *isolate, const SkImageInfo& info)
+v8::Local<v8::Value> NewCkImageInfo(v8::Isolate *isolate, const SkImageInfo& info)
 {
     ColorSpace cs = ColorSpace::kSRGB;
     if (info.colorSpace())
@@ -312,15 +331,13 @@ v8::Local<v8::Value> WrapCkImageInfo(v8::Isolate *isolate, const SkImageInfo& in
         cs = info.colorSpace()->isSRGB() ? ColorSpace::kSRGB : ColorSpace::kUnknown;
     }
 
-    std::unordered_map<std::string_view, v8::Local<v8::Value>> map{
+    return binder::to_v8(isolate, ObjectProtoMap{
         { "colorType", binder::to_v8(isolate, static_cast<int32_t>(info.colorType())) },
         { "alphaType", binder::to_v8(isolate, static_cast<int32_t>(info.alphaType())) },
         { "colorSpace", binder::to_v8(isolate, static_cast<int32_t>(cs)) },
         { "width", binder::to_v8(isolate, info.width()) },
         { "height", binder::to_v8(isolate, info.height()) }
-    };
-
-    return binder::to_v8(isolate, map);
+    });
 }
 
 sk_sp<SkColorSpace> ExtrackCkColorSpace(int32_t v)
@@ -400,19 +417,19 @@ SkPoint ExtractCkPoint(v8::Isolate *isolate, v8::Local<v8::Value> point)
     return {data[0], data[1]};
 }
 
-v8::Local<v8::Value> WrapCkRect(v8::Isolate *isolate, const SkRect& rect)
+v8::Local<v8::Value> NewCkRect(v8::Isolate *isolate, const SkRect& rect)
 {
     std::vector<SkScalar> v{rect.x(), rect.y(), rect.width(), rect.height()};
     return binder::to_v8(isolate, v);
 }
 
-v8::Local<v8::Value> WrapColor4f(v8::Isolate *isolate, const SkColor4f& color)
+v8::Local<v8::Value> NewColor4f(v8::Isolate *isolate, const SkColor4f& color)
 {
     std::vector<SkScalar> v{color.fA, color.fR, color.fB, color.fA};
     return binder::to_v8(isolate, v);
 }
 
-v8::Local<v8::Value> WrapCkPoint(v8::Isolate *isolate, const SkPoint& p)
+v8::Local<v8::Value> NewCkPoint(v8::Isolate *isolate, const SkPoint& p)
 {
     std::vector<SkScalar> v{p.x(), p.y()};
     return binder::to_v8(isolate, v);
@@ -443,10 +460,39 @@ SkPoint3 ExtractCkPoint3(v8::Isolate *isolate, v8::Local<v8::Value> point3)
     return {data[0], data[1], data[2]};
 }
 
-v8::Local<v8::Value> WrapCkPoint3(v8::Isolate *isolate, const SkPoint3& p)
+v8::Local<v8::Value> NewCkPoint3(v8::Isolate *isolate, const SkPoint3& p)
 {
     std::vector<SkScalar> v{p.x(), p.y(), p.z()};
     return binder::to_v8(isolate, v);
+}
+
+SkRSXform ExtractCkRSXform(v8::Isolate *isolate, v8::Local<v8::Value> object)
+{
+    CHECK_OBJECT_TYPE(CkRSXform, isolate, object)
+    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+    v8::Local<v8::Object> obj = object.As<v8::Object>();
+
+    GET_PROPERTY(CkRSXform, isolate, ctx, obj, "ssin", IsNumber, ssin)
+    GET_PROPERTY(CkRSXform, isolate, ctx, obj, "scos", IsNumber, scos)
+    GET_PROPERTY(CkRSXform, isolate, ctx, obj, "tx", IsNumber, tx)
+    GET_PROPERTY(CkRSXform, isolate, ctx, obj, "ty", IsNumber, ty)
+
+    return SkRSXform::Make(
+        static_cast<SkScalar>(scos->NumberValue(ctx).ToChecked()),
+        static_cast<SkScalar>(ssin->NumberValue(ctx).ToChecked()),
+        static_cast<SkScalar>(tx->NumberValue(ctx).ToChecked()),
+        static_cast<SkScalar>(ty->NumberValue(ctx).ToChecked())
+    );
+}
+
+v8::Local<v8::Object> NewCkRSXform(v8::Isolate *isolate, const SkRSXform& from)
+{
+    return binder::to_v8(isolate, ObjectProtoMap{
+        { "ssin", v8::Number::New(isolate, from.fSSin) },
+        { "scos", v8::Number::New(isolate, from.fSCos) },
+        { "tx", v8::Number::New(isolate, from.fTx) },
+        { "ty", v8::Number::New(isolate, from.fTy) }
+    });
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

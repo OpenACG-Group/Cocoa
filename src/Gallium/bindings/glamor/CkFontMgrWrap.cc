@@ -16,6 +16,8 @@
  */
 
 #include "include/core/SkString.h"
+#include "include/core/SkData.h"
+#include "fmt/format.h"
 
 #include "Gallium/bindings/glamor/CkFontMgrWrap.h"
 #include "Gallium/bindings/glamor/CkTypefaceWrap.h"
@@ -24,7 +26,7 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 int CkFontMgr::countFamilies()
 {
-    return getSkiaObject()->countFamilies();
+    return GetSkObject()->countFamilies();
 }
 
 std::string CkFontMgr::getFamilyName(int index)
@@ -33,7 +35,7 @@ std::string CkFontMgr::getFamilyName(int index)
         g_throw(RangeError, "Invalid family index");
 
     SkString name;
-    getSkiaObject()->getFamilyName(index, &name);
+    GetSkObject()->getFamilyName(index, &name);
     return name.c_str();
 }
 
@@ -42,7 +44,7 @@ v8::Local<v8::Value> CkFontMgr::createStyleSet(int index)
     if (index < 0 || index >= countFamilies())
         g_throw(RangeError, "Invalid family index");
 
-    sk_sp<SkFontStyleSet> set(getSkiaObject()->createStyleSet(index));
+    sk_sp<SkFontStyleSet> set(GetSkObject()->createStyleSet(index));
     return binder::Class<CkFontStyleSet>::create_object(
             v8::Isolate::GetCurrent(), set);
 }
@@ -64,7 +66,7 @@ v8::Local<v8::Value> CkFontMgr::matchFamilyStyle(v8::Local<v8::Value> family_nam
     if (!w)
         g_throw(TypeError, "Argument `style` must be an instance of `CkFontStyle`");
 
-    sk_sp<SkTypeface> tf(getSkiaObject()->matchFamilyStyle(
+    sk_sp<SkTypeface> tf(GetSkObject()->matchFamilyStyle(
             name.empty() ? nullptr : name.c_str(), w->GetFontStyle()));
     if (!tf)
         return v8::Null(isolate);
@@ -72,9 +74,61 @@ v8::Local<v8::Value> CkFontMgr::matchFamilyStyle(v8::Local<v8::Value> family_nam
     return binder::Class<CkTypeface>::create_object(isolate, tf);
 }
 
+v8::Local<v8::Value> CkFontMgr::makeFromFile(const std::string& path, int32_t ttc_index)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    sk_sp<SkTypeface> tf = GetSkObject()->makeFromFile(path.c_str(), ttc_index);
+    if (!tf)
+        g_throw(Error, fmt::format("Failed to make typeface from file {}", path));
+    return binder::Class<CkTypeface>::create_object(isolate, tf);
+}
+
+namespace {
+
+struct U8ArrayRef
+{
+    std::shared_ptr<v8::BackingStore> store;
+};
+
+}
+
+v8::Local<v8::Value> CkFontMgr::makeFromData(v8::Local<v8::Value> data, int32_t ttc_index)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (!data->IsUint8Array())
+        g_throw(TypeError, "Argument `data` must be a Uint8Array");
+
+    v8::Local<v8::Uint8Array> arr = data.As<v8::Uint8Array>();
+    if (!arr->HasBuffer())
+        g_throw(Error, "Argument `data` must be a allocated Uint8Array");
+
+    uint8_t *ptr = reinterpret_cast<uint8_t*>(arr->Buffer()->Data())
+                    + arr->ByteOffset();
+
+    CHECK(ptr);
+
+    auto *ref = new U8ArrayRef{ arr->Buffer()->GetBackingStore() };
+
+    sk_sp<SkData> skdata = SkData::MakeWithProc(
+            ptr, arr->ByteLength(),
+            [](const void *ptr, void *ctx) {
+                CHECK(ctx);
+                delete reinterpret_cast<U8ArrayRef*>(ctx);
+            }, ref
+    );
+
+    CHECK(skdata);
+
+    sk_sp<SkTypeface> tf = GetSkObject()->makeFromData(skdata, ttc_index);
+    if (!tf)
+        g_throw(Error, "Failed to create typeface from provided data");
+
+    return binder::Class<CkTypeface>::create_object(isolate, tf);
+}
+
 int CkFontStyleSet::count()
 {
-    return getSkiaObject()->count();
+    return GetSkObject()->count();
 }
 
 v8::Local<v8::Value> CkFontStyleSet::getStyle(int index)
@@ -83,7 +137,7 @@ v8::Local<v8::Value> CkFontStyleSet::getStyle(int index)
         g_throw(RangeError, "Invalid style index");
 
     SkFontStyle style;
-    getSkiaObject()->getStyle(index, &style, nullptr);
+    GetSkObject()->getStyle(index, &style, nullptr);
 
     return binder::Class<CkFontStyle>::create_object(
             v8::Isolate::GetCurrent(), style);
@@ -95,7 +149,7 @@ std::string CkFontStyleSet::getStyleName(int index)
         g_throw(RangeError, "Invalid style index");
 
     SkString name;
-    getSkiaObject()->getStyle(index, nullptr, &name);
+    GetSkObject()->getStyle(index, nullptr, &name);
     return name.c_str();
 }
 
@@ -104,7 +158,7 @@ v8::Local<v8::Value> CkFontStyleSet::createTypeface(int index)
     if (index < 0 || index >= count())
         g_throw(RangeError, "Invalid style index");
 
-    sk_sp<SkTypeface> tf(getSkiaObject()->createTypeface(index));
+    sk_sp<SkTypeface> tf(GetSkObject()->createTypeface(index));
     if (!tf)
         return v8::Null(v8::Isolate::GetCurrent());
 
@@ -118,7 +172,7 @@ v8::Local<v8::Value> CkFontStyleSet::matchStyle(v8::Local<v8::Value> pattern)
     if (!w)
         g_throw(TypeError, "Argument `pattern` must be an instance of `CkFontStyle`");
 
-    sk_sp<SkTypeface> tf(getSkiaObject()->matchStyle(w->GetFontStyle()));
+    sk_sp<SkTypeface> tf(GetSkObject()->matchStyle(w->GetFontStyle()));
     if (!tf)
         return v8::Null(isolate);
 

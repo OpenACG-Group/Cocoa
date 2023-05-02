@@ -67,23 +67,23 @@ CkSurface::~CkSurface()
 
 int32_t CkSurface::getWidth()
 {
-    return getSkiaObject()->width();
+    return GetSkObject()->width();
 }
 
 int32_t CkSurface::getHeight()
 {
-    return getSkiaObject()->height();
+    return GetSkObject()->height();
 }
 
 v8::Local<v8::Value> CkSurface::getImageInfo()
 {
-    return WrapCkImageInfo(v8::Isolate::GetCurrent(),
-                           getSkiaObject()->imageInfo());
+    return NewCkImageInfo(v8::Isolate::GetCurrent(),
+                          GetSkObject()->imageInfo());
 }
 
 uint32_t CkSurface::getGenerationID()
 {
-    return getSkiaObject()->generationID();
+    return GetSkObject()->generationID();
 }
 
 v8::Local<v8::Value> CkSurface::getCanvas()
@@ -91,9 +91,9 @@ v8::Local<v8::Value> CkSurface::getCanvas()
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     if (canvas_obj_.IsEmpty())
     {
-        CHECK(getSkiaObject()->getCanvas());
+        CHECK(GetSkObject()->getCanvas());
         canvas_obj_.Reset(isolate, binder::Class<CkCanvas>::create_object(
-                isolate, getSkiaObject()->getCanvas()));
+                isolate, GetSkObject()->getCanvas()));
     }
 
     return canvas_obj_.Get(isolate);
@@ -102,7 +102,7 @@ v8::Local<v8::Value> CkSurface::getCanvas()
 v8::Local<v8::Value> CkSurface::makeSurface(int32_t width, int32_t height)
 {
     return binder::Class<CkSurface>::create_object(v8::Isolate::GetCurrent(),
-                                                   getSkiaObject()->makeSurface(width, height),
+                                                   GetSkObject()->makeSurface(width, height),
                                                    increase_gc_);
 }
 
@@ -115,9 +115,9 @@ v8::Local<v8::Value> CkSurface::makeImageSnapshot(v8::Local<v8::Value> bounds)
 
     sk_sp<SkImage> image;
     if (rect.isEmpty())
-        image = getSkiaObject()->makeImageSnapshot();
+        image = GetSkObject()->makeImageSnapshot();
     else
-        image = getSkiaObject()->makeImageSnapshot(rect.round());
+        image = GetSkObject()->makeImageSnapshot(rect.round());
 
     if (!image)
         return v8::Null(isolate);
@@ -142,8 +142,8 @@ void CkSurface::draw(v8::Local<v8::Value> canvas, SkScalar x, SkScalar y,
         maybe_paint = &pw->GetPaint();
     }
 
-    getSkiaObject()->draw(cw->GetCanvas(), x, y, SamplingToSamplingOptions(sampling),
-                          maybe_paint);
+    GetSkObject()->draw(cw->GetCanvas(), x, y, SamplingToSamplingOptions(sampling),
+                        maybe_paint);
 }
 
 void CkSurface::readPixels(v8::Local<v8::Value> dstInfo,
@@ -162,8 +162,8 @@ void CkSurface::readPixels(v8::Local<v8::Value> dstInfo,
     if (buffer->length() < info.computeByteSize(dstRowBytes))
         g_throw(Error, "`dstPixels` is not big enough to write pixels");
 
-    bool res = getSkiaObject()->readPixels(info, buffer->addressU8(),
-                                           dstRowBytes, srcX, srcY);
+    bool res = GetSkObject()->readPixels(info, buffer->addressU8(),
+                                         dstRowBytes, srcX, srcY);
     if (!res)
         g_throw(Error, "Failed to read pixels from surface");
 }
@@ -171,10 +171,10 @@ void CkSurface::readPixels(v8::Local<v8::Value> dstInfo,
 v8::Local<v8::Value> CkSurface::peekPixels()
 {
     SkPixmap pixmap;
-    if (!getSkiaObject()->peekPixels(&pixmap))
+    if (!GetSkObject()->peekPixels(&pixmap))
         g_throw(Error, "Failed to peek pixels from the surface");
 
-    sk_sp<SkSurface> surface = getSkiaObject();
+    sk_sp<SkSurface> surface = GetSkObject();
     return Buffer::MakeFromExternal(
             pixmap.writable_addr(), pixmap.computeByteSize(), [surface] {});
 }

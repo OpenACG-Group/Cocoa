@@ -184,7 +184,7 @@ v8::Local<v8::Value> CkColorFilterWrap::MakeFromDSL(v8::Local<v8::Value> dsl,
 
 v8::Local<v8::Value> CkColorFilterWrap::serialize()
 {
-    sk_sp<SkData> data = getSkiaObject()->serialize();
+    sk_sp<SkData> data = GetSkObject()->serialize();
     if (!data)
         g_throw(Error, "Failed to serialize the color filter");
 

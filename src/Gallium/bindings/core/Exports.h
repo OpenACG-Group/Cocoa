@@ -431,12 +431,25 @@ public:
                                                         v8::BackingStore::DeleterCallback deleter,
                                                         void *closure);
 
+    //! TSDecl: readonly byteArray: Uint8Array
     v8::Local<v8::Value> getByteArray();
+
+    //! TSDecl: readonly length: number
     size_t length();
+
+    //! TSDecl: function byteAt(idx: number): number
     uint8_t byteAt(int64_t idx);
+
+    //! TSDecl: function copy(offset?: number, length?: number): Buffer
     v8::Local<v8::Value> copy(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+    //! TSDecl: function toDataView(offset?: number, length?: number): DataView
     v8::Local<v8::Value> toDataView(const v8::FunctionCallbackInfo<v8::Value>& args);
+
+    //! TSDecl: function toString(coding: Enum<Encoding>, length: number): string
     v8::Local<v8::Value> toString(uint32_t coding, int32_t length);
+
+    //! TSDecl: function memsetZero(offset: number, length: number): void
     void memsetZero(uint32_t offset, uint32_t length);
 
     g_private_api uint8_t *addressU8();
@@ -445,6 +458,53 @@ private:
     size_t                              alloc_size_hint_;
     v8::Global<v8::Uint8Array>          array_;
     std::shared_ptr<v8::BackingStore>   backing_store_;
+};
+
+//! TSDecl: class CallbackScopedBuffer
+class CallbackScopedBuffer
+{
+public:
+    class ScopeGuard
+    {
+    public:
+        ScopeGuard(v8::Local<v8::Value> obj, CallbackScopedBuffer *buf);
+        ~ScopeGuard();
+
+        // This object only can be constructed on the stack
+        void *operator new(size_t) = delete;
+        void *operator new[](size_t) = delete;
+
+    private:
+        v8::Local<v8::Value> obj_;
+        CallbackScopedBuffer *buf_;
+    };
+
+    CallbackScopedBuffer(uint8_t *ptr, size_t size, bool readonly)
+        : ptr_(ptr), size_(size), readonly_(readonly) {}
+
+    using FactoryRet = std::pair<v8::Local<v8::Object>, CallbackScopedBuffer*>;
+    static FactoryRet MakeScoped(uint8_t *ptr, size_t size, bool readonly);
+
+    void leaveScope();
+
+    //! TSDecl: readonly length: number
+    g_nodiscard size_t length() const;
+
+    //! TSDecl: readonly writable: boolean
+    g_nodiscard bool writable() const;
+
+    //! TSDecl: function read(dst: Uint8Array, offset: number, size: number): number
+    v8::Local<v8::Value> read(v8::Local<v8::Value> dst, int64_t offset, int64_t size);
+
+    //! TSDecl: function write(src: Uint8Array, offset: number): number
+    v8::Local<v8::Value> write(v8::Local<v8::Value> src, int64_t offset);
+
+private:
+    void CheckScope() const;
+
+    uint8_t     *ptr_;
+    size_t       size_;
+    bool         readonly_;
 };
 
 GALLIUM_BINDINGS_NS_END

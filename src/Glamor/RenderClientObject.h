@@ -75,7 +75,7 @@ public:
 
     template<typename T>
     g_nodiscard g_inline Shared<T> Cast() {
-        return std::dynamic_pointer_cast<T>(shared_from_this());
+        return std::static_pointer_cast<T>(shared_from_this());
     }
 
     g_nodiscard g_inline Shared<RenderClientObject> Self() {
@@ -84,8 +84,7 @@ public:
 
     template<typename T, typename std::enable_if<std::is_base_of_v<RenderClientObject, T>>::type* = nullptr>
     g_nodiscard g_inline Shared<T> As() {
-        auto ptr = std::dynamic_pointer_cast<T>(shared_from_this());
-        CHECK(ptr && "Bad cast from RenderClient");
+        auto ptr = std::static_pointer_cast<T>(shared_from_this());
         return ptr;
     }
 

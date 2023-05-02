@@ -193,7 +193,7 @@ v8::Local<v8::Value> WrapDecoration(v8::Isolate *isolate, const para::Decoration
     std::unordered_map<std::string_view, v8::Local<v8::Value>> map{
         { "type", binder::to_v8(isolate, static_cast<int32_t>(deco.fType)) },
         { "mode", binder::to_v8(isolate, static_cast<int32_t>(deco.fMode)) },
-        { "color", glamor_wrap::WrapColor4f(isolate, SkColor4f::FromColor(deco.fColor)) },
+        { "color", glamor_wrap::NewColor4f(isolate, SkColor4f::FromColor(deco.fColor)) },
         { "style", binder::to_v8(isolate, static_cast<int32_t>(deco.fStyle)) },
         { "thicknessMultiplier", binder::to_v8(isolate, deco.fThicknessMultiplier) }
     };

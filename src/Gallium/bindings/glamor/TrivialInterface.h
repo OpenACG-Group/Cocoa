@@ -25,6 +25,7 @@
 #include "include/core/SkImageInfo.h"
 #include "include/core/SkColor.h"
 #include "include/core/SkPoint3.h"
+#include "include/core/SkRSXform.h"
 
 #include "Core/Project.h"
 #include "Gallium/bindings/glamor/Types.h"
@@ -47,7 +48,7 @@ SkSamplingOptions SamplingToSamplingOptions(int32_t v);
 //!         or interface { x: number, y: number, width: number, height: number }
 //!         or interface { top: number, left: number, right: number, bottom: number }
 SkRect ExtractCkRect(v8::Isolate *isolate, v8::Local<v8::Value> object);
-v8::Local<v8::Value> WrapCkRect(v8::Isolate *isolate, const SkRect& rect);
+v8::Local<v8::Value> NewCkRect(v8::Isolate *isolate, const SkRect& rect);
 
 SkRRect ExtractCkRRect(v8::Isolate *isolate, v8::Local<v8::Value> object);
 
@@ -63,15 +64,15 @@ sk_sp<SkColorSpace> ExtrackCkColorSpace(int32_t v);
 
 //! TSDecl: Array<number> [R, G, B, A] where R,G,B,A∈[0, 1]
 SkColor4f ExtractColor4f(v8::Isolate *isolate, v8::Local<v8::Value> color);
-v8::Local<v8::Value> WrapColor4f(v8::Isolate *isolate, const SkColor4f& color);
+v8::Local<v8::Value> NewColor4f(v8::Isolate *isolate, const SkColor4f& color);
 
 //! TSDecl: Array<number> [x, y]
 SkPoint ExtractCkPoint(v8::Isolate *isolate, v8::Local<v8::Value> point);
-v8::Local<v8::Value> WrapCkPoint(v8::Isolate *isolate, const SkPoint& p);
+v8::Local<v8::Value> NewCkPoint(v8::Isolate *isolate, const SkPoint& p);
 
 //! TSDecl: Array<number> [x, y, z]
 SkPoint3 ExtractCkPoint3(v8::Isolate *isolate, v8::Local<v8::Value> point3);
-v8::Local<v8::Value> WrapCkPoint3(v8::Isolate *isolate, const SkPoint3& point3);
+v8::Local<v8::Value> NewCkPoint3(v8::Isolate *isolate, const SkPoint3& point3);
 
 SkColorType ExtractCkColorType(int32_t v);
 SkAlphaType ExtractCkAlphaType(int32_t v);
@@ -85,7 +86,17 @@ SkAlphaType ExtractCkAlphaType(int32_t v);
 //!   height: number;
 //! }
 SkImageInfo ExtractCkImageInfo(v8::Isolate *isolate, v8::Local<v8::Value> object);
-v8::Local<v8::Value> WrapCkImageInfo(v8::Isolate *isolate, const SkImageInfo& info);
+v8::Local<v8::Value> NewCkImageInfo(v8::Isolate *isolate, const SkImageInfo& info);
+
+//! TSDecl:
+//! interface CkRSXform {
+//!   ssin: number;
+//!   scos: number;
+//!   tx: number;
+//!   ty: number;
+//! }
+SkRSXform ExtractCkRSXform(v8::Isolate *isolate, v8::Local<v8::Value> object);
+v8::Local<v8::Object> NewCkRSXform(v8::Isolate *isolate, const SkRSXform& from);
 
 template<typename T>
 class SkiaObjectWrapper
@@ -96,7 +107,7 @@ public:
             : wrapped_value_(std::move(value)) {}
     ~SkiaObjectWrapper() = default;
 
-    g_nodiscard g_inline const ValueType& getSkiaObject() const {
+    g_nodiscard g_inline const ValueType& GetSkObject() const {
         return wrapped_value_;
     }
 

@@ -105,14 +105,14 @@ public:
         return font_.getSpacing();
     }
 
-    //! TSDecl: function countText(text: core.Buffer, encoding: Enum<TextEncoding>): number
+    //! TSDecl: function countText(text: Uint8Array, encoding: Enum<TextEncoding>): number
     int32_t countText(v8::Local<v8::Value> text, int32_t encoding);
 
-    //! TSDecl: function measureText(text: core.Buffer, encoding: Enum<TextEncoding>,
+    //! TSDecl: function measureText(text: Uint8Array, encoding: Enum<TextEncoding>,
     //!                              paint: null | CkPaint): number
     SkScalar measureText(v8::Local<v8::Value> text, int32_t encoding, v8::Local<v8::Value> paint);
 
-    //! TSDecl: function measureTextBounds(text: core.Buffer, encoding: Enum<TextEncoding>,
+    //! TSDecl: function measureTextBounds(text: Uint8Array, encoding: Enum<TextEncoding>,
     //!                                    paint: null | CkPaint): CkRect
     v8::Local<v8::Value> measureTextBounds(v8::Local<v8::Value> text, int32_t encoding,
                                            v8::Local<v8::Value> paint);

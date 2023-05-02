@@ -709,6 +709,7 @@ export type PathFillType = number;
 export type PathDirection = number;
 export type PathArcSize = number;
 export type PathAddPathMode = number;
+export type PathMeasureMatrixFlags = number;
 export type ApplyPerspectiveClip = number;
 export type CanvasSaveLayerFlag = number;
 export type CanvasPointMode = number;
@@ -780,6 +781,9 @@ interface Constants {
     readonly PATH_ARC_SIZE_LARGE: PathArcSize;
     readonly PATH_ADD_PATH_MODE_APPEND: PathAddPathMode;
     readonly PATH_ADD_PATH_MODE_EXTEND: PathAddPathMode;
+
+    readonly PATH_MEASURE_MATRIX_FLAGS_GET_POSITION: PathMeasureMatrixFlags;
+    readonly PATH_MEASURE_MATRIX_FLAGS_GET_TANGENT: PathMeasureMatrixFlags;
 
     readonly APPLY_PERSPECTIVE_CLIP_YES: ApplyPerspectiveClip;
     readonly APPLY_PERSPECTIVE_CLIP_NO: ApplyPerspectiveClip;
@@ -1231,13 +1235,13 @@ export class CkTypeface {
 
     public getKerningPairAdjustments(glyphs: Uint16Array): Array<number> | null;
     public unicharsToGlyphs(unichars: Uint32Array): Uint16Array;
-    public textToGlyphs(text: Buffer, encoding: TextEncoding): Uint16Array | null;
+    public textToGlyphs(text: Uint8Array, encoding: TextEncoding): Uint16Array | null;
     public unicharToGlyph(unichar: number): number;
     public countGlyphs(): number;
     public countTables(): number;
     public getTableTags(): Uint32Array;
     public getTableSize(tag: number): number;
-    public copyTableData(tag: number): Buffer;
+    public copyTableData(tag: number): Uint8Array;
 }
 
 export class CkFont {
@@ -1259,9 +1263,9 @@ export class CkFont {
     public skewX: number;
     public readonly spacing: number;
 
-    public countText(text: Buffer, encoding: TextEncoding): number;
-    public measureText(text: Buffer, encoding: TextEncoding, paint: null | CkPaint): number;
-    public measureTextBounds(text: Buffer, encoding: TextEncoding, paint: null | CkPaint): CkArrayXYWHRect;
+    public countText(text: Uint8Array, encoding: TextEncoding): number;
+    public measureText(text: Uint8Array, encoding: TextEncoding, paint: null | CkPaint): number;
+    public measureTextBounds(text: Uint8Array, encoding: TextEncoding, paint: null | CkPaint): CkArrayXYWHRect;
     public getBounds(glyphs: Uint16Array, paint: null | CkPaint): Array<CkArrayXYWHRect>;
     public getPos(glyphs: Uint16Array, origin: CkPoint): Array<CkPoint>;
     public getIntercepts(glyphs: Uint16Array, pos: Array<CkPoint>, top: number,
@@ -1290,13 +1294,35 @@ export class CkFontMgr {
 
 export const defaultFontMgr: CkFontMgr;
 
+export interface CkRSXform {
+    ssin: number;
+    scos: number;
+    tx: number;
+    ty: number;
+}
+
 export class CkTextBlob {
     private constructor();
-    public static MakeFromText(text: Buffer, font: CkFont, encoding: TextEncoding): CkTextBlob;
-    public static MakeFromPosTextH(text: Buffer, xpos: Float32Array, constY: number,
-                                   font: CkFont, encoding: TextEncoding): CkTextBlob;
-    public static MakeFromPosText(text: Buffer, pos: Array<CkPoint>, font: CkFont,
+
+    public static MakeFromText(text: Uint8Array,
+                               font: CkFont,
+                               encoding: TextEncoding): CkTextBlob;
+
+    public static MakeFromPosTextH(text: Uint8Array,
+                                   xpos: Float32Array,
+                                   constY: number,
+                                   font: CkFont,
+                                   encoding: TextEncoding): CkTextBlob;
+
+    public static MakeFromPosText(text: Uint8Array,
+                                  pos: Array<CkPoint>,
+                                  font: CkFont,
                                   encoding: TextEncoding): CkTextBlob;
+
+    public static MakeFromRSXformText(text: Uint8Array,
+                                      forms: Array<CkRSXform>,
+                                      font: CkFont,
+                                      encoding: TextEncoding): CkTextBlob;
 
     readonly bounds: CkRect;
     readonly uniqueID: number;
@@ -1312,7 +1338,8 @@ export interface CanvasSaveLayerRec {
 }
 
 export class CkCanvas {
-    private constructor();
+    protected constructor();
+
     public save(): number;
     public saveLayer(bounds: null | CkRect, paint: null | CkPaint): number;
     public saveLayerAlpha(bounds: null | CkRect, alpha: number): number;
@@ -1360,6 +1387,19 @@ export class CkCanvas {
                      colors: Array<CkColor4f> | null,
                      texCoords: Array<CkPoint> | null,
                      mode: BlendMode, paint: CkPaint): void;
+}
+
+export class CkPathMeasure {
+    private constructor();
+
+    public static Make(path: CkPath, forceClosed: boolean, resScale: number): CkPathMeasure;
+
+    public getLength(): number;
+    public isClosed(): boolean;
+    public nextContour(): boolean;
+    public getPositionTangent(distance: number): {position: CkPoint, tangent: CkPoint} | null;
+    public getMatrix(distance: number, flags: PathMeasureMatrixFlags): CkMatrix | null;
+    public getSegment(startD: number, stopD: number, startWithMoveTo: boolean): CkPath | null;
 }
 
 export class CkVertices {

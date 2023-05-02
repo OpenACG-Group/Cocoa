@@ -42,14 +42,8 @@ public:
 
         v8::Local<v8::Value> v = binder::to_v8(isolate_, volume);
 
-        v8::TryCatch tc(isolate_);
-        if (func->Call(ctx, ctx->Global(), 1, &v).IsEmpty())
-        {
-            if (tc.HasCaught())
-                QLOG(LOG_WARNING, "Exception thrown by `onVolumeChanged` callback function was swallowed");
-            else
-                QLOG(LOG_WARNING, "Failed to call `onVolumeChanged` callback function");
-        }
+        // Uncaught exceptions will be reported by runtime
+        (void) func->Call(ctx, v8::Null(isolate_), 1, &v).IsEmpty();
     }
 
     v8::Isolate *isolate_;
@@ -148,9 +142,15 @@ v8::Local<v8::Value> AudioSinkStreamWrap::getOnVolumeChanged()
 void AudioSinkStreamWrap::setOnVolumeChanged(v8::Local<v8::Value> value)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (value->IsNullOrUndefined())
+    {
+        listener_->cb_volume_changed_.Reset();
+        return;
+    }
+
     if (!value->IsFunction())
         g_throw(TypeError, "Property `onVolumeChanged` must be a function");
-    listener_->cb_volume_changed_.Reset(isolate, v8::Local<v8::Function>::Cast(value));
+    listener_->cb_volume_changed_.Reset(isolate, value.As<v8::Function>());
 }
 
 GALLIUM_BINDINGS_UTAU_NS_END

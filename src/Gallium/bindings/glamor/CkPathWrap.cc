@@ -155,17 +155,17 @@ v8::Local<v8::Value> CkPath::getPoint(int32_t index)
     if (index < 0 || index >= path_.countPoints())
         g_throw(RangeError, "Invalid point index");
 
-    return WrapCkPoint(isolate, path_.getPoint(index));
+    return NewCkPoint(isolate, path_.getPoint(index));
 }
 
 v8::Local<v8::Value> CkPath::getBounds()
 {
-    return WrapCkRect(v8::Isolate::GetCurrent(), path_.getBounds());
+    return NewCkRect(v8::Isolate::GetCurrent(), path_.getBounds());
 }
 
 v8::Local<v8::Value> CkPath::computeTightBounds()
 {
-    return WrapCkRect(v8::Isolate::GetCurrent(), path_.computeTightBounds());
+    return NewCkRect(v8::Isolate::GetCurrent(), path_.computeTightBounds());
 }
 
 bool CkPath::conservativelyContainsRect(v8::Local<v8::Value> rect)

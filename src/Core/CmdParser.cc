@@ -3,7 +3,6 @@
 #include <climits>
 
 #include "fmt/format.h"
-#include "fmt/ostream.h"
 
 #include "Core/Errors.h"
 #include "Core/MeasuredTable.h"
@@ -254,7 +253,7 @@ bool interpret_and_set_option_value(ParseResult::Option& opt, const std::string_
         long n = std::strtol(stored.c_str(), &endptr, 10);
         if (endptr != stored.c_str() + stored.length())
         {
-            fmt::print(std::cerr, "Couldn't interpret the argument of option \"{}\" as an integer\n", opt.origin);
+            fmt::print(stderr, "Couldn't interpret the argument of option \"{}\" as an integer\n", opt.origin);
             return false;
         }
         opt.value = ParseResult::Option::Value{.v_int = static_cast<int32_t>(n)};
@@ -267,7 +266,7 @@ bool interpret_and_set_option_value(ParseResult::Option& opt, const std::string_
         float n = std::strtof(stored.c_str(), &endptr);
         if (endptr != stored.c_str() + stored.length())
         {
-            fmt::print(std::cerr, "Couldn't interpret the argument of option \"{}\" as a number\n", opt.origin);
+            fmt::print(stderr, "Couldn't interpret the argument of option \"{}\" as a number\n", opt.origin);
             return false;
         }
         opt.value = ParseResult::Option::Value{.v_float = n};
@@ -283,7 +282,7 @@ bool interpret_and_set_option_value(ParseResult::Option& opt, const std::string_
             v = false;
         else
         {
-            fmt::print(std::cerr, "Couldn't interpret the argument of option \"{}\" as a boolean\n", opt.origin);
+            fmt::print(stderr, "Couldn't interpret the argument of option \"{}\" as a boolean\n", opt.origin);
             return false;
         }
         opt.value = ParseResult::Option::Value{.v_bool = v};
@@ -356,7 +355,7 @@ bool interpret_and_set_long_option(ParseResult::Option& opt, const std::string_v
     {
         if (equalPos + 1 == str.length())
         {
-            fmt::print(std::cerr, "Unnecessary \"=\" in option \"{}\"\n", str);
+            fmt::print(stderr, "Unnecessary \"=\" in option \"{}\"\n", str);
             return false;
         }
         optionView.remove_suffix(str.length() - equalPos);
@@ -369,16 +368,16 @@ bool interpret_and_set_long_option(ParseResult::Option& opt, const std::string_v
     {
         const char *possible = most_possible_long_option_spell(optionView);
         if (possible)
-            fmt::print(std::cerr, "Unrecognized long options \"{}\", did you mean \"--{}\"?\n", str, possible);
+            fmt::print(stderr, "Unrecognized long options \"{}\", did you mean \"--{}\"?\n", str, possible);
         else
-            fmt::print(std::cerr, "Unrecognized long option \"{}\"\n", str);
+            fmt::print(stderr, "Unrecognized long option \"{}\"\n", str);
         return false;
     }
 
     if (opt.matched_template->has_value == Template::RequireValue::kEmpty &&
         !valueView.empty())
     {
-        fmt::print(std::cerr, "Unnecessary argument in option \"{}\"\n", str);
+        fmt::print(stderr, "Unnecessary argument in option \"{}\"\n", str);
         return false;
     }
 
@@ -387,7 +386,7 @@ bool interpret_and_set_long_option(ParseResult::Option& opt, const std::string_v
         return interpret_and_set_option_value(opt, valueView);
     else if (opt.matched_template->has_value == Template::RequireValue::kNecessary)
     {
-        fmt::print(std::cerr, "Expecting an argument for option \"{}\"\n", str);
+        fmt::print(stderr, "Expecting an argument for option \"{}\"\n", str);
         return false;
     }
     return true;
@@ -400,7 +399,7 @@ bool interpret_and_set_short_options(ParseResult& result, const std::string_view
 
     if (p.empty())
     {
-        fmt::print(std::cerr, "Empty short option is not allowed\n");
+        fmt::print(stderr, "Empty short option is not allowed\n");
         return false;
     }
 
@@ -410,14 +409,14 @@ bool interpret_and_set_short_options(ParseResult& result, const std::string_view
         opt.matched_template = match_template(*i);
         if (!opt.matched_template)
         {
-            fmt::print(std::cerr, "Unrecognized short option \"-{}\" in the short option sequence \"{}\"\n", *i, str);
+            fmt::print(stderr, "Unrecognized short option \"-{}\" in the short option sequence \"{}\"\n", *i, str);
             return false;
         }
 
         if (opt.matched_template->has_value == Template::RequireValue::kNecessary &&
             i != p.end() - 1)
         {
-            fmt::print(std::cerr, "Short option \"-{}\" which requires an argument can only "
+            fmt::print(stderr, "Short option \"-{}\" which requires an argument can only "
                        "be the last option in the short option sequence\n", *i);
             return false;
         }
@@ -440,7 +439,7 @@ ParseState Parse(int argc, const char **argv, ParseResult& result)
         {
             if (pendingOption.has_value())
             {
-                fmt::print(std::cerr, "Option {} expects an argument\n", pendingOption.value()->origin);
+                fmt::print(stderr, "Option {} expects an argument\n", pendingOption.value()->origin);
                 return ParseState::kError;
             }
 
@@ -453,7 +452,7 @@ ParseState Parse(int argc, const char **argv, ParseResult& result)
             ParseResult::Option opt;
             if (!interpret_and_set_long_option(opt, current))
             {
-                fmt::print(std::cerr, "Illegal option \"{}\"\n", current);
+                fmt::print(stderr, "Illegal option \"{}\"\n", current);
                 return ParseState::kError;
             }
             result.options.push_back(opt);
@@ -462,7 +461,7 @@ ParseState Parse(int argc, const char **argv, ParseResult& result)
         {
             if (!interpret_and_set_short_options(result, current))
             {
-                fmt::print(std::cerr, "Illegal option \"{}\"\n", current);
+                fmt::print(stderr, "Illegal option \"{}\"\n", current);
                 return ParseState::kError;
             }
             auto hasValue = result.options.back().matched_template->has_value;
@@ -477,7 +476,7 @@ ParseState Parse(int argc, const char **argv, ParseResult& result)
         {
             if (!interpret_and_set_option_value(*pendingOption.value(), current))
             {
-                fmt::print(std::cerr, "Bad argument \"{}\" for option {}\n", current,
+                fmt::print(stderr, "Bad argument \"{}\" for option {}\n", current,
                            pendingOption.value()->origin);
                 return ParseState::kError;
             }
@@ -492,7 +491,7 @@ ParseState Parse(int argc, const char **argv, ParseResult& result)
         {
             if (pendingOption.value()->matched_template->has_value == Template::RequireValue::kNecessary)
             {
-                fmt::print(std::cerr, "Option {} expects an argument\n", pendingOption.value()->origin);
+                fmt::print(stderr, "Option {} expects an argument\n", pendingOption.value()->origin);
                 return ParseState::kError;
             }
             pendingOption.reset();

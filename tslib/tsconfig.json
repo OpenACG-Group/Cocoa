@@ -25,6 +25,7 @@
         "synthetics/paragraph.d.ts",
         "synthetics/resources.d.ts",
         "synthetics/lottie.d.ts",
+        "synthetics/svg.d.ts",
 
         "./core/typetraits.ts",
         "./core/format.ts",
@@ -33,6 +34,12 @@
         "./core/formatter.ts",
 
         "samples/sknative-lottie-viewer.ts",
+        "samples/sknative-path-measure.ts",
+        "samples/sknative-svg-rasterizer.ts",
+        "samples/sknative-svg-to-skp.ts",
+        "samples/sknative-pathtext.ts",
+        "samples/sknative-pathtext-interactive.ts",
+        "samples/mediapresent-video-player.ts",
 
         "vizmoe/base/EventDispatch.ts",
         "vizmoe/graphics/Color.ts",

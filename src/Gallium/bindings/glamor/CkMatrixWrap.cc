@@ -235,7 +235,7 @@ v8::Local<v8::Value> CkMatrix::mapPoints(v8::Local<v8::Value> points)
 
     auto dstarr = v8::Array::New(isolate, nb_points);
     for (int32_t i = 0; i < nb_points; i++)
-        dstarr->Set(ctx, i, WrapCkPoint(isolate, dstpts[i])).Check();
+        dstarr->Set(ctx, i, NewCkPoint(isolate, dstpts[i])).Check();
 
     return dstarr;
 }
@@ -243,7 +243,7 @@ v8::Local<v8::Value> CkMatrix::mapPoints(v8::Local<v8::Value> points)
 v8::Local<v8::Value> CkMatrix::mapPoint(v8::Local<v8::Value> point)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return WrapCkPoint(isolate, matrix_.mapPoint(ExtractCkPoint(isolate, point)));
+    return NewCkPoint(isolate, matrix_.mapPoint(ExtractCkPoint(isolate, point)));
 }
 
 v8::Local<v8::Value> CkMatrix::mapHomogeneousPoints(v8::Local<v8::Value> points)
@@ -272,7 +272,7 @@ v8::Local<v8::Value> CkMatrix::mapHomogeneousPoints(v8::Local<v8::Value> points)
 
     auto dstarr = v8::Array::New(isolate, nb_points);
     for (int32_t i = 0; i < nb_points; i++)
-        dstarr->Set(ctx, i, WrapCkPoint3(isolate, dstpts[i])).Check();
+        dstarr->Set(ctx, i, NewCkPoint3(isolate, dstpts[i])).Check();
 
     return dstarr;
 }
@@ -286,8 +286,8 @@ v8::Local<v8::Value> CkMatrix::mapRect(v8::Local<v8::Value> src, int32_t pc)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK_ENUM_RANGE(pc, SkApplyPerspectiveClip::kYes)
-    return WrapCkRect(isolate, matrix_.mapRect(ExtractCkRect(isolate, src),
-                                               static_cast<SkApplyPerspectiveClip>(pc)));
+    return NewCkRect(isolate, matrix_.mapRect(ExtractCkRect(isolate, src),
+                                              static_cast<SkApplyPerspectiveClip>(pc)));
 }
 
 bool CkMatrix::isFinite()

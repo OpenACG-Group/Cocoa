@@ -31,13 +31,13 @@ class CkTextBlob : public SkiaObjectWrapper<SkTextBlob>
 public:
     using SkiaObjectWrapper::SkiaObjectWrapper;
 
-    //! TSDecl: function MakeFromText(text: core.Buffer, font: CkFont,
+    //! TSDecl: function MakeFromText(text: Uint8Array, font: CkFont,
     //!                               encoding: Enum<TextEncoding>): CkTextBlob
     static v8::Local<v8::Value> MakeFromText(v8::Local<v8::Value> text,
                                              v8::Local<v8::Value> font,
                                              int32_t encoding);
 
-    //! TSDecl: function MakeFromPosTextH(text: core.Buffer, xpos: Float32Array,
+    //! TSDecl: function MakeFromPosTextH(text: Uint8Array, xpos: Float32Array,
     //!                                   constY: number, font: CkFont,
     //!                                   encoding: Enum<TextEncoding>): CkTextBlob
     static v8::Local<v8::Value> MakeFromPosTextH(v8::Local<v8::Value> text,
@@ -46,7 +46,7 @@ public:
                                                  v8::Local<v8::Value> font,
                                                  int32_t encoding);
 
-    //! TSDecl: function MakeFromPosText(text: core.Buffer, pos: Array<CkPoint>,
+    //! TSDecl: function MakeFromPosText(text: Uint8Array, pos: Array<CkPoint>,
     //!                                  font: CkFont, encoding: Enum<TextEncoding>): CkTextBlob
     static v8::Local<v8::Value> MakeFromPosText(v8::Local<v8::Value> text,
                                                 v8::Local<v8::Value> pos,
@@ -54,6 +54,12 @@ public:
                                                 int32_t encoding);
 
 
+    //! TSDecl: function MakeFromRSXformText(text: Uint8Array, forms: Array<CkRSXform>,
+    //!                                      font: CkFont, encoding: Enum<TextEncoding>): CkTextBlob
+    static v8::Local<v8::Value> MakeFromRSXformText(v8::Local<v8::Value> text,
+                                                    v8::Local<v8::Value> forms,
+                                                    v8::Local<v8::Value> font,
+                                                    int32_t encoding);
 
     //! TSDecl: readonly bounds: CkRect
     v8::Local<v8::Value> getBounds();

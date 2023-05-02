@@ -65,6 +65,12 @@ public:
     //! TSDecl: function matchFamilyStyle(familyName: string | null, style: CkFontStyle): CkTypeface | null
     v8::Local<v8::Value> matchFamilyStyle(v8::Local<v8::Value> family_name,
                                           v8::Local<v8::Value> style);
+
+    //! TSDecl: function makeFromData(data: data: Uint8Array, ttcIndex: number): CkTypeface
+    v8::Local<v8::Value> makeFromData(v8::Local<v8::Value> data, int32_t ttc_index);
+
+    //! TSDecl: function makeFromFile(path: string, ttcIndex: number): CkTypeface
+    v8::Local<v8::Value> makeFromFile(const std::string& path, int32_t ttc_index);
 };
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

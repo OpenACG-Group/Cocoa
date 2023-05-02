@@ -60,6 +60,7 @@ class Module:
     namespace: str = ''
     classname: str = ''
     include_srcs: list[str] = None
+    import_synthetics: list[str] = None
     instantiate_hooks: list[str] = None
     toplevel_exports: list[ToplevelExportItem] = None
     class_exports: list[ClassExportItem] = None
@@ -96,10 +97,17 @@ def visit_document(document: xml.dom.minidom.Element):
     if len(exports_nodes) > 1:
         error_exit('Invalid document: too many module.exports elements. Only one is required')
     visit_exports_element(exports_nodes[0])
+
     for include_node in filter_children_by_tag_name(document, 'include'):
         if not include_node.hasAttribute('src'):
             error_exit('Invalid document: missing attribute \'src\' in module.include element')
         module.include_srcs.append(include_node.getAttribute('src'))
+
+    for import_synthetic_node in filter_children_by_tag_name(document, 'import-synthetic'):
+        if not import_synthetic_node.hasAttribute('name'):
+            error_exit('Invalid document: missing attribute \'name\' in module.import-synthetic element')
+        module.import_synthetics.append(import_synthetic_node.getAttribute('name'))
+
     for hook_node in filter_children_by_tag_name(document, 'hook'):
         if not hook_node.hasAttribute('on') or not hook_node.hasAttribute('call'):
             error_exit('Invalid document: missing \'on\' or \'call\' attributes in module.hook element')
@@ -279,6 +287,7 @@ def generate_cpp_source(file: TextIO):
 
     out(f'''
 #include "include/v8.h"
+#include "Gallium/Runtime.h"
 #include "Gallium/bindings/Base.h"
 #include "Gallium/binder/Convert.h"
 #include "Gallium/binder/Class.h"
@@ -339,6 +348,12 @@ void {module.classname}::onGetModule(cocoa::gallium::binder::Module& mod) {{''')
     out('}\n')
 
     out(f'void {module.classname}::onRegisterClasses(v8::Isolate *isolate) {{')
+
+    if len(module.import_synthetics) > 0:
+        out(f'    auto *__pRT = Runtime::GetBareFromIsolate(v8::Isolate::GetCurrent());')
+        for preimports in module.import_synthetics:
+            out(f'    __pRT->EvaluateModule(\"synthetic://{preimports}\");')
+
     for class_ in module.class_exports:
         out(f'    class_{class_.name}_ = NewClassExport<{class_.wrapper}>(isolate);')
         out(f'    (*class_{class_.name}_)')
@@ -403,6 +418,7 @@ def main(xml_file: str, out_header_path: str, out_source_path: str):
     module.toplevel_exports = []
     module.instantiate_hooks = []
     module.include_srcs = []
+    module.import_synthetics = []
 
     parse_module_file(xml_file)
     run_class_fields_modifier_replace_pass()

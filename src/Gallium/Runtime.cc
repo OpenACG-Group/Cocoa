@@ -391,18 +391,6 @@ v8::MaybeLocal<v8::Module> Runtime::GetAndCacheSyntheticModule(const ModuleImpor
     return scope.Escape(module);
 }
 
-v8::Local<v8::Object> Runtime::getSyntheticModuleExportObject(v8::Local<v8::Module> module)
-{
-    for (auto& cache : module_cache_)
-    {
-        if (cache.second.module == module)
-            return cache.second.exports.IsEmpty()
-                    ? v8::Local<v8::Object>()
-                    : cache.second.exports.Get(isolate_);
-    }
-    return {};
-}
-
 v8::Local<v8::Module> Runtime::CompileModule(const ModuleImportURL::SharedPtr& referer,
                                              const std::string& url,
                                              bool isImport,

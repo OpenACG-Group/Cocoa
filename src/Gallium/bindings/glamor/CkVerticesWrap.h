@@ -42,7 +42,7 @@ public:
 
     //! TSDecl: readonly uniqueID: number
     g_inline uint32_t getUniqueID() {
-        return getSkiaObject()->uniqueID();
+        return GetSkObject()->uniqueID();
     }
 
     //! TSDecl: readonly bounds: CkRect

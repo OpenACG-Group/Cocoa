@@ -564,29 +564,29 @@ EffectStackOperand::Nullable<Effector> EffectStackOperand::ToEffectorSafe()
     auto *img_flt_wrapped = binder::Class<CkImageFilterWrap>::unwrap_object(isolate, kwarg_pair.second);
     if (img_flt_wrapped)
     {
-        CHECK(img_flt_wrapped->getSkiaObject());
-        return Effector(img_flt_wrapped->getSkiaObject());
+        CHECK(img_flt_wrapped->GetSkObject());
+        return Effector(img_flt_wrapped->GetSkObject());
     }
 
     auto *color_flt_wrapped = binder::Class<CkColorFilterWrap>::unwrap_object(isolate, kwarg_pair.second);
     if (color_flt_wrapped)
     {
-        CHECK(color_flt_wrapped->getSkiaObject());
-        return Effector(color_flt_wrapped->getSkiaObject());
+        CHECK(color_flt_wrapped->GetSkObject());
+        return Effector(color_flt_wrapped->GetSkObject());
     }
 
     auto *shader_wrapped = binder::Class<CkShaderWrap>::unwrap_object(isolate, kwarg_pair.second);
     if (shader_wrapped)
     {
-        CHECK(shader_wrapped->getSkiaObject());
-        return Effector(shader_wrapped->getSkiaObject());
+        CHECK(shader_wrapped->GetSkObject());
+        return Effector(shader_wrapped->GetSkObject());
     }
 
     auto *patheffect_wrapped = binder::Class<CkPathEffect>::unwrap_object(isolate, kwarg_pair.second);
     if (patheffect_wrapped)
     {
-        CHECK(patheffect_wrapped->getSkiaObject());
-        return Effector(patheffect_wrapped->getSkiaObject());
+        CHECK(patheffect_wrapped->GetSkObject());
+        return Effector(patheffect_wrapped->GetSkObject());
     }
 
     g_throw(TypeError, fmt::format("Keyword argument `{}` must be an instance"
@@ -633,7 +633,7 @@ EffectStackOperand::Nullable<sk_sp<SkBlender>> EffectStackOperand::ToBlenderSafe
                             kwarg_pair.first));
     }
 
-    return wrapped->getSkiaObject();
+    return wrapped->GetSkObject();
 }
 
 EffectStackOperand::Nullable<SkPath*> EffectStackOperand::ToPathSafe()

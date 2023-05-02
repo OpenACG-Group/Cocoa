@@ -5,3 +5,4 @@ utau ./utau
 paragraph ./paragraph
 resources ./resources
 lottie ./lottie
+svg ./svg

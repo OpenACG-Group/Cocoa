@@ -25,7 +25,7 @@ GALLIUM_BINDINGS_PARAGRAPH_NS_BEGIN
 v8::Local<v8::Value> TextStyleWrap::getColor()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return glamor_wrap::WrapColor4f(
+    return glamor_wrap::NewColor4f(
             isolate, SkColor4f::FromColor(text_style_.getColor()));
 }
 
@@ -169,7 +169,7 @@ void TextStyleWrap::setTypeface(v8::Local<v8::Value> v)
     auto *w = binder::Class<glamor_wrap::CkTypeface>::unwrap_object(isolate, v);
     if (!w)
         g_throw(TypeError, "Argument `tf` must be an instance of `glamor.CkTypeface`");
-    text_style_.setTypeface(w->getSkiaObject());
+    text_style_.setTypeface(w->GetSkObject());
 }
 
 v8::Local<v8::Value> TextStyleWrap::clone()

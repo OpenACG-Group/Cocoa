@@ -185,8 +185,19 @@ public:
 
     bindings::BindingBase *GetSyntheticModuleBinding(v8::Local<v8::Module> module);
 
-    // TODO(sora): deprecate this.
-    v8::Local<v8::Object> getSyntheticModuleExportObject(v8::Local<v8::Module> module);
+    /**
+     * Some synthetic modules depends on other synthetic modules.
+     * For example, synthetic module A has an exported class `T`,
+     * and another synthetic module B also has an exported class `R`
+     * which inherits `T`. When module B is imported by user's JavaScript
+     * before A is imported, an error will occur. That's because class `R`
+     * inherits class `T`, but `T` has not been registered when registering
+     * `R`, making binder cannot find type information of `T`.
+     *
+     * To solve this tough dependency problem, B can import A explicitly
+     * by calling this method when it is imported.
+     */
+    v8::MaybeLocal<v8::Module> GetAndCacheSyntheticModule(const ModuleImportURL::SharedPtr& url);
 
     ModuleCacheMap& GetModuleCache();
 
@@ -229,7 +240,6 @@ private:
     inline void SetGlobalIsolateGuard(std::unique_ptr<GlobalIsolateGuard> ptr) {
         isolate_guard_ = std::move(ptr);
     }
-    v8::MaybeLocal<v8::Module> GetAndCacheSyntheticModule(const ModuleImportURL::SharedPtr& url);
 
     void UpdateIdleRequirementByPromiseCounter();
 

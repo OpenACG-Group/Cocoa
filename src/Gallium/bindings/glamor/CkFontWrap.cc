@@ -70,14 +70,14 @@ v8::Local<v8::Value> CkFont::Make(v8::Local<v8::Value> typeface)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     EXTRACT_TF_CHECKED(typeface, tf)
-    return binder::Class<CkFont>::create_object(isolate, SkFont(tf->getSkiaObject()));
+    return binder::Class<CkFont>::create_object(isolate, SkFont(tf->GetSkObject()));
 }
 
 v8::Local<v8::Value> CkFont::MakeFromSize(v8::Local<v8::Value> typeface, SkScalar size)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     EXTRACT_TF_CHECKED(typeface, tf)
-    return binder::Class<CkFont>::create_object(isolate, SkFont(tf->getSkiaObject(), size));
+    return binder::Class<CkFont>::create_object(isolate, SkFont(tf->GetSkObject(), size));
 }
 
 v8::Local<v8::Value> CkFont::MakeTransformed(v8::Local<v8::Value> typeface,
@@ -85,7 +85,7 @@ v8::Local<v8::Value> CkFont::MakeTransformed(v8::Local<v8::Value> typeface,
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     EXTRACT_TF_CHECKED(typeface, tf)
-    return binder::Class<CkFont>::create_object(isolate, SkFont(tf->getSkiaObject(),
+    return binder::Class<CkFont>::create_object(isolate, SkFont(tf->GetSkObject(),
                                                                 size, scaleX, skewX));
 }
 
@@ -101,16 +101,19 @@ void CkFont::setHinting(int32_t hinting)
     font_.setHinting(static_cast<SkFontHinting>(hinting));
 }
 
+#define GET_TA_WRPTR_CHECKED(type, arg, result_ptr, result_len) \
+    if (!arg->Is##type()) { \
+        g_throw(TypeError, "Argument `" #arg "` must be a `" #type "`"); \
+    }                                           \
+    auto arg##_arr = v8::Local<v8::type>::Cast(arg);            \
+    size_t result_len = arg##_arr->Length();                   \
+    void *result_ptr = (uint8_t*)arg##_arr->Buffer()->Data() + arg##_arr->ByteOffset();
+
 int32_t CkFont::countText(v8::Local<v8::Value> text, int32_t encoding)
 {
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK_ENUM_RANGE(encoding, SkTextEncoding::kGlyphID)
-    auto *pbuf = binder::Class<Buffer>::unwrap_object(isolate, text);
-    if (!pbuf)
-        g_throw(TypeError, "Argument `text` must be an instance of `core.Buffer`");
-
-    return font_.countText(pbuf->addressU8(), pbuf->length(),
-                           static_cast<SkTextEncoding>(encoding));
+    GET_TA_WRPTR_CHECKED(Uint8Array, text, text_ptr, text_ptr_len)
+    return font_.countText(text_ptr, text_ptr_len, static_cast<SkTextEncoding>(encoding));
 }
 
 SkScalar CkFont::measureText(v8::Local<v8::Value> text, int32_t encoding,
@@ -118,12 +121,9 @@ SkScalar CkFont::measureText(v8::Local<v8::Value> text, int32_t encoding,
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK_ENUM_RANGE(encoding, SkTextEncoding::kGlyphID)
-    auto *pbuf = binder::Class<Buffer>::unwrap_object(isolate, text);
-    if (!pbuf)
-        g_throw(TypeError, "Argument `text` must be an instance of `core.Buffer`");
+    GET_TA_WRPTR_CHECKED(Uint8Array, text, text_ptr, text_ptr_len)
 
-    return font_.measureText(pbuf->addressU8(), pbuf->length(),
-                             static_cast<SkTextEncoding>(encoding),
+    return font_.measureText(text_ptr, text_ptr_len, static_cast<SkTextEncoding>(encoding),
                              nullptr, extract_maybe_paint(isolate, paint, "paint"));
 }
 
@@ -132,25 +132,15 @@ v8::Local<v8::Value> CkFont::measureTextBounds(v8::Local<v8::Value> text, int32_
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK_ENUM_RANGE(encoding, SkTextEncoding::kGlyphID)
-    auto *pbuf = binder::Class<Buffer>::unwrap_object(isolate, text);
-    if (!pbuf)
-        g_throw(TypeError, "Argument `text` must be an instance of `core.Buffer`");
+    GET_TA_WRPTR_CHECKED(Uint8Array, text, text_ptr, text_ptr_len)
 
     SkRect bounds = SkRect::MakeEmpty();
-    font_.measureText(pbuf->addressU8(), pbuf->length(),
+    font_.measureText(text_ptr, text_ptr_len,
                       static_cast<SkTextEncoding>(encoding),
                       &bounds, extract_maybe_paint(isolate, paint, "paint"));
 
-    return WrapCkRect(isolate, bounds);
+    return NewCkRect(isolate, bounds);
 }
-
-#define GET_TA_WRPTR_CHECKED(type, arg, result_ptr, result_len) \
-    if (!arg->Is##type()) { \
-        g_throw(TypeError, "Argument `" #arg "` must be a `" #type "`"); \
-    }                                           \
-    auto arg##_arr = v8::Local<v8::type>::Cast(arg);            \
-    size_t result_len = arg##_arr->Length();                   \
-    void *result_ptr = (uint8_t*)arg##_arr->Buffer()->Data() + arg##_arr->ByteOffset();
 
 v8::Local<v8::Value> CkFont::getBounds(v8::Local<v8::Value> glyphs, v8::Local<v8::Value> paint)
 {
@@ -166,7 +156,7 @@ v8::Local<v8::Value> CkFont::getBounds(v8::Local<v8::Value> glyphs, v8::Local<v8
     v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
     for (size_t i = 0; i < nb_glyphs; i++)
     {
-        out->Set(ctx, i, WrapCkRect(isolate, rects[i])).Check();
+        out->Set(ctx, i, NewCkRect(isolate, rects[i])).Check();
     }
 
     return out;
@@ -177,7 +167,7 @@ v8::Local<v8::Value> CkFont::getPos(v8::Local<v8::Value> glyphs, v8::Local<v8::V
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     GET_TA_WRPTR_CHECKED(Uint16Array, glyphs, glyphs_ptr, nb_glyphs)
 
-    std::vector<SkPoint> outpts;
+    std::vector<SkPoint> outpts(nb_glyphs);
     font_.getPos(reinterpret_cast<const SkGlyphID*>(glyphs_ptr),
                  static_cast<int32_t>(nb_glyphs), outpts.data(),
                  ExtractCkPoint(isolate, origin));
@@ -186,7 +176,7 @@ v8::Local<v8::Value> CkFont::getPos(v8::Local<v8::Value> glyphs, v8::Local<v8::V
     v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
     for (size_t i = 0; i < nb_glyphs; i++)
     {
-        out->Set(ctx, 1, WrapCkPoint(isolate, outpts[i])).Check();
+        out->Set(ctx, i, NewCkPoint(isolate, outpts[i])).Check();
     }
 
     return out;

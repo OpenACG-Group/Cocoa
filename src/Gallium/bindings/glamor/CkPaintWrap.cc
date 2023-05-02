@@ -94,7 +94,7 @@ void CkPaint::setShader(v8::Local<v8::Value> shader)
     auto *wrapper = binder::Class<CkShaderWrap>::unwrap_object(isolate, shader);
     if (!wrapper)
         g_throw(TypeError, "Argument `shader` must be an instance of `CkShader`");
-    paint_.setShader(wrapper->getSkiaObject());
+    paint_.setShader(wrapper->GetSkObject());
 }
 
 void CkPaint::setColorFilter(v8::Local<v8::Value> filter)
@@ -103,7 +103,7 @@ void CkPaint::setColorFilter(v8::Local<v8::Value> filter)
     auto *wrapper = binder::Class<CkColorFilterWrap>::unwrap_object(isolate, filter);
     if (!wrapper)
         g_throw(TypeError, "Argument `filter` must be an instance of `CkColorFilter`");
-    paint_.setColorFilter(wrapper->getSkiaObject());
+    paint_.setColorFilter(wrapper->GetSkObject());
 }
 
 void CkPaint::setBlendMode(int32_t mode)
@@ -118,7 +118,7 @@ void CkPaint::setBlender(v8::Local<v8::Value> blender)
     auto *wrapper = binder::Class<CkBlenderWrap>::unwrap_object(isolate, blender);
     if (!wrapper)
         g_throw(TypeError, "Argument `blender` must be an instance of `CkBlender`");
-    paint_.setBlender(wrapper->getSkiaObject());
+    paint_.setBlender(wrapper->GetSkObject());
 }
 
 void CkPaint::setPathEffect(v8::Local<v8::Value> effect)
@@ -127,7 +127,7 @@ void CkPaint::setPathEffect(v8::Local<v8::Value> effect)
     auto *wrapper = binder::Class<CkPathEffect>::unwrap_object(isolate, effect);
     if (!wrapper)
         g_throw(TypeError, "Argument `effect` must be an instance of `CkPathEffect`");
-    paint_.setPathEffect(wrapper->getSkiaObject());
+    paint_.setPathEffect(wrapper->GetSkObject());
 }
 
 void CkPaint::setImageFilter(v8::Local<v8::Value> filter)
@@ -136,7 +136,7 @@ void CkPaint::setImageFilter(v8::Local<v8::Value> filter)
     auto *wrapper = binder::Class<CkImageFilterWrap>::unwrap_object(isolate, filter);
     if (!wrapper)
         g_throw(TypeError, "Argument `filter` must be an instance of `CkImageFilter`");
-    paint_.setImageFilter(wrapper->getSkiaObject());
+    paint_.setImageFilter(wrapper->GetSkObject());
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

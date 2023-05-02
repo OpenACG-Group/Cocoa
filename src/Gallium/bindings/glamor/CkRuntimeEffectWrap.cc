@@ -199,17 +199,17 @@ extract_child_specifier_checked(v8::Local<v8::Value> input,
         if (f == 0b001)
         {
             UNWRAP_CHECKED(maybe_shader, CkShaderWrap)
-            result[i] = SkRuntimeEffect::ChildPtr(w->getSkiaObject());
+            result[i] = SkRuntimeEffect::ChildPtr(w->GetSkObject());
         }
         else if (f == 0b010)
         {
             UNWRAP_CHECKED(maybe_blender, CkBlenderWrap)
-            result[i] = SkRuntimeEffect::ChildPtr(w->getSkiaObject());
+            result[i] = SkRuntimeEffect::ChildPtr(w->GetSkObject());
         }
         else if (f == 0b100)
         {
             UNWRAP_CHECKED(maybe_cf, CkColorFilterWrap)
-            result[i] = SkRuntimeEffect::ChildPtr(w->getSkiaObject());
+            result[i] = SkRuntimeEffect::ChildPtr(w->GetSkObject());
         }
         else
         {
@@ -257,7 +257,7 @@ v8::Local<v8::Value> CkRuntimeEffect::uniforms()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    SkSpan<const SkRuntimeEffect::Uniform> uniforms = getSkiaObject()->uniforms();
+    SkSpan<const SkRuntimeEffect::Uniform> uniforms = GetSkObject()->uniforms();
     std::vector<v8::Local<v8::Value>> out;
     for (const auto& uniform : uniforms)
         out.push_back(wrap_uniform(isolate, uniform));
@@ -269,7 +269,7 @@ v8::Local<v8::Value> CkRuntimeEffect::children()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    SkSpan<const SkRuntimeEffect::Child> children = getSkiaObject()->children();
+    SkSpan<const SkRuntimeEffect::Child> children = GetSkObject()->children();
     std::vector<v8::Local<v8::Value>> out;
     for (const auto& child : children)
         out.push_back(wrap_child(isolate, child));
@@ -280,7 +280,7 @@ v8::Local<v8::Value> CkRuntimeEffect::children()
 v8::Local<v8::Value> CkRuntimeEffect::findUniform(const std::string& name)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    const SkRuntimeEffect::Uniform *u = getSkiaObject()->findUniform(name);
+    const SkRuntimeEffect::Uniform *u = GetSkObject()->findUniform(name);
     if (!u)
         return v8::Null(isolate);
     return wrap_uniform(isolate, *u);
@@ -289,7 +289,7 @@ v8::Local<v8::Value> CkRuntimeEffect::findUniform(const std::string& name)
 v8::Local<v8::Value> CkRuntimeEffect::findChild(const std::string& name)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    const SkRuntimeEffect::Child *c = getSkiaObject()->findChild(name);
+    const SkRuntimeEffect::Child *c = GetSkObject()->findChild(name);
     if (!c)
         return v8::Null(isolate);
     return wrap_child(isolate, *c);
@@ -301,11 +301,11 @@ v8::Local<v8::Value> CkRuntimeEffect::makeShader(v8::Local<v8::Value> uniforms,
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    auto children_vec = extract_child_specifier_checked(children, getSkiaObject()->children());
+    auto children_vec = extract_child_specifier_checked(children, GetSkObject()->children());
     SkSpan<SkRuntimeEffect::ChildPtr> children_span(children_vec);
 
-    sk_sp<SkShader> shader = getSkiaObject()->makeShader(
-            create_flattened_uniforms_checked(uniforms, getSkiaObject()->uniforms()),
+    sk_sp<SkShader> shader = GetSkObject()->makeShader(
+            create_flattened_uniforms_checked(uniforms, GetSkObject()->uniforms()),
             children_span, extract_maybe_matrix(isolate, local_matrix, "local_matrix"));
 
     if (!shader)
@@ -318,11 +318,11 @@ v8::Local<v8::Value> CkRuntimeEffect::makeBlender(v8::Local<v8::Value> uniforms,
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    auto children_vec = extract_child_specifier_checked(children, getSkiaObject()->children());
+    auto children_vec = extract_child_specifier_checked(children, GetSkObject()->children());
     SkSpan<SkRuntimeEffect::ChildPtr> children_span(children_vec);
 
-    sk_sp<SkBlender> blender = getSkiaObject()->makeBlender(
-            create_flattened_uniforms_checked(uniforms, getSkiaObject()->uniforms()),
+    sk_sp<SkBlender> blender = GetSkObject()->makeBlender(
+            create_flattened_uniforms_checked(uniforms, GetSkObject()->uniforms()),
             children_span);
 
     if (!blender)
@@ -335,11 +335,11 @@ v8::Local<v8::Value> CkRuntimeEffect::makeColorFilter(v8::Local<v8::Value> unifo
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    auto children_vec = extract_child_specifier_checked(children, getSkiaObject()->children());
+    auto children_vec = extract_child_specifier_checked(children, GetSkObject()->children());
     SkSpan<SkRuntimeEffect::ChildPtr> children_span(children_vec);
 
-    sk_sp<SkColorFilter> cf = getSkiaObject()->makeColorFilter(
-            create_flattened_uniforms_checked(uniforms, getSkiaObject()->uniforms()),
+    sk_sp<SkColorFilter> cf = GetSkObject()->makeColorFilter(
+            create_flattened_uniforms_checked(uniforms, GetSkObject()->uniforms()),
             children_span);
 
     if (!cf)

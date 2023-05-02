@@ -72,8 +72,8 @@ public:
     };
 
     static std::unique_ptr<AVFilterDAG> MakeFromDSL(const std::string& dsl,
-                                                       const std::vector<InBufferParameters>& inparams,
-                                                       const std::vector<OutBufferParameters>& outparams);
+                                                    const std::vector<InBufferParameters>& inparams,
+                                                    const std::vector<OutBufferParameters>& outparams);
 
     AVFilterDAG();
     ~AVFilterDAG();

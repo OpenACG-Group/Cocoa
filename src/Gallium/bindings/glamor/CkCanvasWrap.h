@@ -21,17 +21,45 @@
 #include "include/core/SkCanvas.h"
 #include "include/v8.h"
 
+#include "Core/Errors.h"
 #include "Gallium/bindings/glamor/TrivialInterface.h"
+#include "Gallium/binder/ThrowExcept.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 class CkCanvas
 {
 public:
-    explicit CkCanvas(SkCanvas *canvas) : canvas_(canvas) {}
+    explicit CkCanvas(SkCanvas *canvas) : canvas_(canvas) {
+        CHECK(canvas != nullptr);
+    }
     ~CkCanvas() = default;
 
+    class NullSafeCanvasPtr
+    {
+    public:
+        explicit NullSafeCanvasPtr(SkCanvas *canvas) : ptr_(canvas) {}
+        ~NullSafeCanvasPtr() = default;
+
+        g_inline void SetNull() {
+            ptr_ = nullptr;
+        }
+
+        g_nodiscard g_inline SkCanvas *Get() const {
+            return ptr_;
+        }
+
+        g_nodiscard g_inline SkCanvas *operator->() const {
+            if (!ptr_) [[unlikely]]
+                g_throw(Error, "Canvas has been disposed");
+            return ptr_;
+        }
+
+    private:
+        SkCanvas *ptr_;
+    };
+
     g_nodiscard g_inline SkCanvas *GetCanvas() const {
-        return canvas_;
+        return canvas_.Get();
     }
 
     //! TSDecl: function save(): number
@@ -190,8 +218,11 @@ public:
 
     // TODO(sora): draw annotation, draw atlas
 
+protected:
+    void InvalidateCanvasRef();
+
 private:
-    SkCanvas *canvas_;
+    NullSafeCanvasPtr canvas_;
 };
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

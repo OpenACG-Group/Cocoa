@@ -307,7 +307,7 @@ void WaylandDisplay::PollCallback(uv_poll_t *poll, int status, int events)
         wl_display_dispatch_pending(d->wl_display_);
         for (const Shared<Surface>& surface : d->GetSurfacesList())
         {
-            auto rt = std::dynamic_pointer_cast<WaylandRenderTarget>(surface->GetRenderTarget());
+            auto rt = std::static_pointer_cast<WaylandRenderTarget>(surface->GetRenderTarget());
             wl_display_dispatch_queue_pending(d->wl_display_, rt->GetWaylandEventQueue());
         }
     }

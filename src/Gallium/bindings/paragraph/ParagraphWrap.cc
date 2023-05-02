@@ -57,7 +57,7 @@ v8::Local<v8::Value> wrap_text_box_array(const std::vector<para::TextBox>& boxes
     for (size_t i = 0; i < length; i++)
     {
         std::unordered_map<std::string_view, v8::Local<v8::Value>> map{
-                { "rect", glamor_wrap::WrapCkRect(isolate, boxes[i].rect) },
+                { "rect", glamor_wrap::NewCkRect(isolate, boxes[i].rect) },
                 { "direction", binder::to_v8(isolate, static_cast<int32_t>(boxes[i].direction)) }
         };
         array->Set(ctx, static_cast<int32_t>(i), binder::to_v8(isolate, map)).Check();
