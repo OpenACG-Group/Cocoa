@@ -240,8 +240,8 @@ v8::Local<v8::Object> Buffer::MakeFromString(v8::Local<v8::String> string, uint3
         g_throw(Error, "Invalid encoding name");
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
-    Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
+    v8::Local<v8::Object> buf = binder::NewObject<Buffer>(isolate);
+    Buffer *self = binder::UnwrapObject<Buffer>(isolate, buf);
 
     auto array = create_u8array_from_string(string, static_cast<Encoding>(encoding));
     self->array_.Reset(isolate, array);
@@ -276,8 +276,8 @@ v8::Local<v8::Object> Buffer::MakeFromAdoptBuffer(v8::Local<v8::Object> array)
     if (!array->IsUint8Array())
         g_throw(Error, "'array' must be an instance of 'Uint8Array'");
 
-    v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
-    Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
+    v8::Local<v8::Object> buf = binder::NewObject<Buffer>(isolate);
+    Buffer *self = binder::UnwrapObject<Buffer>(isolate, buf);
 
     auto uint8_array = v8::Local<v8::Uint8Array>::Cast(array);
     self->array_.Reset(isolate, uint8_array);
@@ -303,8 +303,8 @@ v8::Local<v8::Object> Buffer::MakeFromCopy(Buffer *other, off_t offset, ssize_t 
     }
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
-    Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
+    v8::Local<v8::Object> buf = binder::NewObject<Buffer>(isolate);
+    Buffer *self = binder::UnwrapObject<Buffer>(isolate, buf);
 
     v8::Local<v8::Uint8Array> arr = create_u8array_from_size(size);
     self->array_.Reset(isolate, arr);
@@ -320,8 +320,8 @@ v8::Local<v8::Object> Buffer::MakeFromCopy(Buffer *other, off_t offset, ssize_t 
 v8::Local<v8::Object> Buffer::MakeFromSize(size_t size)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
-    Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
+    v8::Local<v8::Object> buf = binder::NewObject<Buffer>(isolate);
+    Buffer *self = binder::UnwrapObject<Buffer>(isolate, buf);
     v8::Local<v8::Uint8Array> arr = create_u8array_from_size(size);
     self->array_.Reset(isolate, arr);
     self->backing_store_ = arr->Buffer()->GetBackingStore();
@@ -384,8 +384,8 @@ v8::Local<v8::Object> Buffer::MakeFromPtrCopy(const void *data, size_t size)
 {
     CHECK(data && size > 0);
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
-    Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
+    v8::Local<v8::Object> buf = binder::NewObject<Buffer>(isolate);
+    Buffer *self = binder::UnwrapObject<Buffer>(isolate, buf);
     v8::Local<v8::Uint8Array> arr = create_u8array_from_size(size);
     self->array_.Reset(isolate, arr);
     self->backing_store_ = arr->Buffer()->GetBackingStore();
@@ -400,8 +400,8 @@ Buffer::MakeFromPtrWithoutCopy(void *data, size_t size,
 {
     CHECK(data && size > 0);
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
-    Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
+    v8::Local<v8::Object> buf = binder::NewObject<Buffer>(isolate);
+    Buffer *self = binder::UnwrapObject<Buffer>(isolate, buf);
     v8::Local<v8::Uint8Array> arr = create_u8array_from_external(data, size, deleter, closure);
     self->array_.Reset(isolate, arr);
     self->backing_store_ = arr->Buffer()->GetBackingStore();
@@ -416,8 +416,8 @@ Buffer::MakeFromExternal(void *data, size_t size,
     CHECK(closure_captured_external);
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::Local<v8::Object> buf = binder::Class<Buffer>::create_object(isolate);
-    Buffer *self = binder::Class<Buffer>::unwrap_object(isolate, buf);
+    v8::Local<v8::Object> buf = binder::NewObject<Buffer>(isolate);
+    Buffer *self = binder::UnwrapObject<Buffer>(isolate, buf);
 
     struct DeleterClosure
     {

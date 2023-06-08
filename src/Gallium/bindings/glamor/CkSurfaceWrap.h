@@ -30,6 +30,7 @@ class CkSurface : public SkiaObjectWrapper<SkSurface>
 {
 public:
     CkSurface(const sk_sp<SkSurface>& surface, ssize_t increase_gc);
+    CkSurface(const sk_sp<SkSurface>& surface, v8::Local<v8::ArrayBuffer> ab);
     ~CkSurface();
 
     //! TSDecl: function MakeRaster(imageInfo: CkImageInfo): CkSurface
@@ -37,6 +38,15 @@ public:
 
     //! TSDecl: function MakeNull(width: number, height: number): CkSurface
     static v8::Local<v8::Value> MakeNull(int32_t width, int32_t height);
+
+    //! TSDecl: function MakeSharedPixels(imageInfo: CkImageInfo,
+    //!                                   byteOffset: number,
+    //!                                   rowBytes: number,
+    //!                                   pixels: ArrayBuffer): CkSurface
+    static v8::Local<v8::Value> MakeSharedPixels(v8::Local<v8::Value> image_info,
+                                                 uint64_t byte_offset,
+                                                 uint64_t row_bytes,
+                                                 v8::Local<v8::Value> pixels);
 
     //! TSDecl: readonly width: number
     int32_t getWidth();
@@ -49,6 +59,9 @@ public:
 
     //! TSDecl: readonly imageInfo: CkImageInfo
     v8::Local<v8::Value> getImageInfo();
+
+    //! TSDecl: readonly sharedPixels: ArrayBuffer | null
+    v8::Local<v8::Value> getSharedPixels();
 
     //! TSDecl: function getCanvas(): CkCanvas
     v8::Local<v8::Value> getCanvas();
@@ -64,17 +77,15 @@ public:
     void draw(v8::Local<v8::Value> canvas, SkScalar x, SkScalar y, int32_t sampling,
               v8::Local<v8::Value> paint);
 
-    //! TSDecl: function readPixels(dstInfo: CkImageInfo, dstPixels: core.Buffer,
+    //! TSDecl: function readPixels(dstInfo: CkImageInfo, dstPixels: Uint8Array,
     //!                             dstRowBytes: number, srcX: number, srcY: number): void
     void readPixels(v8::Local<v8::Value> dstInfo, v8::Local<v8::Value> dstPixels,
                     int32_t dstRowBytes, int32_t  srcX, int32_t srcY);
 
-    //! TSDecl: function peekPixels(): core.Buffer
-    v8::Local<v8::Value> peekPixels();
-
 private:
     ssize_t                     increase_gc_;
     v8::Global<v8::Object>      canvas_obj_;
+    v8::Global<v8::ArrayBuffer> shared_pixels_;
 };
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

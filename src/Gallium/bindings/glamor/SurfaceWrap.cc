@@ -171,7 +171,7 @@ v8::Local<v8::Value> SurfaceWrap::setFullscreen(bool value, v8::Local<v8::Value>
 
     if (!monitor->IsNullOrUndefined())
     {
-        MonitorWrap *unwrapped = binder::Class<MonitorWrap>::unwrap_object(isolate, monitor);
+        MonitorWrap *unwrapped = binder::UnwrapObject<MonitorWrap>(isolate, monitor);
         if (!unwrapped)
             g_throw(TypeError, "Argument \'monitor\' must be an instance of Monitor");
     }
@@ -190,7 +190,7 @@ v8::Local<v8::Value> SurfaceWrap::setAttachedCursor(v8::Local<v8::Value> cursor)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    CursorWrap *unwrapped = binder::Class<CursorWrap>::unwrap_object(isolate, cursor);
+    CursorWrap *unwrapped = binder::UnwrapObject<CursorWrap>(isolate, cursor);
     if (!unwrapped)
         g_throw(TypeError, "Argument \'cursor\' must be an instance of Cursor");
 

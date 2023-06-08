@@ -43,7 +43,7 @@ struct PromiseClosure
     static v8::Local<v8::Value> CreateObjectConverter(v8::Isolate *isolate,
                                                       gl::RenderHostCallbackInfo& info)
     {
-        return binder::Class<Wrapper>::create_object(isolate, info.GetReturnValue<T>());
+        return binder::NewObject<Wrapper>(isolate, info.GetReturnValue<T>());
     }
 
     v8::Isolate *isolate_;
@@ -111,7 +111,7 @@ v8::Local<v8::Value> ConvertGeneric(v8::Isolate *isolate,
     }
     else if constexpr (T::create_obj)
     {
-        return binder::Class<typename T::cast_type>::create_object(isolate,
+        return binder::NewObject<typename T::cast_type>(isolate,
             info.Get<typename T::real_type>(index));
     }
     else if constexpr (std::is_same<typename T::real_type, typename T::cast_type>::value)

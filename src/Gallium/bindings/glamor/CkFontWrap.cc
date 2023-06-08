@@ -27,19 +27,19 @@
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 #define EXTRACT_PATH_CHECKED(arg, result) \
-    auto *result = binder::Class<CkPath>::unwrap_object(isolate, arg); \
+    auto *result = binder::UnwrapObject<CkPath>(isolate, arg); \
     if (!result) {                       \
         g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkPath`"); \
     }
 
 #define EXTRACT_PAINT_CHECKED(arg, result) \
-    auto *result = binder::Class<CkPaint>::unwrap_object(isolate, arg); \
+    auto *result = binder::UnwrapObject<CkPaint>(isolate, arg); \
     if (!result) {                       \
         g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkPaint`"); \
     }
 
 #define EXTRACT_TF_CHECKED(arg, result) \
-    auto *result = binder::Class<CkTypeface>::unwrap_object(isolate, arg); \
+    auto *result = binder::UnwrapObject<CkTypeface>(isolate, arg); \
     if (!result) {                       \
         g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkTypeface`"); \
     }
@@ -57,7 +57,7 @@ SkPaint *extract_maybe_paint(v8::Isolate *isolate, v8::Local<v8::Value> v, const
     if (v->IsNullOrUndefined())
         return nullptr;
 
-    auto *w = binder::Class<CkPaint>::unwrap_object(isolate, v);
+    auto *w = binder::UnwrapObject<CkPaint>(isolate, v);
     if (!w)
         g_throw(TypeError, fmt::format("Argument `{}` must be an instance of `CkPaint`", argname));
 
@@ -70,14 +70,14 @@ v8::Local<v8::Value> CkFont::Make(v8::Local<v8::Value> typeface)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     EXTRACT_TF_CHECKED(typeface, tf)
-    return binder::Class<CkFont>::create_object(isolate, SkFont(tf->GetSkObject()));
+    return binder::NewObject<CkFont>(isolate, SkFont(tf->GetSkObject()));
 }
 
 v8::Local<v8::Value> CkFont::MakeFromSize(v8::Local<v8::Value> typeface, SkScalar size)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     EXTRACT_TF_CHECKED(typeface, tf)
-    return binder::Class<CkFont>::create_object(isolate, SkFont(tf->GetSkObject(), size));
+    return binder::NewObject<CkFont>(isolate, SkFont(tf->GetSkObject(), size));
 }
 
 v8::Local<v8::Value> CkFont::MakeTransformed(v8::Local<v8::Value> typeface,
@@ -85,7 +85,7 @@ v8::Local<v8::Value> CkFont::MakeTransformed(v8::Local<v8::Value> typeface,
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     EXTRACT_TF_CHECKED(typeface, tf)
-    return binder::Class<CkFont>::create_object(isolate, SkFont(tf->GetSkObject(),
+    return binder::NewObject<CkFont>(isolate, SkFont(tf->GetSkObject(),
                                                                 size, scaleX, skewX));
 }
 
@@ -228,7 +228,7 @@ v8::Local<v8::Value> CkFont::getPath(int32_t glyph)
     if (!font_.getPath(static_cast<SkGlyphID>(glyph), &path))
         return v8::Null(isolate);
 
-    return binder::Class<CkPath>::create_object(isolate, path);
+    return binder::NewObject<CkPath>(isolate, path);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

@@ -1,6 +1,7 @@
 core ./core
 typetraits ./typetraits
 glamor ./glamor
+pixencoder ./pixencoder
 utau ./utau
 paragraph ./paragraph
 resources ./resources

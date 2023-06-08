@@ -101,7 +101,7 @@ para::StrutStyle ExtractStrutStyle(v8::Isolate *isolate, v8::Local<v8::Value> v)
     }
 
     v8::Local<v8::Value> font_style = GET_OWNED_PROP_VALUE(v8::Value, "fontStyle", kIName);
-    auto *font_style_wrap = binder::Class<glamor_wrap::CkFontStyle>::unwrap_object(isolate, font_style);
+    auto *font_style_wrap = binder::UnwrapObject<glamor_wrap::CkFontStyle>(isolate, font_style);
     if (!font_style_wrap)
     {
         g_throw(TypeError, "Property `fontStyle` of `StrutStyle` object must be an "
@@ -131,7 +131,7 @@ v8::Local<v8::Value> WrapStrutStyle(v8::Isolate *isolate, const para::StrutStyle
 
     std::unordered_map<std::string_view, v8::Local<v8::Value>> map{
         { "fontFamilies", binder::to_v8(isolate, font_families) },
-        { "fontStyle", binder::Class<glamor_wrap::CkFontStyle>::create_object(isolate, style.getFontStyle()) },
+        { "fontStyle", binder::NewObject<glamor_wrap::CkFontStyle>(isolate, style.getFontStyle()) },
         { "fontSize", binder::to_v8(isolate, style.getFontSize()) },
         { "height", binder::to_v8(isolate, style.getHeight()) },
         { "leading", binder::to_v8(isolate, style.getLeading()) },

@@ -28,14 +28,14 @@ v8::Local<v8::Value> CkBlenderWrap::Mode(int32_t mode)
     if (mode < 0 || mode > static_cast<int32_t>(SkBlendMode::kLastMode))
         g_throw(RangeError, "Invalid enumeration value for argument `mode`");
 
-    return binder::Class<CkBlenderWrap>::create_object(
+    return binder::NewObject<CkBlenderWrap>(
             isolate, SkBlender::Mode(static_cast<SkBlendMode>(mode)));
 }
 
 v8::Local<v8::Value> CkBlenderWrap::Arithmetic(float k1, float k2, float k3, float k4, bool enforcePM)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::Class<CkBlenderWrap>::create_object(
+    return binder::NewObject<CkBlenderWrap>(
             isolate, SkBlenders::Arithmetic(k1, k2, k3, k4, enforcePM));
 }
 

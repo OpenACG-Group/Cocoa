@@ -15,12 +15,17 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "fmt/format.h"
+export interface VersionTriple {
+    major: number;
+    minor?: number;
+    patch?: number;
+}
 
-#include "ScalableWriteBufferTest.h"
+export interface Options {
+    displayName?: string;
+}
 
-int main(int argc, const char **argv)
-{
-    cocoa::ScalableWriteBufferTest();
-    return 0;
+export class Application {
+    constructor(name: string, version: VersionTriple, options: Options = {}) {
+    }
 }

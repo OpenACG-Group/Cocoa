@@ -58,7 +58,7 @@ v8::Local<v8::Value> create_bitmap_from_buffer(v8::Local<v8::Object> buffer,
     bitmap->installPixels(info, unwrapped_buffer->addressU8(),
                           info.minRowBytes());
 
-    return binder::Class<CkBitmapWrap>::create_object(isolate, isolate, buffer, bitmap);
+    return binder::NewObject<CkBitmapWrap>(isolate, isolate, buffer, bitmap);
 }
 
 } // namespace anonymous
@@ -83,7 +83,7 @@ v8::Local<v8::Value> CkBitmapWrap::MakeFromBuffer(v8::Local<v8::Value> buffer,
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    Buffer *unwrapped = binder::Class<Buffer>::unwrap_object(isolate, buffer);
+    Buffer *unwrapped = binder::UnwrapObject<Buffer>(isolate, buffer);
     if (!unwrapped)
         g_throw(TypeError, "'buffer' must be an instance of core.Buffer");
 
@@ -114,7 +114,7 @@ v8::Local<v8::Value> CkBitmapWrap::MakeFromEncodedFile(const std::string& path)
     SkImageInfo info = codec->getInfo();
 
     v8::Local<v8::Value> buffer = Buffer::MakeFromSize(info.computeMinByteSize());
-    Buffer *unwrapped = binder::Class<Buffer>::unwrap_object(isolate, buffer);
+    Buffer *unwrapped = binder::UnwrapObject<Buffer>(isolate, buffer);
     CHECK(unwrapped);
 
     result = codec->getPixels(info, unwrapped->addressU8(),
@@ -179,7 +179,7 @@ v8::Local<v8::Value> CkBitmapWrap::toImage()
     sk_sp<SkImage> image = bitmap_->asImage();
     if (!image)
         g_throw(Error, "Cannot convert the bitmap to a CkImage");
-    return binder::Class<CkImageWrap>::create_object(v8::Isolate::GetCurrent(), image);
+    return binder::NewObject<CkImageWrap>(v8::Isolate::GetCurrent(), image);
 }
 
 v8::Local<v8::Value> CkBitmapWrap::makeShader(int32_t tmx, int32_t tmy, int32_t sampling,
@@ -194,7 +194,7 @@ v8::Local<v8::Value> CkBitmapWrap::makeShader(int32_t tmx, int32_t tmy, int32_t 
     SkMatrix *matrix = nullptr;
     if (!local_matrix->IsNullOrUndefined())
     {
-        auto *w = binder::Class<CkMatrix>::unwrap_object(isolate, local_matrix);
+        auto *w = binder::UnwrapObject<CkMatrix>(isolate, local_matrix);
         if (!w)
             g_throw(TypeError, "Argument `localMatrix` requires an instance of `CkMatrix` or null");
         matrix = &w->GetMatrix();
@@ -207,7 +207,7 @@ v8::Local<v8::Value> CkBitmapWrap::makeShader(int32_t tmx, int32_t tmy, int32_t 
     if (!shader)
         g_throw(Error, "Failed to create shader from bitmap");
 
-    return binder::Class<CkShaderWrap>::create_object(isolate, shader);
+    return binder::NewObject<CkShaderWrap>(isolate, shader);
 }
 
 v8::Local<v8::Value> CkBitmapWrap::getPixelBuffer()

@@ -19,9 +19,11 @@
 #include "include/core/SkImage.h"
 #include "include/codec/SkCodec.h"
 
+#include "fmt/format.h"
+
+#include "Gallium/binder/TypeTraits.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/CkMatrixWrap.h"
-#include "Gallium/bindings/core/Exports.h"
 #include "Gallium/bindings/utau/Exports.h"
 #include "Utau/VideoFrameGLEmbedder.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
@@ -32,37 +34,61 @@ CkImageWrap::CkImageWrap(sk_sp<SkImage> image)
 }
 
 
-v8::Local<v8::Value> CkImageWrap::MakeFromEncodedData(v8::Local<v8::Value> bufferObject)
+v8::Local<v8::Value> CkImageWrap::MakeFromEncodedData(v8::Local<v8::Value> arraybuffer)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    Buffer *buffer = binder::Class<Buffer>::unwrap_object(isolate, bufferObject);
-    if (buffer == nullptr)
-        g_throw(TypeError, "'buffer' must be an instance of core.Buffer");
+    std::optional<binder::TypedArrayMemory<v8::Uint8Array>> buffer_memory =
+            binder::GetTypedArrayMemory<v8::Uint8Array>(arraybuffer);
+    if (!buffer_memory)
+        g_throw(TypeError, "Argument `buffer` must be an allocated Uint8Array");
 
     // Create a promise to resolve later.
     auto resolver = v8::Promise::Resolver::New(isolate->GetCurrentContext()).ToLocalChecked();
     auto global_resolver = std::make_shared<v8::Global<v8::Promise::Resolver>>(isolate, resolver);
 
-    sk_sp<SkData> buffer_data = SkData::MakeWithCopy(buffer->addressU8(), buffer->length());
-
     // Submit a task to thread pool
-    EventLoop::Ref().enqueueThreadPoolTask<sk_sp<SkImage>>([buffer_data]() -> sk_sp<SkImage> {
-        // Do decode here
-        std::unique_ptr<SkCodec> codec = SkCodec::MakeFromData(buffer_data);
-        auto [image, result] = codec->getImage();
+    using DecodeResult = std::tuple<sk_sp<SkImage>, SkCodec::Result>;
+    EventLoop::Ref().enqueueThreadPoolTask<DecodeResult>([mem = *buffer_memory]() {
+        // Copy data and decode asynchronously
+        sk_sp<SkData> data = SkData::MakeWithCopy(mem.ptr, mem.byte_size);
+        CHECK(data);
 
-        return image;
-    }, [isolate, global_resolver](sk_sp<SkImage>&& image) {
+        std::unique_ptr<SkCodec> codec = SkCodec::MakeFromData(data);
+        if (codec == nullptr)
+        {
+            return std::make_tuple<sk_sp<SkImage>, SkCodec::Result>(
+                    nullptr, SkCodec::Result::kInvalidInput);
+        }
+
+        return codec->getImage();
+    }, [isolate, global_resolver](DecodeResult&& result) {
         // Receive decoding result here
         v8::HandleScope scope(isolate);
         v8::Local<v8::Promise::Resolver> resolver = global_resolver->Get(isolate);
         v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
 
+        sk_sp<SkImage> image = std::get<0>(result);
+        SkCodec::Result res = std::get<1>(result);
+
         if (image)
-            resolver->Resolve(ctx, binder::Class<CkImageWrap>::create_object(isolate, image)).Check();
+        {
+            v8::Local<v8::Object> obj = binder::NewObject<CkImageWrap>(isolate, image);
+            resolver->Resolve(ctx, obj).Check();
+        }
         else
-            resolver->Reject(ctx, binder::to_v8(isolate, "Failed to decode image from buffer")).Check();
+        {
+            std::string err_info = fmt::format(
+                    "Failed to decode: {}", SkCodec::ResultToString(res));
+            v8::Local<v8::String> err_info_str =
+                    v8::String::NewFromUtf8(isolate,
+                                            err_info.c_str(),
+                                            v8::NewStringType::kNormal,
+                                            static_cast<int>(err_info.length()))
+                                            .ToLocalChecked();
+
+            resolver->Reject(ctx, err_info_str).Check();
+        }
 
         global_resolver->Reset();
     });
@@ -96,9 +122,9 @@ v8::Local<v8::Value> CkImageWrap::MakeFromEncodedFile(const std::string& path)
         v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
 
         if (image)
-            resolver->Resolve(ctx, binder::Class<CkImageWrap>::create_object(isolate, image)).Check();
+            resolver->Resolve(ctx, binder::NewObject<CkImageWrap>(isolate, image)).Check();
         else
-            resolver->Reject(ctx, binder::to_v8(isolate, "Failed to decode image from buffer")).Check();
+            resolver->Reject(ctx, binder::to_v8(isolate, "Failed to decode image from file")).Check();
 
         // We do not need them anymore
         global_resolver->Reset();
@@ -110,7 +136,7 @@ v8::Local<v8::Value> CkImageWrap::MakeFromEncodedFile(const std::string& path)
 v8::Local<v8::Value> CkImageWrap::MakeFromVideoBuffer(v8::Local<v8::Value> vbo)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *wrapper = binder::Class<utau_wrap::VideoBufferWrap>::unwrap_object(isolate, vbo);
+    auto *wrapper = binder::UnwrapObject<utau_wrap::VideoBufferWrap>(isolate, vbo);
     if (!wrapper)
         g_throw(TypeError, "Argument `vbo` must be an instance of `utau.VideoBuffer`");
 
@@ -121,17 +147,7 @@ v8::Local<v8::Value> CkImageWrap::MakeFromVideoBuffer(v8::Local<v8::Value> vbo)
     if (!image)
         g_throw(Error, "Failed to convert video buffer to an image");
 
-    return binder::Class<CkImageWrap>::create_object(isolate, image);
-}
-
-v8::Local<v8::Value> CkImageWrap::encodeToData(uint32_t format, int quality)
-{
-    sk_sp<SkData> data = image_->encodeToData(static_cast<SkEncodedImageFormat>(format), quality);
-    if (!data)
-        g_throw(Error, "Failed to encode image");
-
-    // Maybe there is a way to avoid this expensive copy
-    return Buffer::MakeFromPtrCopy(data->data(), data->size());
+    return binder::NewObject<CkImageWrap>(isolate, image);
 }
 
 uint32_t CkImageWrap::uniqueId()
@@ -167,13 +183,20 @@ v8::Local<v8::Value> CkImageWrap::makeSharedPixelsBuffer()
     if (!image_->peekPixels(&pixmap))
         g_throw(Error, "Image is not readable");
 
-    sk_sp<SkImage> image_ref = image_;
-    v8::Local<v8::Value> buffer = Buffer::MakeFromExternal(pixmap.writable_addr(),
-                                                           pixmap.computeByteSize(),
-                                                           [image_ref] {});
+    image_->ref();
+    std::shared_ptr<v8::BackingStore> store =
+            v8::ArrayBuffer::NewBackingStore(pixmap.writable_addr(),
+                                             pixmap.computeByteSize(),
+                                             [](void *data, size_t length, void *image) {
+                                                 CHECK(image);
+                                                 reinterpret_cast<SkImage*>(image)->unref();
+                                             },
+                                             image_.get());
+
+    CHECK(store);
 
     std::unordered_map<std::string_view, v8::Local<v8::Value>> result{
-        { "buffer", buffer },
+        { "buffer", v8::ArrayBuffer::New(isolate, store) },
         { "width", binder::to_v8(isolate, image_->width()) },
         { "height", binder::to_v8(isolate, image_->height()) },
         { "colorType", binder::to_v8(isolate, static_cast<int32_t>(image_->colorType())) },
@@ -199,7 +222,7 @@ v8::Local<v8::Value> make_shader_generic(const sk_sp<SkImage>& image, int32_t tm
     SkMatrix *matrix = nullptr;
     if (!local_matrix->IsNullOrUndefined())
     {
-        auto *wrap = binder::Class<CkMatrix>::unwrap_object(isolate, local_matrix);
+        auto *wrap = binder::UnwrapObject<CkMatrix>(isolate, local_matrix);
         if (!wrap)
             g_throw(TypeError, "Argument `local_matrix` must be an instance of `CkMatrix` or null");
         matrix = &wrap->GetMatrix();
@@ -224,7 +247,7 @@ v8::Local<v8::Value> make_shader_generic(const sk_sp<SkImage>& image, int32_t tm
     if (!shader)
         return v8::Null(isolate);
 
-    return binder::Class<CkShaderWrap>::create_object(isolate, shader);
+    return binder::NewObject<CkShaderWrap>(isolate, shader);
 }
 
 } // namespace

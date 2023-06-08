@@ -67,7 +67,7 @@ AVBufferRef *extract_possible_hw_frame_ctx_from_inparams(v8::Local<v8::Object> o
     if (buf->IsNullOrUndefined())
         return nullptr;
 
-    auto *wrapper = binder::Class<VideoBufferWrap>::unwrap_object(isolate, buf);
+    auto *wrapper = binder::UnwrapObject<VideoBufferWrap>(isolate, buf);
     if (!wrapper)
         g_throw(TypeError, "Property `hwFrameContextFrom` must be an instance of `VideoBuffer`");
 
@@ -209,12 +209,12 @@ v8::Local<v8::Value> wrap_named_inout_buffers(v8::Isolate *isolate,
         };
         if (buffer.media_type == utau::MediaType::kAudio)
         {
-            map["audioBuffer"] = binder::Class<AudioBufferWrap>::create_object(
+            map["audioBuffer"] = binder::NewObject<AudioBufferWrap>(
                     isolate, buffer.audio_buffer);
         }
         else if (buffer.media_type == utau::MediaType::kVideo)
         {
-            map["videoBuffer"] = binder::Class<VideoBufferWrap>::create_object(
+            map["videoBuffer"] = binder::NewObject<VideoBufferWrap>(
                     isolate, buffer.video_buffer);
         }
         else
@@ -265,7 +265,7 @@ std::vector<DAG::NamedInOutBuffer> extract_named_inout_buffers(v8::Isolate *isol
             if (maybe_buf.IsEmpty())
                 g_throw(TypeError, fmt::format("Missing `audioBuffer` property in input `{}`", cur.name));
 
-            auto *wrapper = binder::Class<AudioBufferWrap>::unwrap_object(isolate, maybe_buf.ToLocalChecked());
+            auto *wrapper = binder::UnwrapObject<AudioBufferWrap>(isolate, maybe_buf.ToLocalChecked());
             if (!wrapper)
                 g_throw(TypeError, "Property `audioBuffer` must be an instance of `AudioBuffer`");
 
@@ -277,7 +277,7 @@ std::vector<DAG::NamedInOutBuffer> extract_named_inout_buffers(v8::Isolate *isol
             if (maybe_buf.IsEmpty())
                 g_throw(TypeError, fmt::format("Missing `videoBuffer` property in input `{}`", cur.name));
 
-            auto *wrapper = binder::Class<VideoBufferWrap>::unwrap_object(isolate, maybe_buf.ToLocalChecked());
+            auto *wrapper = binder::UnwrapObject<VideoBufferWrap>(isolate, maybe_buf.ToLocalChecked());
             if (!wrapper)
                 g_throw(TypeError, "Property `videoBuffer` must be an instance of `VideoBuffer`");
 
@@ -311,7 +311,7 @@ v8::Local<v8::Value> AVFilterDAGWrap::MakeFromDSL(const std::string& dsl,
     if (!filter)
         g_throw(Error, "Failed to create filters DAG");
 
-    return binder::Class<AVFilterDAGWrap>::create_object(
+    return binder::NewObject<AVFilterDAGWrap>(
             isolate, std::move(filter));
 }
 

@@ -599,11 +599,11 @@ export class Blender extends RenderClientObject {
     public createTextureFromImage(image: CkImage,
                                   annotation: string): Promise<TextureId>;
 
-    public createTextureFromEncodedData(data: Buffer,
+    public createTextureFromEncodedData(data: Uint8Array,
                                         alphaType: AlphaType,
                                         annotation: string): Promise<TextureId>;
 
-    public createTextureFromPixmap(pixels: Buffer,
+    public createTextureFromPixmap(pixels: Uint8Array,
                                    width: number,
                                    height: number,
                                    colorType: ColorType,
@@ -1071,18 +1071,19 @@ export class CkSurface {
     private constructor();
     public static MakeRaster(imageInfo: CkImageInfo): CkSurface;
     public static MakeNull(width: number, height: number): CkSurface;
+    public static MakeSharedPixels(imageInfo: CkImageInfo, byteOffset: number, rowBytes: number, pixels: ArrayBuffer): CkSurface;
 
     readonly width: number;
     readonly height: number;
     readonly generationID: number;
     readonly imageInfo: CkImageInfo;
+    readonly sharedPixels: ArrayBuffer | null;
 
     public getCanvas(): CkCanvas;
     public makeSurface(width: number, height: number): CkSurface;
     public makeImageSnapshot(bounds: CkRect | null): CkImage;
     public draw(canvas: CkCanvas, x: number, y: number, sampling: SamplingOption, paint: CkPaint | null): void;
-    public readPixels(dstInfo: CkImageInfo, dstPixels: Buffer, dstRowBytes: number, srcX: number, srcY: number): void;
-    public peekPixels(): Buffer;
+    public readPixels(dstInfo: CkImageInfo, dstPixels: Uint8Array, dstRowBytes: number, srcX: number, srcY: number): void;
 }
 
 export class CkMatrix {
@@ -1524,7 +1525,7 @@ export class CkBitmap {
 }
 
 export interface ImageExportedPixelsBuffer {
-    buffer: Buffer;
+    buffer: ArrayBuffer;
     width: number;
     height: number;
     colorType: ColorType;
@@ -1533,7 +1534,7 @@ export interface ImageExportedPixelsBuffer {
 }
 
 export class CkImage {
-    public static MakeFromEncodedData(buffer: Buffer): Promise<CkImage>;
+    public static MakeFromEncodedData(buffer: Uint8Array): Promise<CkImage>;
     public static MakeFromEncodedFile(path: string): Promise<CkImage>;
     public static MakeFromVideoBuffer(vbo: VideoBuffer): CkImage;
 
@@ -1543,7 +1544,6 @@ export class CkImage {
     readonly colorType: ColorType;
 
     public uniqueId(): number;
-    public encodeToData(format: number, quality: number): Buffer;
     public makeSharedPixelsBuffer(): ImageExportedPixelsBuffer;
     public makeShader(tmx: TileMode, tmy: TileMode, sampling: SamplingOption, localMatrix: CkMatrix | null): CkShader | null;
     public makeRawShader(tmx: TileMode, tmy: TileMode, sampling: SamplingOption, localMatrix: CkMatrix | null): CkShader | null;

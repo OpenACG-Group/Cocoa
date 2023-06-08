@@ -68,7 +68,7 @@ v8::Local<v8::Value> make_rt_effect(const std::string& sksl, bool force_unopt,
         return v8::Null(isolate);
     }
 
-    return binder::Class<CkRuntimeEffect>::create_object(isolate, result.effect);
+    return binder::NewObject<CkRuntimeEffect>(isolate, result.effect);
 }
 
 v8::Local<v8::Value> wrap_uniform(v8::Isolate *isolate, const SkRuntimeEffect::Uniform& uniform)
@@ -187,7 +187,7 @@ extract_child_specifier_checked(v8::Local<v8::Value> input,
                                     .FromMaybe(v8::Local<v8::Value>());
 
 #define UNWRAP_CHECKED(var, type) \
-    auto *w = binder::Class<type>::unwrap_object(isolate, var); \
+    auto *w = binder::UnwrapObject<type>(isolate, var); \
     if (!w) {                     \
         g_throw(TypeError, fmt::format("Invalid child effector specifier for `{}`", children[i].name)); \
     }
@@ -226,7 +226,7 @@ SkMatrix *extract_maybe_matrix(v8::Isolate *isolate, v8::Local<v8::Value> v, con
     if (v->IsNullOrUndefined())
         return nullptr;
 
-    auto *w = binder::Class<CkMatrix>::unwrap_object(isolate, v);
+    auto *w = binder::UnwrapObject<CkMatrix>(isolate, v);
     if (!w)
         g_throw(TypeError, fmt::format("Argument `{}` must be an instance of `CkMatrix`", argname));
 
@@ -310,7 +310,7 @@ v8::Local<v8::Value> CkRuntimeEffect::makeShader(v8::Local<v8::Value> uniforms,
 
     if (!shader)
         return v8::Null(isolate);
-    return binder::Class<CkShaderWrap>::create_object(isolate, shader);
+    return binder::NewObject<CkShaderWrap>(isolate, shader);
 }
 
 v8::Local<v8::Value> CkRuntimeEffect::makeBlender(v8::Local<v8::Value> uniforms,
@@ -327,7 +327,7 @@ v8::Local<v8::Value> CkRuntimeEffect::makeBlender(v8::Local<v8::Value> uniforms,
 
     if (!blender)
         return v8::Null(isolate);
-    return binder::Class<CkBlenderWrap>::create_object(isolate, blender);
+    return binder::NewObject<CkBlenderWrap>(isolate, blender);
 }
 
 v8::Local<v8::Value> CkRuntimeEffect::makeColorFilter(v8::Local<v8::Value> uniforms,
@@ -344,7 +344,7 @@ v8::Local<v8::Value> CkRuntimeEffect::makeColorFilter(v8::Local<v8::Value> unifo
 
     if (!cf)
         return v8::Null(isolate);
-    return binder::Class<CkColorFilterWrap>::create_object(isolate, cf);
+    return binder::NewObject<CkColorFilterWrap>(isolate, cf);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

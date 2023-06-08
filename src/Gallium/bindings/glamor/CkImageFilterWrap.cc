@@ -122,28 +122,24 @@ DEF_BUILDER(dilate)
     return SkImageFilters::Dilate(*radius_x, *radius_y, AUTO_SELECT(input));
 }
 
-//! FilterDecl: image(Image image, Rect? src, Rect? dst, Int? sampling)
+//! FilterDecl: image(Image image, Int sampling, Rect? src, Rect? dst)
 DEF_BUILDER(image)
 {
     CHECK_ARGC(4, image)
 
-    POP_ARGUMENT(sampling_v, Integer)
     POP_ARGUMENT(dst, Rect)
     POP_ARGUMENT(src, Rect)
+    POP_ARGUMENT_CHECKED(sampling_v, Integer, image)
     POP_ARGUMENT_CHECKED(image, Image, image)
 
-    if (sampling_v && dst && src)
+    if (dst && src)
     {
         return SkImageFilters::Image(*image, *src, *dst,
                                      SamplingToSamplingOptions(*sampling_v));
     }
-    else if (sampling_v && !dst && !src)
+    else if (!dst && !src)
     {
         return SkImageFilters::Image(*image, SamplingToSamplingOptions(*sampling_v));
-    }
-    else if (!sampling_v && !dst && !src)
-    {
-        return SkImageFilters::Image(*image);
     }
     else
     {
@@ -412,7 +408,7 @@ v8::Local<v8::Value> CkImageFilterWrap::MakeFromDSL(v8::Local<v8::Value> dsl,
                                                v8::Local<v8::Object>::Cast(kwargs),
                                                g_image_filter_builders_map);
 
-    return binder::Class<CkImageFilterWrap>::create_object(isolate,
+    return binder::NewObject<CkImageFilterWrap>(isolate,
                                                            effector.CheckImageFilter());
 }
 
@@ -430,7 +426,7 @@ v8::Local<v8::Value> CkImageFilterWrap::serialize()
 v8::Local<v8::Value> CkImageFilterWrap::Deserialize(v8::Local<v8::Value> buffer)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    Buffer *wrapper = binder::Class<Buffer>::unwrap_object(isolate, buffer);
+    Buffer *wrapper = binder::UnwrapObject<Buffer>(isolate, buffer);
     if (!wrapper)
         g_throw(TypeError, "Argument `buffer` must be an instance of core:Buffer");
 
@@ -438,7 +434,7 @@ v8::Local<v8::Value> CkImageFilterWrap::Deserialize(v8::Local<v8::Value> buffer)
     if (!filter)
         g_throw(Error, "Failed to deserialize the given buffer as an image filter");
 
-    return binder::Class<CkImageFilterWrap>::create_object(isolate, filter);
+    return binder::NewObject<CkImageFilterWrap>(isolate, filter);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

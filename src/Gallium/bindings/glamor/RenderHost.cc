@@ -105,9 +105,9 @@ v8::Local<v8::Value> RenderHostWrap::Connect(const v8::FunctionCallbackInfo<v8::
 
     using T = gl::Shared<gl::RenderClientObject>;
     auto pack = PromiseClosure::New(isolate, [](v8::Isolate *isolate, gl::RenderHostCallbackInfo &info) {
-        auto obj = binder::Class<DisplayWrap>::create_object(isolate,
+        auto obj = binder::NewObject<DisplayWrap>(isolate,
                                                              info.GetReturnValue<T>());
-        auto *ptr = binder::Class<DisplayWrap>::unwrap_object(isolate, obj);
+        auto *ptr = binder::UnwrapObject<DisplayWrap>(isolate, obj);
         ptr->setGCObjectSelfHandle(obj);
 
         return obj;

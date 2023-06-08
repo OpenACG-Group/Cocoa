@@ -38,7 +38,7 @@ void AnimationWrap::render(v8::Local<v8::Value> canvas, v8::Local<v8::Value> dst
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
     glamor_wrap::CkCanvas *canvas_wrap =
-            binder::Class<glamor_wrap::CkCanvas>::unwrap_object(isolate, canvas);
+            binder::UnwrapObject<glamor_wrap::CkCanvas>(isolate, canvas);
     if (!canvas_wrap)
         g_throw(TypeError, "Argument `canvas` must be an instance of `CkCanvas`");
 

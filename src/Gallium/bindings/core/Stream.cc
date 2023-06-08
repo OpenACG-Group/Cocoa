@@ -35,8 +35,8 @@ StreamWrap::StreamWrap(uv_stream_t *handle)
 
     handle->data = this;
 
-    v8::Local<v8::Object> iterator = binder::Class<StreamAsyncIterator>::create_object(isolate, this);
-    async_iterator_ = binder::Class<StreamAsyncIterator>::unwrap_object(isolate, iterator);
+    v8::Local<v8::Object> iterator = binder::NewObject<StreamAsyncIterator>(isolate, this);
+    async_iterator_ = binder::UnwrapObject<StreamAsyncIterator>(isolate, iterator);
 
     CHECK(async_iterator_);
     async_iterator_obj_.Reset(isolate, iterator);
@@ -103,7 +103,7 @@ v8::Local<v8::Value> StreamWrap::write(v8::Local<v8::Value> buffers)
         if (E.IsEmpty())
             g_throw(TypeError, "Argument `buffers` must be an array of `Buffer`");
 
-        Buffer *ptr = binder::Class<Buffer>::unwrap_object(isolate, E);
+        Buffer *ptr = binder::UnwrapObject<Buffer>(isolate, E);
         if (!ptr)
             g_throw(TypeError, "Argument `buffers` must be an array of `Buffer`");
 
@@ -179,7 +179,7 @@ void StreamWrap::OnAllocateCallback(uv_handle_t *handle, size_t suggested, uv_bu
     v8::Local<v8::Object> buffer_obj = Buffer::MakeFromSize(suggested);
     stream->async_iterator_->SetCurrentBuffer(isolate, buffer_obj);
 
-    auto *buffer = binder::Class<Buffer>::unwrap_object(isolate, buffer_obj);
+    auto *buffer = binder::UnwrapObject<Buffer>(isolate, buffer_obj);
     CHECK(buffer);
 
     result->base = reinterpret_cast<char*>(buffer->addressU8());

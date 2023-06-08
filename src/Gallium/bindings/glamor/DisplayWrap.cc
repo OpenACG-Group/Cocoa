@@ -32,7 +32,7 @@ DisplayWrap::DisplayWrap(gl::Shared<gl::RenderClientObject> object)
         v8::HandleScope scope(i);
         auto monitor = info.Get<gl::Shared<gl::Monitor>>(0);
 
-        v8::Local<v8::Object> result = binder::Class<MonitorWrap>::create_object(i, monitor);
+        v8::Local<v8::Object> result = binder::NewObject<MonitorWrap>(i, monitor);
         this->monitor_objects_map_[monitor].Reset(i, result);
 
         return {std::vector<v8::Local<v8::Value>>{result}};
@@ -54,7 +54,7 @@ DisplayWrap::DisplayWrap(gl::Shared<gl::RenderClientObject> object)
             // we should create one as a temporary object.
             // It is always safe to retain an instance of `Monitor` after `monitor-removed`
             // signal is emitted as `Monitor` itself does not keep any GLAMOR resources.
-            result = binder::Class<MonitorWrap>::create_object(i, monitor);
+            result = binder::NewObject<MonitorWrap>(i, monitor);
         }
 
         return {std::vector<v8::Local<v8::Value>>{result}};
@@ -129,7 +129,7 @@ v8::Local<v8::Value> DisplayWrap::requestMonitorList()
 
             if (this->monitor_objects_map_.count(monitor) == 0)
             {
-                monitor_obj = binder::Class<MonitorWrap>::create_object(i, monitor);
+                monitor_obj = binder::NewObject<MonitorWrap>(i, monitor);
                 this->monitor_objects_map_[monitor].Reset(i, monitor_obj);
             }
             else
@@ -163,7 +163,7 @@ v8::Local<v8::Value> DisplayWrap::createCursor(v8::Local<v8::Value> bitmap, int 
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    CkBitmapWrap *unwrapped = binder::Class<CkBitmapWrap>::unwrap_object(isolate, bitmap);
+    CkBitmapWrap *unwrapped = binder::UnwrapObject<CkBitmapWrap>(isolate, bitmap);
     if (!unwrapped)
         g_throw(TypeError, "Argument \'bitmap\' must be an instance of CkBitmap");
 
@@ -187,7 +187,7 @@ v8::Local<v8::Value> DisplayWrap::getDefaultCursorTheme()
     auto theme = getObject()->As<gl::Display>()->GetDefaultCursorTheme();
     CHECK(theme);
 
-    auto obj = binder::Class<CursorThemeWrap>::create_object(isolate, theme);
+    auto obj = binder::NewObject<CursorThemeWrap>(isolate, theme);
     default_cursor_theme_.Reset(isolate, obj);
 
     return obj;

@@ -91,7 +91,7 @@ void CkPaint::setStrokeJoin(int32_t join)
 void CkPaint::setShader(v8::Local<v8::Value> shader)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *wrapper = binder::Class<CkShaderWrap>::unwrap_object(isolate, shader);
+    auto *wrapper = binder::UnwrapObject<CkShaderWrap>(isolate, shader);
     if (!wrapper)
         g_throw(TypeError, "Argument `shader` must be an instance of `CkShader`");
     paint_.setShader(wrapper->GetSkObject());
@@ -100,7 +100,7 @@ void CkPaint::setShader(v8::Local<v8::Value> shader)
 void CkPaint::setColorFilter(v8::Local<v8::Value> filter)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *wrapper = binder::Class<CkColorFilterWrap>::unwrap_object(isolate, filter);
+    auto *wrapper = binder::UnwrapObject<CkColorFilterWrap>(isolate, filter);
     if (!wrapper)
         g_throw(TypeError, "Argument `filter` must be an instance of `CkColorFilter`");
     paint_.setColorFilter(wrapper->GetSkObject());
@@ -115,7 +115,7 @@ void CkPaint::setBlendMode(int32_t mode)
 void CkPaint::setBlender(v8::Local<v8::Value> blender)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *wrapper = binder::Class<CkBlenderWrap>::unwrap_object(isolate, blender);
+    auto *wrapper = binder::UnwrapObject<CkBlenderWrap>(isolate, blender);
     if (!wrapper)
         g_throw(TypeError, "Argument `blender` must be an instance of `CkBlender`");
     paint_.setBlender(wrapper->GetSkObject());
@@ -124,7 +124,7 @@ void CkPaint::setBlender(v8::Local<v8::Value> blender)
 void CkPaint::setPathEffect(v8::Local<v8::Value> effect)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *wrapper = binder::Class<CkPathEffect>::unwrap_object(isolate, effect);
+    auto *wrapper = binder::UnwrapObject<CkPathEffect>(isolate, effect);
     if (!wrapper)
         g_throw(TypeError, "Argument `effect` must be an instance of `CkPathEffect`");
     paint_.setPathEffect(wrapper->GetSkObject());
@@ -133,7 +133,7 @@ void CkPaint::setPathEffect(v8::Local<v8::Value> effect)
 void CkPaint::setImageFilter(v8::Local<v8::Value> filter)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *wrapper = binder::Class<CkImageFilterWrap>::unwrap_object(isolate, filter);
+    auto *wrapper = binder::UnwrapObject<CkImageFilterWrap>(isolate, filter);
     if (!wrapper)
         g_throw(TypeError, "Argument `filter` must be an instance of `CkImageFilter`");
     paint_.setImageFilter(wrapper->GetSkObject());

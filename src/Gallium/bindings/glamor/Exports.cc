@@ -386,7 +386,7 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
                   binder::to_v8(isolate, constants)).Check();
 
     instance->Set(ctx, binder::to_v8(isolate, "defaultFontMgr"),
-                  binder::Class<CkFontMgr>::create_object(isolate, SkFontMgr::RefDefault())).Check();
+                  binder::NewObject<CkFontMgr>(isolate, SkFontMgr::RefDefault())).Check();
 }
 
 SkSamplingOptions SamplingToSamplingOptions(int32_t v)

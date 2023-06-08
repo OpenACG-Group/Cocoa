@@ -21,6 +21,7 @@
         "synthetics/core.d.ts",
         "synthetics/typetraits.d.ts",
         "synthetics/glamor.d.ts",
+        "synthetics/pixencoder.d.ts",
         "synthetics/utau.d.ts",
         "synthetics/paragraph.d.ts",
         "synthetics/resources.d.ts",
@@ -35,27 +36,25 @@
 
         "samples/sknative-lottie-viewer.ts",
         "samples/sknative-path-measure.ts",
-        "samples/sknative-svg-rasterizer.ts",
+        // "samples/sknative-svg-rasterizer.ts",
         "samples/sknative-svg-to-skp.ts",
-        "samples/sknative-pathtext.ts",
+        // "samples/sknative-pathtext.ts",
         "samples/sknative-pathtext-interactive.ts",
+        "samples/sknative-memory-composite.ts",
         "samples/mediapresent-video-player.ts",
+        "samples/vizmoe-simplest-scene.ts",
 
-        "vizmoe/base/EventDispatch.ts",
-        "vizmoe/graphics/Color.ts",
-        "vizmoe/graphics/Rect.ts",
-        "vizmoe/graphics/Vector.ts",
-        "vizmoe/graphics/DrawContext.ts",
-
-        "vizmoe/render/RenderObject.ts",
-        "vizmoe/render/CompositorRenderObject.ts",
-        "vizmoe/render/PainterRenderObject.ts",
-        "vizmoe/render/TransformerRenderObject.ts",
-        "vizmoe/render/VideoTextureRenderObject.ts",
-        "vizmoe/render/QuickRenderTreeConstructor.ts",
-        "vizmoe/render/RenderTreeLinearization.ts",
-
-        "vizmoe/components/Base.ts"
+        "vizmoe/base/application.ts",
+        "vizmoe/base/event-dispatcher.ts",
+        "vizmoe/render/geometry.ts",
+        "vizmoe/render/draw-context.ts",
+        "vizmoe/render/draw-context-submitter.ts",
+        "vizmoe/render/draw-context-static-texture.ts",
+        "vizmoe/render/color.ts",
+        "vizmoe/render/rectangle.ts",
+        "vizmoe/render/vector.ts",
+        "vizmoe/render/render-node.ts",
+        "vizmoe/render/render-node-composite-attributes.ts"
     ],
     "exclude": [
         "out"

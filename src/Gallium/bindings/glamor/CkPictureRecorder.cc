@@ -27,7 +27,7 @@ v8::Local<v8::Value> CkPictureRecorder::beginRecording(v8::Local<v8::Value> boun
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     SkCanvas *canvas = recorder_.beginRecording(ExtractCkRect(isolate, bounds));
     CHECK(canvas);
-    auto obj = binder::Class<CkCanvas>::create_object(isolate, canvas);
+    auto obj = binder::NewObject<CkCanvas>(isolate, canvas);
     canvas_.Reset(isolate, obj);
     return obj;
 }
@@ -49,7 +49,7 @@ v8::Local<v8::Value> CkPictureRecorder::finishRecordingAsPicture()
     sk_sp<SkPicture> pict = recorder_.finishRecordingAsPicture();
     CHECK(pict);
     canvas_.Reset();
-    return binder::Class<CkPictureWrap>::create_object(isolate, pict);
+    return binder::NewObject<CkPictureWrap>(isolate, pict);
 }
 
 v8::Local<v8::Value> CkPictureRecorder::finishRecordingAsPictureWithCull(v8::Local<v8::Value> cull)
@@ -61,7 +61,7 @@ v8::Local<v8::Value> CkPictureRecorder::finishRecordingAsPictureWithCull(v8::Loc
             ExtractCkRect(isolate, cull));
     CHECK(pict);
     canvas_.Reset();
-    return binder::Class<CkPictureWrap>::create_object(isolate, pict);
+    return binder::NewObject<CkPictureWrap>(isolate, pict);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

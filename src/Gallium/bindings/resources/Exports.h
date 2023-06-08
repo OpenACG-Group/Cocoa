@@ -89,7 +89,7 @@ public:
     //!   image: GL.CkImage;
     //!   sampling: Enum<GL.Sampling>;
     //!   matrix: GL.CkMatrix;
-    //!   scaling: Enum<GL.MatrixScaleToFit>;
+    //!   scaling: Enum<ImageAssetSizeFit>;
     //! }
     //!
     //! TSDecl: interface IImageAsset {

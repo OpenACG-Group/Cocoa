@@ -27,7 +27,7 @@ v8::Local<v8::Value> SVGLengthContextWrap::Make(v8::Local<v8::Value> vp, SkScala
         g_throw(RangeError, "Invalid DPI");
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::Class<SVGLengthContextWrap>::create_object(
+    return binder::NewObject<SVGLengthContextWrap>(
             isolate, ISize::Extract(isolate, vp), dpi);
 }
 

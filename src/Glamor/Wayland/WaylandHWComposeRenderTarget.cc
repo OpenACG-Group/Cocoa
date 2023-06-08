@@ -21,6 +21,7 @@
 
 #include "include/core/SkSurface.h"
 #include "include/core/SkCanvas.h"
+#include "include/gpu/ganesh/SkSurfaceGanesh.h"
 
 #include "Core/TraceEvent.h"
 #include "Core/Journal.h"
@@ -172,8 +173,8 @@ const Shared<HWComposeSwapchain>& WaylandHWComposeRenderTarget::OnGetHWComposeSw
 
 sk_sp<SkSurface> WaylandHWComposeRenderTarget::OnCreateOffscreenBackendSurface(const SkImageInfo& info)
 {
-    sk_sp<SkSurface> rt = SkSurface::MakeRenderTarget(swapchain_->GetSkiaDirectContext().get(),
-                                                      skgpu::Budgeted::kYes, info);
+    sk_sp<SkSurface> rt = SkSurfaces::RenderTarget(swapchain_->GetSkiaDirectContext().get(),
+                                                   skgpu::Budgeted::kYes, info);
     return rt;
 }
 

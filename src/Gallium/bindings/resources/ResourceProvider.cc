@@ -167,9 +167,9 @@ public:
 #undef JS_PROPERTY
 
         glamor_wrap::CkImageWrap *image_wrap =
-                binder::Class<glamor_wrap::CkImageWrap>::unwrap_object(isolate_, image_value);
+                binder::UnwrapObject<glamor_wrap::CkImageWrap>(isolate_, image_value);
         glamor_wrap::CkMatrix *matrix_wrap =
-                binder::Class<glamor_wrap::CkMatrix>::unwrap_object(isolate_, matrix_value);
+                binder::UnwrapObject<glamor_wrap::CkMatrix>(isolate_, matrix_value);
 
         if (!image_wrap || !matrix_wrap ||
             !sampling_value->IsUint32() || !scaling_value->IsUint32())
@@ -181,7 +181,7 @@ public:
                 sampling_value->Int32Value(context).ToChecked());
 
         uint32_t scaling_enum = scaling_value->Uint32Value(context).ToChecked();
-        if (scaling_enum > SkMatrix::ScaleToFit::kEnd_ScaleToFit)
+        if (scaling_enum > static_cast<int>(SizeFit::kNone))
         {
             g_throw(TypeError, "Invalid return value of method 'getFrameData'"
                                " (invalid enumeration for property 'scaling')");
@@ -191,7 +191,7 @@ public:
             image_wrap->getImage(),
             sampling_options,
             matrix_wrap->GetMatrix(),
-            static_cast<SkMatrix::ScaleToFit>(scaling_enum)
+            static_cast<SizeFit>(scaling_enum)
         };
     }
 
@@ -249,7 +249,7 @@ public:
                            v8::String::NewFromUtf8(isolate_, name).ToLocalChecked(),
                            v8::String::NewFromUtf8(isolate_, id).ToLocalChecked())
 
-        ImageAssetWrap *wrap = binder::Class<ImageAssetWrap>::unwrap_object(isolate_, ret);
+        ImageAssetWrap *wrap = binder::UnwrapObject<ImageAssetWrap>(isolate_, ret);
         if (!wrap)
             g_throw(TypeError, "ResourceProvider: Invalid return value from 'loadImageAsset' method");
 
@@ -266,7 +266,7 @@ public:
                            v8::String::NewFromUtf8(isolate_, id).ToLocalChecked())
 
         ExternalTrackAssetWrap *wrap =
-                binder::Class<ExternalTrackAssetWrap>::unwrap_object(isolate_, ret);
+                binder::UnwrapObject<ExternalTrackAssetWrap>(isolate_, ret);
         if (!wrap)
             g_throw(TypeError, "ResourceProvider: Invalid return value from 'loadAudioAsset' method");
 
@@ -280,7 +280,7 @@ public:
                            v8::String::NewFromUtf8(isolate_, url).ToLocalChecked())
 
         glamor_wrap::CkTypeface *wrap =
-                binder::Class<glamor_wrap::CkTypeface>::unwrap_object(isolate_, ret);
+                binder::UnwrapObject<glamor_wrap::CkTypeface>(isolate_, ret);
         if (!wrap)
             g_throw(TypeError, "ResourceProvider: Invalid return value from 'loadTypeface' method");
 
@@ -297,7 +297,7 @@ v8::Local<v8::Value> ExternalTrackAssetWrap::MakeImpl(v8::Local<v8::Value> impl)
     check_object_properties(isolate, impl, "Argument 'impl'", PROPS(1, "seek"));
 
     auto asset = sk_make_sp<ExternalTrackAssetImpl>(isolate, impl.As<v8::Object>());
-    return binder::Class<ExternalTrackAssetWrap>::create_object(isolate, std::move(asset));
+    return binder::NewObject<ExternalTrackAssetWrap>(isolate, std::move(asset));
 }
 
 v8::Local<v8::Value> ImageAssetWrap::MakeMultiFrame(v8::Local<v8::Value> data, bool predecode)
@@ -326,7 +326,7 @@ v8::Local<v8::Value> ImageAssetWrap::MakeMultiFrame(v8::Local<v8::Value> data, b
             reinterpret_cast<uint8_t*>(closure->store->Data()) + closure->offset,
             closure->size, release_proc, closure);
 
-    return binder::Class<ImageAssetWrap>::create_object(
+    return binder::NewObject<ImageAssetWrap>(
             isolate, skresources::MultiFrameImageAsset::Make(skdata, predecode));
 }
 
@@ -338,7 +338,7 @@ v8::Local<v8::Value> ImageAssetWrap::MakeImpl(v8::Local<v8::Value> impl)
                             PROPS(2, "isMultiFrame", "getFrameData"));
 
     auto asset = sk_make_sp<ImageAssetImpl>(isolate, impl.As<v8::Object>());
-    return binder::Class<ImageAssetWrap>::create_object(isolate, std::move(asset));
+    return binder::NewObject<ImageAssetWrap>(isolate, std::move(asset));
 }
 
 v8::Local<v8::Value> ResourceProviderWrap::MakeImpl(v8::Local<v8::Value> impl)
@@ -349,7 +349,7 @@ v8::Local<v8::Value> ResourceProviderWrap::MakeImpl(v8::Local<v8::Value> impl)
                             PROPS(4, "load", "loadImageAsset", "loadAudioAsset", "loadTypeface"));
 
     auto rp = sk_make_sp<ResourceProviderImpl>(isolate, impl.As<v8::Object>());
-    return binder::Class<ResourceProviderWrap>::create_object(isolate, std::move(rp));
+    return binder::NewObject<ResourceProviderWrap>(isolate, std::move(rp));
 }
 
 v8::Local<v8::Value> ResourceProviderWrap::MakeFile(const std::string& base_dir, bool predecode)
@@ -361,14 +361,14 @@ v8::Local<v8::Value> ResourceProviderWrap::MakeFile(const std::string& base_dir,
     if (!rp)
         g_throw(TypeError, "Failed to create FileResourceProvider");
 
-    return binder::Class<ResourceProviderWrap>::create_object(isolate, std::move(rp));
+    return binder::NewObject<ResourceProviderWrap>(isolate, std::move(rp));
 }
 
 v8::Local<v8::Value> ResourceProviderWrap::MakeCachingProxy(v8::Local<v8::Value> rp)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     ResourceProviderWrap *wrap =
-            binder::Class<ResourceProviderWrap>::unwrap_object(isolate, rp);
+            binder::UnwrapObject<ResourceProviderWrap>(isolate, rp);
     if (!wrap)
         g_throw(TypeError, "Argument `rp` must be an instance of `ResourceProvider`");
 
@@ -377,7 +377,7 @@ v8::Local<v8::Value> ResourceProviderWrap::MakeCachingProxy(v8::Local<v8::Value>
 
     CHECK(proxy);
 
-    return binder::Class<ResourceProviderWrap>::create_object(isolate, std::move(proxy));
+    return binder::NewObject<ResourceProviderWrap>(isolate, std::move(proxy));
 }
 
 v8::Local<v8::Value> ResourceProviderWrap::MakeDataURIProxy(v8::Local<v8::Value> rp,
@@ -385,7 +385,7 @@ v8::Local<v8::Value> ResourceProviderWrap::MakeDataURIProxy(v8::Local<v8::Value>
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     ResourceProviderWrap *wrap =
-            binder::Class<ResourceProviderWrap>::unwrap_object(isolate, rp);
+            binder::UnwrapObject<ResourceProviderWrap>(isolate, rp);
 
     if (!wrap)
         g_throw(TypeError, "Argument `rp` must be an instance of `ResourceProvider`");
@@ -395,7 +395,7 @@ v8::Local<v8::Value> ResourceProviderWrap::MakeDataURIProxy(v8::Local<v8::Value>
 
     CHECK(proxy);
 
-    return binder::Class<ResourceProviderWrap>::create_object(isolate, std::move(proxy));
+    return binder::NewObject<ResourceProviderWrap>(isolate, std::move(proxy));
 }
 
 v8::Local<v8::Value> ResourceProviderWrap::MakeProxyImpl(v8::Local<v8::Value> impl)

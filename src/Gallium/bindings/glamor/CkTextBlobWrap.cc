@@ -31,7 +31,7 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
     }
 
 #define EXTRACT_FONT_CHECKED(arg, result) \
-    auto *result = binder::Class<CkFont>::unwrap_object(isolate, arg); \
+    auto *result = binder::UnwrapObject<CkFont>(isolate, arg); \
     if (!result) {                       \
         g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkFont`"); \
     }
@@ -62,7 +62,7 @@ SkPaint *extract_maybe_paint(v8::Isolate *isolate, v8::Local<v8::Value> v, const
     if (v->IsNullOrUndefined())
         return nullptr;
 
-    auto *w = binder::Class<CkPaint>::unwrap_object(isolate, v);
+    auto *w = binder::UnwrapObject<CkPaint>(isolate, v);
     if (!w)
         g_throw(TypeError, fmt::format("Argument `{}` must be an instance of `CkPaint`", argname));
 
@@ -84,7 +84,7 @@ v8::Local<v8::Value> CkTextBlob::MakeFromText(v8::Local<v8::Value> text,
                                                       static_cast<SkTextEncoding>(encoding));
     CHECK_CREATED_BLOB(blob)
 
-    return binder::Class<CkTextBlob>::create_object(isolate, blob);
+    return binder::NewObject<CkTextBlob>(isolate, blob);
 }
 
 v8::Local<v8::Value> CkTextBlob::MakeFromPosText(v8::Local<v8::Value> text,
@@ -118,7 +118,7 @@ v8::Local<v8::Value> CkTextBlob::MakeFromPosText(v8::Local<v8::Value> text,
             static_cast<SkTextEncoding>(encoding));
     CHECK_CREATED_BLOB(blob)
 
-    return binder::Class<CkTextBlob>::create_object(isolate, blob);
+    return binder::NewObject<CkTextBlob>(isolate, blob);
 }
 
 #define GET_TA_WRPTR_CHECKED(type, arg, result_ptr, result_len) \
@@ -156,7 +156,7 @@ v8::Local<v8::Value> CkTextBlob::MakeFromPosTextH(v8::Local<v8::Value> text,
 
     CHECK_CREATED_BLOB(blob)
 
-    return binder::Class<CkTextBlob>::create_object(isolate, blob);
+    return binder::NewObject<CkTextBlob>(isolate, blob);
 }
 
 v8::Local<v8::Value> CkTextBlob::MakeFromRSXformText(v8::Local<v8::Value> text,
@@ -193,7 +193,7 @@ v8::Local<v8::Value> CkTextBlob::MakeFromRSXformText(v8::Local<v8::Value> text,
 
     CHECK_CREATED_BLOB(blob)
 
-    return binder::Class<CkTextBlob>::create_object(isolate, blob);
+    return binder::NewObject<CkTextBlob>(isolate, blob);
 }
 
 v8::Local<v8::Value> CkTextBlob::getBounds()

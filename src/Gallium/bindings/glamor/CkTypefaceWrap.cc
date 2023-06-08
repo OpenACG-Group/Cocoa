@@ -39,37 +39,37 @@ CkFontStyle::CkFontStyle(int32_t weight, int32_t width, int32_t slant)
 v8::Local<v8::Value> CkFontStyle::MakeNormal()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::Class<CkFontStyle>::create_object(isolate, SkFontStyle::Normal());
+    return binder::NewObject<CkFontStyle>(isolate, SkFontStyle::Normal());
 }
 
 v8::Local<v8::Value> CkFontStyle::MakeItalic()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::Class<CkFontStyle>::create_object(isolate, SkFontStyle::Italic());
+    return binder::NewObject<CkFontStyle>(isolate, SkFontStyle::Italic());
 }
 
 v8::Local<v8::Value> CkFontStyle::MakeBold()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::Class<CkFontStyle>::create_object(isolate, SkFontStyle::Bold());
+    return binder::NewObject<CkFontStyle>(isolate, SkFontStyle::Bold());
 }
 
 v8::Local<v8::Value> CkFontStyle::MakeBoldItalic()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::Class<CkFontStyle>::create_object(isolate, SkFontStyle::BoldItalic());
+    return binder::NewObject<CkFontStyle>(isolate, SkFontStyle::BoldItalic());
 }
 
 v8::Local<v8::Value> CkTypeface::MakeDefault()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::Class<CkTypeface>::create_object(isolate, SkTypeface::MakeDefault());
+    return binder::NewObject<CkTypeface>(isolate, SkTypeface::MakeDefault());
 }
 
 v8::Local<v8::Value> CkTypeface::MakeFromName(const std::string& name, v8::Local<v8::Value> style)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *w = binder::Class<CkFontStyle>::unwrap_object(isolate, style);
+    auto *w = binder::UnwrapObject<CkFontStyle>(isolate, style);
     if (!w)
         g_throw(TypeError, "Argument `style` must be an instance of `CkFontStyle`");
 
@@ -77,7 +77,7 @@ v8::Local<v8::Value> CkTypeface::MakeFromName(const std::string& name, v8::Local
     if (!tf)
         g_throw(Error, "Failed to create a typeface from name");
 
-    return binder::Class<CkTypeface>::create_object(isolate, tf);
+    return binder::NewObject<CkTypeface>(isolate, tf);
 }
 
 v8::Local<v8::Value> CkTypeface::MakeFromFile(const std::string& file, int32_t index)
@@ -86,13 +86,13 @@ v8::Local<v8::Value> CkTypeface::MakeFromFile(const std::string& file, int32_t i
     sk_sp<SkTypeface> tf = SkTypeface::MakeFromFile(file.c_str(), index);
     if (!tf)
         g_throw(Error, fmt::format("Failed to create a typeface from file `{}`", file));
-    return binder::Class<CkTypeface>::create_object(isolate, tf);
+    return binder::NewObject<CkTypeface>(isolate, tf);
 }
 
 v8::Local<v8::Value> CkTypeface::MakeFromData(v8::Local<v8::Value> buffer, int32_t index)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *w = binder::Class<Buffer>::unwrap_object(isolate, buffer);
+    auto *w = binder::UnwrapObject<Buffer>(isolate, buffer);
     if (!w)
         g_throw(Error, "Argument `buffer` must be an instance of `core.Buffer`");
 
@@ -101,13 +101,13 @@ v8::Local<v8::Value> CkTypeface::MakeFromData(v8::Local<v8::Value> buffer, int32
     if (!tf)
         g_throw(Error, "Failed to create a typeface from provided data");
 
-    return binder::Class<CkTypeface>::create_object(isolate, tf);
+    return binder::NewObject<CkTypeface>(isolate, tf);
 }
 
 v8::Local<v8::Value> CkTypeface::getFontStyle()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::Class<CkFontStyle>::create_object(
+    return binder::NewObject<CkFontStyle>(
             isolate, GetSkObject()->fontStyle());
 }
 

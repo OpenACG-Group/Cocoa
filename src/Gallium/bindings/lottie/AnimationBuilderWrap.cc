@@ -90,7 +90,7 @@ public:
 
         v8::HandleScope scope(isolate_);
         v8::Local<v8::Object> canvas_obj =
-                binder::Class<glamor_wrap::CkCanvas>::create_object(isolate_, canvas);
+                binder::NewObject<glamor_wrap::CkCanvas>(isolate_, canvas);
 
         v8::Local<v8::Value> args[] = {
             canvas_obj,
@@ -320,7 +320,7 @@ v8::Local<v8::Value> AnimationBuilderWrap::setResourceProvider(v8::Local<v8::Val
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     resources_wrap::ResourceProviderWrap *rp_wrap =
-            binder::Class<resources_wrap::ResourceProviderWrap>::unwrap_object(isolate, rp);
+            binder::UnwrapObject<resources_wrap::ResourceProviderWrap>(isolate, rp);
     if (!rp_wrap)
         g_throw(TypeError, "Argument `rp` must be an instance of `ResourceProvider`");
 
@@ -333,7 +333,7 @@ v8::Local<v8::Value> AnimationBuilderWrap::setFontManager(v8::Local<v8::Value> m
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     glamor_wrap::CkFontMgr *mgr_wrap =
-            binder::Class<glamor_wrap::CkFontMgr>::unwrap_object(isolate, mgr);
+            binder::UnwrapObject<glamor_wrap::CkFontMgr>(isolate, mgr);
     if (!mgr_wrap)
         g_throw(TypeError, "Argument `mgr` must be an instance of `CkFontMgr`");
 
@@ -401,7 +401,7 @@ v8::Local<v8::Value> AnimationBuilderWrap::make(v8::Local<v8::Value> json)
     if (!animation)
         g_throw(Error, "Failed to parse Lottie animation JSON");
 
-    return binder::Class<AnimationWrap>::create_object(isolate, animation);
+    return binder::NewObject<AnimationWrap>(isolate, animation);
 }
 
 v8::Local<v8::Value> AnimationBuilderWrap::makeFromFile(const std::string& path)
@@ -411,7 +411,7 @@ v8::Local<v8::Value> AnimationBuilderWrap::makeFromFile(const std::string& path)
     if (!animation)
         g_throw(Error, "Failed to parse Lottie animation JSON");
 
-    return binder::Class<AnimationWrap>::create_object(isolate, animation);
+    return binder::NewObject<AnimationWrap>(isolate, animation);
 }
 
 GALLIUM_BINDINGS_LOTTIE_NS_END

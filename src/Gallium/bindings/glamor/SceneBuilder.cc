@@ -80,7 +80,7 @@ v8::Local<v8::Value> SceneBuilder::build()
     if (!layer_tree_)
         g_throw(Error, "Building an empty scene");
 
-    v8::Local<v8::Value> object = binder::Class<Scene>::create_object(isolate, layer_tree_,
+    v8::Local<v8::Value> object = binder::NewObject<Scene>(isolate, layer_tree_,
                                                                       SkISize::Make(width_, height_));
     // Since the `Scene` object is created, `SceneBuilder` is not available anymore
     layer_tree_.reset();
@@ -114,7 +114,7 @@ v8::Local<v8::Value> SceneBuilder::pushRotate(SkScalar rad, SkScalar pivotX, SkS
 v8::Local<v8::Value> SceneBuilder::pushTransform(v8::Local<v8::Value> matrix)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *wrapper = binder::Class<CkMatrix>::unwrap_object(isolate, matrix);
+    auto *wrapper = binder::UnwrapObject<CkMatrix>(isolate, matrix);
     if (!wrapper)
         g_throw(TypeError, "Argument `matrix` must be an instance of `CkMatrix`");
     pushLayer(std::make_shared<gl::TransformLayer>(wrapper->GetMatrix()));
@@ -133,7 +133,7 @@ v8::Local<v8::Value> SceneBuilder::pushOpacity(SkScalar alpha)
 v8::Local<v8::Value> SceneBuilder::pushImageFilter(v8::Local<v8::Value> filter)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *wrapper = binder::Class<CkImageFilterWrap>::unwrap_object(isolate, filter);
+    auto *wrapper = binder::UnwrapObject<CkImageFilterWrap>(isolate, filter);
     if (!wrapper)
         g_throw(TypeError, "Argument 'filter' must be an instance of `CkImageFilter`");
 
@@ -148,7 +148,7 @@ v8::Local<v8::Value> SceneBuilder::pushBackdropFilter(v8::Local<v8::Value> filte
                                                       bool autoChildClip)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *wrapper = binder::Class<CkImageFilterWrap>::unwrap_object(isolate, filter);
+    auto *wrapper = binder::UnwrapObject<CkImageFilterWrap>(isolate, filter);
     if (!wrapper)
         g_throw(TypeError, "Argument 'filter' must be an instance of `CkImageFilter`");
 
@@ -189,7 +189,7 @@ v8::Local<v8::Value> SceneBuilder::addPicture(v8::Local<v8::Value> picture,
                                               SkScalar dx, SkScalar dy)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    CkPictureWrap *unwrapped = binder::Class<CkPictureWrap>::unwrap_object(isolate, picture);
+    CkPictureWrap *unwrapped = binder::UnwrapObject<CkPictureWrap>(isolate, picture);
     if (unwrapped == nullptr)
         g_throw(TypeError, "\'picture\' must be an instance of CkPicture");
 
@@ -225,7 +225,7 @@ v8::Local<v8::Value> SceneBuilder::addVideoBuffer(v8::Local<v8::Value> vbo,
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     utau_wrap::VideoBufferWrap *wrapper =
-            binder::Class<utau_wrap::VideoBufferWrap>::unwrap_object(isolate, vbo);
+            binder::UnwrapObject<utau_wrap::VideoBufferWrap>(isolate, vbo);
     if (!wrapper)
         g_throw(TypeError, "Argument `vbo` must be an instance of utau.VideoBuffer");
 

@@ -40,7 +40,7 @@ v8::Local<v8::Value> SVGDOMLoaderWrap::setFontManager(v8::Local<v8::Value> mgr)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     glamor_wrap::CkFontMgr *wrap =
-            binder::Class<glamor_wrap::CkFontMgr>::unwrap_object(isolate, mgr);
+            binder::UnwrapObject<glamor_wrap::CkFontMgr>(isolate, mgr);
     if (!wrap)
         g_throw(TypeError, "Argument `mgr` must be an instance of `CkFontMgr`");
 
@@ -53,7 +53,7 @@ v8::Local<v8::Value> SVGDOMLoaderWrap::setResourceProvider(v8::Local<v8::Value> 
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     resources_wrap::ResourceProviderWrap *wrap =
-            binder::Class<resources_wrap::ResourceProviderWrap>::unwrap_object(isolate, rp);
+            binder::UnwrapObject<resources_wrap::ResourceProviderWrap>(isolate, rp);
     if (!wrap)
         g_throw(TypeError, "Argument `rp` must be an instance of `ResourceProvider`");
 
@@ -81,7 +81,7 @@ v8::Local<v8::Value> SVGDOMLoaderWrap::makeFromString(v8::Local<v8::Value> str)
     if (!dom)
         g_throw(Error, "Failed to create SVG DOM from given string");
 
-    return binder::Class<SVGDOMWrap>::create_object(isolate, std::move(dom));
+    return binder::NewObject<SVGDOMWrap>(isolate, std::move(dom));
 }
 
 v8::Local<v8::Value> SVGDOMLoaderWrap::makeFromData(v8::Local<v8::Value> data)
@@ -103,7 +103,7 @@ v8::Local<v8::Value> SVGDOMLoaderWrap::makeFromData(v8::Local<v8::Value> data)
     if (!dom)
         g_throw(Error, "Failed to create SVG DOM from given data");
 
-    return binder::Class<SVGDOMWrap>::create_object(isolate, std::move(dom));
+    return binder::NewObject<SVGDOMWrap>(isolate, std::move(dom));
 }
 
 v8::Local<v8::Value> SVGDOMLoaderWrap::makeFromFile(const std::string& path)
@@ -121,7 +121,7 @@ v8::Local<v8::Value> SVGDOMLoaderWrap::makeFromFile(const std::string& path)
     if (!dom)
         g_throw(Error, "Failed to create SVG DOM from file " + path);
 
-    return binder::Class<SVGDOMWrap>::create_object(isolate, std::move(dom));
+    return binder::NewObject<SVGDOMWrap>(isolate, std::move(dom));
 }
 
 GALLIUM_BINDINGS_SVG_NS_END

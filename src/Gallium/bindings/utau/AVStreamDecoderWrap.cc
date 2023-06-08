@@ -92,7 +92,7 @@ v8::Local<v8::Value> AVStreamDecoderWrap::MakeFromFile(const std::string& path,
     if (!decoder)
         g_throw(Error, "Failed to create decoder for media file");
 
-    return binder::Class<AVStreamDecoderWrap>::create_object(
+    return binder::NewObject<AVStreamDecoderWrap>(
             isolate, std::move(decoder));
 }
 
@@ -152,12 +152,12 @@ v8::Local<v8::Value> AVStreamDecoderWrap::decodeNextFrame()
 
     if (decoded.type == utau::AVStreamDecoder::AVGenericDecoded::kAudio)
     {
-        map["audioBuffer"] = binder::Class<AudioBufferWrap>::create_object(
+        map["audioBuffer"] = binder::NewObject<AudioBufferWrap>(
                 isolate, std::move(decoded.audio));
     }
     else if (decoded.type == utau::AVStreamDecoder::AVGenericDecoded::kVideo)
     {
-        map["videoBuffer"] = binder::Class<VideoBufferWrap>::create_object(
+        map["videoBuffer"] = binder::NewObject<VideoBufferWrap>(
                 isolate, std::move(decoded.video));
     }
 

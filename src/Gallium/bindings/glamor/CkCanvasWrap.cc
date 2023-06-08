@@ -34,31 +34,31 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 namespace {
 
 #define EXTRACT_MAT_CHECKED(arg, result) \
-    auto *result = binder::Class<CkMatrix>::unwrap_object(isolate, arg); \
+    auto *result = binder::UnwrapObject<CkMatrix>(isolate, arg); \
     if (!result) {                       \
         g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkMatrix`"); \
     }
 
 #define EXTRACT_PATH_CHECKED(arg, result) \
-    auto *result = binder::Class<CkPath>::unwrap_object(isolate, arg); \
+    auto *result = binder::UnwrapObject<CkPath>(isolate, arg); \
     if (!result) {                       \
         g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkPath`"); \
     }
 
 #define EXTRACT_PAINT_CHECKED(arg, result) \
-    auto *result = binder::Class<CkPaint>::unwrap_object(isolate, arg); \
+    auto *result = binder::UnwrapObject<CkPaint>(isolate, arg); \
     if (!result) {                       \
         g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkPaint`"); \
     }
 
 #define EXTRACT_IMAGE_CHECKED(arg, result) \
-    auto *result = binder::Class<CkImageWrap>::unwrap_object(isolate, arg); \
+    auto *result = binder::UnwrapObject<CkImageWrap>(isolate, arg); \
     if (!result) {                       \
         g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkImage`"); \
     }
 
 #define EXTRACT_FONT_CHECKED(arg, result) \
-    auto *result = binder::Class<CkFont>::unwrap_object(isolate, arg); \
+    auto *result = binder::UnwrapObject<CkFont>(isolate, arg); \
     if (!result) {                       \
         g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkFont`"); \
     }
@@ -83,7 +83,7 @@ SkPaint *extract_maybe_paint(v8::Isolate *isolate,
     if (v->IsNullOrUndefined())
         return nullptr;
 
-    auto *w = binder::Class<CkPaint>::unwrap_object(isolate, v);
+    auto *w = binder::UnwrapObject<CkPaint>(isolate, v);
     if (!w)
         g_throw(TypeError, fmt::format("Argument `{}` must be an instance of `CkPaint`", argname));
 
@@ -97,7 +97,7 @@ SkMatrix *extract_maybe_matrix(v8::Isolate *isolate,
     if (v->IsNullOrUndefined())
         return nullptr;
 
-    auto *w = binder::Class<CkMatrix>::unwrap_object(isolate, v);
+    auto *w = binder::UnwrapObject<CkMatrix>(isolate, v);
     if (!w)
         g_throw(TypeError, fmt::format("Argument `{}` must be an instance of `CkMatrix`", argname));
 
@@ -110,7 +110,7 @@ sk_sp<SkImageFilter> extract_maybe_imagefilter(v8::Isolate *isolate,
 {
     if (v->IsNullOrUndefined())
         return nullptr;
-    auto *w = binder::Class<CkImageFilterWrap>::unwrap_object(isolate, v);
+    auto *w = binder::UnwrapObject<CkImageFilterWrap>(isolate, v);
     if (!w)
         g_throw(TypeError, fmt::format("Argument `{}` must be an instance of `CkImageFilter`", argname));
     return w->GetSkObject();
@@ -254,7 +254,7 @@ void CkCanvas::clipShader(v8::Local<v8::Value> shader, int32_t op)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK_ENUM_RANGE(op, SkClipOp::kMax_EnumValue)
-    auto *wrapper = binder::Class<CkShaderWrap>::unwrap_object(isolate, shader);
+    auto *wrapper = binder::UnwrapObject<CkShaderWrap>(isolate, shader);
     if (!wrapper)
         g_throw(TypeError, "Argument `shader` must be an instance of `CkShader`");
     canvas_->clipShader(wrapper->GetSkObject(), static_cast<SkClipOp>(op));
@@ -481,7 +481,7 @@ void CkCanvas::drawTextBlob(v8::Local<v8::Value> blob, SkScalar x, SkScalar y,
                             v8::Local<v8::Value> paint)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *blobwrap = binder::Class<CkTextBlob>::unwrap_object(isolate, blob);
+    auto *blobwrap = binder::UnwrapObject<CkTextBlob>(isolate, blob);
     if (!blobwrap)
         g_throw(TypeError, "Argument `blob` must be an instance of `CkTextBlob`");
 
@@ -493,7 +493,7 @@ void CkCanvas::drawPicture(v8::Local<v8::Value> picture, v8::Local<v8::Value> ma
                            v8::Local<v8::Value> paint)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *pict = binder::Class<CkPictureWrap>::unwrap_object(isolate, picture);
+    auto *pict = binder::UnwrapObject<CkPictureWrap>(isolate, picture);
     if (!pict)
         g_throw(TypeError, "Argument `picture` must be an instance of `CkPicture`");
     canvas_->drawPicture(pict->getPicture(),
@@ -507,7 +507,7 @@ void CkCanvas::drawVertices(v8::Local<v8::Value> vertices, int32_t mode,
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK_ENUM_RANGE(mode, SkBlendMode::kLastMode)
     EXTRACT_PAINT_CHECKED(paint, p)
-    auto *vw = binder::Class<CkVertices>::unwrap_object(isolate, vertices);
+    auto *vw = binder::UnwrapObject<CkVertices>(isolate, vertices);
     if (!vw)
         g_throw(TypeError, "Argument `vertices` must be an instance of `CkVertices`");
     canvas_->drawVertices(vw->GetSkObject(), static_cast<SkBlendMode>(mode), p->GetPaint());

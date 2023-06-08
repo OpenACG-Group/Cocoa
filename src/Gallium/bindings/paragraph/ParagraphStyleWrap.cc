@@ -36,13 +36,13 @@ void ParagraphStyleWrap::setStrutStyle(v8::Local<v8::Value> v)
 v8::Local<v8::Value> ParagraphStyleWrap::getTextStyle()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::Class<TextStyleWrap>::create_object(isolate, style_.getTextStyle());
+    return binder::NewObject<TextStyleWrap>(isolate, style_.getTextStyle());
 }
 
 void ParagraphStyleWrap::setTextStyle(v8::Local<v8::Value> v)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *w = binder::Class<TextStyleWrap>::unwrap_object(isolate, v);
+    auto *w = binder::UnwrapObject<TextStyleWrap>(isolate, v);
     if (!w)
         g_throw(TypeError, "Property `textStyle` only can be set a `TextStyle`");
     style_.setTextStyle(w->GetTextStyle());

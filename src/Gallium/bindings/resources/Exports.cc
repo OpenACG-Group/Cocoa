@@ -28,7 +28,13 @@ void SetInstanceProperties(v8::Local<v8::Object> instance)
     std::unordered_map<std::string_view, uint32_t> constants = {
         { "CRPKG_SOURCE_TYPE_UINT8ARRAY", V(CRPKGSourceType::kUint8Array) },
         { "CRPKG_SOURCE_TYPE_FILEPATH", V(CRPKGSourceType::kFilePath) },
-        { "CRPKG_SOURCE_TYPE_CRPKG_STORAGE", V(CRPKGSourceType::kCRPKGStorage) }
+        { "CRPKG_SOURCE_TYPE_CRPKG_STORAGE", V(CRPKGSourceType::kCRPKGStorage) },
+
+        { "IMAGE_ASSET_SIZE_FIT_FILL", V(skresources::ImageAsset::SizeFit::kFill) },
+        { "IMAGE_ASSET_SIZE_FIT_START", V(skresources::ImageAsset::SizeFit::kStart) },
+        { "IMAGE_ASSET_SIZE_FIT_CENTER", V(skresources::ImageAsset::SizeFit::kCenter) },
+        { "IMAGE_ASSET_SIZE_FIT_END", V(skresources::ImageAsset::SizeFit::kEnd) },
+        { "IMAGE_ASSET_SIZE_FIT_NONE", V(skresources::ImageAsset::SizeFit::kNone) }
     };
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();

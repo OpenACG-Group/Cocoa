@@ -26,6 +26,7 @@
 #include "include/gpu/vk/GrVkBackendContext.h"
 #include "include/gpu/GrDirectContext.h"
 #include "include/gpu/GrBackendSemaphore.h"
+#include "include/gpu/ganesh/SkSurfaceGanesh.h"
 
 #include "fmt/format.h"
 
@@ -477,12 +478,13 @@ bool HWComposeSwapchain::CreateGpuBuffers()
 
         GrBackendRenderTarget target(static_cast<int32_t>(vk_swapchain_extent_.width),
                                      static_cast<int32_t>(vk_swapchain_extent_.height), imageInfo);
-        skia_surfaces_[i] = SkSurface::MakeFromBackendRenderTarget(skia_direct_context_.get(),
-                                                                   target,
-                                                                   GrSurfaceOrigin::kTopLeft_GrSurfaceOrigin,
-                                                                   SkColorType::kBGRA_8888_SkColorType,
-                                                                   SkColorSpace::MakeSRGB(),
-                                                                   nullptr);
+
+        skia_surfaces_[i] = SkSurfaces::WrapBackendRenderTarget(skia_direct_context_.get(),
+                                                                target,
+                                                                GrSurfaceOrigin::kTopLeft_GrSurfaceOrigin,
+                                                                SkColorType::kBGRA_8888_SkColorType,
+                                                                SkColorSpace::MakeSRGB(),
+                                                                nullptr);
 
         if (!skia_surfaces_[i])
         {
@@ -592,7 +594,7 @@ void HWComposeSwapchain::SubmitFrame()
 
     GrBackendSurfaceMutableState state(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, graphics_queue_index_);
 
-    if (surface->flush(flushInfo, &state) != GrSemaphoresSubmitted::kYes)
+    if (skia_direct_context_->flush(surface, flushInfo, &state) != GrSemaphoresSubmitted::kYes)
     {
         QLOG(LOG_WARNING, "Failed in submitting current frame");
         return;

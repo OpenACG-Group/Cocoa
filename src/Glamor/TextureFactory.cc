@@ -21,6 +21,7 @@
 #include "include/core/SkCanvas.h"
 #include "include/core/SkBitmap.h"
 #include "include/core/SkImage.h"
+#include "include/gpu/ganesh/SkSurfaceGanesh.h"
 
 #include "Core/Errors.h"
 #include "Core/Journal.h"
@@ -185,10 +186,10 @@ Shared<Texture> HWComposeTextureFactory::OnMakeFromImage(const sk_sp<SkImage>& i
                                             target_alpha_type,
                                             SkColorSpace::MakeSRGB());
 
-        auto surface = SkSurface::MakeRenderTarget(context, skgpu::Budgeted::kNo, image_info);
+        sk_sp<SkSurface> surface = SkSurfaces::RenderTarget(context, skgpu::Budgeted::kNo, image_info);
         if (!surface)
         {
-            // `SkSurface::MakeRenderTarget` fails for many reasons. In most cases
+            // `SkSurfaces::RenderTarget` fails for many reasons. In most cases
             // it is because the parameters are invalid.
             return nullptr;
         }

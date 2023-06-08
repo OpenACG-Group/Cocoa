@@ -15,18 +15,19 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/**
- * Geometry Primitives are mathematical basic geometry elements which can
- * be directly and only used for computation geometry. They are just geometry
- * shapes and do not have the ability to render themselves on canvas.
- */
-export interface GeoPrimitiveBase {
+//! [Sample: SKNATIVE]
+//! Description: Draw shapes by operating memory bytes directly in JavaScript,
+//!              and composite those shapes on SKNATIVE surface.
+
+import * as GL from 'glamor';
+
+// Reference: A fast algorithm for drawing ellipses:
+// https://dai.fmph.uniba.sk/upload/0/01/Ellipse.pdf
+function drawBresenhamEllipse(): void {
+
 }
 
-/**
- * Geometry Views are renderers which are able to render Geometry Primitives
- * on a specific canvas. Most Geometry Primitives have their corresponding
- * Geometry Views to render them.
- */
-export interface GeoViewBase {
+function main() {
 }
+
+main();

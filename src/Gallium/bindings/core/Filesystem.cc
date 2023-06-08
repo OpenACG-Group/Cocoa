@@ -125,7 +125,7 @@ void on_open_callback(uv_fs_t *ptr)
         callback_reject_error_code(req, req->req_.result, req->syscall_);
     else
     {
-        v8::Local<v8::Object> file = binder::Class<FileWrap>::create_object(i, req->req_.result);
+        v8::Local<v8::Object> file = binder::NewObject<FileWrap>(i, req->req_.result);
         req->Resolve(file);
     }
 }
@@ -190,7 +190,7 @@ void on_mkstemp_callback(uv_fs_t *ptr)
         v8::Local<v8::Context> ctx = i->GetCurrentContext();
         v8::Local<v8::Object> w = v8::Object::New(i);
         w->Set(ctx, binder::to_v8(i, "path"), binder::to_v8(i, req->req_.path)).Check();
-        v8::Local<v8::Object> file = binder::Class<FileWrap>::create_object(i, req->req_.result);
+        v8::Local<v8::Object> file = binder::NewObject<FileWrap>(i, req->req_.result);
         w->Set(ctx, binder::to_v8(i, "file"), file).Check();
         req->Resolve(w);
     }
@@ -465,7 +465,7 @@ v8::Local<v8::Value> FileWrap::read(v8::Local<v8::Value> dst, int64_t dstOffset,
     CHECK_CLOSED;
     API_PROLOGUE
 
-    Buffer *pBuffer = binder::Class<Buffer>::unwrap_object(i, dst);
+    Buffer *pBuffer = binder::UnwrapObject<Buffer>(i, dst);
     if (!pBuffer)
     {
         g_throw(TypeError, "Argument 'dst' must be a core.Buffer");
@@ -523,7 +523,7 @@ v8::Local<v8::Value> FileWrap::write(v8::Local<v8::Value> src, int64_t srcOffset
     CHECK_CLOSED;
     API_PROLOGUE
 
-    Buffer *pBuffer = binder::Class<Buffer>::unwrap_object(i, src);
+    Buffer *pBuffer = binder::UnwrapObject<Buffer>(i, src);
     if (!pBuffer)
     {
         g_throw(TypeError, "Argument 'src' must be a core.Buffer");

@@ -307,14 +307,14 @@ public:
     v8::Local<v8::Value> createTextureFromImage(v8::Local<v8::Value> image,
                                                 const std::string& annotation);
 
-    //! TSDecl: function createTextureFromEncodedData(data: core.Buffer,
+    //! TSDecl: function createTextureFromEncodedData(data: Uint8Array,
     //!                                               alphaType: number | null,
     //!                                               annotation: string): Promise<number>
     v8::Local<v8::Value> createTextureFromEncodedData(v8::Local<v8::Value> buffer,
                                                       v8::Local<v8::Value> alphaType,
                                                       const std::string& annotation);
 
-    //! TSDecl: function createTextureFromPixmap(pixels: core.Buffer,
+    //! TSDecl: function createTextureFromPixmap(pixels: Uint8Array,
     //!                                          width: number,
     //!                                          height: number,
     //!                                          colorType: number,
@@ -367,7 +367,7 @@ public:
     //                   | array_expr
     //   INTEGER        := <decimal integer>
     //   FLOAT          := <decimal float>
-    //   ARGUMENT       := %IDENT
+    //   ARGUMENT       := '%' IDENT
     //   NULL           := '_'
     //
     // Examples:
@@ -576,7 +576,7 @@ public:
         return image_;
     }
 
-    //! TSDecl: function MakeFromEncodedData(buffer: core.Buffer): Promise<CkImage>
+    //! TSDecl: function MakeFromEncodedData(buffer: Uint8Array): Promise<CkImage>
     static v8::Local<v8::Value> MakeFromEncodedData(v8::Local<v8::Value> buffer);
 
     //! TSDecl: function MakeFromEncodedFile(path: string): Promise<CkImage>
@@ -600,10 +600,17 @@ public:
     //! TSDecl: function uniqueId(): number
     g_nodiscard uint32_t uniqueId();
 
-    //! TSDecl: function encodeToData(format: uint32_t, quality: number): core.Buffer
-    v8::Local<v8::Value> encodeToData(uint32_t format, int quality);
+    //! TSDecl:
+    //! interface ImageExportedPixelsBuffer {
+    //!   buffer: ArrayBuffer;
+    //!   width: number;
+    //!   height: number;
+    //!   colorType: ColorType;
+    //!   alphaType: AlphaType;
+    //!   rowBytes: number;
+    //! }
 
-    //! TSDecl: function makeSharedPixelsBuffer(): core.Buffer
+    //! TSDecl: function makeSharedPixelsBuffer(): ImageExportedPixelsBuffer
     v8::Local<v8::Value> makeSharedPixelsBuffer();
 
     //! TSDecl: function makeShader(tmx: Enum<TileMode>, tmy: Enum<TileMode>,

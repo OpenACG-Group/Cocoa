@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <info name="pixencoder" description="Encode memory pixels to compressed image formats"/>
+    <metadata namespace="cocoa::gallium::bindings::pixencoder_wrap" class="PixencoderBinding"/>
+    <include src="Gallium/bindings/pixencoder/Exports.h"/>
+
+    <hook on="instantiate" call="SetInstanceProperties"/>
+
+    <import-synthetic name="glamor"/>
+
+    <exports>
+        <toplevel type="declaration" name="Constants"/>
+
+        <class name="PNGEncoder" wrapper="PNGEncoder">
+            <method static="true" name="EncodeImage" value="@EncodeImage"/>
+            <method static="true" name="EncodeMemory" value="@EncodeMemory"/>
+        </class>
+
+        <class name="JPEGEncoder" wrapper="JPEGEncoder">
+            <method static="true" name="EncodeImage" value="@EncodeImage"/>
+            <method static="true" name="EncodeMemory" value="@EncodeMemory"/>
+        </class>
+
+        <class name="WebpEncoder" wrapper="WebpEncoder">
+            <method static="true" name="EncodeImage" value="@EncodeImage"/>
+            <method static="true" name="EncodeMemory" value="@EncodeMemory"/>
+            <method static="true" name="EncodeAnimatedImage" value="@EncodeAnimatedImage"/>
+            <method static="true" name="EncodeAnimatedMemory" value="@EncodeAnimatedMemory"/>
+        </class>
+    </exports>
+</module>

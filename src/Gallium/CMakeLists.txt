@@ -5,6 +5,7 @@ set(CIB_MODULE_XML
         bindings/core/Module.xml
         bindings/typetraits/Module.xml
         bindings/glamor/Module.xml
+        bindings/pixencoder/Module.xml
         bindings/paragraph/Module.xml
         bindings/resources/Module.xml
         bindings/lottie/Module.xml
@@ -16,6 +17,7 @@ set(CIB_OUTPUT_FILE
         ${CMAKE_CURRENT_BINARY_DIR}/module_core.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_typetraits.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_glamor.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/module_pixencoder.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_paragraph.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_resources.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_lottie.cc
@@ -73,6 +75,7 @@ add_library(Gallium STATIC
         binder/Class.cc
         binder/Module.h
         binder/CallV8.h
+        binder/TypeTraits.h
         bindings/Base.h
         ${CIB_OUTPUT_FILE}
 
@@ -147,6 +150,12 @@ add_library(Gallium STATIC
         bindings/glamor/CkPathMeasureWrap.cc
         bindings/glamor/ConcurrentVertexProcessor.h
         bindings/glamor/ConcurrentVertexProcessor.cc
+
+        bindings/pixencoder/Exports.h
+        bindings/pixencoder/Exports.cc
+        bindings/pixencoder/PNGEncoder.cc
+        bindings/pixencoder/JPEGEncoder.cc
+        bindings/pixencoder/WebpEncoder.cc
 
         bindings/paragraph/Exports.h
         bindings/paragraph/Exports.cc

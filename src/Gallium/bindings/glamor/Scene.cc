@@ -86,7 +86,7 @@ v8::Local<v8::Value> Scene::toImage(int32_t width, int32_t height)
                                              SkColorType::kN32_SkColorType,
                                              SkAlphaType::kPremul_SkAlphaType);
 
-        sk_sp<SkSurface> surface = SkSurface::MakeRaster(info);
+        sk_sp<SkSurface> surface = SkSurfaces::Raster(info);
         if (surface == nullptr)
             return nullptr;
         picture->playback(surface->getCanvas());
@@ -104,7 +104,7 @@ v8::Local<v8::Value> Scene::toImage(int32_t width, int32_t height)
         }
         else
         {
-            resolver->Resolve(context, binder::Class<CkImageWrap>::create_object(isolate, image)).Check();
+            resolver->Resolve(context, binder::NewObject<CkImageWrap>(isolate, image)).Check();
         }
         global_resolver->Reset();
     });

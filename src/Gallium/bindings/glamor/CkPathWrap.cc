@@ -24,7 +24,7 @@
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 #define EXTRACT_PATH_CHECKED(arg, result) \
-    auto *result = binder::Class<CkPath>::unwrap_object(isolate, arg); \
+    auto *result = binder::UnwrapObject<CkPath>(isolate, arg); \
     if (!result) {                       \
         g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkPath`"); \
     }
@@ -71,7 +71,7 @@ bool CkPath::IsCubicDegenerate(v8::Local<v8::Value> p1,
 v8::Local<v8::Value> CkPath::clone()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::Class<CkPath>::create_object(isolate, path_);
+    return binder::NewObject<CkPath>(isolate, path_);
 }
 
 bool CkPath::isInterpolatable(v8::Local<v8::Value> compare)
@@ -90,7 +90,7 @@ v8::Local<v8::Value> CkPath::interpolate(v8::Local<v8::Value> ending, SkScalar w
     if (!path_.interpolate(path->path_, weight, &result_path))
         g_throw(Error, "Path is not interpolatable");
 
-    return binder::Class<CkPath>::create_object(isolate, result_path);
+    return binder::NewObject<CkPath>(isolate, result_path);
 }
 
 void CkPath::setFillType(int32_t ft)
@@ -333,7 +333,7 @@ void CkPath::addPathMatrix(v8::Local<v8::Value> src, v8::Local<v8::Value> matrix
     CHECK_ENUM_RANGE(mode, SkPath::AddPathMode::kExtend_AddPathMode)
     EXTRACT_PATH_CHECKED(src, path)
 
-    auto *m = binder::Class<CkMatrix>::unwrap_object(isolate, matrix);
+    auto *m = binder::UnwrapObject<CkMatrix>(isolate, matrix);
     if (!m)
         g_throw(TypeError, "Argument `matrix` must be be an instance of `CkMatrix`");
 
@@ -356,7 +356,7 @@ void CkPath::transform(v8::Local<v8::Value> matrix, int32_t pc)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK_ENUM_RANGE(pc, SkApplyPerspectiveClip::kYes)
-    auto *m = binder::Class<CkMatrix>::unwrap_object(isolate, matrix);
+    auto *m = binder::UnwrapObject<CkMatrix>(isolate, matrix);
     if (!m)
         g_throw(TypeError, "Argument `matrix` must be be an instance of `CkMatrix`");
     path_.transform(m->GetMatrix(), static_cast<SkApplyPerspectiveClip>(pc));

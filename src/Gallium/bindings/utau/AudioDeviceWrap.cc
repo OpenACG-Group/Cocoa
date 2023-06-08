@@ -29,7 +29,7 @@ v8::Local<v8::Value> AudioDeviceWrap::ConnectPipeWire()
     if (!device)
         g_throw(Error, "Failed to connect to PipeWire daemon");
 
-    return binder::Class<AudioDeviceWrap>::create_object(isolate, device);
+    return binder::NewObject<AudioDeviceWrap>(isolate, device);
 }
 
 void AudioDeviceWrap::unref()
@@ -45,7 +45,7 @@ v8::Local<v8::Value> AudioDeviceWrap::createSinkStream(const std::string& name)
     if (!stream)
         g_throw(Error, "Failed to create an audio sink stream");
 
-    return binder::Class<AudioSinkStreamWrap>::create_object(isolate, std::move(stream));
+    return binder::NewObject<AudioSinkStreamWrap>(isolate, std::move(stream));
 }
 
 GALLIUM_BINDINGS_UTAU_NS_END

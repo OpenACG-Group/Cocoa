@@ -33,11 +33,11 @@ v8::Local<v8::Value> CkPathMeasureWrap::Make(v8::Local<v8::Value> path, bool for
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    CkPath *path_wrap = binder::Class<CkPath>::unwrap_object(isolate, path);
+    CkPath *path_wrap = binder::UnwrapObject<CkPath>(isolate, path);
     if (!path_wrap)
         g_throw(TypeError, "Argument `path` must be an instance of `CkPath`");
 
-    return binder::Class<CkPathMeasureWrap>::create_object(
+    return binder::NewObject<CkPathMeasureWrap>(
             isolate, path_wrap->GetPath(), forceClosed, resScale);
 }
 
@@ -51,7 +51,7 @@ void CkPathMeasureWrap::setPath(v8::Local<v8::Value> path, bool forceClosed)
         return;
     }
 
-    CkPath *path_wrap = binder::Class<CkPath>::unwrap_object(isolate, path);
+    CkPath *path_wrap = binder::UnwrapObject<CkPath>(isolate, path);
     if (!path_wrap)
         g_throw(TypeError, "Argument `path` must be an instance of `CkPath`");
 
@@ -99,7 +99,7 @@ v8::Local<v8::Value> CkPathMeasureWrap::getMatrix(SkScalar distance, uint32_t fl
     if (!measure_.getMatrix(distance, &mat, static_cast<SkPathMeasure::MatrixFlags>(flags)))
         return v8::Null(isolate);
 
-    return binder::Class<CkMatrix>::create_object(isolate, mat);
+    return binder::NewObject<CkMatrix>(isolate, mat);
 }
 
 v8::Local<v8::Value> CkPathMeasureWrap::getSegment(SkScalar startD, SkScalar stopD, bool startWithMoveTo)
@@ -111,7 +111,7 @@ v8::Local<v8::Value> CkPathMeasureWrap::getSegment(SkScalar startD, SkScalar sto
     if (!measure_.getSegment(startD, stopD, &dst, startWithMoveTo))
         return v8::Null(isolate);
 
-    return binder::Class<CkPath>::create_object(isolate, dst);
+    return binder::NewObject<CkPath>(isolate, dst);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

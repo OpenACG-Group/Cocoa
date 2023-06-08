@@ -45,7 +45,7 @@ v8::Local<v8::Value> CkFontMgr::createStyleSet(int index)
         g_throw(RangeError, "Invalid family index");
 
     sk_sp<SkFontStyleSet> set(GetSkObject()->createStyleSet(index));
-    return binder::Class<CkFontStyleSet>::create_object(
+    return binder::NewObject<CkFontStyleSet>(
             v8::Isolate::GetCurrent(), set);
 }
 
@@ -62,7 +62,7 @@ v8::Local<v8::Value> CkFontMgr::matchFamilyStyle(v8::Local<v8::Value> family_nam
         name = binder::from_v8<std::string>(isolate, family_name);
     }
 
-    auto *w = binder::Class<CkFontStyle>::unwrap_object(isolate, style);
+    auto *w = binder::UnwrapObject<CkFontStyle>(isolate, style);
     if (!w)
         g_throw(TypeError, "Argument `style` must be an instance of `CkFontStyle`");
 
@@ -71,7 +71,7 @@ v8::Local<v8::Value> CkFontMgr::matchFamilyStyle(v8::Local<v8::Value> family_nam
     if (!tf)
         return v8::Null(isolate);
 
-    return binder::Class<CkTypeface>::create_object(isolate, tf);
+    return binder::NewObject<CkTypeface>(isolate, tf);
 }
 
 v8::Local<v8::Value> CkFontMgr::makeFromFile(const std::string& path, int32_t ttc_index)
@@ -80,7 +80,7 @@ v8::Local<v8::Value> CkFontMgr::makeFromFile(const std::string& path, int32_t tt
     sk_sp<SkTypeface> tf = GetSkObject()->makeFromFile(path.c_str(), ttc_index);
     if (!tf)
         g_throw(Error, fmt::format("Failed to make typeface from file {}", path));
-    return binder::Class<CkTypeface>::create_object(isolate, tf);
+    return binder::NewObject<CkTypeface>(isolate, tf);
 }
 
 namespace {
@@ -123,7 +123,7 @@ v8::Local<v8::Value> CkFontMgr::makeFromData(v8::Local<v8::Value> data, int32_t 
     if (!tf)
         g_throw(Error, "Failed to create typeface from provided data");
 
-    return binder::Class<CkTypeface>::create_object(isolate, tf);
+    return binder::NewObject<CkTypeface>(isolate, tf);
 }
 
 int CkFontStyleSet::count()
@@ -139,7 +139,7 @@ v8::Local<v8::Value> CkFontStyleSet::getStyle(int index)
     SkFontStyle style;
     GetSkObject()->getStyle(index, &style, nullptr);
 
-    return binder::Class<CkFontStyle>::create_object(
+    return binder::NewObject<CkFontStyle>(
             v8::Isolate::GetCurrent(), style);
 }
 
@@ -162,13 +162,13 @@ v8::Local<v8::Value> CkFontStyleSet::createTypeface(int index)
     if (!tf)
         return v8::Null(v8::Isolate::GetCurrent());
 
-    return binder::Class<CkTypeface>::create_object(v8::Isolate::GetCurrent(), tf);
+    return binder::NewObject<CkTypeface>(v8::Isolate::GetCurrent(), tf);
 }
 
 v8::Local<v8::Value> CkFontStyleSet::matchStyle(v8::Local<v8::Value> pattern)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *w = binder::Class<CkFontStyle>::unwrap_object(isolate, pattern);
+    auto *w = binder::UnwrapObject<CkFontStyle>(isolate, pattern);
     if (!w)
         g_throw(TypeError, "Argument `pattern` must be an instance of `CkFontStyle`");
 
@@ -176,7 +176,7 @@ v8::Local<v8::Value> CkFontStyleSet::matchStyle(v8::Local<v8::Value> pattern)
     if (!tf)
         return v8::Null(isolate);
 
-    return binder::Class<CkTypeface>::create_object(isolate, tf);
+    return binder::NewObject<CkTypeface>(isolate, tf);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

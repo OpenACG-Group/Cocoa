@@ -22,6 +22,7 @@
 #include "include/core/SkSurface.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkDeferredDisplayListRecorder.h"
+#include "include/gpu/ganesh/SkSurfaceGanesh.h"
 
 #include "Core/StandaloneThreadPool.h"
 
@@ -142,8 +143,9 @@ HWComposeTileFrameGenerator::HWComposeTileFrameGenerator(const Shared<Blender>& 
 
         SkImageInfo textureImageInfo = SkImageInfo::Make(SkISize::Make(clip.width(), clip.height()),
                                                          blender->GetOutputColorInfo());
-        sk_sp<SkSurface> texture = SkSurface::MakeRenderTarget(directCtx.get(), skgpu::Budgeted::kNo,
-                                                               textureImageInfo);
+        sk_sp<SkSurface> texture = SkSurfaces::RenderTarget(directCtx.get(),
+                                                            skgpu::Budgeted::kNo,
+                                                            textureImageInfo);
 
         if (!texture)
             throw RuntimeException(__func__, "Failed to create texture for tiles");

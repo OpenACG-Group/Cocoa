@@ -33,7 +33,7 @@ CkMatrix *unwrap_matrix(v8::Isolate *isolate, v8::Local<v8::Value> object,
     CHECK(isolate);
     if (!object->IsObject())
         g_throw(TypeError, fmt::format("Argument `{}` must be a CkMatrix", argname));
-    CkMatrix *w = binder::Class<CkMatrix>::unwrap_object(isolate, object);
+    CkMatrix *w = binder::UnwrapObject<CkMatrix>(isolate, object);
     if (!w)
         g_throw(TypeError, fmt::format("Argument `{}` must be a CkMatrix", argname));
     return w;
@@ -131,7 +131,7 @@ v8::Local<v8::Value> VertexBatchBuilder::addVertexGroup(v8::Local<v8::Value> pos
 v8::Local<v8::Value> VertexBatchBuilder::build()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::Local<v8::Object> batch = binder::Class<VertexBatch>::create_object(
+    v8::Local<v8::Object> batch = binder::NewObject<VertexBatch>(
             isolate, std::move(matrix_store_), std::move(groups_));
 
     std::stack<int32_t> empty_st1, empty_st2;
@@ -290,7 +290,7 @@ v8::Local<v8::Value> ConcurrentVertexProcessor::transform(v8::Local<v8::Value> b
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    auto *batch_ptr = binder::Class<VertexBatch>::unwrap_object(isolate, batch);
+    auto *batch_ptr = binder::UnwrapObject<VertexBatch>(isolate, batch);
     if (!batch_ptr)
         g_throw(TypeError, "Argument `batch` must be an instance of `VertexBatch`");
 

@@ -214,7 +214,7 @@ MediaFramePresentDispatcher::MediaFramePresentDispatcher(v8::Local<v8::Value> de
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    decoder_wrap_ = binder::Class<AVStreamDecoderWrap>::unwrap_object(isolate, decoder);
+    decoder_wrap_ = binder::UnwrapObject<AVStreamDecoderWrap>(isolate, decoder);
     if (!decoder_wrap_)
         g_throw(TypeError, "Argument `decoder` must be an instance of `AVStreamDecoder`");
     decoder_js_obj_.Reset(isolate, v8::Local<v8::Object>::Cast(decoder));
@@ -230,7 +230,7 @@ MediaFramePresentDispatcher::MediaFramePresentDispatcher(v8::Local<v8::Value> de
             g_throw(Error, "Failed to get audio stream info");
         audio_stinfo_ = *maybe;
 
-        asinkstream_wrap_ = binder::Class<AudioSinkStreamWrap>::unwrap_object(isolate, audioSinkStream);
+        asinkstream_wrap_ = binder::UnwrapObject<AudioSinkStreamWrap>(isolate, audioSinkStream);
         if (!asinkstream_wrap_)
             g_throw(TypeError, "Argument `audioSinkStream` must be an instance of `AudioSinkStream`");
         asinkstream_js_obj_.Reset(isolate, v8::Local<v8::Object>::Cast(audioSinkStream));
@@ -560,7 +560,7 @@ void MediaFramePresentDispatcher::PresentRequestHandler(uv_async_t *handle)
         else if (req.vbuffer && has_vp)
         {
             // TODO(sora): drop frames with too long latency
-            v8::Local<v8::Value> obj = binder::Class<VideoBufferWrap>::create_object(
+            v8::Local<v8::Value> obj = binder::NewObject<VideoBufferWrap>(
                     isolate, req.vbuffer);
 
             v8::Local<v8::Value> args[] = { obj, binder::to_v8(isolate, req.frame_pts_seconds) };

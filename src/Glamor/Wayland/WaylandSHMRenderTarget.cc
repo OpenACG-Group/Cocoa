@@ -179,7 +179,7 @@ void WaylandSHMRenderTarget::AllocateAppendBuffers(int32_t count, int32_t width,
         buffer->rt = this;
 
         SkImageInfo info = SkImageInfo::Make(width, height, format, SkAlphaType::kPremul_SkAlphaType);
-        buffer->surface = SkSurface::MakeRasterDirect(info, buffer->ptr, stride);
+        buffer->surface = SkSurfaces::WrapPixels(info, buffer->ptr, stride);
 
         wl_buffer_add_listener(buffer->buffer, &g_buffer_listener, buffer.get());
 
@@ -324,7 +324,7 @@ sk_sp<SkSurface> WaylandSHMRenderTarget::OnCreateOffscreenBackendSurface(const S
 {
     // TODO(sora): Is there a more appropriate way to allocate the pixels?
     //             (like allocate them in shared memory or by Wayland compositor)
-    sk_sp<SkSurface> surface = SkSurface::MakeRaster(info);
+    sk_sp<SkSurface> surface = SkSurfaces::Raster(info);
     return surface;
 }
 

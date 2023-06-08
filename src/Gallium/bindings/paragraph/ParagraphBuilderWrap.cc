@@ -34,11 +34,11 @@ v8::Local<v8::Value> ParagraphBuilderWrap::Make(v8::Local<v8::Value> paragraph_s
                                                 v8::Local<v8::Value> font_mgr)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *parastyle = binder::Class<ParagraphStyleWrap>::unwrap_object(isolate, paragraph_style);
+    auto *parastyle = binder::UnwrapObject<ParagraphStyleWrap>(isolate, paragraph_style);
     if (!parastyle)
         g_throw(TypeError, "Argument `paragraphStyle` must be a `ParagraphStyle` object");
 
-    auto *fontmgr = binder::Class<glamor_wrap::CkFontMgr>::unwrap_object(isolate, font_mgr);
+    auto *fontmgr = binder::UnwrapObject<glamor_wrap::CkFontMgr>(isolate, font_mgr);
     if (!fontmgr)
         g_throw(TypeError, "Argument `fontMgr` must be a `glamor.CkFontMgr` object");
 
@@ -48,10 +48,10 @@ v8::Local<v8::Value> ParagraphBuilderWrap::Make(v8::Local<v8::Value> paragraph_s
     // FIXME(sora): This API is just until Skia fixes all code
     auto builder = para::ParagraphBuilderImpl::make(parastyle->GetStyle(), collection);
 
-    auto obj = binder::Class<ParagraphBuilderWrap>::create_object(
+    auto obj = binder::NewObject<ParagraphBuilderWrap>(
             isolate, isolate, std::move(builder));
 
-    auto *wrapper = binder::Class<ParagraphBuilderWrap>::unwrap_object(isolate, obj);
+    auto *wrapper = binder::UnwrapObject<ParagraphBuilderWrap>(isolate, obj);
     CHECK(wrapper);
     wrapper->self_.Reset(isolate, obj);
 
@@ -61,7 +61,7 @@ v8::Local<v8::Value> ParagraphBuilderWrap::Make(v8::Local<v8::Value> paragraph_s
 v8::Local<v8::Value> ParagraphBuilderWrap::pushStyle(v8::Local<v8::Value> style)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *w = binder::Class<TextStyleWrap>::unwrap_object(isolate, style);
+    auto *w = binder::UnwrapObject<TextStyleWrap>(isolate, style);
     if (!w)
         g_throw(TypeError, "Argument `style` must be a `TextStyle` object");
 
@@ -108,7 +108,7 @@ v8::Local<v8::Value> ParagraphBuilderWrap::build()
     if (!result)
         g_throw(Error, "Failed to build paragraph");
 
-    return binder::Class<ParagraphWrap>::create_object(isolate, std::move(result));
+    return binder::NewObject<ParagraphWrap>(isolate, std::move(result));
 }
 
 GALLIUM_BINDINGS_PARAGRAPH_NS_END

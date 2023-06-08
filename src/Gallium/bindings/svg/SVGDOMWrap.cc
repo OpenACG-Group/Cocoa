@@ -34,7 +34,7 @@ void SVGDOMWrap::render(v8::Local<v8::Value> canvas)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     glamor_wrap::CkCanvas *wrap =
-            binder::Class<glamor_wrap::CkCanvas>::unwrap_object(isolate, canvas);
+            binder::UnwrapObject<glamor_wrap::CkCanvas>(isolate, canvas);
     if (!wrap)
         g_throw(TypeError, "Argument `canvas` must be an instance of `CkCanvas`");
 
@@ -45,7 +45,7 @@ v8::Local<v8::Value> SVGDOMWrap::intrinsicSize(v8::Local<v8::Value> ctx)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     SVGLengthContextWrap *wrap =
-            binder::Class<SVGLengthContextWrap>::unwrap_object(isolate, ctx);
+            binder::UnwrapObject<SVGLengthContextWrap>(isolate, ctx);
 
     if (!wrap)
         g_throw(TypeError, "Argument `ctx` must be an instance of `SVGLengthContext`");

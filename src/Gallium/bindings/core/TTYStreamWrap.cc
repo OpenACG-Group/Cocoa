@@ -65,7 +65,7 @@ v8::Local<v8::Value> TTYStreamWrap::OpenFromFd(int fd)
     if (ret < 0)
         g_throw(Error, fmt::format("Failed to open TTY: {}", uv_strerror(ret)));
 
-    return binder::Class<TTYStreamWrap>::create_object(isolate, tty);
+    return binder::NewObject<TTYStreamWrap>(isolate, tty);
 }
 
 GALLIUM_BINDINGS_NS_END

@@ -178,7 +178,7 @@ v8::Local<v8::Value> CkColorFilterWrap::MakeFromDSL(v8::Local<v8::Value> dsl,
                                                v8::Local<v8::Object>::Cast(kwargs),
                                                g_color_filter_builders_map);
 
-    return binder::Class<CkColorFilterWrap>::create_object(isolate,
+    return binder::NewObject<CkColorFilterWrap>(isolate,
                                                            effector.CheckColorFilter());
 }
 
@@ -195,7 +195,7 @@ v8::Local<v8::Value> CkColorFilterWrap::serialize()
 v8::Local<v8::Value> CkColorFilterWrap::Deserialize(v8::Local<v8::Value> buffer)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    Buffer *wrapper = binder::Class<Buffer>::unwrap_object(isolate, buffer);
+    Buffer *wrapper = binder::UnwrapObject<Buffer>(isolate, buffer);
     if (!wrapper)
         g_throw(TypeError, "Argument `buffer` must be an instance of core:Buffer");
 
@@ -203,7 +203,7 @@ v8::Local<v8::Value> CkColorFilterWrap::Deserialize(v8::Local<v8::Value> buffer)
     if (!filter)
         g_throw(Error, "Failed to deserialize the given buffer as an color filter");
 
-    return binder::Class<CkImageFilterWrap>::create_object(isolate, filter);
+    return binder::NewObject<CkImageFilterWrap>(isolate, filter);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

@@ -181,7 +181,7 @@ uint32_t CkPictureWrap::approximateByteUsed()
 v8::Local<v8::Value> CkPictureWrap::MakeFromData(v8::Local<v8::Value> bufferObject)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    Buffer *buffer = binder::Class<Buffer>::unwrap_object(isolate, bufferObject);
+    Buffer *buffer = binder::UnwrapObject<Buffer>(isolate, bufferObject);
     if (!buffer)
         g_throw(TypeError, "'buffer' must be an instance of core.Buffer");
 
@@ -189,7 +189,7 @@ v8::Local<v8::Value> CkPictureWrap::MakeFromData(v8::Local<v8::Value> bufferObje
     if (!pict)
         g_throw(Error, "Cannot serialize a CkPicture from buffer");
 
-    return binder::Class<CkPictureWrap>::create_object(isolate, pict);
+    return binder::NewObject<CkPictureWrap>(isolate, pict);
 }
 
 v8::Local<v8::Value> CkPictureWrap::MakeFromFile(const std::string& path)
@@ -202,7 +202,7 @@ v8::Local<v8::Value> CkPictureWrap::MakeFromFile(const std::string& path)
     if (!pict)
         g_throw(Error, fmt::format("Cannot serialize a CkPicture from {}", path));
 
-    return binder::Class<CkPictureWrap>::create_object(v8::Isolate::GetCurrent(), pict);
+    return binder::NewObject<CkPictureWrap>(v8::Isolate::GetCurrent(), pict);
 }
 
 uint32_t CkPictureWrap::uniqueId()

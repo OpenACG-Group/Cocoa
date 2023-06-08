@@ -194,7 +194,7 @@ std::shared_ptr<Data> create_data_from_source(v8::Isolate *isolate,
     case CRPKGSourceType::kCRPKGStorage:
     {
         CRPKGStorageWrap *wrap =
-                binder::Class<CRPKGStorageWrap>::unwrap_object(isolate, prop_source_val);
+                binder::UnwrapObject<CRPKGStorageWrap>(isolate, prop_source_val);
         if (!wrap)
         {
             g_throw(TypeError, "Invalid value for property "
@@ -274,7 +274,7 @@ v8::Local<v8::Value> CRPKGVirtualDiskWrap::MakeLayers(v8::Local<v8::Value> layer
     if (!disk)
         g_throw(Error, "Failed to create CRPKG layered virtual disk");
 
-    return binder::Class<CRPKGVirtualDiskWrap>::create_object(isolate, std::move(disk));
+    return binder::NewObject<CRPKGVirtualDiskWrap>(isolate, std::move(disk));
 }
 
 v8::Local<v8::Value> CRPKGVirtualDiskWrap::resolve(const v8::Local<v8::String>& path)
@@ -289,7 +289,7 @@ v8::Local<v8::Value> CRPKGVirtualDiskWrap::resolve(const v8::Local<v8::String>& 
 
     // Storage wrapper holds a reference of `crpkg::VirtualDisk` to keep
     // the storage data available.
-    return binder::Class<CRPKGStorageWrap>::create_object(
+    return binder::NewObject<CRPKGStorageWrap>(
             isolate, disk_, *storage);
 }
 

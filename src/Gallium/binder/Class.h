@@ -528,6 +528,19 @@ private:
     }
 };
 
+template<typename T, typename Traits = raw_ptr_traits>
+T *UnwrapObject(v8::Isolate *isolate, v8::Local<v8::Value> value)
+{
+    return Class<T, Traits>::unwrap_object(isolate, value);
+}
+
+template<typename T, typename...ArgsT>
+v8::Local<v8::Object> NewObject(v8::Isolate *isolate, ArgsT&&...args)
+{
+    return Class<T, raw_ptr_traits>::create_object(
+            isolate, std::forward<ArgsT>(args)...);
+}
+
 /// Interface to access C++ classes bound to V8
 /// Objects are stored in std::shared_ptr
 template<typename T>

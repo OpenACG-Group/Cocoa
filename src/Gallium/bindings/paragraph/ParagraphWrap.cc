@@ -35,7 +35,7 @@ void ParagraphWrap::layout(SkScalar width)
 void ParagraphWrap::paint(v8::Local<v8::Value> canvas, SkScalar x, SkScalar y)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *w = binder::Class<glamor_wrap::CkCanvas>::unwrap_object(isolate, canvas);
+    auto *w = binder::UnwrapObject<glamor_wrap::CkCanvas>(isolate, canvas);
     if (!w)
         g_throw(TypeError, "Argument `canvas` must be a `glamor.CkCanvas` object");
 

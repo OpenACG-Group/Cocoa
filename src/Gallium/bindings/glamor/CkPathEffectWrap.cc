@@ -175,7 +175,7 @@ v8::Local<v8::Value> CkPathEffect::MakeFromDSL(v8::Local<v8::Value> dsl,
                                                v8::Local<v8::Object>::Cast(kwargs),
                                                g_path_effect_builders_map);
 
-    return binder::Class<CkPathEffect>::create_object(
+    return binder::NewObject<CkPathEffect>(
             isolate, effector.CheckPathEffect());
 }
 

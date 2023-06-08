@@ -19,6 +19,7 @@
 #include "include/core/SkMatrix.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkSurface.h"
+#include "include/gpu/ganesh/SkSurfaceGanesh.h"
 #include "fmt/format.h"
 
 #include "Glamor/Layers/RasterCacheKey.h"
@@ -104,11 +105,11 @@ sk_sp<SkSurface> RasterCache::CreateSurface(SkISize size,
     sk_sp<SkSurface> surface;
     if (direct_context_)
     {
-        surface = SkSurface::MakeRenderTarget(direct_context_, skgpu::Budgeted::kNo, image_info);
+        surface = SkSurfaces::RenderTarget(direct_context_, skgpu::Budgeted::kNo, image_info);
     }
     else
     {
-        surface = SkSurface::MakeRaster(image_info);
+        surface = SkSurfaces::Raster(image_info);
     }
 
     return surface;

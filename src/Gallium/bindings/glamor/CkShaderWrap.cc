@@ -251,14 +251,14 @@ v8::Local<v8::Value> CkShaderWrap::MakeFromDSL(v8::Local<v8::Value> dsl,
                                                v8::Local<v8::Object>::Cast(kwargs),
                                                g_shader_builders_map);
 
-    return binder::Class<CkShaderWrap>::create_object(
+    return binder::NewObject<CkShaderWrap>(
             isolate, effector.CheckShader());
 }
 
 v8::Local<v8::Value> CkShaderWrap::makeWithLocalMatrix(v8::Local<v8::Value> matrix)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *m = binder::Class<CkMatrix>::unwrap_object(isolate, matrix);
+    auto *m = binder::UnwrapObject<CkMatrix>(isolate, matrix);
     if (!m)
         g_throw(TypeError, "Argument `matrix` must be an instance of `CkMatrix`");
 
@@ -266,13 +266,13 @@ v8::Local<v8::Value> CkShaderWrap::makeWithLocalMatrix(v8::Local<v8::Value> matr
     if (!result)
         g_throw(Error, "Failed to make shader with local matrix");
 
-    return binder::Class<CkShaderWrap>::create_object(isolate, result);
+    return binder::NewObject<CkShaderWrap>(isolate, result);
 }
 
 v8::Local<v8::Value> CkShaderWrap::makeWithColorFilter(v8::Local<v8::Value> filter)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *f = binder::Class<CkColorFilterWrap>::unwrap_object(isolate, filter);
+    auto *f = binder::UnwrapObject<CkColorFilterWrap>(isolate, filter);
     if (!f)
         g_throw(TypeError, "Argument `filter` must be an instance of `CkFilter`");
 
@@ -280,7 +280,7 @@ v8::Local<v8::Value> CkShaderWrap::makeWithColorFilter(v8::Local<v8::Value> filt
     if (!result)
         g_throw(Error, "Failed to make shader with color filter");
 
-    return binder::Class<CkShaderWrap>::create_object(isolate, result);
+    return binder::NewObject<CkShaderWrap>(isolate, result);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

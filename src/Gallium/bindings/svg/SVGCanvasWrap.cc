@@ -69,7 +69,7 @@ v8::Local<v8::Value> SVGCanvasWrap::Make(v8::Local<v8::Value> bounds,
     auto stream = std::make_unique<SVGJSWStreamImpl>(isolate, writer.As<v8::Function>());
     std::unique_ptr<SkCanvas> canvas = SkSVGCanvas::Make(rect, stream.get(), flags);
 
-    return binder::Class<SVGCanvasWrap>::create_object(
+    return binder::NewObject<SVGCanvasWrap>(
             isolate, std::move(canvas), std::move(stream));
 }
 

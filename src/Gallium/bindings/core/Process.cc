@@ -270,7 +270,7 @@ v8::Local<v8::Value> ProcessWrap::Fork(v8::Local<v8::Object> options)
                 proc_opts.stdio[field.second].flags = static_cast<uv_stdio_flags>(flags);
                 proc_opts.stdio[field.second].data.stream = reinterpret_cast<uv_stream_t *>(pipe);
 
-                streams[field.second] = binder::Class<StreamWrap>::create_object(isolate,
+                streams[field.second] = binder::NewObject<StreamWrap>(isolate,
                         reinterpret_cast<uv_stream_t *>(pipe));
                 */
 
@@ -287,8 +287,8 @@ v8::Local<v8::Value> ProcessWrap::Fork(v8::Local<v8::Object> options)
 #undef Tp
 
     auto *proc = new uv_process_t;
-    v8::Local<v8::Object> resultObject = binder::Class<ProcessWrap>::create_object(isolate, proc, streams);
-    binder::Class<ProcessWrap>::unwrap_object(isolate, resultObject)->setGCObjectSelfHandle(resultObject);
+    v8::Local<v8::Object> resultObject = binder::NewObject<ProcessWrap>(isolate, proc, streams);
+    binder::UnwrapObject<ProcessWrap>(isolate, resultObject)->setGCObjectSelfHandle(resultObject);
 
     int ret = uv_spawn(EventLoop::Ref().handle(), proc, &proc_opts);
     if (ret < 0)

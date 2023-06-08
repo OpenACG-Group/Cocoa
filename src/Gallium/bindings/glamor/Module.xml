@@ -289,14 +289,15 @@
             <property name="height" getter="@getHeight"/>
             <property name="generationID" getter="@getGenerationID"/>
             <property name="imageInfo" getter="@getImageInfo"/>
+            <property name="sharedPixels" getter="@getSharedPixels"/>
             <method static="true" name="MakeRaster" value="@MakeRaster"/>
             <method static="true" name="MakeNull" value="@MakeNull"/>
+            <method static="true" name="MakeSharedPixels" value="@MakeSharedPixels"/>
             <method name="getCanvas" value="@getCanvas"/>
             <method name="makeSurface" value="@makeSurface"/>
             <method name="makeImageSnapshot" value="@makeImageSnapshot"/>
             <method name="draw" value="@draw"/>
             <method name="readPixels" value="@readPixels"/>
-            <method name="peekPixels" value="@peekPixels"/>
         </class>
 
         <class name="CkCanvas" wrapper="CkCanvas">
@@ -493,7 +494,6 @@
             <method static="true" name="MakeFromEncodedData" value="@MakeFromEncodedData"/>
             <method static="true" name="MakeFromEncodedFile" value="@MakeFromEncodedFile"/>
             <method static="true" name="MakeFromVideoBuffer" value="@MakeFromVideoBuffer"/>
-            <method name="encodeToData" value="@encodeToData"/>
             <method name="uniqueId" value="@uniqueId"/>
             <method name="makeSharedPixelsBuffer" value="@makeSharedPixelsBuffer"/>
             <method name="makeShader" value="@makeShader"/>

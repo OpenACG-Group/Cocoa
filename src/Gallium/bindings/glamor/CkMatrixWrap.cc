@@ -21,7 +21,7 @@
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 #define EXTRACT_MAT_CHECKED(arg, result) \
-    auto *result = binder::Class<CkMatrix>::unwrap_object(isolate, arg); \
+    auto *result = binder::UnwrapObject<CkMatrix>(isolate, arg); \
     if (!result) {                       \
         g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkPath`"); \
     }
@@ -31,37 +31,35 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
         g_throw(RangeError, "Invalid enumeration value for arguemnt `" #v "`"); \
     }
 
-using CLASS = binder::Class<CkMatrix>;
-
 v8::Local<v8::Value> CkMatrix::Identity()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return CLASS::create_object(isolate, SkMatrix::I());
+    return binder::NewObject<CkMatrix>(isolate, SkMatrix::I());
 }
 
 v8::Local<v8::Value> CkMatrix::Scale(SkScalar sx, SkScalar sy)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return CLASS::create_object(isolate, SkMatrix::Scale(sx, sy));
+    return binder::NewObject<CkMatrix>(isolate, SkMatrix::Scale(sx, sy));
 }
 
 v8::Local<v8::Value> CkMatrix::Translate(SkScalar dx, SkScalar dy)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return CLASS::create_object(isolate, SkMatrix::Translate(dx, dy));
+    return binder::NewObject<CkMatrix>(isolate, SkMatrix::Translate(dx, dy));
 }
 
 v8::Local<v8::Value> CkMatrix::RotateRad(SkScalar rad, v8::Local<v8::Value> pt)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return CLASS::create_object(isolate, SkMatrix::RotateDeg(SkRadiansToDegrees(rad),
+    return binder::NewObject<CkMatrix>(isolate, SkMatrix::RotateDeg(SkRadiansToDegrees(rad),
                                                              ExtractCkPoint(isolate, pt)));
 }
 
 v8::Local<v8::Value> CkMatrix::Skew(SkScalar kx, SkScalar ky)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return CLASS::create_object(isolate, SkMatrix::Skew(kx, ky));
+    return binder::NewObject<CkMatrix>(isolate, SkMatrix::Skew(kx, ky));
 }
 
 v8::Local<v8::Value> CkMatrix::RectToRect(v8::Local<v8::Value> src,
@@ -69,7 +67,7 @@ v8::Local<v8::Value> CkMatrix::RectToRect(v8::Local<v8::Value> src,
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK_ENUM_RANGE(mode, SkMatrix::kEnd_ScaleToFit)
-    return CLASS::create_object(isolate, SkMatrix::MakeRectToRect(ExtractCkRect(isolate, src),
+    return binder::NewObject<CkMatrix>(isolate, SkMatrix::MakeRectToRect(ExtractCkRect(isolate, src),
                                                                   ExtractCkRect(isolate, dst),
                                                                   static_cast<SkMatrix::ScaleToFit>(mode)));
 }
@@ -85,7 +83,7 @@ v8::Local<v8::Value> CkMatrix::All(SkScalar scaleX,
                                    SkScalar pers2)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return CLASS::create_object(isolate, SkMatrix::MakeAll(scaleX, skewX, transX,
+    return binder::NewObject<CkMatrix>(isolate, SkMatrix::MakeAll(scaleX, skewX, transX,
                                                            skewY, scaleY, transY,
                                                            pers0, pers1, pers2));
 }
@@ -95,7 +93,7 @@ v8::Local<v8::Value> CkMatrix::Concat(v8::Local<v8::Value> a, v8::Local<v8::Valu
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     EXTRACT_MAT_CHECKED(a, ma)
     EXTRACT_MAT_CHECKED(b, mb)
-    return CLASS::create_object(isolate, SkMatrix::Concat(ma->matrix_, mb->matrix_));
+    return binder::NewObject<CkMatrix>(isolate, SkMatrix::Concat(ma->matrix_, mb->matrix_));
 }
 
 #define IMPL_PROP_SETTER_GETTER(prop) \
@@ -118,7 +116,7 @@ IMPL_PROP_SETTER_GETTER2(PerspectiveY, PerspY)
 v8::Local<v8::Value> CkMatrix::clone()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return CLASS::create_object(isolate, matrix_);
+    return binder::NewObject<CkMatrix>(isolate, matrix_);
 }
 
 bool CkMatrix::rectStaysRect()
@@ -201,7 +199,7 @@ v8::Local<v8::Value> CkMatrix::invert()
     SkMatrix mat;
     if (!matrix_.invert(&mat))
         return v8::Null(isolate);
-    return CLASS::create_object(isolate, mat);
+    return binder::NewObject<CkMatrix>(isolate, mat);
 }
 
 void CkMatrix::normalizePerspective()

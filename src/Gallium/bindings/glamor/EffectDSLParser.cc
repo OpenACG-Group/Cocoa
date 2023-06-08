@@ -561,28 +561,28 @@ EffectStackOperand::Nullable<Effector> EffectStackOperand::ToEffectorSafe()
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK(isolate);
 
-    auto *img_flt_wrapped = binder::Class<CkImageFilterWrap>::unwrap_object(isolate, kwarg_pair.second);
+    auto *img_flt_wrapped = binder::UnwrapObject<CkImageFilterWrap>(isolate, kwarg_pair.second);
     if (img_flt_wrapped)
     {
         CHECK(img_flt_wrapped->GetSkObject());
         return Effector(img_flt_wrapped->GetSkObject());
     }
 
-    auto *color_flt_wrapped = binder::Class<CkColorFilterWrap>::unwrap_object(isolate, kwarg_pair.second);
+    auto *color_flt_wrapped = binder::UnwrapObject<CkColorFilterWrap>(isolate, kwarg_pair.second);
     if (color_flt_wrapped)
     {
         CHECK(color_flt_wrapped->GetSkObject());
         return Effector(color_flt_wrapped->GetSkObject());
     }
 
-    auto *shader_wrapped = binder::Class<CkShaderWrap>::unwrap_object(isolate, kwarg_pair.second);
+    auto *shader_wrapped = binder::UnwrapObject<CkShaderWrap>(isolate, kwarg_pair.second);
     if (shader_wrapped)
     {
         CHECK(shader_wrapped->GetSkObject());
         return Effector(shader_wrapped->GetSkObject());
     }
 
-    auto *patheffect_wrapped = binder::Class<CkPathEffect>::unwrap_object(isolate, kwarg_pair.second);
+    auto *patheffect_wrapped = binder::UnwrapObject<CkPathEffect>(isolate, kwarg_pair.second);
     if (patheffect_wrapped)
     {
         CHECK(patheffect_wrapped->GetSkObject());
@@ -604,7 +604,7 @@ EffectStackOperand::Nullable<sk_sp<SkImage>> EffectStackOperand::ToImageSafe()
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK(isolate);
 
-    auto *wrapped = binder::Class<CkImageWrap>::unwrap_object(
+    auto *wrapped = binder::UnwrapObject<CkImageWrap>(
             isolate, kwarg_pair.second);
     if (!wrapped)
     {
@@ -625,7 +625,7 @@ EffectStackOperand::Nullable<sk_sp<SkBlender>> EffectStackOperand::ToBlenderSafe
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK(isolate);
 
-    auto *wrapped = binder::Class<CkBlenderWrap>::unwrap_object(isolate, kwarg_pair.second);
+    auto *wrapped = binder::UnwrapObject<CkBlenderWrap>(isolate, kwarg_pair.second);
     if (!wrapped)
     {
         g_throw(TypeError,
@@ -645,7 +645,7 @@ EffectStackOperand::Nullable<SkPath*> EffectStackOperand::ToPathSafe()
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK(isolate);
 
-    auto *wrapped = binder::Class<CkPath>::unwrap_object(isolate, kwarg_pair.second);
+    auto *wrapped = binder::UnwrapObject<CkPath>(isolate, kwarg_pair.second);
     if (!wrapped)
     {
         g_throw(TypeError,
@@ -665,7 +665,7 @@ EffectStackOperand::Nullable<SkMatrix*> EffectStackOperand::ToMatrixSafe()
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK(isolate);
 
-    auto *wrapped = binder::Class<CkMatrix>::unwrap_object(isolate, kwarg_pair.second);
+    auto *wrapped = binder::UnwrapObject<CkMatrix>(isolate, kwarg_pair.second);
     if (!wrapped)
     {
         g_throw(TypeError,

@@ -40,7 +40,7 @@ v8::Local<v8::Value> TextStyleWrap::getForeground()
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     if (text_style_.getForegroundPaintOrID().index() != 0)
         return v8::Null(isolate);
-    return binder::Class<glamor_wrap::CkPaint>::create_object(
+    return binder::NewObject<glamor_wrap::CkPaint>(
             isolate, text_style_.getForeground());
 }
 
@@ -53,7 +53,7 @@ void TextStyleWrap::setForeground(v8::Local<v8::Value> v)
         return;
     }
 
-    auto *w = binder::Class<glamor_wrap::CkPaint>::unwrap_object(isolate, v);
+    auto *w = binder::UnwrapObject<glamor_wrap::CkPaint>(isolate, v);
     if (!w)
         g_throw(TypeError, "Property `foreground` only can be set a CkPaint or null");
 
@@ -65,7 +65,7 @@ v8::Local<v8::Value> TextStyleWrap::getBackground()
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     if (text_style_.getBackgroundPaintOrID().index() != 0)
         return v8::Null(isolate);
-    return binder::Class<glamor_wrap::CkPaint>::create_object(
+    return binder::NewObject<glamor_wrap::CkPaint>(
             isolate, text_style_.getBackground());
 }
 
@@ -78,7 +78,7 @@ void TextStyleWrap::setBackground(v8::Local<v8::Value> v)
         return;
     }
 
-    auto *w = binder::Class<glamor_wrap::CkPaint>::unwrap_object(isolate, v);
+    auto *w = binder::UnwrapObject<glamor_wrap::CkPaint>(isolate, v);
     if (!w)
         g_throw(TypeError, "Property `background` only can be set a CkPaint or null");
 
@@ -105,14 +105,14 @@ void TextStyleWrap::setDecoration(v8::Local<v8::Value> v)
 v8::Local<v8::Value> TextStyleWrap::getFontStyle()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::Class<glamor_wrap::CkFontStyle>::create_object(
+    return binder::NewObject<glamor_wrap::CkFontStyle>(
             isolate, text_style_.getFontStyle());
 }
 
 void TextStyleWrap::setFontStyle(v8::Local<v8::Value> v)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *w = binder::Class<glamor_wrap::CkFontStyle>::unwrap_object(isolate, v);
+    auto *w = binder::UnwrapObject<glamor_wrap::CkFontStyle>(isolate, v);
     if (!w)
         g_throw(TypeError, "Property `fontStyle` only can be set a `CkFontStyle`");
     text_style_.setFontStyle(w->GetFontStyle());
@@ -166,7 +166,7 @@ void TextStyleWrap::setFontFamilies(v8::Local<v8::Value> v)
 void TextStyleWrap::setTypeface(v8::Local<v8::Value> v)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *w = binder::Class<glamor_wrap::CkTypeface>::unwrap_object(isolate, v);
+    auto *w = binder::UnwrapObject<glamor_wrap::CkTypeface>(isolate, v);
     if (!w)
         g_throw(TypeError, "Argument `tf` must be an instance of `glamor.CkTypeface`");
     text_style_.setTypeface(w->GetSkObject());
@@ -175,13 +175,13 @@ void TextStyleWrap::setTypeface(v8::Local<v8::Value> v)
 v8::Local<v8::Value> TextStyleWrap::clone()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::Class<TextStyleWrap>::create_object(isolate, text_style_);
+    return binder::NewObject<TextStyleWrap>(isolate, text_style_);
 }
 
 v8::Local<v8::Value> TextStyleWrap::cloneForPlaceholder()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::Class<TextStyleWrap>::create_object(
+    return binder::NewObject<TextStyleWrap>(
             isolate, text_style_.cloneForPlaceholder());
 }
 

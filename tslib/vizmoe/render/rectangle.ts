@@ -15,7 +15,7 @@
  * along with Vizmoe. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Point2f, Vector2f } from './Vector';
+import { Point2f, Vector2f } from './vector';
 import * as Fmt from '../../core/formatter';
 import { CkArrayXYWHRect, CkRRect } from 'glamor';
 

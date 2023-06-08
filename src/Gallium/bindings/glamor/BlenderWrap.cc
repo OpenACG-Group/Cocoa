@@ -18,7 +18,7 @@
 #include "Glamor/Blender.h"
 
 #include "Core/TraceEvent.h"
-#include "Gallium/bindings/core/Exports.h"
+#include "Gallium/binder/TypeTraits.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/PromiseHelper.h"
 #include "Gallium/bindings/glamor/Scene.h"
@@ -38,7 +38,7 @@ BlenderWrap::BlenderWrap(gl::Shared<gl::RenderClientObject> object)
     {
         gl::Shared<gl::GProfiler> profiler = blender->GetAttachedProfiler();
         wrapped_profiler_.Reset(isolate,
-            binder::Class<GProfilerWrap>::create_object(isolate, profiler));
+            binder::NewObject<GProfilerWrap>(isolate, profiler));
     }
 }
 
@@ -97,7 +97,7 @@ v8::Local<v8::Value> BlenderWrap::update(v8::Local<v8::Value> sceneObject)
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    Scene *scene = binder::Class<Scene>::unwrap_object(isolate, sceneObject);
+    Scene *scene = binder::UnwrapObject<Scene>(isolate, sceneObject);
     if (scene == nullptr)
         g_throw(TypeError, "Argument 'scene' must be an instance of Scene");
 
@@ -152,7 +152,7 @@ v8::Local<v8::Value> BlenderWrap::createTextureFromImage(v8::Local<v8::Value> im
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    CkImageWrap *wrapper = binder::Class<CkImageWrap>::unwrap_object(isolate, image);
+    CkImageWrap *wrapper = binder::UnwrapObject<CkImageWrap>(isolate, image);
     if (!wrapper)
         g_throw(TypeError, "`image` must be an instance of `CkImage`");
 
@@ -176,9 +176,10 @@ BlenderWrap::createTextureFromEncodedData(v8::Local<v8::Value> buffer,
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    Buffer *wrapper = binder::Class<Buffer>::unwrap_object(isolate, buffer);
-    if (!wrapper)
-        g_throw(TypeError, "`buffer` must be an instance of `Buffer`");
+    std::optional<binder::TypedArrayMemory<v8::Uint8Array>> array_memory =
+            binder::GetTypedArrayMemory<v8::Uint8Array>(buffer);
+    if (!array_memory)
+        g_throw(TypeError, "Argument `buffer` must be an allocated `Uint8Array`");
 
     std::optional<SkAlphaType> alpha_type_enum;
     if (!alphaType->IsNull() && !alphaType->IsNumber())
@@ -196,15 +197,13 @@ BlenderWrap::createTextureFromEncodedData(v8::Local<v8::Value> buffer,
     // Convert `buffer` to a `Data` object without memory duplicating.
     // `Data` only contains a reference to the buffer, and the ownership
     // of array buffer still belongs to `buffer`.
-    auto data = Data::MakeFromPtrWithoutCopy(wrapper->addressU8(),
-                                             wrapper->length(), false);
+    auto data = Data::MakeFromPtrWithoutCopy(array_memory->ptr, array_memory->byte_size, false);
 
     // We use the persistent handle to prevent `buffer` from being destroyed
     // by V8's garbage collector.
-    auto persistent_buffer = std::make_shared<v8::Global<v8::Value>>(isolate, buffer);
     using InfoT = gl::RenderHostCallbackInfo;
-    auto acceptor = [persistent_buffer](v8::Isolate *i, InfoT& info) {
-        persistent_buffer->Reset();
+    auto acceptor = [bufref = array_memory->memory](v8::Isolate *i, InfoT& info) mutable {
+        bufref.reset();
         return binder::to_v8(i, info.GetReturnValue<int64_t>());
     };
 
@@ -231,9 +230,10 @@ BlenderWrap::createTextureFromPixmap(v8::Local<v8::Value> buffer,
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    Buffer *wrapped = binder::Class<Buffer>::unwrap_object(isolate, buffer);
-    if (!wrapped)
-        g_throw(TypeError, "`buffer` must be an instance of `Buffer`");
+    std::optional<binder::TypedArrayMemory<v8::Uint8Array>> array_memory =
+            binder::GetTypedArrayMemory<v8::Uint8Array>(buffer);
+    if (!array_memory)
+        g_throw(TypeError, "Argument `buffer` must be an allocated `Uint8Array`");
 
     SkColorType color_type_enum;
     SkAlphaType alpha_type_enum;
@@ -254,10 +254,9 @@ BlenderWrap::createTextureFromPixmap(v8::Local<v8::Value> buffer,
 
     // We use the persistent handle to prevent `buffer` from being destroyed
     // by V8's garbage collector.
-    auto persistent_buffer = std::make_shared<v8::Global<v8::Value>>(isolate, buffer);
     using InfoT = gl::RenderHostCallbackInfo;
-    auto acceptor = [persistent_buffer](v8::Isolate *i, InfoT& info) {
-        persistent_buffer->Reset();
+    auto acceptor = [bufref = array_memory->memory](v8::Isolate *i, InfoT& info) mutable {
+        bufref.reset();
         return binder::to_v8(i, info.GetReturnValue<int64_t>());
     };
 
@@ -265,7 +264,7 @@ BlenderWrap::createTextureFromPixmap(v8::Local<v8::Value> buffer,
     getObject()->Invoke(GLOP_BLENDER_CREATE_TEXTURE_FROM_PIXMAP,
                         closure,
                         PromiseClosure::HostCallback,
-                        static_cast<const void*>(wrapped->addressU8()),
+                        array_memory->ptr,
                         image_info,
                         annotation);
 

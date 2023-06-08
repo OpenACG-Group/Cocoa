@@ -18,3 +18,5 @@
 
 /.idea
 /.vscode
+/boilerplate/cairo-wasm-integration/out/
+/boilerplate/cairo-wasm-integration/.vscode/

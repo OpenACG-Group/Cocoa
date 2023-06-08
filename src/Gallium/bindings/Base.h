@@ -21,7 +21,9 @@
 #include <string>
 #include <functional>
 #include <utility>
+#include <optional>
 
+#include "Gallium/binder/TypeTraits.h"
 #include "Gallium/Gallium.h"
 #include "Gallium/binder/Module.h"
 #include "Gallium/binder/Factory.h"
@@ -95,7 +97,7 @@ public:
      * constructor must be types which can be converted from JavaScript
      * (or `v8::FunctionCallbackInfo<...>`).
      *
-     * To construct an object in C++ way, `binder::Class<T>::create_object` should
+     * To construct an object in C++ way, `binder::NewObject<T>` should
      * be used. Registering the class (by constructing a corresponding binder::Class<T>
      * object) is required before doing that. In that case, the parameters of the
      * constructor can be any types without any extra restrictions.

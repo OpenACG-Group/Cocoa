@@ -102,7 +102,7 @@ void AudioSinkStreamWrap::enqueue(v8::Local<v8::Value> buffer)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    auto *wrapper = binder::Class<AudioBufferWrap>::unwrap_object(isolate, buffer);
+    auto *wrapper = binder::UnwrapObject<AudioBufferWrap>(isolate, buffer);
     if (!wrapper)
         g_throw(TypeError, "Argument `buffer` must be an instance of `AudioBuffer`");
 

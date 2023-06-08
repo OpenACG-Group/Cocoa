@@ -54,7 +54,7 @@ v8::Local<v8::Value> FileWrap::ReadFileSync(const std::string& path)
     }
 
     v8::Local<v8::Value> buffer = Buffer::MakeFromSize(file_size);
-    Buffer *wrapper = binder::Class<Buffer>::unwrap_object(isolate, buffer);
+    Buffer *wrapper = binder::UnwrapObject<Buffer>(isolate, buffer);
     CHECK(wrapper);
 
     uv_buf_t buf = uv_buf_init((char*)wrapper->addressU8(), wrapper->length());
@@ -74,7 +74,7 @@ v8::Local<v8::Value> FileWrap::WriteFileSync(const std::string& path,
                                              v8::Local<v8::Value> buffer)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    Buffer *wrapper = binder::Class<Buffer>::unwrap_object(isolate, buffer);
+    Buffer *wrapper = binder::UnwrapObject<Buffer>(isolate, buffer);
     if (!wrapper)
         g_throw(TypeError, "Argument `buffer` must be an instance of core:Buffer");
 

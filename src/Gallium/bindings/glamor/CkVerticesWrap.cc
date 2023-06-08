@@ -100,7 +100,7 @@ v8::Local<v8::Value> CkVertices::MakeCopy(int32_t mode, v8::Local<v8::Value> pos
     if (!result)
         return v8::Null(isolate);
 
-    return binder::Class<CkVertices>::create_object(isolate, result);
+    return binder::NewObject<CkVertices>(isolate, result);
 }
 
 CkVertices::CkVertices(const sk_sp<SkVertices>& vertices)
