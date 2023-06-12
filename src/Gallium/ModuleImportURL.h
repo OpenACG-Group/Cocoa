@@ -71,6 +71,7 @@ public:
     ~ModuleImportURL() = default;
 
     static SharedPtr Resolve(const SharedPtr& referer, const std::string& import, ResolvedAs resolvedAs);
+    static SharedPtr Resolve(ModuleImportURL *referer, const std::string& import, ResolvedAs resolvedAs);
 
     static void FreeInternalCaches();
 

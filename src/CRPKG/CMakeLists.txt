@@ -38,8 +38,6 @@ add_executable(
         Composer.cc
         Protocol.h
         Protocol.cc
-
-        ${LINK_STATIC_FMT}
 )
 
 target_link_libraries(crpkg-packager PRIVATE Core ${LINK_STATIC_FMT} ${LINK_STATIC_LIBUV})

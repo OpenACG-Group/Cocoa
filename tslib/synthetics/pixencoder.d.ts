@@ -107,5 +107,5 @@ export class WebpEncoder {
                                       options: WebpEncoderOptions): ArrayBuffer | null;
 
     public static EncodeAnimatedMemory(frames: WebpMemoryFrame,
-                                       options: WebpEncoderOptions): ArrayBuffer | number;
+                                       options: WebpEncoderOptions): ArrayBuffer | null;
 }

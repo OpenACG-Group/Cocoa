@@ -102,9 +102,7 @@ const char *resolveInternalScript(const std::string& name, ModuleImportURL::Reso
 } // namespace anonymous
 
 ModuleImportURL::SharedPtr
-ModuleImportURL::Resolve(const ModuleImportURL::SharedPtr& referer,
-                         const std::string& import,
-                         ResolvedAs resolvedAs)
+ModuleImportURL::Resolve(ModuleImportURL *referer, const std::string &import, ResolvedAs resolvedAs)
 {
     /* Synthetic modules is not allowed to import other module */
     if (referer && referer->getProtocol() == Protocol::kSynthetic)
@@ -169,6 +167,13 @@ ModuleImportURL::Resolve(const ModuleImportURL::SharedPtr& referer,
     }
     return std::make_shared<ModuleImportURL>(proto, path,
                                              bindingCache, persistentCachedText);
+}
+
+ModuleImportURL::SharedPtr
+ModuleImportURL::Resolve(const ModuleImportURL::SharedPtr& referer,
+                         const std::string& import, ResolvedAs resolvedAs)
+{
+    return Resolve(referer.get(), import, resolvedAs);
 }
 
 std::string ModuleImportURL::onLoadResourceText() const

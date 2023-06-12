@@ -7,16 +7,14 @@
 
 # Building directories
 /cmake-build-*
+/out
 /build
 /tslib/out
 /tslib/devtools/packages
 /tslib/experimental
-/tslib/.vscode
 /tslib/vizmoe/main.ts
 
 /tools
 
-/.idea
-/.vscode
-/boilerplate/cairo-wasm-integration/out/
-/boilerplate/cairo-wasm-integration/.vscode/
+.idea/
+.vscode/

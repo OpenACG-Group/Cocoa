@@ -38,6 +38,7 @@
 #include "Gallium/Inspector.h"
 #include "Gallium/TracingController.h"
 
+#include "Gallium/binder/TypeTraits.h"
 #include "Gallium/binder/Module.h"
 #include "Gallium/binder/Class.h"
 #include "Gallium/binder/CallV8.h"
@@ -132,6 +133,96 @@ create_synthetic_module(v8::Isolate *isolate,
             fmt::format("Failed to create synthetic module \"{}\"", binding->name()));
     }
     return scope.Escape(module);
+}
+
+void import_meta_resolve_impl(const v8::FunctionCallbackInfo<v8::Value>& info)
+{
+    v8::HandleScope scope(info.GetIsolate());
+    v8::Isolate *isolate = info.GetIsolate();
+
+    if (info.Length() != 1)
+    {
+        // `g_throw()` must not be used here as the function is not called
+        // from binder (it is called from V8 directly).
+        isolate->ThrowError("Invalid number of arguments, requires 2 arguments");
+        return;
+    }
+
+    if (!info[0]->IsString())
+    {
+        isolate->ThrowError("Argument `url` is not a string");
+        return;
+    }
+
+    auto url = binder::from_v8<std::string>(isolate, info[0].As<v8::String>());
+
+    auto external = info.Data().As<v8::External>();
+    auto *import_url = reinterpret_cast<ModuleImportURL*>(external->Value());
+
+    std::shared_ptr<ModuleImportURL> resolved;
+    try
+    {
+        // `Resolve` may throw an exception when an internal script
+        // is not found.
+        resolved = ModuleImportURL::Resolve(
+                import_url, url, ModuleImportURL::ResolvedAs::kUserImport);
+    }
+    catch (const std::exception& except)
+    {
+        info.GetReturnValue().SetNull();
+        return;
+    }
+
+    if (!resolved)
+    {
+        info.GetReturnValue().SetNull();
+        return;
+    }
+
+    info.GetReturnValue().Set(v8::String::NewFromUtf8(
+            isolate, resolved->toString().c_str()).ToLocalChecked());
+}
+
+void on_init_import_meta_object(v8::Local<v8::Context> context,
+                                v8::Local<v8::Module> module,
+                                v8::Local<v8::Object> meta)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    Runtime *runtime = Runtime::GetBareFromIsolate(isolate);
+
+    v8::HandleScope scope(isolate);
+
+    Runtime::ModuleCacheMap& cache_map = runtime->GetModuleCache();
+    std::shared_ptr<ModuleImportURL> import_url;
+    for (const auto& cache_pair : cache_map)
+    {
+        if (cache_pair.second.module == module)
+        {
+            import_url = cache_pair.first;
+            break;
+        }
+    }
+
+    if (!import_url)
+        throw RuntimeException(__func__, "Failed to find the module in the module cache");
+
+    auto url_prop_name = v8::String::NewFromUtf8Literal(isolate, "url");
+    auto url_str = v8::String::NewFromUtf8(isolate, import_url->toString().c_str()).ToLocalChecked();
+
+    if (!meta->CreateDataProperty(context, url_prop_name, url_str).FromMaybe(false))
+        throw RuntimeException(__func__, "Failed to set property `url` on `import.meta` object");
+
+    // The module cache keeps valid during the whole lifetime of JavaScript
+    // execution, so it is safe to expose a bare pointer to `v8::External`.
+    auto import_url_data = v8::External::New(isolate, import_url.get());
+    auto resolve_cb = v8::Function::New(context,
+                                        import_meta_resolve_impl,
+                                        import_url_data)
+                                        .ToLocalChecked();
+
+    auto resolve_prop_name = v8::String::NewFromUtf8Literal(isolate, "resolve");
+    if (!meta->CreateDataProperty(context, resolve_prop_name, resolve_cb).FromMaybe(false))
+        throw RuntimeException(__func__, "Failed to set property `resolve` on `import.meta` object");
 }
 
 #ifndef COCOA_USE_MONOLITHIC_V8
@@ -287,6 +378,7 @@ Runtime::Runtime(EventLoop *loop,
     isolate_->SetData(ISOLATE_DATA_SLOT_RUNTIME_PTR, this);
     isolate_->SetPromiseHook(Runtime::PromiseHookCallback);
     isolate_->SetHostImportModuleDynamicallyCallback(Runtime::DynamicImportHostCallback);
+    isolate_->SetHostInitializeImportMetaObjectCallback(on_init_import_meta_object);
 
     PrepareSource::startPrepare();
     PrepareSource::unrefEventSource();

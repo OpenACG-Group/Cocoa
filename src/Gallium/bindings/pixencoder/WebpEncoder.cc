@@ -193,7 +193,7 @@ SkEncoder::Frame extract_memory_frame(v8::Isolate *isolate,
     if (auto M = obj->Get(ctx, LLK("rowBytes")); HASPROP(M))
     {
         auto prop = M.ToLocalChecked();
-        if (!binder::IsSome<v8::Integer>(prop))
+        if (!binder::IsSome<v8::Number>(prop))
             g_throw(TypeError, "Invalid property `rowBytes` on frame object");
         row_bytes = prop->IntegerValue(ctx).ToChecked();
     }

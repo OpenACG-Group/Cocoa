@@ -11,7 +11,8 @@
             "synthetic://*": [ "synthetics/*" ],
             "*": [ "synthetics/*" ]
         },
-        "sourceMap": true
+        "sourceMap": true,
+        "allowJs": true
     },
     "include": [
         "./global/infrastructure.d.ts",
@@ -28,11 +29,13 @@
         "synthetics/lottie.d.ts",
         "synthetics/svg.d.ts",
 
-        "./core/typetraits.ts",
-        "./core/format.ts",
-        "./core/assert.ts",
-        "./core/linked_list.ts",
-        "./core/formatter.ts",
+        "core/typetraits.ts",
+        "core/format.ts",
+        "core/assert.ts",
+        "core/linked_list.ts",
+        "core/formatter.ts",
+
+        "wasm/cairo/lib/cairo.js",
 
         "samples/sknative-lottie-viewer.ts",
         "samples/sknative-path-measure.ts",
@@ -40,9 +43,10 @@
         "samples/sknative-svg-to-skp.ts",
         // "samples/sknative-pathtext.ts",
         "samples/sknative-pathtext-interactive.ts",
-        "samples/sknative-memory-composite.ts",
         "samples/mediapresent-video-player.ts",
         "samples/vizmoe-simplest-scene.ts",
+        "samples/wasm-cairo-hello.ts",
+        "samples/wasm-cairo-sharing-composite.ts",
 
         "vizmoe/base/application.ts",
         "vizmoe/base/event-dispatcher.ts",

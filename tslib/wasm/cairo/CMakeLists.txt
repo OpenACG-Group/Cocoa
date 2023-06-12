@@ -3,7 +3,7 @@ project(CairoWasmIntegration VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(THIRDPARTY_WASM_BUILD ${CMAKE_SOURCE_DIR}/../../third_party/wasm-build)
+set(THIRDPARTY_WASM_BUILD ${CMAKE_SOURCE_DIR}/../../../third_party/wasm-build)
 set(THIRDPARTY_WASM_INCLUDE_DIR ${THIRDPARTY_WASM_BUILD}/include)
 set(THIRDPARTY_WASM_LIBS_DIR ${THIRDPARTY_WASM_BUILD}/lib)
 
