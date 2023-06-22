@@ -298,6 +298,7 @@
             <method name="makeImageSnapshot" value="@makeImageSnapshot"/>
             <method name="draw" value="@draw"/>
             <method name="readPixels" value="@readPixels"/>
+            <method name="notifyContentWillChange" value="@notifyContentWillChange"/>
         </class>
 
         <class name="CkCanvas" wrapper="CkCanvas">

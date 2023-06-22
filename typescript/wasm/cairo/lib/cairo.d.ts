@@ -15,8 +15,6 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-export function CairoLoad(path: string): Promise<CairoLib>;
-
 export interface CairoLib {
     readonly Format: FormatEnumValues;
     readonly Content: ContentEnumValues;
@@ -28,12 +26,15 @@ export interface CairoLib {
     readonly Extend: ExtendEnumValues;
     readonly Filter: FilterEnumValues;
     readonly PatternType: PatternTypeEnumValues;
+    readonly Status: StatusEnumValues;
 
     malloc(ctor: TypedArrayConstructor, byteSize: number): MallocMemory;
     free(memory: MallocMemory): void;
 
-    surface_create_image(width: number, height: number,  memory: MallocMemory,
-                         format: Format, stride: number): Surface;
+    image_surface_create(width: number, height: number, memory: MallocMemory,
+                         format: Format, stride: number): ImageSurface;
+
+    recording_surface_create(content: Content, extents: Array<number> | null): RecordingSurface;
 
     cairo_create(surface: Surface): Cairo;
 
@@ -49,6 +50,8 @@ export interface CairoLib {
                           cx1: number, cy1: number, radius1: number): Pattern;
 
     pattern_create_mesh(): Pattern;
+
+    script_interpreter_create(): ScriptInterpreter;
 }
 
 interface EmbindEnum {
@@ -57,6 +60,55 @@ interface EmbindEnum {
 
 interface EmbindEnumEntity<T> {
     readonly value: number;
+}
+
+export type Status = EmbindEnumEntity<StatusEnumValues>;
+interface StatusEnumValues extends EmbindEnum {
+    SUCCESS: Status;
+    NO_MEMORY: Status;
+    INVALID_RESTORE: Status;
+    INVALID_POP_GROUP: Status;
+    NO_CURRENT_POINT: Status;
+    INVALID_MATRIX: Status;
+    INVALID_STATUS: Status;
+    NULL_POINTER: Status;
+    INVALID_STRING: Status;
+    INVALID_PATH_DATA: Status;
+    READ_ERROR: Status;
+    WRITE_ERROR: Status;
+    SURFACE_FINISHED: Status;
+    SURFACE_TYPE_MISMATCH: Status;
+    PATTERN_TYPE_MISMATCH: Status;
+    INVALID_CONTENT: Status;
+    INVALID_FORMAT: Status;
+    INVALID_VISUAL: Status;
+    FILE_NOT_FOUND: Status;
+    INVALID_DASH: Status;
+    INVALID_DSC_COMMENT: Status;
+    INVALID_INDEX: Status;
+    CLIP_NOT_REPRESENTABLE: Status;
+    TEMP_FILE_ERROR: Status;
+    INVALID_STRIDE: Status;
+    FONT_TYPE_MISMATCH: Status;
+    USER_FONT_IMMUTABLE: Status;
+    USER_FONT_ERROR: Status;
+    NEGATIVE_COUNT: Status;
+    INVALID_CLUSTERS: Status;
+    INVALID_SLANT: Status;
+    INVALID_WEIGHT: Status;
+    INVALID_SIZE: Status;
+    USER_FONT_NOT_IMPLEMENTED: Status;
+    DEVICE_TYPE_MISMATCH: Status;
+    DEVICE_ERROR: Status;
+    INVALID_MESH_CONSTRUCTION: Status;
+    DEVICE_FINISHED: Status;
+    JBIG2_GLOBAL_MISSING: Status;
+    PNG_ERROR: Status;
+    FREETYPE_ERROR: Status;
+    WIN32_GDI_ERROR: Status;
+    TAG_ERROR: Status;
+    DWRITE_ERROR: Status;
+    SVG_FONT_ERROR: Status;
 }
 
 export type Format = EmbindEnumEntity<FormatEnumValues>;
@@ -197,6 +249,20 @@ export interface EmbindObject<T extends EmbindObject<T>> {
 }
 
 export interface Surface extends EmbindObject<Surface> {
+    flush(): void;
+    finish(): void;
+    mark_dirty(): void;
+}
+
+export interface ImageSurface extends Surface {
+    get_format(): Format;
+    get_width(): number;
+    get_height(): number;
+}
+
+export interface RecordingSurface extends Surface {
+    ink_extents(): Array<number>;
+    get_extents(): Array<number> | null;
 }
 
 export interface Pattern extends EmbindObject<Pattern> {
@@ -298,4 +364,14 @@ export interface Cairo extends EmbindObject<Cairo> {
 
     tag_begin(tagName: string, attributes: string): void;
     tag_end(tagName: string): void;
+}
+
+export interface ScriptInterpreterHooks {
+    surface_create?: (content: Content, width: number, height: number, uid: number) => Surface;
+}
+
+export interface ScriptInterpreter extends EmbindObject<ScriptInterpreter> {
+    install_hooks(hooks: ScriptInterpreterHooks): void;
+    feed_string(source: string): Status;
+    finish(): Status;
 }

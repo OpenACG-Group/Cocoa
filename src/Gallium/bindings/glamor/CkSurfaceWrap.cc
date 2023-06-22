@@ -206,4 +206,11 @@ void CkSurface::readPixels(v8::Local<v8::Value> dstInfo,
         g_throw(Error, "Failed to read pixels from surface");
 }
 
+void CkSurface::notifyContentWillChange(int32_t mode)
+{
+    if (mode < 0 || mode > SkSurface::kRetain_ContentChangeMode)
+        g_throw(RangeError, "Invalid enumeration value for argument `mode`");
+    GetSkObject()->notifyContentWillChange(static_cast<SkSurface::ContentChangeMode>(mode));
+}
+
 GALLIUM_BINDINGS_GLAMOR_NS_END

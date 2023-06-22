@@ -73,22 +73,24 @@ export class LinkedList<T> implements Iterable<T> {
         return new ListIterator(this.#head);
     }
 
-    public insertAfter(node: LinkedListNode<T>, value: T): void {
+    public insertAfter(node: LinkedListNode<T>, value: T): LinkedListNode<T> {
         this._checkNodeOwnership(node);
         const insert = new LinkedListNode<T>(this, value);
         insert.prev = node;
         insert.next = node.next;
         node.next.prev = insert;
         node.next = insert;
+        return insert;
     }
 
-    public insertBefore(node: LinkedListNode<T>, value: T): void {
+    public insertBefore(node: LinkedListNode<T>, value: T): LinkedListNode<T> {
         this._checkNodeOwnership(node);
         const insert = new LinkedListNode<T>(this, value);
         insert.next = node;
         insert.prev = node.prev;
         node.prev.next = insert;
         node.prev = insert;
+        return insert;
     }
 
     public push(value: T): void {

@@ -30,7 +30,7 @@ v8::Local<v8::Value> CursorThemeWrap::dispose()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     auto closure = PromiseClosure::New(isolate, nullptr);
-    getObject()->Invoke(GLOP_CURSORTHEME_DISPOSE, closure, PromiseClosure::HostCallback);
+    GetObject()->Invoke(GLOP_CURSORTHEME_DISPOSE, closure, PromiseClosure::HostCallback);
     return closure->getPromise();
 }
 
@@ -43,10 +43,15 @@ v8::Local<v8::Value> CursorThemeWrap::loadCursorFromName(const std::string& name
     auto closure = PromiseClosure::New(isolate,
                                        PromiseClosure::CreateObjectConverter<W, T>);
 
-    getObject()->Invoke(GLOP_CURSORTHEME_LOAD_CURSOR_FROM_NAME, closure,
+    GetObject()->Invoke(GLOP_CURSORTHEME_LOAD_CURSOR_FROM_NAME, closure,
                         PromiseClosure::HostCallback, name);
 
     return closure->getPromise();
+}
+
+v8::Local<v8::Object> CursorThemeWrap::OnGetThisObject(v8::Isolate *isolate)
+{
+    return binder::FindObjectRawPtr(v8::Isolate::GetCurrent(), this);
 }
 
 CursorWrap::CursorWrap(const std::shared_ptr<gl::Cursor>& cursor)
@@ -58,7 +63,7 @@ v8::Local<v8::Value> CursorWrap::dispose()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     auto closure = PromiseClosure::New(isolate, nullptr);
-    getObject()->Invoke(GLOP_CURSOR_DISPOSE, closure, PromiseClosure::HostCallback);
+    GetObject()->Invoke(GLOP_CURSOR_DISPOSE, closure, PromiseClosure::HostCallback);
     return closure->getPromise();
 }
 
@@ -78,9 +83,14 @@ v8::Local<v8::Value> CursorWrap::getHotspotVector()
 
     auto closure = PromiseClosure::New(isolate, converter);
 
-    getObject()->Invoke(GLOP_CURSOR_GET_HOTSPOT_VECTOR, closure,
+    GetObject()->Invoke(GLOP_CURSOR_GET_HOTSPOT_VECTOR, closure,
                         PromiseClosure::HostCallback);
     return closure->getPromise();
+}
+
+v8::Local<v8::Object> CursorWrap::OnGetThisObject(v8::Isolate *isolate)
+{
+    return binder::FindObjectRawPtr(v8::Isolate::GetCurrent(), this);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

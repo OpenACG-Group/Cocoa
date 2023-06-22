@@ -130,7 +130,7 @@ public:
     explicit RenderClientObjectWrap(gl::Shared<gl::RenderClientObject> object);
     virtual ~RenderClientObjectWrap();
 
-    g_nodiscard const gl::Shared<gl::RenderClientObject>& getObject() {
+    g_nodiscard const gl::Shared<gl::RenderClientObject>& GetObject() {
         return object_;
     }
 
@@ -154,8 +154,11 @@ public:
     //! TSDecl: function inspectObject(): RCOInspectResult
     v8::Local<v8::Value> inspectObject();
 
-    void defineSignal(const char *name, int32_t code, InfoAcceptor acceptor);
-    int32_t getSignalCodeByName(const std::string& name);
+    void DefineSignal(const char *name, int32_t code, InfoAcceptor acceptor);
+    int32_t GetSignalCodeByName(const std::string& name);
+
+protected:
+    virtual v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) = 0;
 
 private:
     gl::Shared<gl::RenderClientObject> object_;
@@ -194,6 +197,8 @@ public:
     v8::Local<v8::Value> createCursor(v8::Local<v8::Value> bitmap, int hotspotX, int hotspotY);
 
 private:
+    v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) override;
+
     std::map<gl::Shared<gl::Monitor>, v8::Global<v8::Object>> monitor_objects_map_;
     v8::Global<v8::Object> default_cursor_theme_;
 };
@@ -207,6 +212,9 @@ public:
 
     //! TSDecl: function requestPropertySet(): Promise<void>
     v8::Local<v8::Value> requestPropertySet();
+
+private:
+    v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) override;
 };
 
 //! TSDecl: class CursorTheme extends RenderClientObject
@@ -221,6 +229,9 @@ public:
 
     //! TSDecl: function loadCursorFromName(name: string): Promise<Cursor>
     v8::Local<v8::Value> loadCursorFromName(const std::string& name);
+
+private:
+    v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) override;
 };
 
 //! TSDecl: class Cursor extends RenderClientObject
@@ -235,6 +246,9 @@ public:
 
     //! TSDecl: function getHotspotVector(): Promise<{x: number, y:number}>
     v8::Local<v8::Value> getHotspotVector();
+
+private:
+    v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) override;
 };
 
 //! TSDecl: class Surface extends RenderClientObject
@@ -285,6 +299,9 @@ public:
 
     //! TSDecl: function setAttachedCursor(cursor: Cursor): Promise<void>
     g_nodiscard v8::Local<v8::Value> setAttachedCursor(v8::Local<v8::Value> cursor);
+
+private:
+    v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) override;
 };
 
 //! TSDecl: class Blender extends RenderClientObject
@@ -340,6 +357,8 @@ public:
     v8::Local<v8::Value> purgeRasterCacheResources();
 
 private:
+    v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) override;
+
     v8::Global<v8::Object> wrapped_profiler_;
 };
 
@@ -502,7 +521,7 @@ class CkBitmapWrap
 {
 public:
     CkBitmapWrap(v8::Isolate *isolate,
-                 v8::Local<v8::Object> buffer_object,
+                 v8::Local<v8::ArrayBuffer> buffer_object,
                  std::shared_ptr<SkBitmap> bitmap);
     ~CkBitmapWrap() = default;
 
@@ -510,7 +529,7 @@ public:
         return bitmap_;
     }
 
-    //! TSDecl: function MakeFromBuffer(buffer: core.Buffer,
+    //! TSDecl: function MakeFromBuffer(buffer: ArrayBuffer,
     //!                                 width: number, height: number,
     //!                                 colorType: number, alphaType: number): CkBitmap
     g_nodiscard static v8::Local<v8::Value> MakeFromBuffer(v8::Local<v8::Value> buffer,
@@ -558,12 +577,12 @@ public:
     g_nodiscard v8::Local<v8::Value> makeShader(int32_t tmx, int32_t tmy, int32_t sampling,
                                                 v8::Local<v8::Value> local_matrix);
 
-    //! TSDecl: function getPixelBuffer(): Buffer;
+    //! TSDecl: function getPixelBuffer(): ArrayBuffer;
     g_nodiscard v8::Local<v8::Value> getPixelBuffer();
 
 private:
-    v8::Global<v8::Object>      buffer_object_;
-    std::shared_ptr<SkBitmap>   bitmap_;
+    v8::Global<v8::ArrayBuffer>  array_buffer_;
+    std::shared_ptr<SkBitmap>    bitmap_;
 };
 
 //! TSDecl: class CkImage

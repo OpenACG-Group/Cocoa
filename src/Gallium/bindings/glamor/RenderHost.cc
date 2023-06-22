@@ -105,8 +105,7 @@ v8::Local<v8::Value> RenderHostWrap::Connect(const v8::FunctionCallbackInfo<v8::
 
     using T = gl::Shared<gl::RenderClientObject>;
     auto pack = PromiseClosure::New(isolate, [](v8::Isolate *isolate, gl::RenderHostCallbackInfo &info) {
-        auto obj = binder::NewObject<DisplayWrap>(isolate,
-                                                             info.GetReturnValue<T>());
+        auto obj = binder::NewObject<DisplayWrap>(isolate, info.GetReturnValue<T>());
         auto *ptr = binder::UnwrapObject<DisplayWrap>(isolate, obj);
         ptr->setGCObjectSelfHandle(obj);
 
@@ -218,14 +217,14 @@ RenderClientObjectWrap::~RenderClientObjectWrap()
     slot_closures_map_.clear();
 }
 
-void RenderClientObjectWrap::defineSignal(const char *name, int32_t code, InfoAcceptor acceptor)
+void RenderClientObjectWrap::DefineSignal(const char *name, int32_t code, InfoAcceptor acceptor)
 {
     CHECK(signal_name_map_.count(name) == 0 || acceptors_map_.count(code) == 0);
     signal_name_map_[name] = code;
     acceptors_map_[code] = std::move(acceptor);
 }
 
-int32_t RenderClientObjectWrap::getSignalCodeByName(const std::string& name)
+int32_t RenderClientObjectWrap::GetSignalCodeByName(const std::string& name)
 {
     if (signal_name_map_.count(name) == 0)
         return -1;
@@ -234,14 +233,19 @@ int32_t RenderClientObjectWrap::getSignalCodeByName(const std::string& name)
 
 uint32_t RenderClientObjectWrap::connect(const std::string& name, v8::Local<v8::Function> callback)
 {
-    int32_t code = getSignalCodeByName(name);
+    int32_t code = GetSignalCodeByName(name);
     if (code < 0)
     {
         g_throw(Error, fmt::format("\'{}\' is not a valid signal name for slot to connect to", name));
     }
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto closure = SlotClosure::New(isolate, code, name, getObject(), callback, acceptors_map_[code]);
+
+    auto self = OnGetThisObject(isolate);
+    CHECK(!self.IsEmpty());
+
+    auto closure = SlotClosure::New(isolate, self, code, name,
+                                    GetObject(), callback, acceptors_map_[code]);
     uint32_t slot_id = closure->slot_id_;
     slot_closures_map_[closure->slot_id_] = std::move(closure);
 

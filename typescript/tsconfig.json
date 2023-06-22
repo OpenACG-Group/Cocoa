@@ -35,8 +35,6 @@
         "core/linked_list.ts",
         "core/formatter.ts",
 
-        "wasm/cairo/lib/cairo.js",
-
         "samples/sknative-lottie-viewer.ts",
         "samples/sknative-path-measure.ts",
         // "samples/sknative-svg-rasterizer.ts",
@@ -47,6 +45,9 @@
         "samples/vizmoe-simplest-scene.ts",
         "samples/wasm-cairo-hello.ts",
         "samples/wasm-cairo-sharing-composite.ts",
+        "samples/wasm-cairo-recording-surface.ts",
+        "samples/wasm-cairo-script.ts",
+        "samples/wasm-opencv-fft-illustrator.ts",
 
         "vizmoe/base/application.ts",
         "vizmoe/base/event-dispatcher.ts",
@@ -58,7 +59,9 @@
         "vizmoe/render/rectangle.ts",
         "vizmoe/render/vector.ts",
         "vizmoe/render/render-node.ts",
-        "vizmoe/render/render-node-composite-attributes.ts"
+        "vizmoe/render/render-node-composite-attributes.ts",
+
+        "wasm/wasm-loader-polyfill.ts"
     ],
     "exclude": [
         "out"

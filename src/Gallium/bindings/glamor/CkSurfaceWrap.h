@@ -82,6 +82,9 @@ public:
     void readPixels(v8::Local<v8::Value> dstInfo, v8::Local<v8::Value> dstPixels,
                     int32_t dstRowBytes, int32_t  srcX, int32_t srcY);
 
+    //! TSDecl: function notifyContentWillChange(mode: Enum<CkSurfaceContentChangeMode>): void
+    void notifyContentWillChange(int32_t mode);
+
 private:
     ssize_t                     increase_gc_;
     v8::Global<v8::Object>      canvas_obj_;

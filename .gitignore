@@ -9,10 +9,10 @@
 /cmake-build-*
 /out
 /build
-/tslib/out
-/tslib/devtools/packages
-/tslib/experimental
-/tslib/vizmoe/main.ts
+/typescript/out
+/typescript/devtools/packages
+/typescript/experimental
+/typescript/vizmoe/main.ts
 
 /tools
 

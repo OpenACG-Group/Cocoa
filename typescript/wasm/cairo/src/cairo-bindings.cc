@@ -2,8 +2,10 @@
 #include <cstdio>
 #include <memory>
 #include <stdexcept>
+#include <optional>
 
 #include <cairo.h>
+#include <cairo-script-interpreter.h>
 
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
@@ -52,33 +54,10 @@ void check_status_or_throw(cairo_status_t status)
         throw std::runtime_error("Cairo status is not SUCCESS");
 }
 
-class Surface : std::enable_shared_from_this<Surface>
+class Surface : public std::enable_shared_from_this<Surface>
 {
 public:
     static const cairo_user_data_key_t kUserdataKey;
-
-    static std::shared_ptr<Surface> MakeImage(int width, int height, emscripten::val memory,
-                                              cairo_format_t format, int stride)
-    {
-        HeapMemory heap_memory(memory);
-        cairo_surface_t *surface = cairo_image_surface_create_for_data(
-            heap_memory.GetU8Ptr(), format, width, height, stride);
-        if (surface == nullptr)
-            return nullptr;
-        
-        if (cairo_surface_status(surface) != CAIRO_STATUS_SUCCESS)
-            return nullptr;
-
-        return std::make_shared<Surface>(surface);
-    }
-
-    static std::shared_ptr<Surface> Unwrap(cairo_surface_t *ptr)
-    {
-        void *data = cairo_surface_get_user_data(ptr, &kUserdataKey);
-        if (!data)
-            return nullptr;
-        return reinterpret_cast<Surface*>(data)->shared_from_this();
-    }
 
     explicit Surface(cairo_surface_t *surface)
         : surface_(surface)
@@ -96,10 +75,94 @@ public:
         return surface_;
     }
 
+    inline void TakeOwnership() {
+        surface_ = cairo_surface_reference(surface_);
+    }
+
+#define SURFACE_IMPL_ARG0(verb)     void verb() { cairo_surface_##verb(surface_); }
+
+    SURFACE_IMPL_ARG0(flush)
+    SURFACE_IMPL_ARG0(finish)
+    SURFACE_IMPL_ARG0(mark_dirty)
+
 private:
     cairo_surface_t *surface_;
 };
 const cairo_user_data_key_t Surface::kUserdataKey{};
+
+class ImageSurface : public Surface {
+public:
+    using Surface::Surface;
+
+    cairo_format_t get_format()
+    {
+        return cairo_image_surface_get_format(GetHandle());
+    };
+
+    int get_width()
+    {
+        return cairo_image_surface_get_width(GetHandle());
+    }
+
+    int get_height()
+    {
+        return cairo_image_surface_get_height(GetHandle());
+    }
+};
+
+class RecordingSurface : public Surface {
+public:
+    using Surface::Surface;
+
+    emscripten::val get_extents()
+    {
+        cairo_rectangle_t rect;
+        if (!cairo_recording_surface_get_extents(GetHandle(), &rect))
+            return emscripten::val::null();
+        return emscripten::val::array<double>({ rect.x, rect.y, rect.width, rect.height });
+    }
+
+    emscripten::val ink_extents()
+    {
+        double x0, y0, width, height;
+        cairo_recording_surface_ink_extents(GetHandle(), &x0, &y0, &width, &height);
+        return emscripten::val::array<double>({ x0, y0, width, height });
+    }
+};
+
+std::shared_ptr<Surface> unwrap_surface(cairo_surface_t *ptr)
+{
+    void *data = cairo_surface_get_user_data(ptr, &Surface::kUserdataKey);
+    if (!data)
+        return nullptr;
+    return reinterpret_cast<Surface*>(data)->shared_from_this();
+}
+
+std::shared_ptr<Surface> wrap_surface(cairo_surface_t *ptr)
+{
+    cairo_surface_type_t type = cairo_surface_get_type(ptr);
+    switch (type)
+    {
+    case CAIRO_SURFACE_TYPE_IMAGE:
+        return std::make_shared<ImageSurface>(ptr);
+
+    case CAIRO_SURFACE_TYPE_RECORDING:
+        return std::make_shared<RecordingSurface>(ptr);
+
+    default:
+        throw std::runtime_error("Unsupported surface type");
+    }
+}
+
+std::shared_ptr<Surface> unwrap_or_wrap_surface(cairo_surface_t *ptr, bool keep_ref)
+{
+    std::shared_ptr<Surface> unwrap = unwrap_surface(ptr);
+    if (unwrap)
+        return unwrap;
+    if (keep_ref)
+        ptr = cairo_surface_reference(ptr);
+    return wrap_surface(ptr);
+}
 
 class Pattern : std::enable_shared_from_this<Pattern>
 {
@@ -151,13 +214,7 @@ public:
     {
         cairo_surface_t *surface;
         check_status_or_throw(cairo_pattern_get_surface(pattern_, &surface));
-        auto sp = Surface::Unwrap(surface);
-        if (!sp)
-        {
-            cairo_surface_reference(surface);
-            sp = std::make_shared<Surface>(surface);
-        }
-        return sp;
+        return unwrap_surface(surface);
     }
 
 #define PATTERN_MESH_OP0(verb) \
@@ -234,7 +291,7 @@ public:
 
     std::shared_ptr<Surface> get_target()
     {
-        return Surface::Unwrap(cairo_get_target(cairo_));
+        return unwrap_surface(cairo_get_target(cairo_));
     }
 
 #define CTX_IMPL_GET(verb, type) type verb() { return cairo_##verb(cairo_); }
@@ -282,13 +339,9 @@ public:
     std::shared_ptr<Surface> get_group_target()
     {
         cairo_surface_t *target = cairo_get_group_target(cairo_);
-        auto sp = Surface::Unwrap(target);
-        if (!sp)
-        {
-            cairo_surface_reference(target);
-            sp = std::make_shared<Surface>(target);
-        }
-        return sp;
+        if (!target)
+            return nullptr;
+        return unwrap_or_wrap_surface(target, true);
     }
 
     CTX_IMPL_ARG3(set_source_rgb, double, double, double)
@@ -305,7 +358,7 @@ public:
         auto sp = Pattern::Unwrap(pattern);
         if (!sp)
         {
-            cairo_pattern_reference(pattern);
+            pattern = cairo_pattern_reference(pattern);
             sp = std::make_shared<Pattern>(pattern);
         }
         return sp;
@@ -418,11 +471,114 @@ private:
     cairo_t *cairo_;
 };
 
+
+class ScriptInterpreter
+{
+public:
+    explicit ScriptInterpreter(cairo_script_interpreter_t *csi)
+        : csi_(csi)
+        , create_surface_func_(emscripten::val::null())
+    {
+        cairo_script_interpreter_hooks_t hooks{
+            .closure = this,
+            .surface_create = hook_surface_create
+        };
+        cairo_script_interpreter_install_hooks(csi_, &hooks);
+    }
+
+    static cairo_surface_t *hook_surface_create(void *closure,
+                                                cairo_content_t content,
+                                                double width, double height, long uid)
+    {
+        auto *self = reinterpret_cast<ScriptInterpreter*>(closure);
+        if (self->create_surface_func_.isNull() || self->create_surface_func_.isUndefined())
+            return nullptr;
+        emscripten::val ret = self->create_surface_func_(content, width, height, uid);
+        auto ptr = ret.as<std::shared_ptr<Surface>>();
+        ptr->TakeOwnership();
+        return ptr->GetHandle();
+    }
+
+    ~ScriptInterpreter()
+    {
+        cairo_script_interpreter_destroy(csi_);
+    }
+
+    cairo_status_t feed_string(const std::string& source)
+    {
+        return cairo_script_interpreter_feed_string(csi_, source.c_str(), source.length());
+    }
+
+    cairo_status_t finish()
+    {
+        return cairo_script_interpreter_finish(csi_);
+    }
+
+    void install_hooks(emscripten::val hooks)
+    {
+        emscripten::val prop = hooks["surface_create"];
+        if (prop.typeOf().as<std::string>() != "function")
+            throw std::runtime_error("Property `surface_create` is not a function");
+        create_surface_func_ = prop;
+    }
+
+private:
+    cairo_script_interpreter_t *csi_;
+    emscripten::val create_surface_func_;
+};
+
 } // namespace anonymous
 
 EMSCRIPTEN_BINDINGS(Cairo)
 {
     using namespace emscripten;
+
+    enum_<cairo_status_t>("Status")
+        .value("SUCCESS", CAIRO_STATUS_SUCCESS)
+        .value("NO_MEMORY", CAIRO_STATUS_NO_MEMORY)
+        .value("INVALID_RESTORE", CAIRO_STATUS_INVALID_RESTORE)
+        .value("INVALID_POP_GROUP", CAIRO_STATUS_INVALID_POP_GROUP)
+        .value("NO_CURRENT_POINT", CAIRO_STATUS_NO_CURRENT_POINT)
+        .value("INVALID_MATRIX", CAIRO_STATUS_INVALID_MATRIX)
+        .value("INVALID_STATUS", CAIRO_STATUS_INVALID_STATUS)
+        .value("NULL_POINTER", CAIRO_STATUS_NULL_POINTER)
+        .value("INVALID_STRING", CAIRO_STATUS_INVALID_STRING)
+        .value("INVALID_PATH_DATA", CAIRO_STATUS_INVALID_PATH_DATA)
+        .value("READ_ERROR", CAIRO_STATUS_READ_ERROR)
+        .value("WRITE_ERROR", CAIRO_STATUS_WRITE_ERROR)
+        .value("SURFACE_FINISHED", CAIRO_STATUS_SURFACE_FINISHED)
+        .value("SURFACE_TYPE_MISMATCH", CAIRO_STATUS_SURFACE_TYPE_MISMATCH)
+        .value("PATTERN_TYPE_MISMATCH", CAIRO_STATUS_PATTERN_TYPE_MISMATCH)
+        .value("INVALID_CONTENT", CAIRO_STATUS_INVALID_CONTENT)
+        .value("INVALID_FORMAT", CAIRO_STATUS_INVALID_FORMAT)
+        .value("INVALID_VISUAL", CAIRO_STATUS_INVALID_VISUAL)
+        .value("FILE_NOT_FOUND", CAIRO_STATUS_FILE_NOT_FOUND)
+        .value("INVALID_DASH", CAIRO_STATUS_INVALID_DASH)
+        .value("INVALID_DSC_COMMENT", CAIRO_STATUS_INVALID_DSC_COMMENT)
+        .value("INVALID_INDEX", CAIRO_STATUS_INVALID_INDEX)
+        .value("CLIP_NOT_REPRESENTABLE", CAIRO_STATUS_CLIP_NOT_REPRESENTABLE)
+        .value("TEMP_FILE_ERROR", CAIRO_STATUS_TEMP_FILE_ERROR)
+        .value("INVALID_STRIDE", CAIRO_STATUS_INVALID_STRIDE)
+        .value("FONT_TYPE_MISMATCH", CAIRO_STATUS_FONT_TYPE_MISMATCH)
+        .value("USER_FONT_IMMUTABLE", CAIRO_STATUS_USER_FONT_IMMUTABLE)
+        .value("USER_FONT_ERROR", CAIRO_STATUS_USER_FONT_ERROR)
+        .value("NEGATIVE_COUNT", CAIRO_STATUS_NEGATIVE_COUNT)
+        .value("INVALID_CLUSTERS", CAIRO_STATUS_INVALID_CLUSTERS)
+        .value("INVALID_SLANT", CAIRO_STATUS_INVALID_SLANT)
+        .value("INVALID_WEIGHT", CAIRO_STATUS_INVALID_WEIGHT)
+        .value("INVALID_SIZE", CAIRO_STATUS_INVALID_SIZE)
+        .value("USER_FONT_NOT_IMPLEMENTED", CAIRO_STATUS_USER_FONT_NOT_IMPLEMENTED)
+        .value("DEVICE_TYPE_MISMATCH", CAIRO_STATUS_DEVICE_TYPE_MISMATCH)
+        .value("DEVICE_ERROR", CAIRO_STATUS_DEVICE_ERROR)
+        .value("INVALID_MESH_CONSTRUCTION", CAIRO_STATUS_INVALID_MESH_CONSTRUCTION)
+        .value("DEVICE_FINISHED", CAIRO_STATUS_DEVICE_FINISHED)
+        .value("JBIG2_GLOBAL_MISSING", CAIRO_STATUS_JBIG2_GLOBAL_MISSING)
+        .value("PNG_ERROR", CAIRO_STATUS_PNG_ERROR)
+        .value("FREETYPE_ERROR", CAIRO_STATUS_FREETYPE_ERROR)
+        .value("WIN32_GDI_ERROR", CAIRO_STATUS_WIN32_GDI_ERROR)
+        .value("TAG_ERROR", CAIRO_STATUS_TAG_ERROR)
+        .value("DWRITE_ERROR", CAIRO_STATUS_DWRITE_ERROR)
+        .value("SVG_FONT_ERROR", CAIRO_STATUS_SVG_FONT_ERROR);
 
     enum_<cairo_format_t>("Format")
         .value("INVALID", CAIRO_FORMAT_INVALID)
@@ -516,7 +672,45 @@ EMSCRIPTEN_BINDINGS(Cairo)
         .value("MESH", CAIRO_PATTERN_TYPE_MESH)
         .value("RASTER_SOURCE", CAIRO_PATTERN_TYPE_RASTER_SOURCE);
 
-    function("surface_create_image", &Surface::MakeImage);
+    function("image_surface_create", optional_override(
+        [](int width, int height, emscripten::val memory,
+           cairo_format_t format, int stride) -> std::shared_ptr<ImageSurface>
+        {
+            HeapMemory heap_memory(memory);
+            cairo_surface_t *surface = cairo_image_surface_create_for_data(
+                heap_memory.GetU8Ptr(), format, width, height, stride);
+            if (surface == nullptr)
+                return nullptr;
+            
+            if (cairo_surface_status(surface) != CAIRO_STATUS_SUCCESS)
+                return nullptr;
+
+            return std::make_shared<ImageSurface>(surface);
+        }
+    ));
+
+    function("recording_surface_create", optional_override(
+        [](cairo_content_t content, emscripten::val extents) -> std::shared_ptr<RecordingSurface>
+        {
+            std::optional<cairo_rectangle_t> rect;
+            if (!extents.isNull())
+            {
+                if (!extents.isArray() || extents["length"].as<size_t>() != 4)
+                    return nullptr;
+                rect = cairo_rectangle_t{};
+                rect->x = extents[0].as<double>();
+                rect->y = extents[1].as<double>();
+                rect->width = extents[2].as<double>();
+                rect->height = extents[3].as<double>();
+            }
+            cairo_surface_t *surface = cairo_recording_surface_create(
+                content, rect ? &(*rect) : nullptr);
+            if (!surface)
+                return nullptr;
+            return std::make_shared<RecordingSurface>(surface);
+        }
+    ));
+
     function("cairo_create", &Cairo::Make);
     
     function("pattern_create_rgb", optional_override(
@@ -574,7 +768,21 @@ EMSCRIPTEN_BINDINGS(Cairo)
     ));
 
     class_<Surface>("Surface")
-        .smart_ptr<std::shared_ptr<Surface>>("std::shared_ptr<Surface>");
+        .smart_ptr<std::shared_ptr<Surface>>("std::shared_ptr<Surface>")
+        .function("flush", &Surface::flush)
+        .function("finish", &Surface::finish)
+        .function("mark_dirty", &Surface::mark_dirty);
+    
+    class_<ImageSurface, base<Surface>>("ImageSurface")
+        .smart_ptr<std::shared_ptr<ImageSurface>>("std::shared_ptr<ImageSurface>")
+        .function("get_format", &ImageSurface::get_format)
+        .function("get_width", &ImageSurface::get_width)
+        .function("get_height", &ImageSurface::get_height);
+
+    class_<RecordingSurface, base<Surface>>("RecordingSurface")
+        .smart_ptr<std::shared_ptr<RecordingSurface>>("std::shared_ptr<RecordingSurface>")
+        .function("ink_extents", &RecordingSurface::ink_extents)
+        .function("get_extents", &RecordingSurface::get_extents);
 
     class_<Pattern>("Pattern")
         .smart_ptr<std::shared_ptr<Pattern>>("std::shared_ptr<Pattern>")
@@ -668,4 +876,19 @@ EMSCRIPTEN_BINDINGS(Cairo)
         .function("set_source", &Cairo::set_source)
         .function("get_source", &Cairo::get_source)
         .function("mask", &Cairo::mask);
+
+    function("script_interpreter_create", optional_override(
+        []() -> std::shared_ptr<ScriptInterpreter>
+        {
+            return std::make_shared<ScriptInterpreter>(
+                cairo_script_interpreter_create()
+            );
+        }
+    ));
+
+    class_<ScriptInterpreter>("ScriptInterpreter")
+        .smart_ptr<std::shared_ptr<ScriptInterpreter>>("std::shared_ptr<ScriptInterpreter>")
+        .function("feed_string", &ScriptInterpreter::feed_string)
+        .function("finish", &ScriptInterpreter::finish)
+        .function("install_hooks", &ScriptInterpreter::install_hooks);
 }

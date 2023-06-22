@@ -1,5 +1,5 @@
 ![Project Logo](./assets/project_logo.svg)
-# Cocoa — General-Purposed 2D Rendering Framework for Linux
+# JavaScript Engine for 2D Rendering on Linux
 This project belongs to [OpenACG Group](https://github.com/OpenACG-Group).
 
 わたしわ、高性能ですから！
@@ -46,127 +46,55 @@ and there is a table showing what are or aren't supported:
 
 * For video decoding acceleration, Vulkan may be supported in the future.
 
-## Build and use Cocoa
+## Features
+
+### JavaScript Engine
+* ECMAScript 6 support, script files are treated as ES6 modules
+* Synthetic modules: import native language bindings by `import` keyword directly
+* Asynchronous filesystem API
+* V8 inspector on WebSocket: debug JavaScript with VSCode
+* WebAssembly support: run WASM modules compiled by Emscripten
+
+### Rendering (_glamor_ module)
+* Skia-like API
+* Onscreen and offscreen rendering targets
+* Wayland support
+* Raster (CPU) and Vulkan (GPU) rendering backends
+* Asynchronous onscreen rasterization
+* LayerTree-based onscreen rendering
+* PNG, JPEG, Webp encoding and decoding
+
+### Other graphical features
+* SVG support (draw SVGs or use SVG as a rendering target)
+* Text layout
+* Lottie animation support
+* Computer vision by OpenCV WASM
+
+### Multimedia (_utau_ module)
+* Multimedia decoding based on FFmpeg
+* Hardware-accelerated (VA-API) video decoding
+* Multimedia DAG filtering (some filters are hardware-accelerated)
+* PipeWire
+* Multimedia representation dispatcher
+* Video buffers can be exported as _glamor_ texture
+
+## Building
 See [documentation](https://openacg-group.github.io) for more details.
 
-## Vizmoe/Cocoa Pipeline
-The UI framework of Cocoa, which is named __Vizmoe__, is still being developed
-and undocumented. Here is a simple chart to show how Vizmoe works with Cocoa.
+## WebAssembly
+WebAssembly is an experimentally supported feature. WASM module compiled by Emscripten
+can be loaded by `//typescript/wasm/wasm-loader-polyfill.ts`, and WASM modules
+known to run correctly on Cocoa can be find in `//typescript/wasm`, like Cairo and OpenCV.
+Every WASM module in that directory has a tutorial `README.md` which shows you how
+to compile it and make it run correctly on Cocoa.
 
-![Vizmoe/Cocoa Pipeline](./assets/vizmoe_pipeline.png)
-
-## Rendering Framework
-After building Cocoa successfully, you can run a simple example which renders a star filled with
-linear gradient colors.
-
-TypeScript code of that example is like:
+Here is an simple example to load an Emscripten compiled module:
 
 ```typescript
-import * as std from 'core';
-import * as GL from 'glamor';
+// `wasm-loader-polyfill.ts` is at `//third_party/typescript/wasm/wasm-loader-polyfill.ts`
+import { LoadFromFile } from "./wasm-loader-polyfill";
 
-// Geometry size of the window
-const WINDOW_WIDTH = 256;
-const WINDOW_HEIGHT = 256;
-
-// First of all, initialize Glamor context by providing the name 
-// and version of your application for `Initialize` function.
-GL.RenderHost.Initialize({
-    name: 'Example',
-    major: 1,
-    minor: 0,
-    patch: 0
-});
-
-// Now the rendering thread has been started and we can do
-// remote method calls based on promise.
-
-// Connect to default display server (Usually Wayland on Linux)
-let display = await GL.RenderHost.Connect();
-
-// Create a window with hardware-accelerated rasterization backend
-let surface = await display.createHWComposeSurface(WINDOW_WIDTH, WINDOW_HEIGHT);
-
-// Close the display attached to the window when the window is closed.
-// We can do this because `surface` is the unique window in this application.
-surface.connect('closed', () => {
-    display.close();
-});
-
-// Dispose the Glamor context when the display is closed
-display.connect('closed', GL.RenderHost.Dispose);
-
-// Set a reasonable title for our window
-surface.setTitle('White Eternity');
-
-// As the final step of window system related initialization,
-// we create a blender so that we can render things through it.
-let blender = await surface.createBlender();
-
-// Register a close event callback
-surface.connect('close', () => {
-    // When the window is notified by system that it should be closed,
-    // this callback function will be fired.
-    // We just print a message and close the window in this simplest
-    // application.
-    std.print('Window was closed by user...\n');
-
-    // The invocation of `close` only sends a message to rendering thread,
-    // which means it will NOT make the window closed immediately.
-    // This request will be processed asynchronously in event loop.
-    blender.dispose();
-    surface.close();
-});
-
-// Now the preparation steps have been done, and we can draw something
-// by Skia.
-
-// Create a path. Path is a set of contours which we can stroke along with.
-// Closed path can be filled with colors.
-function star(): GL.CkPath {
-    const R = 60.0, C = 128.0;
-    let path = new GL.CkPath();
-    path.moveTo(C + R, C);
-    for (let i = 0; i < 15; i++) {
-        let a = 0.44879895 * i;
-        let r = R + R * (i % 2);
-        path.lineTo(C + r * Math.cos(a), C + r * Math.sin(a));
-    }
-    return path;
-}
-
-// Draw something on the canvas
-function draw(canvas: GL.CkCanvas): void {
-    let paint = new GL.CkPaint();
-    paint.setPathEffect(GL.CkPathEffect.MakeFromDSL('discrete(10, 4, 12)', {}));
-
-    const shader = GL.CkShader.MakeFromDSL(
-        'gradient_linear([0, 0], [256, 256], [[0.26,0.52,0.96,1], [0.06,0.62,0.35,1]], _, %tile)',
-        {tile: GL.Constants.TILE_MODE_CLAMP});
-
-    paint.setShader(shader);
-    paint.setAntiAlias(true);
-
-    canvas.clear([1, 1, 1, 1]);
-    canvas.drawPath(star(), paint);
-}
-
-// Record all the drawing operations in a Picture.
-// Those drawing operations will be replayed by rasterizer later.
-function drawPicture(): GL.CkPicture {
-    let recorder = new GL.CkPictureRecorder();
-    let canvas = recorder.beginRecording([0, 0, 256, 256]);
-    draw(canvas);
-    return recorder.finishRecordingAsPicture();
-}
-
-// Then build a scene with a single picture layer and submit it to blender.
-let scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
-    .pushOffset(0, 0)
-    .addPicture(drawPicture(), false, 0, 0)
-    .build();
-
-blender.update(scene).then(() => { scene.dispose(); });
+const module = await LoadFromFile('/path/to/module.wasm', '/path/to/module.js');
 ```
 
 ## Third Parties

@@ -534,6 +534,12 @@ T *UnwrapObject(v8::Isolate *isolate, v8::Local<v8::Value> value)
     return Class<T, Traits>::unwrap_object(isolate, value);
 }
 
+template<typename T>
+v8::Local<v8::Object> FindObjectRawPtr(v8::Isolate *isolate, T *ptr)
+{
+    return Class<T, raw_ptr_traits>::find_object(isolate, ptr);
+}
+
 template<typename T, typename...ArgsT>
 v8::Local<v8::Object> NewObject(v8::Isolate *isolate, ArgsT&&...args)
 {

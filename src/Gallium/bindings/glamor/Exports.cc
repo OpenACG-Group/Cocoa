@@ -112,6 +112,9 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
         { "MATRIX_SCALE_TO_FIT_CENTER", EV(SkMatrix::kCenter_ScaleToFit) },
         { "MATRIX_SCALE_TO_FIT_END", EV(SkMatrix::kEnd_ScaleToFit) },
 
+        { "CKSURFACE_CONTENT_CHANGE_MODE_DISCARD", EV(SkSurface::kDiscard_ContentChangeMode) },
+        { "CKSURFACE_CONTENT_CHANGE_MODE_RETAIN", EV(SkSurface::kRetain_ContentChangeMode) },
+
         { "CANVAS_SAVE_LAYER_PRESERVE_LCD_TEXT", EV(SkCanvas::kPreserveLCDText_SaveLayerFlag) },
         { "CANVAS_SAVE_LAYER_INIT_WITH_PREVIOUS", EV(SkCanvas::kInitWithPrevious_SaveLayerFlag) },
         { "CANVAS_SAVE_LAYER_F16_COLOR_TYPE", EV(SkCanvas::kF16ColorType) },

@@ -111,6 +111,7 @@ void startup_print_greeting(const gallium::Runtime::Options& opts)
 std::vector<std::string> string_view_vec_dup(const std::vector<std::string_view>& svv)
 {
     std::vector<std::string> sv;
+    sv.reserve(svv.size());
     for (const auto& s : svv)
         sv.emplace_back(s);
     return sv;

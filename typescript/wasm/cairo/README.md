@@ -121,21 +121,25 @@ $ EMSCRIPTEN_DIR=<Cocoa project>/third_party/pango-cairo-wasm/emsdk/upstream/ems
 $ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
         -DCMAKE_TOOLCHAIN_FILE=${EMSCRIPTEN_DIR}/cmake/Modules/Platform/Emscripten.cmake \
         -G Ninja \
-        ../../tslib/wasm/cairo
+        ../../typescript/wasm/cairo
 
 $ ninja
 ```
 
-The building artifact is a `CairoBinding.wasm` file and a `CairoBinding.js` file.
+The building artifact is a `cairo.wasm` file and a `cairo.js` file.
+Copy these two files into the `//third_party/wasm-build/bin` directory:
+```bash
+$ cp ./cairo.{wasm,js} ../../third_party/wasm-build/bin
+```
 
 ## Use Cairo
-We have a TypeScript example at [`//tslib/samples/wasm-cairo-hello.ts`](../../samples/wasm-cairo-hello.ts)
+We have a TypeScript example at [`//typescript/samples/wasm-cairo-hello.ts`](../../samples/wasm-cairo-hello.ts)
 that shows how to render a bitmap in memory with Cairo.
-And in `//tslib/samples` directory, files whose name starts with `wasm-cairo`
+And in `//typescript/samples` directory, files whose name starts with `wasm-cairo`
 can show you many examples of how to use Cairo API.
 
 There is also a special example
-[`//tslib/samples/wasm-cairo-sharing-composite.ts`](../../samples/wasm-cairo-sharing-composite.ts),
+[`//typescript/samples/wasm-cairo-sharing-composite.ts`](../../samples/wasm-cairo-sharing-composite.ts),
 which shows how to let SkNative and Cairo share the same bitmap
 render target. It can save copying of data between Cairo and JS,
 but you must manage memory properly and carefully to avoid leaking.

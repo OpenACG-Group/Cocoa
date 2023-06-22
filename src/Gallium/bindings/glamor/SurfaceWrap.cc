@@ -29,41 +29,41 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 SurfaceWrap::SurfaceWrap(gl::Shared<gl::RenderClientObject> object)
     : RenderClientObjectWrap(std::move(object))
 {
-    defineSignal("closed", GLSI_SURFACE_CLOSED, nullptr);
-    defineSignal("resize", GLSI_SURFACE_RESIZE, GenericInfoAcceptor<NoCast<int32_t>, NoCast<int32_t>>);
-    defineSignal("close", GLSI_SURFACE_CLOSE, nullptr);
-    defineSignal("configure", GLSI_SURFACE_CONFIGURE,
+    DefineSignal("closed", GLSI_SURFACE_CLOSED, nullptr);
+    DefineSignal("resize", GLSI_SURFACE_RESIZE, GenericInfoAcceptor<NoCast<int32_t>, NoCast<int32_t>>);
+    DefineSignal("close", GLSI_SURFACE_CLOSE, nullptr);
+    DefineSignal("configure", GLSI_SURFACE_CONFIGURE,
                  GenericInfoAcceptor<NoCast<int32_t>, NoCast<int32_t>,
                          InfoAcceptorCast<Bitfield<gl::ToplevelStates>, uint32_t>>);
-    defineSignal("frame", GLSI_SURFACE_FRAME, GenericInfoAcceptor<NoCast<uint32_t>>);
-    defineSignal("pointer-hovering", GLSI_SURFACE_POINTER_HOVERING, GenericInfoAcceptor<NoCast<bool>>);
-    defineSignal("pointer-motion", GLSI_SURFACE_POINTER_MOTION,
+    DefineSignal("frame", GLSI_SURFACE_FRAME, GenericInfoAcceptor<NoCast<uint32_t>>);
+    DefineSignal("pointer-hovering", GLSI_SURFACE_POINTER_HOVERING, GenericInfoAcceptor<NoCast<bool>>);
+    DefineSignal("pointer-motion", GLSI_SURFACE_POINTER_MOTION,
                  GenericInfoAcceptor<NoCast<double>, NoCast<double>>);
-    defineSignal("pointer-button", GLSI_SURFACE_POINTER_BUTTON,
+    DefineSignal("pointer-button", GLSI_SURFACE_POINTER_BUTTON,
                  GenericInfoAcceptor<AutoEnumCast<gl::PointerButton>, NoCast<bool>>);
-    defineSignal("pointer-axis", GLSI_SURFACE_POINTER_AXIS,
+    DefineSignal("pointer-axis", GLSI_SURFACE_POINTER_AXIS,
                  GenericInfoAcceptor<AutoEnumCast<gl::AxisSourceType>, NoCast<double>, NoCast<double>>);
-    defineSignal("pointer-highres-scroll", GLSI_SURFACE_POINTER_HIGHRES_SCROLL,
+    DefineSignal("pointer-highres-scroll", GLSI_SURFACE_POINTER_HIGHRES_SCROLL,
                  GenericInfoAcceptor<AutoEnumCast<gl::AxisSourceType>, NoCast<int32_t>, NoCast<int32_t>>);
-    defineSignal("keyboard-focus", GLSI_SURFACE_KEYBOARD_FOCUS,
+    DefineSignal("keyboard-focus", GLSI_SURFACE_KEYBOARD_FOCUS,
                  GenericInfoAcceptor<NoCast<bool>>);
 
-    defineSignal("keyboard-key", GLSI_SURFACE_KEYBOARD_KEY,
+    DefineSignal("keyboard-key", GLSI_SURFACE_KEYBOARD_KEY,
                  GenericInfoAcceptor<AutoEnumCast<gl::KeyboardKey>,
-                                     EnumBitfieldCast<gl::KeyboardModifiers>,
-                                     NoCast<bool>>);
+                         EnumBitfieldCast<gl::KeyboardModifiers>,
+                         NoCast<bool>>);
 }
 
 SurfaceWrap::~SurfaceWrap() = default;
 
 int32_t SurfaceWrap::getWidth()
 {
-    return getObject()->Cast<gl::Surface>()->GetWidth();
+    return GetObject()->Cast<gl::Surface>()->GetWidth();
 }
 
 int32_t SurfaceWrap::getHeight()
 {
-    return getObject()->Cast<gl::Surface>()->GetHeight();
+    return GetObject()->Cast<gl::Surface>()->GetHeight();
 }
 
 v8::Local<v8::Value> SurfaceWrap::createBlender()
@@ -72,7 +72,7 @@ v8::Local<v8::Value> SurfaceWrap::createBlender()
     using W = BlenderWrap;
     using T = gl::Shared<gl::Blender>;
     auto closure = PromiseClosure::New(isolate, PromiseClosure::CreateObjectConverter<W, T>);
-    getObject()->Invoke(GLOP_SURFACE_CREATE_BLENDER, closure, PromiseClosure::HostCallback);
+    GetObject()->Invoke(GLOP_SURFACE_CREATE_BLENDER, closure, PromiseClosure::HostCallback);
     return closure->getPromise();
 }
 
@@ -80,7 +80,7 @@ v8::Local<v8::Value> SurfaceWrap::close()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     auto closure = PromiseClosure::New(isolate, nullptr);
-    getObject()->Invoke(GLOP_SURFACE_CLOSE, closure, PromiseClosure::HostCallback);
+    GetObject()->Invoke(GLOP_SURFACE_CLOSE, closure, PromiseClosure::HostCallback);
     return closure->getPromise();
 }
 
@@ -88,7 +88,7 @@ v8::Local<v8::Value> SurfaceWrap::setTitle(const std::string& str)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     auto closure = PromiseClosure::New(isolate, nullptr);
-    getObject()->Invoke(GLOP_SURFACE_SET_TITLE, closure, PromiseClosure::HostCallback, str);
+    GetObject()->Invoke(GLOP_SURFACE_SET_TITLE, closure, PromiseClosure::HostCallback, str);
     return closure->getPromise();
 }
 
@@ -97,7 +97,7 @@ v8::Local<v8::Value> SurfaceWrap::resize(int32_t width, int32_t height)
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     auto closure = PromiseClosure::New(isolate, nullptr);
 
-    getObject()->Invoke(GLOP_SURFACE_RESIZE, closure, PromiseClosure::HostCallback,
+    GetObject()->Invoke(GLOP_SURFACE_RESIZE, closure, PromiseClosure::HostCallback,
                         width, height);
     return closure->getPromise();
 }
@@ -111,7 +111,7 @@ v8::Local<v8::Value> SurfaceWrap::getBuffersDescriptor()
         return binder::to_v8(isolate, info.GetReturnValue<std::string>());
     });
 
-    getObject()->Invoke(GLOP_SURFACE_GET_BUFFERS_DESCRIPTOR,
+    GetObject()->Invoke(GLOP_SURFACE_GET_BUFFERS_DESCRIPTOR,
                         closure, PromiseClosure::HostCallback);
 
     return closure->getPromise();
@@ -126,7 +126,7 @@ v8::Local<v8::Value> SurfaceWrap::requestNextFrame()
             return binder::to_v8(isolate, info.GetReturnValue<uint32_t>());
     });
 
-    getObject()->Invoke(GLOP_SURFACE_REQUEST_NEXT_FRAME, closure, PromiseClosure::HostCallback);
+    GetObject()->Invoke(GLOP_SURFACE_REQUEST_NEXT_FRAME, closure, PromiseClosure::HostCallback);
 
     return closure->getPromise();
 }
@@ -134,7 +134,7 @@ v8::Local<v8::Value> SurfaceWrap::requestNextFrame()
 #define IMPL_SET_XXX_SIZE(op, w, h)                                         \
     v8::Isolate *isolate = v8::Isolate::GetCurrent();                       \
     auto closure = PromiseClosure::New(isolate, nullptr);                   \
-    getObject()->Invoke(op, closure, PromiseClosure::HostCallback, w, h);   \
+    GetObject()->Invoke(op, closure, PromiseClosure::HostCallback, w, h);   \
     return closure->getPromise();
 
 v8::Local<v8::Value> SurfaceWrap::setMinSize(int32_t width, int32_t height)
@@ -150,7 +150,7 @@ v8::Local<v8::Value> SurfaceWrap::setMaxSize(int32_t width, int32_t height)
 #define IMPL_SET_BOOLEAN_VALUE(op, value)                                   \
     v8::Isolate *isolate = v8::Isolate::GetCurrent();                       \
     auto closure = PromiseClosure::New(isolate, nullptr);                   \
-    getObject()->Invoke(op, closure, PromiseClosure::HostCallback, value);  \
+    GetObject()->Invoke(op, closure, PromiseClosure::HostCallback, value);  \
     return closure->getPromise();
 
 v8::Local<v8::Value> SurfaceWrap::setMinimized(bool value)
@@ -180,8 +180,8 @@ v8::Local<v8::Value> SurfaceWrap::setFullscreen(bool value, v8::Local<v8::Value>
         g_throw(Error, "Argument \'monitor\' must be provided when enter fullscreen state");
 
     auto closure = PromiseClosure::New(isolate, nullptr);
-    getObject()->Invoke(GLOP_SURFACE_SET_FULLSCREEN, closure, PromiseClosure::HostCallback,
-                        value, monitor_ptr);
+    GetObject()->Invoke(GLOP_SURFACE_SET_FULLSCREEN, closure, PromiseClosure::HostCallback,
+                                    value, monitor_ptr);
 
     return closure->getPromise();
 }
@@ -194,14 +194,19 @@ v8::Local<v8::Value> SurfaceWrap::setAttachedCursor(v8::Local<v8::Value> cursor)
     if (!unwrapped)
         g_throw(TypeError, "Argument \'cursor\' must be an instance of Cursor");
 
-    gl::Shared<gl::Cursor> extracted_cursor = unwrapped->getObject()->As<gl::Cursor>();
+    gl::Shared<gl::Cursor> extracted_cursor = unwrapped->GetObject()->As<gl::Cursor>();
     CHECK(extracted_cursor);
 
     auto closure = PromiseClosure::New(isolate, nullptr);
-    getObject()->Invoke(GLOP_SURFACE_SET_ATTACHED_CURSOR, closure,
-                        PromiseClosure::HostCallback, extracted_cursor);
+    GetObject()->Invoke(GLOP_SURFACE_SET_ATTACHED_CURSOR, closure,
+                                    PromiseClosure::HostCallback, extracted_cursor);
 
     return closure->getPromise();
+}
+
+v8::Local<v8::Object> SurfaceWrap::OnGetThisObject(v8::Isolate *isolate)
+{
+    return binder::FindObjectRawPtr(v8::Isolate::GetCurrent(), this);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

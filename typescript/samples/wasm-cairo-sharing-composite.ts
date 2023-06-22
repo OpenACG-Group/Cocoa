@@ -22,23 +22,21 @@ import * as std from 'core';
 import * as gl from 'glamor';
 import * as pixenc from 'pixencoder';
 import * as Cairo from '../wasm/cairo/lib/cairo';
+import { LoadFromProjectThirdParty } from "../wasm/wasm-loader-polyfill";
 
 const WIDTH = 512, HEIGHT = 512;
 const BYTES_PER_PIXEL = 4;
 
-const lib = await Cairo.CairoLoad('../../out/cairo.wasm');
+const lib = await LoadFromProjectThirdParty<Cairo.CairoLib>('cairo.wasm', 'cairo.js');
 
 function drawCairo(memory: Cairo.MallocMemory): void {
-    const surface = lib.surface_create_image(
+    const surface = lib.image_surface_create(
         WIDTH, HEIGHT,
         memory,
         lib.Format.ARGB32,
         WIDTH * BYTES_PER_PIXEL
     );
     const cairo = lib.cairo_create(surface);
-
-    cairo.set_source_rgba(1, 1, 1, 1);
-    cairo.paint();
 
     const cx = WIDTH / 2, cy = HEIGHT / 2;
     const R = 120;
@@ -62,6 +60,11 @@ function drawCairo(memory: Cairo.MallocMemory): void {
     cairo.line_to(cx, cy);
     cairo.stroke();
 
+    // This is unnecessary in this simplest example, but this should
+    // not be omitted when SkNative and Cairo are used in a staggered
+    // manner.
+    surface.flush();
+
     cairo.delete();
     surface.delete();
 }
@@ -81,6 +84,8 @@ function drawSkNative(memory: Cairo.MallocMemory): void {
         memoryU8Array.buffer
     );
     const canvas = surface.getCanvas();
+
+    canvas.clear([1, 1, 1, 1]);
     
     const typeface = gl.defaultFontMgr.matchFamilyStyle(
         'Consolas',
@@ -107,12 +112,29 @@ function drawSkNative(memory: Cairo.MallocMemory): void {
         0, 20,
         paint
     );
+
+    // This is unnecessary in this simplest example, but this should
+    // not be omitted when SkNative and Cairo are used in a staggered
+    // manner.
+    surface.notifyContentWillChange(gl.Constants.CKSURFACE_CONTENT_CHANGE_MODE_DISCARD);
 }
 
 const surfaceMemory = lib.malloc(Uint8Array, WIDTH * HEIGHT * BYTES_PER_PIXEL);
 
-drawCairo(surfaceMemory);
+// Note that this example only shows the simplest case: render with SkNative
+// first, then render with Cairo. However, the practical situation can be more
+// complicated. For example, they are used in a staggered manner.
+// In that case, you should pay attention to the synchronization of their
+// bitmap states:
+//   1. Each time before drawing with Cairo, call SkNative
+//      `CkSurface.notifyContentWillChange()`
+//   2. Each time after drawing with Cairo, call Cairo
+//      `Surface.flush()`
+//   3. Each time after drawing with SkNative, call Cairo
+//      `Surface.mark_dirty()`
+
 drawSkNative(surfaceMemory);
+drawCairo(surfaceMemory);
 
 const encoded = pixenc.WebpEncoder.EncodeMemory(
     {

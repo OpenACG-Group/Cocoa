@@ -10,12 +10,12 @@ set(THIRDPARTY_WASM_LIBS_DIR ${THIRDPARTY_WASM_BUILD}/lib)
 include_directories(/usr/lib/emscripten/system/include)
 
 add_executable(
-    CairoBindings
+    cairo
     src/cairo-bindings.cc
 )
 
 target_include_directories(
-    CairoBindings
+    cairo
     PRIVATE
     ${THIRDPARTY_WASM_INCLUDE_DIR}
     ${THIRDPARTY_WASM_INCLUDE_DIR}/glib-2.0
@@ -25,18 +25,20 @@ target_include_directories(
 )
 
 target_link_options(
-    CairoBindings PRIVATE
+    cairo PRIVATE
     "-lembind"
     "-sEXPORTED_FUNCTIONS=['_malloc', '_free']"
-    "-sEXPORT_ES6=1"
-    "-sMODULARIZE=1"
+    # "-sEXPORT_ES6=1"
+    # "-sMODULARIZE=1"
     "-sNO_DISABLE_EXCEPTION_CATCHING"
+    "--pre-js" ${CMAKE_HOME_DIRECTORY}/src/cairo-pre.js
 )
 
 target_link_libraries(
-    CairoBindings
+    cairo
     PRIVATE
     ${THIRDPARTY_WASM_LIBS_DIR}/libcairo.a
+    ${THIRDPARTY_WASM_LIBS_DIR}/libcairo-script-interpreter.a
     ${THIRDPARTY_WASM_LIBS_DIR}/libpixman-1.a
     ${THIRDPARTY_WASM_LIBS_DIR}/libfreetype.a
     ${THIRDPARTY_WASM_LIBS_DIR}/libfontconfig.a

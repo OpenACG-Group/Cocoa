@@ -30,10 +30,10 @@ BlenderWrap::BlenderWrap(gl::Shared<gl::RenderClientObject> object)
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
     using PictCast = CreateObjCast<gl::MaybeGpuObject<SkPicture>, CriticalPictureWrap>;
-    defineSignal("picture-captured", GLSI_BLENDER_PICTURE_CAPTURED,
+    DefineSignal("picture-captured", GLSI_BLENDER_PICTURE_CAPTURED,
                  GenericInfoAcceptor<PictCast, NoCast<int32_t>>);
 
-    gl::Shared<gl::Blender> blender = getObject()->As<gl::Blender>();
+    gl::Shared<gl::Blender> blender = GetObject()->As<gl::Blender>();
     if (blender->GetAttachedProfiler())
     {
         gl::Shared<gl::GProfiler> profiler = blender->GetAttachedProfiler();
@@ -53,7 +53,7 @@ v8::Local<v8::Value> invoke_void_return(v8::Isolate *isolate,
                                         ArgsT&&...args)
 {
     auto closure = PromiseClosure::New(isolate, nullptr);
-    wrap->getObject()->Invoke(op, closure, PromiseClosure::HostCallback,
+    wrap->GetObject()->Invoke(op, closure, PromiseClosure::HostCallback,
                               std::forward<ArgsT>(args)...);
     return closure->getPromise();
 }
@@ -69,7 +69,7 @@ v8::Local<v8::Value> invoke_primitive_type_return(v8::Isolate *isolate,
     };
 
     auto closure = PromiseClosure::New(isolate, acceptor);
-    wrap->getObject()->Invoke(op, closure, PromiseClosure::HostCallback,
+    wrap->GetObject()->Invoke(op, closure, PromiseClosure::HostCallback,
                               std::forward<ArgsT>(args)...);
     return closure->getPromise();
 }
@@ -105,7 +105,7 @@ v8::Local<v8::Value> BlenderWrap::update(v8::Local<v8::Value> sceneObject)
     CHECK(layer_tree.unique());
 
     auto closure = PromiseClosure::New(isolate, nullptr);
-    getObject()->Invoke(GLOP_BLENDER_UPDATE, closure, PromiseClosure::HostCallback, layer_tree);
+    GetObject()->Invoke(GLOP_BLENDER_UPDATE, closure, PromiseClosure::HostCallback, layer_tree);
 
     return closure->getPromise();
 }
@@ -132,12 +132,12 @@ BlenderWrap::newTextureDeletionSubscriptionSignal(int64_t id,
         int32_t signal_num = info.GetReturnValue<int32_t>();
 
         // Register a named signal on the `RenderClientObjectWrap` interface.
-        this->defineSignal(sigName.c_str(), signal_num, {});
+        this->DefineSignal(sigName.c_str(), signal_num, {});
         return v8::Undefined(i);
     };
 
     auto closure = PromiseClosure::New(isolate, acceptor);
-    getObject()->Invoke(GLOP_BLENDER_NEW_TEXTURE_DELETION_SUBSCRIPTION_SIGNAL,
+    GetObject()->Invoke(GLOP_BLENDER_NEW_TEXTURE_DELETION_SUBSCRIPTION_SIGNAL,
                         closure,
                         PromiseClosure::HostCallback,
                         id);
@@ -208,12 +208,12 @@ BlenderWrap::createTextureFromEncodedData(v8::Local<v8::Value> buffer,
     };
 
     auto closure = PromiseClosure::New(isolate, acceptor);
-    getObject()->Invoke(GLOP_BLENDER_CREATE_TEXTURE_FROM_ENCODED_DATA,
-                        closure,
-                        PromiseClosure::HostCallback,
-                        data,
-                        alpha_type_enum,
-                        annotation);
+    GetObject()->Invoke(GLOP_BLENDER_CREATE_TEXTURE_FROM_ENCODED_DATA,
+                                    closure,
+                                    PromiseClosure::HostCallback,
+                                    data,
+                                    alpha_type_enum,
+                                    annotation);
 
     return closure->getPromise();
 }
@@ -261,12 +261,12 @@ BlenderWrap::createTextureFromPixmap(v8::Local<v8::Value> buffer,
     };
 
     auto closure = PromiseClosure::New(isolate, acceptor);
-    getObject()->Invoke(GLOP_BLENDER_CREATE_TEXTURE_FROM_PIXMAP,
-                        closure,
-                        PromiseClosure::HostCallback,
-                        array_memory->ptr,
-                        image_info,
-                        annotation);
+    GetObject()->Invoke(GLOP_BLENDER_CREATE_TEXTURE_FROM_PIXMAP,
+                                    closure,
+                                    PromiseClosure::HostCallback,
+                                    array_memory->ptr,
+                                    image_info,
+                                    annotation);
 
     return closure->getPromise();
 }
@@ -286,6 +286,11 @@ v8::Local<v8::Value> BlenderWrap::purgeRasterCacheResources()
 
     return invoke_void_return(v8::Isolate::GetCurrent(),
                               GLOP_BLENDER_PURGE_RASTER_CACHE_RESOURCES, this);
+}
+
+v8::Local<v8::Object> BlenderWrap::OnGetThisObject(v8::Isolate *isolate)
+{
+    return binder::FindObjectRawPtr(v8::Isolate::GetCurrent(), this);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

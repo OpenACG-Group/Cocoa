@@ -142,6 +142,7 @@ void slot_closure_callback(SlotClosure *closure, gl::RenderHostSlotCallbackInfo&
 } // namespace anonymous
 
 std::unique_ptr<SlotClosure> SlotClosure::New(v8::Isolate *isolate,
+                                              v8::Local<v8::Object> self,
                                               int32_t signal,
                                               const std::string& signal_name,
                                               const gl::Shared<gl::RenderClientObject>& client,
@@ -153,6 +154,7 @@ std::unique_ptr<SlotClosure> SlotClosure::New(v8::Isolate *isolate,
     CHECK(closure);
 
     closure->isolate_ = isolate;
+    closure->self_.Reset(isolate, self);
     closure->callback_.Reset(isolate, callback);
     closure->client_ = client;
     closure->acceptor_ = std::move(acceptor);

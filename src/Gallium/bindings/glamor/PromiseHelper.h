@@ -54,6 +54,7 @@ struct PromiseClosure
 struct SlotClosure
 {
     static std::unique_ptr<SlotClosure> New(v8::Isolate *isolate,
+                                            v8::Local<v8::Object> self,
                                             int32_t signal,
                                             const std::string& signal_name,
                                             const gl::Shared<gl::RenderClientObject>& client,
@@ -63,6 +64,7 @@ struct SlotClosure
     ~SlotClosure();
 
     v8::Isolate *isolate_;
+    v8::Global<v8::Object> self_;
     v8::Global<v8::Function> callback_;
     gl::Shared<gl::RenderClientObject> client_;
     InfoAcceptor acceptor_;

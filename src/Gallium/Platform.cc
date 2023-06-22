@@ -175,7 +175,18 @@ private:
         auto *sched = reinterpret_cast<DelayedTaskScheduler*>(timer->loop->data);
         auto task = reinterpret_cast<v8::Task*>(timer->data);
 
+        // Task queue takes the ownership of `task`, and `timer->data`
+        // should not refer to it anymore
         sched->worker_thread_pool_->EnqueueTask(std::unique_ptr<v8::Task>(task));
+        timer->data = nullptr;
+
+        // Expired timer should be removed from timers set and be closed
+        // properly. If the scheduler disposed before all the timers expiring,
+        // those pending timers will be closed by `DisposeTask::Run`.
+        sched->timers_set_.erase(timer);
+        uv_close(reinterpret_cast<uv_handle_t*>(timer), [](uv_handle_t *handle) {
+            delete reinterpret_cast<uv_timer_t*>(handle);
+        });
     }
 
     class ScheduleTask : public v8::Task

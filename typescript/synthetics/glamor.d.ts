@@ -728,6 +728,7 @@ export type RuntimeEffectUniformType = number;
 export type RuntimeEffectUniformFlag = number;
 export type RuntimeEffectChildType = number;
 export type VerticesVertexMode = number;
+export type CkSurfaceContentChangeMode = number;
 
 interface Constants {
     readonly CAPABILITY_HWCOMPOSE_ENABLED: Capability;
@@ -792,6 +793,9 @@ interface Constants {
     readonly MATRIX_SCALE_TO_FIT_START: MatrixScaleToFit;
     readonly MATRIX_SCALE_TO_FIT_CENTER: MatrixScaleToFit;
     readonly MATRIX_SCALE_TO_FIT_END: MatrixScaleToFit;
+
+    readonly CKSURFACE_CONTENT_CHANGE_MODE_DISCARD: CkSurfaceContentChangeMode;
+    readonly CKSURFACE_CONTENT_CHANGE_MODE_RETAIN: CkSurfaceContentChangeMode;
 
     readonly CANVAS_SAVE_LAYER_PRESERVE_LCD_TEXT: CanvasSaveLayerFlag;
     readonly CANVAS_SAVE_LAYER_INIT_WITH_PREVIOUS: CanvasSaveLayerFlag;
@@ -1084,6 +1088,7 @@ export class CkSurface {
     public makeImageSnapshot(bounds: CkRect | null): CkImage;
     public draw(canvas: CkCanvas, x: number, y: number, sampling: SamplingOption, paint: CkPaint | null): void;
     public readPixels(dstInfo: CkImageInfo, dstPixels: Uint8Array, dstRowBytes: number, srcX: number, srcY: number): void;
+    public notifyContentWillChange(mode: CkSurfaceContentChangeMode): void;
 }
 
 export class CkMatrix {
@@ -1500,7 +1505,7 @@ export class CkPathEffect {
 export class CkBitmap {
     private constructor();
 
-    public static MakeFromBuffer(buffer: Buffer,
+    public static MakeFromBuffer(buffer: ArrayBuffer,
                                  width: number,
                                  height: number,
                                  colorType: ColorType,
@@ -1521,7 +1526,7 @@ export class CkBitmap {
     public toImage(): CkImage;
     public makeShader(tmx: TileMode, tmy: TileMode, sampling: SamplingOption,
                       localMatrix: CkMatrix | null): CkShader;
-    public getPixelBuffer(): Buffer;
+    public getPixelBuffer(): ArrayBuffer;
 }
 
 export interface ImageExportedPixelsBuffer {
