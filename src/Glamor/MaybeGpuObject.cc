@@ -172,10 +172,11 @@ void MaybeGpuObjectBase::InternalReset(bool isRetained, SkRefCnt *ptr, RenderHos
                                        bool should_remove_entry)
 {
     auto *collector = GlobalScope::Ref().GetGpuThreadSharedObjectsCollector();
-    CHECK(collector);
 
     if (is_retained_)
     {
+        CHECK(collector);
+
         if (should_remove_entry)
             collector->DeleteDeadObject(this);
 
@@ -214,7 +215,10 @@ void MaybeGpuObjectBase::InternalReset(bool isRetained, SkRefCnt *ptr, RenderHos
     }
 
     if (is_retained_)
+    {
+        CHECK(collector);
         collector->AddAliveObject(this);
+    }
 }
 
 void MaybeGpuObjectBase::ForceCollect()

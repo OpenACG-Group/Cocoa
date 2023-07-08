@@ -26,7 +26,9 @@
 #include "include/gpu/vk/GrVkBackendContext.h"
 #include "include/gpu/GrDirectContext.h"
 #include "include/gpu/GrBackendSemaphore.h"
+#include "include/gpu/GrBackendSurfaceMutableState.h"
 #include "include/gpu/ganesh/SkSurfaceGanesh.h"
+#include "include/gpu/GrBackendSurface.h"
 
 #include "fmt/format.h"
 

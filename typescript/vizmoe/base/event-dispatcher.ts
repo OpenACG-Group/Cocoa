@@ -30,40 +30,40 @@ export class Event {
 type EventConstructor<T extends Event> = new(...args: any[]) => T;
 
 export class EventEmitter {
-    private eventRegistry: Map<Function, LinkedList<Function>>;
+    private fEventRegistry: Map<Function, LinkedList<Function>>;
 
     protected constructor() {
-        this.eventRegistry = new Map();
+        this.fEventRegistry = new Map();
     }
 
     protected registerEvent<T extends Event>(ctor: EventConstructor<T>): void {
-        if (this.eventRegistry.has(ctor)) {
+        if (this.fEventRegistry.has(ctor)) {
             throw Error(`Event ${ctor.name} has been registered`);
         }
-        this.eventRegistry.set(ctor, new LinkedList<Function>());
+        this.fEventRegistry.set(ctor, new LinkedList<Function>());
     }
 
     protected emitEvent<T extends Event>(event: T): void {
-        if (!this.eventRegistry.has(event.constructor)) {
+        if (!this.fEventRegistry.has(event.constructor)) {
             throw TypeError(`Event ${event.constructor.name} is not registered`);
         }
-        this.eventRegistry.get(event.constructor).forEach((callback: Function) => {
+        this.fEventRegistry.get(event.constructor).forEach((callback: Function) => {
             callback(event);
         });
     }
 
     public addEventListener<T extends Event>(ctor: EventConstructor<T>, callback: (event: T) => void): void {
-        if (!this.eventRegistry.has(ctor)) {
+        if (!this.fEventRegistry.has(ctor)) {
             throw TypeError(`Event ${ctor.name} will never be emitted by this object`);
         }
-        this.eventRegistry.get(ctor).push(callback);
+        this.fEventRegistry.get(ctor).push(callback);
     }
 
     public removeEventListener<T extends Event>(ctor: EventConstructor<T>, callback: (event: T) => void): void {
-        if (!this.eventRegistry.has(ctor)) {
+        if (!this.fEventRegistry.has(ctor)) {
             throw TypeError(`Event ${ctor.name} will never be emitted by this object`);
         }
-        this.eventRegistry.get(ctor).removeIf((value) => {
+        this.fEventRegistry.get(ctor).removeIf((value) => {
             return (value == callback);
         });
     }

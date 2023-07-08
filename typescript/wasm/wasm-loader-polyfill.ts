@@ -31,6 +31,10 @@ function executeScript<T>(wasmBinary: ArrayBuffer, script: string): Promise<T> {
     const Module = {
         onRuntimeInitialized() {
             readyPromiseResolver(Module);
+        },
+
+        print(str) {
+            std.print(str + '\n');
         }
     };
 
@@ -55,8 +59,8 @@ function executeScript<T>(wasmBinary: ArrayBuffer, script: string): Promise<T> {
     };
 
     // Now executes the script to load and initialize the WebAssembly module.
-    const f = new Function('Module', 'window', 'fetch', 'performance', script);
-    f(Module, window, fetch, performance);
+    const f = new Function('Module', 'window', 'fetch', 'performance', 'globalThis', script);
+    f(Module, window, fetch, performance, undefined);
 
     return readyPromise;
 }

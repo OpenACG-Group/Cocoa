@@ -172,8 +172,8 @@ export class TextStyle {
 
 export class ParagraphStyle {
     public constructor();
-    public strutStyle: StrutStyle;;
-    public textStyle: TextStyle;;
+    public strutStyle: StrutStyle;
+    public textStyle: TextStyle;
     public textDirection: Enum<TextDirection>;
     public textAlign: Enum<TextAlign>;
     public maxLines: number;

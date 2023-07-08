@@ -26,12 +26,14 @@ import {
     BlendMode,
     SceneBuilder,
     Scene,
-    SamplingOption
+    SamplingOption,
+    Constants as GConst,
+    CkArrayXYWHRect
 } from 'glamor';
 import { VideoBuffer } from 'utau';
 import { PaintRenderNode } from './render-node';
 import { Vector2f } from './vector';
-import { Rect } from './rectangle';
+import { Rect, RRect } from './rectangle';
 
 export interface Logger {
     beginInstruction(n: number, opcodeName: string, operandsNumber: number): void;
@@ -68,7 +70,7 @@ interface RecordOperand {
     fVideoBuffer?: VideoBuffer;
     fFilter?: CkImageFilter;
     fBlendMode?: BlendMode;
-    fRect?: CkRect;
+    fRect?: CkArrayXYWHRect;
     fRRect?: CkRRect;
     fMatrix?: CkMatrix;
     fVector?: Vector2f;
@@ -188,6 +190,48 @@ export class CacheContext {
     }
 }
 
+const BLEND_MODE_NAMES = new Map<number, string>([
+    [ GConst.BLEND_MODE_CLEAR, 'Clear' ],
+    [ GConst.BLEND_MODE_SRC, 'Src' ],
+    [ GConst.BLEND_MODE_DST, 'Dst' ],
+    [ GConst.BLEND_MODE_SRC_OVER, 'SrcOver' ],
+    [ GConst.BLEND_MODE_DST_OVER, 'DstOver' ],
+    [ GConst.BLEND_MODE_SRC_IN, 'SrcIn' ],
+    [ GConst.BLEND_MODE_DST_IN, 'DstIn' ],
+    [ GConst.BLEND_MODE_SRC_OUT, 'SrcOut' ],
+    [ GConst.BLEND_MODE_DST_OUT, 'DstOut' ],
+    [ GConst.BLEND_MODE_SRC_ATOP, 'SrcAtop' ],
+    [ GConst.BLEND_MODE_DST_ATOP, 'DstAtop' ],
+    [ GConst.BLEND_MODE_XOR, 'Xor' ],
+    [ GConst.BLEND_MODE_PLUS, 'Plus' ],
+    [ GConst.BLEND_MODE_MODULATE, 'Modulate' ],
+    [ GConst.BLEND_MODE_SCREEN, 'Screen' ],
+    [ GConst.BLEND_MODE_OVERLAY, 'Overlay' ],
+    [ GConst.BLEND_MODE_DARKEN, 'Darken' ],
+    [ GConst.BLEND_MODE_LIGHTEN, 'Lighten' ],
+    [ GConst.BLEND_MODE_COLOR_DODGE, 'ColorDodge' ],
+    [ GConst.BLEND_MODE_COLOR_BURN, 'ColorBurn' ],
+    [ GConst.BLEND_MODE_HARD_LIGHT, 'HardLight' ],
+    [ GConst.BLEND_MODE_SOFT_LIGHT, 'SoftLight' ],
+    [ GConst.BLEND_MODE_DIFFERENCE, 'Difference' ],
+    [ GConst.BLEND_MODE_EXCLUSION, 'Exclusion' ],
+    [ GConst.BLEND_MODE_HUE, 'Hue' ],
+    [ GConst.BLEND_MODE_SATURATION, 'Saturation' ],
+    [ GConst.BLEND_MODE_COLOR, 'Color' ],
+    [ GConst.BLEND_MODE_LUMINOSITY, 'Luminosity' ]
+]);
+
+const SAMPLING_NAMES = new Map<number, string>([
+    [ GConst.SAMPLING_FILTER_NEAREST, 'Nearest' ],
+    [ GConst.SAMPLING_FILTER_LINEAR, 'Linear' ],
+    [ GConst.SAMPLING_CUBIC_MITCHELL, 'CubicMitchell' ],
+    [ GConst.SAMPLING_CUBIC_CATMULL_ROM, 'CubicCatmullRom' ]
+]);
+
+function stringifyCkRect(rect: CkArrayXYWHRect): string {
+    return `(${rect[0]},${rect[1]},${rect[2]},${rect[3]})`;
+}
+
 export class Recorder {
     private readonly fInsts: Array<RecordInst>;
 
@@ -214,18 +258,24 @@ export class Recorder {
 
         const paintNodesSlice = this.fInsts.slice(i, j).map((v) => v.fOperands[0].fPaintNode);
 
+        const writeInstructionLog = (n: number, inst: RecordInst, cacheHit: boolean) => {
+            logger?.beginInstruction(n, IROpcode[IROpcode.DrawPaintNode], inst.fOperands.length);
+            logger?.addAnnotation(`Picture#${picture_count}`);
+            if (cacheHit) {
+                logger?.addAnnotation('CacheHit');
+            }
+            logger?.addAnnotation(`id=${inst.fOperands[0].fPaintNode.uniqueNodeId}`);
+            logger?.addAnnotation(`dirty=${inst.fOperands[0].fPaintNode.isDirty()}`);
+            const bounds = inst.fOperands[0].fPaintNode.getBounds();
+            logger?.addAnnotation(`bounds=(${bounds.x},${bounds.y},${bounds.width},${bounds.height})`);
+            logger?.endInstruction();
+        };
+
         // Try to find an existing cache
         const cachedPicture = ctx.findMergedPictureCache(paintNodesSlice);
         if (cachedPicture != null) {
             for (let k = i; k < j; k++) {
-                logger.beginInstruction(k, IROpcode[IROpcode.DrawPaintNode], this.fInsts[k].fOperands.length);
-                logger.addAnnotation(`Picture#${picture_count}`);
-                logger.addAnnotation('CacheHit');
-                logger.addAnnotation(`id=${this.fInsts[k].fOperands[0].fPaintNode.uniqueNodeId}`);
-                logger.addAnnotation(`dirty=${this.fInsts[k].fOperands[0].fPaintNode.isDirty}`);
-                const bounds = this.fInsts[k].fOperands[0].fPaintNode.getBounds();
-                logger.addAnnotation(`bounds=(${bounds.x},${bounds.y},${bounds.width},${bounds.height})`);
-                logger.endInstruction();
+                writeInstructionLog(k, this.fInsts[k], true);
             }
 
             builder.addPicture(cachedPicture, true, union_bounds.x, union_bounds.y);
@@ -238,13 +288,7 @@ export class Recorder {
 
         // We only need to iterate in the longest subsequence that we have found.
         for (let k = i; k < j; k++) {
-            logger.beginInstruction(k, IROpcode[IROpcode.DrawPaintNode], this.fInsts[k].fOperands.length);
-            logger.addAnnotation(`Picture#${picture_count}`);
-            logger.addAnnotation(`id=${this.fInsts[k].fOperands[0].fPaintNode.uniqueNodeId}`);
-            logger.addAnnotation(`dirty=${this.fInsts[k].fOperands[0].fPaintNode.isDirty}`);
-            const bounds = this.fInsts[k].fOperands[0].fPaintNode.getBounds();
-            logger.addAnnotation(`bounds=(${bounds.x},${bounds.y},${bounds.width},${bounds.height})`);
-            logger.endInstruction();
+            writeInstructionLog(k, this.fInsts[k], false);
 
             const painter = this.fInsts[k].fOperands[0].fPaintNode;
             const saved = canvas.save();
@@ -270,15 +314,18 @@ export class Recorder {
     }
 
     public finish(viewportSize: Vector2f, ctx: CacheContext, logger?: Logger): Scene {
+        /*
         if (logger == null) {
             logger = new NullLogger();
         }
+         */
 
         const builder = new SceneBuilder(viewportSize.x, viewportSize.y)
             .pushOffset(0, 0);
 
         let i = 0;
         let pictureCount = 0;
+        let pushCount = 0;
         while (i < this.fInsts.length) {
             if (this.fInsts[i].fOpcode == IROpcode.DrawPaintNode) {
                 i = this.drawOrderedPaint(i, ++pictureCount, ctx, builder, logger);
@@ -286,41 +333,66 @@ export class Recorder {
             }
 
             const inst = this.fInsts[i];
-            logger.beginInstruction(i, IROpcode[inst.fOpcode], inst.fOperands.length);
+            logger?.beginInstruction(i, IROpcode[inst.fOpcode], inst.fOperands.length);
             switch (inst.fOpcode) {
 
             case IROpcode.Pop:
+                logger?.addAnnotation(`&${pushCount}`);
                 builder.pop();
+                pushCount--;
                 break;
 
             case IROpcode.PushOffset:
+                pushCount++;
+                logger?.addAnnotation(`&${pushCount}`);
+                logger?.addAnnotation(`offset=${inst.fOperands[0].fVector.toString()}`);
                 builder.pushOffset(inst.fOperands[0].fVector.x, inst.fOperands[0].fVector.y);
                 break;
             
             case IROpcode.PushRotate:
+                pushCount++;
+                logger?.addAnnotation(`&${pushCount}`);
+                logger?.addAnnotation(`rad=${inst.fOperands[0].fScalar}`);
+                logger?.addAnnotation(`pivot=${inst.fOperands[1].fVector.toString()}`);
                 builder.pushRotate(inst.fOperands[0].fScalar,
                                    inst.fOperands[1].fVector.x, inst.fOperands[1].fVector.y);
                 break;
             
             case IROpcode.PushBackdropFilter:
+                pushCount++;
+                logger?.addAnnotation(`&${pushCount}`);
+                logger?.addAnnotation(`mode=${BLEND_MODE_NAMES.get(inst.fOperands[1].fBlendMode)}`);
+                logger?.addAnnotation(`clipping=${inst.fOperands[2].fBool}`);
                 builder.pushBackdropFilter(inst.fOperands[0].fFilter,
                                            inst.fOperands[1].fBlendMode,
                                            inst.fOperands[2].fBool);
                 break;
             
             case IROpcode.PushImageFilter:
+                pushCount++;
+                logger?.addAnnotation(`&${pushCount}`);
                 builder.pushImageFilter(inst.fOperands[0].fFilter);
                 break;
 
             case IROpcode.PushRectClip:
+                pushCount++;
+                logger?.addAnnotation(`&${pushCount}`);
+                logger?.addAnnotation(`rect=${stringifyCkRect(inst.fOperands[0].fRect)}`);
+                logger?.addAnnotation(`AA=${inst.fOperands[1].fBool}`);
                 builder.pushRectClip(inst.fOperands[0].fRect, inst.fOperands[1].fBool);
                 break;
 
             case IROpcode.PushRRectClip:
+                pushCount++;
+                logger?.addAnnotation(`&${pushCount}`);
+                logger?.addAnnotation(`AA=${inst.fOperands[1].fBool}`);
                 builder.pushRRectClip(inst.fOperands[0].fRRect, inst.fOperands[1].fBool);
                 break;
 
             case IROpcode.PushOpacity:
+                pushCount++;
+                logger?.addAnnotation(`&${pushCount}`);
+                logger?.addAnnotation(`opacity=${inst.fOperands[0].fScalar}`);
                 builder.pushOpacity(inst.fOperands[0].fScalar);
                 break;
 
@@ -328,6 +400,11 @@ export class Recorder {
                 break;
 
             case IROpcode.DrawVideoTexture:
+                logger?.addAnnotation(`offsetX=${inst.fOperands[1].fRect[0]}`);
+                logger?.addAnnotation(`offsetY=${inst.fOperands[1].fRect[1]}`);
+                logger?.addAnnotation(`width=${inst.fOperands[1].fRect[2]}`);
+                logger?.addAnnotation(`height=${inst.fOperands[1].fRect[3]}`);
+                logger?.addAnnotation(`sampling=${SAMPLING_NAMES.get(inst.fOperands[2].fInt)}`);
                 builder.addVideoBuffer(inst.fOperands[0].fVideoBuffer,
                                        /* offsetX  */ inst.fOperands[1].fRect[0],
                                        /* offsetY  */ inst.fOperands[1].fRect[1],
@@ -342,7 +419,7 @@ export class Recorder {
                 throw Error('Not implemented yet!');
             }
 
-            logger.endInstruction();
+            logger?.endInstruction();
 
             i++;
         }
@@ -394,17 +471,17 @@ export class Recorder {
         });
     }
 
-    public pushRectClip(clip: CkRect, AA: boolean): void {
+    public pushRectClip(clip: Rect, AA: boolean): void {
         this.fInsts.push({
             fOpcode: IROpcode.PushRectClip,
-            fOperands: [ { fRect: clip }, { fBool: AA } ]
+            fOperands: [ { fRect: clip.toGLType() }, { fBool: AA } ]
         });
     }
 
-    public pushRRectClip(clip: CkRRect, AA: boolean): void {
+    public pushRRectClip(clip: RRect, AA: boolean): void {
         this.fInsts.push({
             fOpcode: IROpcode.PushRRectClip,
-            fOperands: [ { fRRect: clip }, { fBool: AA } ]
+            fOperands: [ { fRRect: clip.toGLType() }, { fBool: AA } ]
         });
     }
 

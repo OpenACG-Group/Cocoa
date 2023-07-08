@@ -199,15 +199,13 @@ target_include_directories(Gallium PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(
         Gallium
         expat
-        _v8
-        _v8_libplatform
+        v8
+        v8_libplatform
         websockets
 
         ## For `paragraph` binding
         ${COCOA_THIRDPARTY_DIR}/build/lib/libskparagraph.a
         ${COCOA_THIRDPARTY_DIR}/build/lib/libskunicode.a
-        ${COCOA_THIRDPARTY_DIR}/build/lib/libskshaper.a
-        icuuc
         harfbuzz
 
         ## For `lottie` binding
@@ -217,6 +215,13 @@ target_link_libraries(
 
         ## For `svg` bindings
         ${COCOA_THIRDPARTY_DIR}/build/lib/libsvg.a
+
+        ${COCOA_THIRDPARTY_DIR}/build/lib/libskshaper.a
 )
 
-target_compile_definitions(Gallium PRIVATE COCOA_USE_MONOLITHIC_V8=1)
+target_compile_definitions(
+        Gallium PRIVATE
+        COCOA_USE_MONOLITHIC_V8=1
+        SK_SHAPER_HARFBUZZ_AVAILABLE=1
+        SK_UNICODE_AVAILABLE=1
+)

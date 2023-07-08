@@ -481,14 +481,18 @@ std::shared_ptr<v8::TaskRunner> Platform::GetForegroundTaskRunner(v8::Isolate *i
     return GetPerIsolateData(isolate);
 }
 
-void Platform::CallOnWorkerThread(std::unique_ptr<v8::Task> task)
+void Platform::PostTaskOnWorkerThreadImpl(v8::TaskPriority priority,
+                                          std::unique_ptr<v8::Task> task,
+                                          const v8::SourceLocation &location)
 {
     CHECK(task);
     worker_threads_pool_->EnqueueTask(std::move(task));
 }
 
-void Platform::CallDelayedOnWorkerThread(std::unique_ptr<v8::Task> task,
-                                         double delay_in_seconds)
+void Platform::PostDelayedTaskOnWorkerThreadImpl(v8::TaskPriority priority,
+                                                 std::unique_ptr<v8::Task> task,
+                                                 double delay_in_seconds,
+                                                 const v8::SourceLocation &location)
 {
     CHECK(task);
     delayed_task_scheduler_->EnqueueDelayedTask(std::move(task),
@@ -498,13 +502,6 @@ void Platform::CallDelayedOnWorkerThread(std::unique_ptr<v8::Task> task,
 bool Platform::IdleTasksEnabled(v8::Isolate *isolate)
 {
     return GetPerIsolateData(isolate)->IdleTasksEnabled();
-}
-
-std::unique_ptr<v8::JobHandle> Platform::PostJob(v8::TaskPriority priority,
-                                                 std::unique_ptr<v8::JobTask> job_task)
-{
-    return v8::platform::NewDefaultJobHandle(this, priority, std::move(job_task),
-                                             NumberOfWorkerThreads());
 }
 
 double Platform::MonotonicallyIncreasingTime()
@@ -530,8 +527,9 @@ v8::Platform::StackTracePrinter Platform::GetStackTracePrinter()
     };
 }
 
-std::unique_ptr<v8::JobHandle> Platform::CreateJob(v8::TaskPriority priority,
-                                                   std::unique_ptr<v8::JobTask> job_task)
+std::unique_ptr<v8::JobHandle> Platform::CreateJobImpl(v8::TaskPriority priority,
+                                                       std::unique_ptr<v8::JobTask> job_task,
+                                                       const v8::SourceLocation& location)
 {
     return v8::platform::NewDefaultJobHandle(this, priority,
                                              std::move(job_task),

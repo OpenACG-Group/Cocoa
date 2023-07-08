@@ -57,8 +57,8 @@ DEF_BUILDER(fractal_noise)
     POP_ARGUMENT_CHECKED(baseFreqY, Float, fractal_noise)
     POP_ARGUMENT_CHECKED(baseFreqX, Float, fractal_noise)
 
-    return SkPerlinNoiseShader::MakeFractalNoise(*baseFreqX, *baseFreqY, *numOctaves,
-                                                 *seed, AUTO_SELECT_PTR(tileSize));
+    return SkShaders::MakeFractalNoise(*baseFreqX, *baseFreqY, *numOctaves,
+                                       *seed, AUTO_SELECT_PTR(tileSize));
 }
 
 //! ShaderDecl: turbulence(Float baseFreqX, Float baseFreqY, Int numOctaves,
@@ -73,8 +73,8 @@ DEF_BUILDER(turbulence)
     POP_ARGUMENT_CHECKED(baseFreqY, Float, turbulence)
     POP_ARGUMENT_CHECKED(baseFreqX, Float, turbulence)
 
-    return SkPerlinNoiseShader::MakeTurbulence(*baseFreqX, *baseFreqY, *numOctaves,
-                                               *seed, AUTO_SELECT_PTR(tileSize));
+    return SkShaders::MakeTurbulence(*baseFreqX, *baseFreqY, *numOctaves,
+                                     *seed, AUTO_SELECT_PTR(tileSize));
 }
 
 //! ShaderDecl: gradient_linear(Vector2 p1, Vector2 p2, Color[] colors, Float[]? pos, Int tile_mode)

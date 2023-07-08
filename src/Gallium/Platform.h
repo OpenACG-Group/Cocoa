@@ -113,20 +113,29 @@ public:
     /* v8 implementations */
 
     int NumberOfWorkerThreads() override;
+
     std::shared_ptr<v8::TaskRunner> GetForegroundTaskRunner(v8::Isolate *isolate) override;
-    void CallOnWorkerThread(std::unique_ptr<v8::Task> task) override;
-    void CallDelayedOnWorkerThread(std::unique_ptr<v8::Task> task,
-                                   double delay_in_seconds) override;
+
+
+    void PostTaskOnWorkerThreadImpl(v8::TaskPriority priority,
+                                    std::unique_ptr<v8::Task> task,
+                                    const v8::SourceLocation &location) override;
+
+    void PostDelayedTaskOnWorkerThreadImpl(v8::TaskPriority priority,
+                                           std::unique_ptr<v8::Task> task,
+                                           double delay_in_seconds,
+                                           const v8::SourceLocation &location) override;
+
     bool IdleTasksEnabled(v8::Isolate *isolate) override;
-    std::unique_ptr<v8::JobHandle> PostJob(v8::TaskPriority priority,
-                                           std::unique_ptr<v8::JobTask> job_task) override;
+
     double MonotonicallyIncreasingTime() override;
     double CurrentClockTimeMillis() override;
     StackTracePrinter GetStackTracePrinter() override;
     v8::TracingController *GetTracingController() override;
 
-    std::unique_ptr<v8::JobHandle> CreateJob(v8::TaskPriority priority,
-                                             std::unique_ptr<v8::JobTask> job_task) override;
+    std::unique_ptr<v8::JobHandle> CreateJobImpl(v8::TaskPriority priority,
+                                                 std::unique_ptr<v8::JobTask> job_task,
+                                                 const v8::SourceLocation& location) override;
 
     v8::PageAllocator * GetPageAllocator() override;
 

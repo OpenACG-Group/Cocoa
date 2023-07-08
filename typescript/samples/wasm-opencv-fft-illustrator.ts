@@ -21,7 +21,9 @@ import { MatVector, OpenCVLib } from '../wasm/opencv/lib/opencv';
 import { LoadFromProjectThirdParty } from '../wasm/wasm-loader-polyfill';
 import { FFT } from './fft';
 
-const cv = await LoadFromProjectThirdParty<OpenCVLib>('opencv_js.wasm', 'opencv.js');
+const cvPromise = LoadFromProjectThirdParty<OpenCVLib>('opencv_js.wasm', 'opencv.js');
+
+const cv = await cvPromise;
 
 function roundToNextPow2(int: number): number {
     int--;

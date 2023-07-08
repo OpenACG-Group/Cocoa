@@ -18,10 +18,10 @@
 #include <future>
 
 #include "include/core/SkCanvas.h"
-#include "include/core/SkDeferredDisplayListRecorder.h"
 #include "include/core/SkPicture.h"
 #include "include/core/SkPictureRecorder.h"
 #include "include/core/SkGraphics.h"
+#include "include/core/SkColorSpace.h"
 #include "include/utils/SkNWayCanvas.h"
 
 #include "Core/StandaloneThreadPool.h"

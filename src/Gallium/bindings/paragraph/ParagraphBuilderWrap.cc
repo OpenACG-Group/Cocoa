@@ -45,8 +45,9 @@ v8::Local<v8::Value> ParagraphBuilderWrap::Make(v8::Local<v8::Value> paragraph_s
     auto collection = sk_make_sp<para::FontCollection>();
     collection->setDefaultFontManager(fontmgr->GetSkObject());
 
-    // FIXME(sora): This API is just until Skia fixes all code
-    auto builder = para::ParagraphBuilderImpl::make(parastyle->GetStyle(), collection);
+    auto builder = para::ParagraphBuilderImpl::make(parastyle->GetStyle(),
+                                                    collection,
+                                                    SkUnicode::Make());
 
     auto obj = binder::NewObject<ParagraphBuilderWrap>(
             isolate, isolate, std::move(builder));

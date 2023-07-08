@@ -44,8 +44,6 @@ add_library(
         HWComposeContext.cc
         HWComposeSwapchain.h
         HWComposeSwapchain.cc
-        HWComposeTileFrameGenerator.h
-        HWComposeTileFrameGenerator.cc
         GraphicsResourcesTrackable.h
         GraphicsResourcesTrackable.cc
         Cursor.h

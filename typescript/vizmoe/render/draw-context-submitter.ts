@@ -16,7 +16,7 @@
  */
 
 import { DrawContext } from "./draw-context";
-import { CacheContext, Recorder } from './render-node-linearization';
+import { CacheContext, Recorder, Logger } from './render-node-linearization';
 import { RenderNode } from './render-node';
 import { Event, EventEmitter } from "../base/event-dispatcher";
 import { Vector2f } from "./vector";
@@ -37,12 +37,33 @@ export class SubmittedEvent extends Event {
     }
 }
 
+class SubmitLogger implements Logger {
+    private readonly fPrinter: (str: string) => void;
+
+    constructor(printer: (str: string) => void) {
+        this.fPrinter = printer;
+    }
+
+    beginInstruction(n: number, opcodeName: string, operandsNumber: number) {
+        this.fPrinter(`${n + 1} | ${opcodeName}`);
+    }
+
+    endInstruction() {
+        this.fPrinter('\n');
+    }
+
+    addAnnotation(content: string) {
+        this.fPrinter(` ${content}`);
+    }
+}
+
 export class DrawContextSubmitter extends EventEmitter {
     private fDrawContext: DrawContext;
     private fSubmitSerial: number;
     private fPending: boolean;
     private fSubmitEventClosure: any;
-    private fRNLCacheContext: CacheContext;
+    private readonly fRNLCacheContext: CacheContext;
+
 
     constructor(drawContext: DrawContext) {
         super();
@@ -60,7 +81,8 @@ export class DrawContextSubmitter extends EventEmitter {
         this.fSubmitEventClosure = undefined;
     }
 
-    public submit(root: RenderNode, closure: any, captureThis: boolean): Maybe<number> {
+    public submit(root: RenderNode, closure: any, captureThis: boolean,
+                  printer: (str: string) => void = null): Maybe<number> {
         if (this.fPending) {
             return Maybe.None<number>();
         }
@@ -69,8 +91,11 @@ export class DrawContextSubmitter extends EventEmitter {
 
         root.compose(recorder);
 
-        // TODO: Support logger
-        const scene = recorder.finish(viewport, this.fRNLCacheContext, null);
+        let logger: SubmitLogger = null;
+        if (printer) {
+            logger = new SubmitLogger(printer);
+        }
+        const scene = recorder.finish(viewport, this.fRNLCacheContext, logger);
         this.fDrawContext.submitSceneOwnership(scene, captureThis)
             .then(this.onSubmitted.bind(this));
 
