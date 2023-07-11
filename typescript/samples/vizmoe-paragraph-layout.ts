@@ -118,7 +118,7 @@ class RenderContext {
         const bounds = Rect.MakeXYWH(SIDE_PADDING, SIDE_PADDING, para.maxWidth, para.height);
         this.fPaintNode.update(bounds, C => para.paint(C, 0, 0) );
 
-        submitter.submit(this.fRootNode, null, true, str => std.print(str));
+        submitter.submit(this.fRootNode, null, false);
     }
 
     public nextContent(): void {

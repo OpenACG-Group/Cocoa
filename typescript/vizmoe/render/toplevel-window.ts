@@ -350,4 +350,36 @@ export class ToplevelWindow extends EventEmitter {
     public get height(): number {
         return this.fDrawContext.height;
     }
+
+    public setTitle(title: string): Promise<void> {
+        return this.fSurface.setTitle(title);
+    }
+
+    public requestNextFrame(): Promise<void> {
+        return this.fSurface.requestNextFrame();
+    }
+
+    public resize(width: number, height: number): Promise<void> {
+        return this.fSurface.resize(width, height);
+    }
+
+    public setMinSize(width: number, height: number): Promise<void> {
+        return this.fSurface.setMinSize(width, height);
+    }
+
+    public setMaxSize(width: number, height: number): Promise<void> {
+        return this.fSurface.setMaxSize(width, height);
+    }
+
+    public setMaximized(value: boolean): Promise<void> {
+        return this.fSurface.setMaximized(value);
+    }
+
+    public setMinimized(value: boolean): Promise<void> {
+        return this.fSurface.setMinimized(value);
+    }
+
+    public setFullscreen(value: boolean, monitor: gl.Monitor): Promise<void> {
+        return this.fSurface.setFullscreen(value, monitor);
+    }
 }

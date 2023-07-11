@@ -157,7 +157,7 @@ void RasterCache::PurgeOverduePictureTracingInfo()
          itr != picture_use_tracing_.end(); itr++)
     {
         PictureTraceInfo& info = itr->second;
-        if (info.last_frame - frame_counter_ >= kPictureTraceInfoOverdue)
+        if (frame_counter_ - info.last_frame >= kPictureTraceInfoOverdue)
         {
             itr = picture_use_tracing_.erase(itr);
             if (itr == picture_use_tracing_.end())

@@ -88,7 +88,7 @@ known to run correctly on Cocoa can be find in `//typescript/wasm`, like Cairo a
 Every WASM module in that directory has a tutorial `README.md` which shows you how
 to compile it and make it run correctly on Cocoa.
 
-Here is an simple example to load an Emscripten compiled module:
+Here is a simple example to load an Emscripten compiled module:
 
 ```typescript
 // `wasm-loader-polyfill.ts` is at `//third_party/typescript/wasm/wasm-loader-polyfill.ts`

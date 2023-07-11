@@ -87,6 +87,10 @@ export class AudioBuffer implements AVGenericBuffer {
     readonly sampleRate: number;
     readonly samplesCount: number;
 
+    read(plane: number, sampleCount: number, sampleOffset: number,
+         dstBytesOffset: number, dst: ArrayBuffer): number;
+    readChannel(ch: number, sampleCount: number, sampleOffset: number,
+                dstBytesOffset: number, dst: ArrayBuffer): number;
     dispose(): void;
 }
 
@@ -175,7 +179,7 @@ export class AVStreamDecoder {
 
 export class MediaFramePresentDispatcher {
     onPresentVideoBuffer: (buffer: VideoBuffer, ptsInSeconds: number) => void;
-    onAudioPresentNotify: (ptsInSeconds: number) => void;
+    onAudioPresentNotify: (buffer: AudioBuffer, ptsInSeconds: number) => void;
     onErrorOrEOF: () => void;
 
     constructor(decoder: AVStreamDecoder, audioSinkStream: AudioSinkStream);

@@ -42,6 +42,7 @@
         // "samples/sknative-pathtext.ts",
         "samples/sknative-pathtext-interactive.ts",
         "samples/mediapresent-video-player.ts",
+        "samples/mediapresent-audio-fft.ts",
         "samples/vizmoe-simplest-scene.ts",
         "samples/vizmoe-paragraph-layout.ts",
         "samples/wasm-cairo-hello.ts",

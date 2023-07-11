@@ -27,6 +27,8 @@
         </class>
 
         <class name="AudioBuffer" wrapper="AudioBufferWrap">
+            <method name="read" value="@read"/>
+            <method name="readChannel" value="@readChannel"/>
             <method name="dispose" value="@dispose"/>
             <property name="pts" getter="@getPTS"/>
             <property name="sampleFormat" getter="@getSampleFormat"/>

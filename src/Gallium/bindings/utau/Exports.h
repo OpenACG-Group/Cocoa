@@ -153,6 +153,16 @@ public:
     //! TSDecl: readonly samplesCount: number
     int32_t getSamplesCount();
 
+    //! TSDecl: function read(plane: number, sampleCount: number, sampleOffset: number,
+    //!                       dstBytesOffset: number, dst: ArrayBuffer): number
+    int32_t read(int32_t plane, int32_t sample_count, int32_t sample_offset,
+                 size_t dst_bytes_offset, v8::Local<v8::Value> dst);
+
+    //! TSDecl: function readChannel(ch: number, sampleCount: number, sampleOffset: number,
+    //!                              dstBytesOffset: number, dst: ArrayBuffer): number
+    int32_t readChannel(int32_t ch, int32_t sample_count, int32_t sample_offset,
+                        size_t dst_bytes_offset, v8::Local<v8::Value> dst);
+
     //! TSDecl: function dispose(): void
     void dispose();
 
@@ -309,7 +319,7 @@ public:
     void setOnPresentVideoBuffer(v8::Local<v8::Value> func);
     v8::Local<v8::Value> getOnPresentVideoBuffer();
 
-    //! TSDecl: onAudioPresentNotify: (ptsInSeconds: number) => void
+    //! TSDecl: onAudioPresentNotify: (buffer: AudioBuffer, ptsInSeconds: number) => void
     void setOnAudioPresentNotify(v8::Local<v8::Value> func);
     v8::Local<v8::Value> getOnAudioPresentNotify();
 
@@ -342,10 +352,10 @@ private:
     struct PresentRequest
     {
         bool error_or_eof;
-        bool audio_pts_notify;
         uint64_t send_timestamp;
         double frame_pts_seconds;
         std::shared_ptr<utau::VideoBuffer> vbuffer;
+        std::shared_ptr<utau::AudioBuffer> abuffer;
     };
 
     v8::Global<v8::Object>          decoder_js_obj_;
