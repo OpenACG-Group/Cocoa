@@ -18,12 +18,11 @@
 #include <future>
 #include <condition_variable>
 
-#include "fmt/format.h"
-
 #include "Core/EventLoop.h"
 #include "Core/Journal.h"
 #include "Core/TraceEvent.h"
 #include "Gallium/bindings/utau/Exports.h"
+#include "Gallium/bindings/utau/MediaFramePresentDispatcher.h"
 #include "Gallium/binder/Class.h"
 #include "Gallium/binder/Convert.h"
 #include "Utau/ffwrappers/libavutil.h"
@@ -32,6 +31,10 @@ GALLIUM_BINDINGS_UTAU_NS_BEGIN
 using DecodeResult = utau::AVStreamDecoder::AVGenericDecoded;
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.bindings.utau.MediaFramePresentDispatcher)
+
+#define AUDIO_QUEUE_MAX_FRAMES 20
+#define VIDEO_QUEUE_MAX_FRAMES 5
+#define PRESENT_QUEUE_MAX_FRAMES 32
 
 struct MediaFramePresentDispatcher::PresentThreadCmd
 {
@@ -124,9 +127,6 @@ struct MediaFramePresentDispatcher::PresentThreadContext
     std::thread decoding_thread;
     bool loop_handles_closed = false;
 
-#define AUDIO_QUEUE_MAX_FRAMES 20
-#define VIDEO_QUEUE_MAX_FRAMES 5
-
     template<typename T>
     struct QueueTimedBuffer
     {
@@ -211,6 +211,7 @@ MediaFramePresentDispatcher::MediaFramePresentDispatcher(v8::Local<v8::Value> de
     , paused_(true)
     , mp_thread_()
     , host_notifier_(nullptr)
+    , present_queue_full_(false)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
@@ -470,6 +471,9 @@ void MediaFramePresentDispatcher::TimerCallback(uv_timer_t *timer)
 
 void MediaFramePresentDispatcher::SendPresentRequest(DecodeResult frame, double pts_seconds)
 {
+    //
+    PresentQueueFullPresentThreadCheckpoint();
+
     if (frame.type == DecodeResult::kAudio)
         asinkstream_wrap_->GetStream()->Enqueue(*frame.audio);
 
@@ -532,29 +536,40 @@ void MediaFramePresentDispatcher::PresentRequestHandler(uv_async_t *handle)
         has_audiopts = !cb_audiopts->IsNullOrUndefined();
     }
 
-    bool exited = false;
+    std::vector<PresentRequest> reqs;
     dispatcher->present_queue_lock_.lock();
     while (!dispatcher->present_queue_.empty())
     {
         PresentRequest req = dispatcher->present_queue_.front();
         dispatcher->present_queue_.pop();
-        dispatcher->present_queue_lock_.unlock();
+        dispatcher->PresentQueueFullHostCheckpoint();
 
+        if (req.error_or_eof)
+        {
+            while (!dispatcher->present_queue_.empty())
+                dispatcher->present_queue_.pop();
+        }
+
+        reqs.push_back(req);
+    }
+    dispatcher->present_queue_lock_.unlock();
+
+    for (const auto& req : reqs)
+    {
         if (req.error_or_eof)
         {
             if (has_eeof)
                 cb_eeof->Call(context, global, 0, nullptr).IsEmpty();
-
-            exited = true;
-            break;
         }
         else if (req.abuffer && has_audiopts)
         {
             v8::Local<v8::Value> obj = binder::NewObject<AudioBufferWrap>(
                     isolate, req.abuffer);
 
-            v8::Local<v8::Value> args[] = { obj, binder::to_v8(isolate, req.frame_pts_seconds) };
+            v8::Local<v8::Value> args[] = { obj, v8::Number::New(isolate, req.frame_pts_seconds) };
             cb_audiopts->Call(context, global, 2, args).IsEmpty();
+
+            binder::UnwrapObject<AudioBufferWrap>(isolate, obj)->dispose();
         }
         else if (req.vbuffer && has_vp)
         {
@@ -562,24 +577,33 @@ void MediaFramePresentDispatcher::PresentRequestHandler(uv_async_t *handle)
             v8::Local<v8::Value> obj = binder::NewObject<VideoBufferWrap>(
                     isolate, req.vbuffer);
 
-            v8::Local<v8::Value> args[] = { obj, binder::to_v8(isolate, req.frame_pts_seconds) };
+            v8::Local<v8::Value> args[] = { obj, v8::Number::New(isolate, req.frame_pts_seconds) };
             cb_vp->Call(context, global, 2, args).IsEmpty();
+
+            binder::UnwrapObject<VideoBufferWrap>(isolate, obj)->dispose();
         }
+    }
+}
 
-        dispatcher->present_queue_lock_.lock();
+void MediaFramePresentDispatcher::PresentQueueFullHostCheckpoint()
+{
+    if (present_queue_full_ && present_queue_.size() <= PRESENT_QUEUE_MAX_FRAMES)
+    {
+        present_queue_full_ = false;
+        present_queue_full_cond_.notify_one();
     }
+}
 
-    if (exited)
-    {
-        // Clear the queue to free buffers, lock is not needed
-        // as other threads has exited
-        while (!dispatcher->present_queue_.empty())
-            dispatcher->present_queue_.pop();
-    }
-    else
-    {
-        dispatcher->present_queue_lock_.unlock();
-    }
+void MediaFramePresentDispatcher::PresentQueueFullPresentThreadCheckpoint()
+{
+    std::unique_lock<std::mutex> lock(present_queue_lock_);
+    if (present_queue_.size() <= PRESENT_QUEUE_MAX_FRAMES)
+        return;
+
+    present_queue_full_ = true;
+    present_queue_full_cond_.wait(lock, [=]() {
+        return !present_queue_full_;
+    });
 }
 
 void MediaFramePresentDispatcher::PresentThreadCmdHandler(uv_async_t *handle)

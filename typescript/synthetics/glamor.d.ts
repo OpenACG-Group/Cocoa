@@ -1073,9 +1073,15 @@ export declare let Constants: Constants;
 
 export class CkSurface {
     private constructor();
+
     public static MakeRaster(imageInfo: CkImageInfo): CkSurface;
+
     public static MakeNull(width: number, height: number): CkSurface;
-    public static MakeSharedPixels(imageInfo: CkImageInfo, byteOffset: number, rowBytes: number, pixels: ArrayBuffer): CkSurface;
+
+    public static MakeSharedPixels(imageInfo: CkImageInfo,
+                                   byteOffset: number,
+                                   rowBytes: number,
+                                   pixels: ArrayBuffer): CkSurface;
 
     readonly width: number;
     readonly height: number;
@@ -1505,9 +1511,10 @@ export class CkPathEffect {
 export class CkBitmap {
     private constructor();
 
-    public static MakeFromBuffer(buffer: ArrayBuffer,
+    public static MakeFromBuffer(buffer: Uint8Array,
                                  width: number,
                                  height: number,
+                                 stride: number,
                                  colorType: ColorType,
                                  alphaType: AlphaType): CkBitmap;
     
@@ -1521,12 +1528,14 @@ export class CkBitmap {
     readonly rowBytesAsPixels: number;
     readonly shiftPerPixel: number;
     readonly rowBytes: number;
-    
+    readonly immutable: boolean;
+
+    public setImmutable(): void;
     public computeByteSize(): number;
-    public toImage(): CkImage;
+    public asImage(): CkImage;
     public makeShader(tmx: TileMode, tmy: TileMode, sampling: SamplingOption,
                       localMatrix: CkMatrix | null): CkShader;
-    public getPixelBuffer(): ArrayBuffer;
+    public asTypedArray(): Uint8Array;
 }
 
 export interface ImageExportedPixelsBuffer {

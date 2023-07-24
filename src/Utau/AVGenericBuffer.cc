@@ -90,4 +90,16 @@ size_t AVGenericBuffer::ComputeApproximateSizeInBytes()
     return total_size;
 }
 
+int64_t AVGenericBuffer::GetPresentationTimestamp()
+{
+    CHECK(priv_ && priv_->frame);
+    return priv_->frame->pts;
+}
+
+int64_t AVGenericBuffer::GetDuration()
+{
+    CHECK(priv_ && priv_->frame);
+    return priv_->frame->duration;
+}
+
 UTAU_NAMESPACE_END

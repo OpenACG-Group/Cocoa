@@ -160,17 +160,17 @@ v8::Local<v8::Value> DisplayWrap::createCursor(v8::Local<v8::Value> bitmap, int 
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    CkBitmapWrap *unwrapped = binder::UnwrapObject<CkBitmapWrap>(isolate, bitmap);
+    auto *unwrapped = binder::UnwrapObject<CkBitmapWrap>(isolate, bitmap);
     if (!unwrapped)
         g_throw(TypeError, "Argument \'bitmap\' must be an instance of CkBitmap");
 
-    std::shared_ptr<SkBitmap> bitmap_extracted = unwrapped->getBitmap();
+    auto bitmap_extracted = std::make_shared<SkBitmap>(unwrapped->getBitmap());
     using W = CursorWrap;
     using T = gl::Shared<gl::Cursor>;
     auto closure = PromiseClosure::New(isolate, PromiseClosure::CreateObjectConverter<W, T>);
     GetObject()->Invoke(GLOP_DISPLAY_CREATE_CURSOR, closure,
-                                    PromiseClosure::HostCallback, bitmap_extracted,
-                                    hotspotX, hotspotY);
+                        PromiseClosure::HostCallback, bitmap_extracted,
+                        hotspotX, hotspotY);
 
     return closure->getPromise();
 }

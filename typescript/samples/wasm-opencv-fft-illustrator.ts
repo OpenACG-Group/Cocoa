@@ -94,7 +94,7 @@ function computeBitmapContours(bitmap: gl.CkBitmap, scalar: number): MatVector {
         bitmap.height,
         bitmap.width,
         cv.CV_8UC4,
-        new Uint8ClampedArray(bitmap.getPixelBuffer())
+        new Uint8ClampedArray(bitmap.asTypedArray())
     );
 
     if (scalar != 1) {

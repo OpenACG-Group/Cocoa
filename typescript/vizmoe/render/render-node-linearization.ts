@@ -495,7 +495,7 @@ export class Recorder {
     public drawVideoTexture(buffer: VideoBuffer, rect: Rect, sampling: SamplingOption): void {
         this.fInsts.push({
             fOpcode: IROpcode.DrawVideoTexture,
-            fOperands: [ { fVideoBuffer: buffer }, { fRect: rect.toGLType() }, { fInt: sampling } ]
+            fOperands: [ { fVideoBuffer: buffer.clone() }, { fRect: rect.toGLType() }, { fInt: sampling } ]
         });
     }
 

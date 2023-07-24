@@ -30,7 +30,9 @@
 
 #include "Core/Project.h"
 #include "Core/UniquePersistent.h"
+
 #include "Utau/ffwrappers/samplefmt.h"
+#include "Utau/ffwrappers/pixfmt.h"
 
 #define UTAU_NAMESPACE_BEGIN    namespace cocoa::utau {
 #define UTAU_NAMESPACE_END      }
@@ -110,7 +112,6 @@ enum class SampleFormat : uint32_t
 
     kLast = kF64P
 };
-
 
 struct Ratio
 {

@@ -520,23 +520,27 @@ private:
 class CkBitmapWrap
 {
 public:
-    CkBitmapWrap(v8::Isolate *isolate,
-                 v8::Local<v8::ArrayBuffer> buffer_object,
-                 std::shared_ptr<SkBitmap> bitmap);
+    CkBitmapWrap(std::shared_ptr<v8::BackingStore> backing_store,
+                 size_t store_offset,
+                 SkBitmap bitmap);
     ~CkBitmapWrap() = default;
 
-    inline const std::shared_ptr<SkBitmap>& getBitmap() const {
+    inline const SkBitmap& getBitmap() const {
         return bitmap_;
     }
 
-    //! TSDecl: function MakeFromBuffer(buffer: ArrayBuffer,
-    //!                                 width: number, height: number,
-    //!                                 colorType: number, alphaType: number): CkBitmap
-    g_nodiscard static v8::Local<v8::Value> MakeFromBuffer(v8::Local<v8::Value> buffer,
+    //! TSDecl: function MakeFromTypedArray(array: Uint8Array,
+    //!                                     width: number,
+    //!                                     height: number,
+    //!                                     stride: number,
+    //!                                     colorType: number,
+    //!                                     alphaType: number): CkBitmap
+    g_nodiscard static v8::Local<v8::Value> MakeFromBuffer(v8::Local<v8::Value> array,
                                                            int32_t width,
                                                            int32_t height,
-                                                           uint32_t colorType,
-                                                           uint32_t alphaType);
+                                                           int32_t stride,
+                                                           uint32_t color_type,
+                                                           uint32_t alpha_type);
 
     //! TSDecl: function MakeFromEncodedFile(path: string): CkBitmap
     g_nodiscard static v8::Local<v8::Value> MakeFromEncodedFile(const std::string& path);
@@ -559,17 +563,27 @@ public:
     //! TSDecl: readonly rowBytesAsPixels: number
     g_nodiscard int32_t getRowBytesAsPixels();
 
-    //! TSDecl: readonly getShiftPerPixel: number
+    //! TSDecl: readonly shiftPerPixel: number
     g_nodiscard int32_t getShiftPerPixel();
 
     //! TSDecl: readonly rowBytes: number
     g_nodiscard size_t getRowBytes();
 
+    //! TSDecl: readonly immutable: boolean
+    bool getImmutable() {
+        return bitmap_.isImmutable();
+    }
+
+    //! TSDecl: function setImmutable(): void
+    void setImmutable() {
+        bitmap_.setImmutable();
+    }
+
     //! TSDecl: function computeByteSize(): number
     g_nodiscard size_t computeByteSize();
 
-    //! TSDecl: function toImage(): Image;
-    g_nodiscard v8::Local<v8::Value> toImage();
+    //! TSDecl: function asImage(): Image
+    g_nodiscard v8::Local<v8::Value> asImage();
 
     //! TSDecl: function makeShader(tmx: Enum<TileMode>, tmy: Enum<TileMode>,
     //!                             sampling: Enum<Sampling>,
@@ -577,12 +591,13 @@ public:
     g_nodiscard v8::Local<v8::Value> makeShader(int32_t tmx, int32_t tmy, int32_t sampling,
                                                 v8::Local<v8::Value> local_matrix);
 
-    //! TSDecl: function getPixelBuffer(): ArrayBuffer;
-    g_nodiscard v8::Local<v8::Value> getPixelBuffer();
+    //! TSDecl: function asTypedArray(): Uint8Array
+    g_nodiscard v8::Local<v8::Value> asTypedArray();
 
 private:
-    v8::Global<v8::ArrayBuffer>  array_buffer_;
-    std::shared_ptr<SkBitmap>    bitmap_;
+    std::shared_ptr<v8::BackingStore> backing_store_;
+    size_t      store_offset_;
+    SkBitmap    bitmap_;
 };
 
 //! TSDecl: class CkImage

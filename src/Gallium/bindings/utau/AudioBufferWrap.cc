@@ -53,31 +53,6 @@ void AudioBufferWrap::dispose()
     }
 }
 
-int64_t AudioBufferWrap::getPTS()
-{
-    return buffer_->CastUnderlyingPointer<AVFrame>()->pts;
-}
-
-int32_t AudioBufferWrap::getSampleFormat()
-{
-    return static_cast<int32_t>(buffer_->GetInfo().GetSampleFormat());
-}
-
-int32_t AudioBufferWrap::getChannelMode()
-{
-    return static_cast<int32_t>(buffer_->GetInfo().GetChannelMode());
-}
-
-int32_t AudioBufferWrap::getSampleRate()
-{
-    return buffer_->GetInfo().GetSampleRate();
-}
-
-int32_t AudioBufferWrap::getSamplesCount()
-{
-    return buffer_->GetInfo().GetSamplesCount();
-}
-
 int32_t AudioBufferWrap::read(int32_t plane, int32_t sample_count, int32_t sample_offset,
                               size_t dst_bytes_offset, v8::Local<v8::Value> dst)
 {
@@ -205,6 +180,15 @@ int32_t AudioBufferWrap::readChannel(int32_t ch, int32_t sample_count, int32_t s
 #undef COPY_SAMPLES
 
     return read_samples;
+}
+
+v8::Local<v8::Value> AudioBufferWrap::clone()
+{
+    if (!buffer_)
+        g_throw(Error, "Disposed audio buffer");
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    return binder::NewObject<AudioBufferWrap>(isolate, buffer_);
 }
 
 GALLIUM_BINDINGS_UTAU_NS_END

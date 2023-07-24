@@ -3,12 +3,14 @@
     <info name="utau" description="Pipeline-based multimedia processing framework"/>
     <metadata namespace="cocoa::gallium::bindings::utau_wrap" class="UtauBinding"/>
     <include src="Gallium/bindings/utau/Exports.h"/>
+    <include src="Gallium/bindings/utau/MediaFramePresentDispatcher.h"/>
 
     <hook on="instantiate" call="SetInstanceProperties"/>
 
     <exports>
         <toplevel type="declaration" name="Constants"/>
         <toplevel type="function" name="getCurrentTimestampMs" value="getCurrentTimestampMs"/>
+        <toplevel type="function" name="getPixelFormatDescriptor" value="getPixelFormatDescriptor"/>
 
         <class name="AudioDevice" wrapper="AudioDeviceWrap">
             <method static="true" name="ConnectPipeWire" value="@ConnectPipeWire"/>
@@ -30,7 +32,9 @@
             <method name="read" value="@read"/>
             <method name="readChannel" value="@readChannel"/>
             <method name="dispose" value="@dispose"/>
+            <method name="clone" value="@clone"/>
             <property name="pts" getter="@getPTS"/>
+            <property name="duration" getter="@getDuration"/>
             <property name="sampleFormat" getter="@getSampleFormat"/>
             <property name="channelMode" getter="@getChannelMode"/>
             <property name="sampleRate" getter="@getSampleRate"/>
@@ -44,7 +48,22 @@
 
         <class name="VideoBuffer" wrapper="VideoBufferWrap">
             <method name="dispose" value="@dispose"/>
+            <method name="clone" value="@clone"/>
+            <method name="readComponent" value="@readComponent"/>
+            <method name="readComponentAsync" value="@readComponentAsync"/>
+            <method name="readGrayscale" value="@readGrayscale"/>
+            <method name="transferHardwareFrameDataTo" value="@transferHardwareFrameDataTo"/>
+            <method name="queryHardwareTransferableFormats" value="@queryHardwareTransferableFormats"/>
+            <property name="disposed" getter="@getDisposed"/>
             <property name="pts" getter="@getPTS"/>
+            <property name="duration" getter="@getDuration"/>
+            <property name="width" getter="@getWidth"/>
+            <property name="height" getter="@getHeight"/>
+            <property name="hwframe" getter="@getHwframe"/>
+            <property name="frameType" getter="@getFrameType"/>
+            <property name="format" getter="@getFormat"/>
+            <property name="formatName" getter="@getFormatName"/>
+            <property name="strides" getter="@getStrides"/>
         </class>
 
         <class name="AVStreamDecoder" wrapper="AVStreamDecoderWrap">

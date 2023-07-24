@@ -19,6 +19,7 @@
 #define COCOA_UTAU_VIDEOBUFFER_H
 
 #include "Utau/AVGenericBuffer.h"
+#include "Utau/VideoBufferInfo.h"
 UTAU_NAMESPACE_BEGIN
 
 class VideoBuffer : public AVGenericBuffer
@@ -33,10 +34,18 @@ public:
      */
     static std::unique_ptr<VideoBuffer> MakeFromAVFrame(UnderlyingPtr frame);
 
-    explicit VideoBuffer(UnderlyingPtr ptr);
+    explicit VideoBuffer(UnderlyingPtr ptr,
+                         const VideoBufferInfo& info);
     ~VideoBuffer();
 
-    g_nodiscard int64_t GetFramePTS();
+    g_nodiscard g_inline const VideoBufferInfo& GetInfo() const {
+        return info_;
+    }
+
+    g_nodiscard uint8_t *GetAddress(int plane);
+
+private:
+    VideoBufferInfo info_;
 };
 
 UTAU_NAMESPACE_END

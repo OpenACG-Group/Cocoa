@@ -1735,12 +1735,12 @@ export interface OpenCVLib {
               lineType?: int,
               shift?: int): void
 
-    rectangle(img: Mat,
-              rec: RectLike,
-              color: ScalarLike,
-              thickness?: int,
-              lineType?: int,
-              shift?: int): void
+    rectangle1(img: Mat,
+               rec: RectLike,
+               color: ScalarLike,
+               thickness?: int,
+               lineType?: int,
+               shift?: int): void
 
     reduce(src: Mat,
            dst: Mat,

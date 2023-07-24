@@ -485,10 +485,12 @@
             <property name="rowBytesAsPixels" getter="@getRowBytesAsPixels"/>
             <property name="shiftPerPixel" getter="@getShiftPerPixel"/>
             <property name="rowBytes" getter="@getRowBytes"/>
+            <property name="immutable" getter="@getImmutable"/>
+            <method name="setImmutable" value="@setImmutable"/>
             <method name="computeByteSize" value="@computeByteSize"/>
-            <method name="toImage" value="@toImage"/>
+            <method name="asImage" value="@asImage"/>
             <method name="makeShader" value="@makeShader"/>
-            <method name="getPixelBuffer" value="@getPixelBuffer"/>
+            <method name="asTypedArray" value="@asTypedArray"/>
         </class>
 
         <class name="CkImage" wrapper="CkImageWrap">

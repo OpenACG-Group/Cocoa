@@ -21,13 +21,6 @@
 #define GALLIUM_BINDINGS_UTAU_NS_BEGIN   namespace cocoa::gallium::bindings::utau_wrap {
 #define GALLIUM_BINDINGS_UTAU_NS_END     }
 
-#include <list>
-#include <thread>
-#include <queue>
-#include <mutex>
-
-#include "uv.h"
-
 #include "Gallium/bindings/Base.h"
 #include "Gallium/Gallium.h"
 #include "Gallium/binder/Convert.h"
@@ -42,13 +35,6 @@ GALLIUM_BINDINGS_UTAU_NS_BEGIN
 
 void SetInstanceProperties(v8::Local<v8::Object> instance);
 
-//! TSEnumDecl: Enum<SampleFormat> := Constants.SAMPLE_FORMAT_*
-//! TSEnumDecl: Enum<ChannelMode> := Constants.CH_MODE_*
-//! TSEnumDecl: Enum<StreamSelector> := Constants.STREAM_SELECTOR_*
-//! TSEnumDecl: Enum<DecodeBufferType> := Constants.DECODE_BUFFER_*
-//! TSEnumDecl: Enum<MediaType> := Constants.MEDIA_TYPE_*
-//! TSEnumDecl: Enum<AudioSinkStreamBufferState> := Constants.AUDIO_SINKSTREAM_BUFFER_*
-
 //! TSDecl:
 //! interface Rational {
 //!   num: number;
@@ -60,6 +46,32 @@ utau::Ratio ExtractRational(v8::Isolate *i, v8::Local<v8::Value> v);
 
 //! TSDecl: function getCurrentTimestampMs(): number
 uint64_t getCurrentTimestampMs();
+
+//! TSDecl:
+//! interface PixelFormatDescriptor {
+//!   name: string;
+//!   components: Array<{
+//!     plane: number;
+//!     step: number;
+//!     offset: number;
+//!     shift: number;
+//!     depth: number;
+//!   }>;
+//!   hasPalette: boolean;
+//!   isHWAccel: boolean;
+//!   isPlanar: boolean;
+//!   isRGBLike: boolean;
+//!   isBayer: boolean;
+//!   hasAlpha: boolean;
+//!   isFloat: boolean;
+//!   planes: number;
+//!   bitsPerPixel: number;
+//!   chromaWidthRShift: number;
+//!   chromaHeightRShift: number;
+//! }
+
+//! TSDecl: function getPixelFormatDescriptor(fmt: Enum<PixelFormat>): PixelFormatDescriptor
+v8::Local<v8::Value> getPixelFormatDescriptor(int32_t fmt);
 
 //! TSDecl: class AudioDevice
 class AudioDeviceWrap
@@ -139,19 +151,36 @@ public:
     }
 
     //! TSDecl: readonly pts: number
-    int64_t getPTS();
+    v8::Local<v8::Value> getPTS() {
+        v8::Isolate *isolate = v8::Isolate::GetCurrent();
+        return v8::BigInt::New(isolate, buffer_->GetPresentationTimestamp());
+    }
+
+    //! TSDecl: readonly duration: number
+    v8::Local<v8::Value> getDuration() {
+        v8::Isolate *isolate = v8::Isolate::GetCurrent();
+        return v8::BigInt::New(isolate, buffer_->GetDuration());
+    }
 
     //! TSDecl: readonly sampleFormat: Enum<SampleFormat>
-    int32_t getSampleFormat();
+    int32_t getSampleFormat() {
+        return static_cast<int32_t>(buffer_->GetInfo().GetSampleFormat());
+    }
 
     //! TSDecl: readonly channelMode: Enum<ChannelMode>
-    int32_t getChannelMode();
+    int32_t getChannelMode() {
+        return static_cast<int32_t>(buffer_->GetInfo().GetChannelMode());
+    }
 
     //! TSDecl: readonly sampleRate: number
-    int32_t getSampleRate();
+    int32_t getSampleRate() {
+        return buffer_->GetInfo().GetSampleRate();
+    }
 
     //! TSDecl: readonly samplesCount: number
-    int32_t getSamplesCount();
+    int32_t getSamplesCount() {
+        return buffer_->GetInfo().GetSamplesCount();
+    }
 
     //! TSDecl: function read(plane: number, sampleCount: number, sampleOffset: number,
     //!                       dstBytesOffset: number, dst: ArrayBuffer): number
@@ -165,6 +194,9 @@ public:
 
     //! TSDecl: function dispose(): void
     void dispose();
+
+    //! TSDecl: function clone(): AudioBuffer
+    v8::Local<v8::Value> clone();
 
 private:
     size_t approximate_size_;
@@ -216,6 +248,17 @@ private:
     std::unique_ptr<utau::AVFilterDAG> DAG_;
 };
 
+enum class ComponentSelector
+{
+    kLuma,
+    kChromaU,
+    kChromaV,
+    kR,
+    kG,
+    kB,
+    kAlpha
+};
+
 //! TSDecl: class VideoBuffer
 class VideoBufferWrap
 {
@@ -230,10 +273,107 @@ public:
     //! TSDecl: function dispose(): void
     void dispose();
 
-    //! TSDecl: readonly pts: number
-    g_nodiscard g_inline int64_t getPTS() {
-        return buffer_->GetFramePTS();
+    //! TSDecl: function clone(): VideoBuffer
+    v8::Local<v8::Value> clone();
+
+    //! TSDecl: readonly disposed: boolean
+    bool getDisposed() {
+        return !buffer_;
     }
+
+    //! TSDecl: readonly pts: number
+    v8::Local<v8::Value> getPTS() {
+        v8::Isolate *isolate = v8::Isolate::GetCurrent();
+        return v8::BigInt::New(isolate, buffer_->GetPresentationTimestamp());
+    }
+
+    //! TSDecl: readonly duration: number
+    v8::Local<v8::Value> getDuration() {
+        v8::Isolate *isolate = v8::Isolate::GetCurrent();
+        return v8::BigInt::New(isolate, buffer_->GetDuration());
+    }
+
+    //! TSDecl: readonly width: number
+    int32_t getWidth() {
+        return buffer_->GetInfo().GetWidth();
+    }
+
+    //! TSDecl: readonly height: number
+    int32_t getHeight() {
+        return buffer_->GetInfo().GetHeight();
+    }
+
+    //! TSDecl: readonly hwframe: boolean
+    bool getHwframe() {
+        return buffer_->GetInfo().GetColorInfo().FormatIsHWAccel();
+    }
+
+    //! TSDecl: readonly frameType: Enum<VideoFrameType>
+    int32_t getFrameType() {
+        return static_cast<int32_t>(buffer_->GetInfo().GetFrameType());
+    }
+
+    //! TSDecl: readonly format: Enum<PixelFormat>
+    int32_t getFormat() {
+        return buffer_->GetInfo().GetColorInfo().GetFormat();
+    }
+
+    //! TSDecl: readonly formatName: string
+    const char *getFormatName() {
+        return buffer_->GetInfo().GetColorInfo().GetFormatName();
+    }
+
+    //! TSDecl: readonly strides: Array<number>
+    v8::Local<v8::Value> getStrides();
+
+    //! TSDecl: function readComponent(component: Enum<ComponentSelector>,
+    //!                                dst: TypedArray,
+    //!                                sliceW: number,
+    //!                                sliceH: number,
+    //!                                srcX: number,
+    //!                                srcY: number,
+    //!                                dstStrideInElements: number): void
+    void readComponent(int32_t component,
+                       v8::Local<v8::Value> dst,
+                       int32_t slice_w,
+                       int32_t slice_h,
+                       int32_t src_x,
+                       int32_t src_y,
+                       int32_t dst_stride_in_elements);
+
+    //! TSDecl: function readComponentAsync(component: Enum<ComponentSelector>,
+    //!                                     dst: TypedArray,
+    //!                                     sliceW: number,
+    //!                                     sliceH: number,
+    //!                                     srcX: number,
+    //!                                     srcY: number,
+    //!                                     dstStrideInElements: number): Promise<void>
+    v8::Local<v8::Value> readComponentAsync(int32_t component,
+                                            v8::Local<v8::Value> dst,
+                                            int32_t slice_w,
+                                            int32_t slice_h,
+                                            int32_t src_x,
+                                            int32_t src_y,
+                                            int32_t dst_stride_in_elements);
+
+    //! TSDecl: function readGrayscale(dst: Uint8Array,
+    //!                                sliceW: number,
+    //!                                sliceH: number,
+    //!                                srcX: number,
+    //!                                srcY: number,
+    //!                                dstStride: number): void
+    void readGrayscale(v8::Local<v8::Value> dst,
+                       int32_t slice_w,
+                       int32_t slice_h,
+                       int32_t src_x,
+                       int32_t src_y,
+                       int32_t dst_stride);
+
+    //! TSDecl: function transferHardwareFrameDataTo(expectFormat: Enum<PixelFormat>): VideoBuffer
+    v8::Local<v8::Value> transferHardwareFrameDataTo(int32_t expect_format);
+
+    //! TSDecl: function queryHardwareTransferableFormats(): Array<Enum<PixelFormat>>
+    v8::Local<v8::Value> queryHardwareTransferableFormats();
 
 private:
     size_t approximate_size_;
@@ -301,83 +441,6 @@ public:
 
 private:
     std::unique_ptr<utau::AVStreamDecoder> decoder_;
-};
-
-//! TSDecl: class MediaFramePresentDispatcher
-class MediaFramePresentDispatcher : public MaybeGCRootObject<MediaFramePresentDispatcher>
-{
-public:
-    struct PresentThreadContext;
-    struct PresentThreadCmd;
-
-    //! TSDecl: constructor(decoder: AVStreamDecoder, audioSinkStream: AudioSinkStream)
-    explicit MediaFramePresentDispatcher(v8::Local<v8::Value> decoder,
-                                         v8::Local<v8::Value> audioSinkStream);
-    ~MediaFramePresentDispatcher();
-
-    //! TSDecl: onPresentVideoBuffer: (buffer: VideoBuffer, ptsInSeconds: number) => void
-    void setOnPresentVideoBuffer(v8::Local<v8::Value> func);
-    v8::Local<v8::Value> getOnPresentVideoBuffer();
-
-    //! TSDecl: onAudioPresentNotify: (buffer: AudioBuffer, ptsInSeconds: number) => void
-    void setOnAudioPresentNotify(v8::Local<v8::Value> func);
-    v8::Local<v8::Value> getOnAudioPresentNotify();
-
-    //! TSDecl: onErrorOrEOF: () => void
-    void setOnErrorOrEOF(v8::Local<v8::Value> func);
-    v8::Local<v8::Value> getOnErrorOrEOF();
-
-    //! TSDecl: play(): void
-    void play();
-
-    //! TSDecl: pause(): void
-    void pause();
-
-    //! TSDecl: seekTo(tsSeconds: number): void
-    void seekTo(double tsSeconds);
-
-    //! TSDecl: dispose(): void
-    void dispose();
-
-private:
-    void ThreadRoutine();
-    static void PresentRequestHandler(uv_async_t *handle);
-    static void PresentThreadCmdHandler(uv_async_t *handle);
-    static void TimerCallback(uv_timer_t *timer);
-
-    void SendAndWaitForPresentThreadCmd(int verb, const int64_t param[3]);
-    void SendPresentRequest(utau::AVStreamDecoder::AVGenericDecoded frame, double pts_seconds);
-    void SendErrorOrEOFRequest();
-
-    struct PresentRequest
-    {
-        bool error_or_eof;
-        uint64_t send_timestamp;
-        double frame_pts_seconds;
-        std::shared_ptr<utau::VideoBuffer> vbuffer;
-        std::shared_ptr<utau::AudioBuffer> abuffer;
-    };
-
-    v8::Global<v8::Object>          decoder_js_obj_;
-    AVStreamDecoderWrap            *decoder_wrap_;
-    v8::Global<v8::Object>          asinkstream_js_obj_;
-    AudioSinkStreamWrap            *asinkstream_wrap_;
-    v8::Global<v8::Function>        cb_present_video_buffer_;
-    v8::Global<v8::Function>        cb_audio_present_notify_;
-    v8::Global<v8::Function>        cb_error_or_eof_;
-
-    bool                            disposed_;
-    bool                            paused_;
-    bool                            has_audio_;
-    bool                            has_video_;
-    utau::AVStreamDecoder::StreamInfo audio_stinfo_;
-    utau::AVStreamDecoder::StreamInfo video_stinfo_;
-
-    std::thread                     mp_thread_;
-    uv_async_t                     *host_notifier_;
-    std::mutex                      present_queue_lock_;
-    std::queue<PresentRequest>      present_queue_;
-    std::unique_ptr<PresentThreadContext> thread_ctx_;
 };
 
 GALLIUM_BINDINGS_UTAU_NS_END

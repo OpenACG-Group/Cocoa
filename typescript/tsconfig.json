@@ -45,6 +45,8 @@
         "samples/mediapresent-audio-fft.ts",
         "samples/vizmoe-simplest-scene.ts",
         "samples/vizmoe-paragraph-layout.ts",
+        "samples/vizmoe-video-present.ts",
+        "samples/vizmoe-video-present-opencv-cvtcolor.ts",
         "samples/wasm-cairo-hello.ts",
         "samples/wasm-cairo-sharing-composite.ts",
         "samples/wasm-cairo-recording-surface.ts",

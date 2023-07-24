@@ -192,6 +192,7 @@ add_library(Gallium STATIC
         bindings/utau/AVFilterDAGWrap.cc
         bindings/utau/VideoBufferWrap.cc
         bindings/utau/AVStreamDecoderWrap.cc
+        bindings/utau/MediaFramePresentDispatcher.h
         bindings/utau/MediaFramePresentDispatcher.cc
 )
 target_include_directories(Gallium PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

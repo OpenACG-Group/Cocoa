@@ -51,7 +51,10 @@ public:
         return reinterpret_cast<T*>(CloneUnderlyingBuffer());
     }
 
-    size_t ComputeApproximateSizeInBytes();
+    g_nodiscard size_t ComputeApproximateSizeInBytes();
+
+    g_nodiscard int64_t GetPresentationTimestamp();
+    g_nodiscard int64_t GetDuration();
 
 protected:
     /**

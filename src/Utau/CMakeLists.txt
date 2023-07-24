@@ -22,6 +22,8 @@ add_library(
         AudioFilterInputSinkStream.h
         AudioFilterInputSinkStream.cc
 
+        VideoBufferInfo.h
+        VideoBufferInfo.cc
         VideoBuffer.h
         VideoBuffer.cc
 
@@ -43,6 +45,7 @@ add_library(
         ffwrappers/libswresample.h
         ffwrappers/libswscale.h
         ffwrappers/samplefmt.h
+        ffwrappers/pixfmt.h
 )
 
 target_link_libraries(

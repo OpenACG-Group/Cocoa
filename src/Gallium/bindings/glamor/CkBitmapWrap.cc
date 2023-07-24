@@ -29,40 +29,56 @@
 
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-CkBitmapWrap::CkBitmapWrap(v8::Isolate *isolate,
-                           v8::Local<v8::ArrayBuffer> buffer_object,
-                           std::shared_ptr<SkBitmap> bitmap)
-    : array_buffer_(isolate, buffer_object)
+CkBitmapWrap::CkBitmapWrap(std::shared_ptr<v8::BackingStore> backing_store,
+                           size_t store_offset,
+                           SkBitmap bitmap)
+    : backing_store_(std::move(backing_store))
+    , store_offset_(store_offset)
     , bitmap_(std::move(bitmap))
 {
-    CHECK(bitmap_ && "CkBitmap was constructed with an invalid bitmap");
+    CHECK(!bitmap_.isNull() && "CkBitmap was constructed with an invalid bitmap");
 }
 
 namespace {
 
-v8::Local<v8::Value> create_bitmap_from_buffer(v8::Local<v8::ArrayBuffer> buffer,
+v8::Local<v8::Value> create_bitmap_from_buffer(std::shared_ptr<v8::BackingStore> backing_store,
+                                               size_t store_offset,
+                                               int32_t stride,
                                                const SkImageInfo& info)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    size_t pixelsSize = info.computeMinByteSize();
+    size_t req_bytes = info.computeByteSize(stride);
 
     // Do a quick check based on the size of the provided buffer
-    if (pixelsSize != buffer->ByteLength())
+    if (req_bytes > backing_store->ByteLength() - store_offset)
         g_throw(Error, "Provided buffer size conflicts with the image info");
 
     // Bitmap shares the same memory with `buffer`, and keeps the ownership of `buffer`
-    auto bitmap = std::make_shared<SkBitmap>();
-    bitmap->installPixels(info, buffer->Data(), info.minRowBytes());
+    SkBitmap bitmap;
+    auto *ptr = reinterpret_cast<uint8_t*>(backing_store->Data()) + store_offset;
 
-    return binder::NewObject<CkBitmapWrap>(isolate, isolate, buffer, bitmap);
+    // Although `CkBitmapWrap` itself holds a reference to `backing_store`,
+    // it is still essential to make `SkBitmap` hold the ownership of the backing
+    // store. Because the bitmap may be marked immutable and be used to create a
+    // `SkImage` object. In that case, `SkImage` must inherit the ownership of
+    // pixels from `SkBitmap`.
+    auto *store_sp_ptr = new std::shared_ptr<v8::BackingStore>(backing_store);
+    bitmap.installPixels(info, ptr, stride, [](void *ptr, void *ctx) {
+        auto *sp = reinterpret_cast<std::shared_ptr<v8::BackingStore>*>(ctx);
+        delete sp;
+    }, store_sp_ptr);
+
+    return binder::NewObject<CkBitmapWrap>(isolate, std::move(backing_store),
+                                           store_offset, std::move(bitmap));
 }
 
 } // namespace anonymous
 
-v8::Local<v8::Value> CkBitmapWrap::MakeFromBuffer(v8::Local<v8::Value> buffer,
+v8::Local<v8::Value> CkBitmapWrap::MakeFromBuffer(v8::Local<v8::Value> array,
                                                   int32_t width,
                                                   int32_t height,
+                                                  int32_t stride,
                                                   uint32_t colorType,
                                                   uint32_t alphaType)
 {
@@ -82,10 +98,14 @@ v8::Local<v8::Value> CkBitmapWrap::MakeFromBuffer(v8::Local<v8::Value> buffer,
                                               static_cast<SkColorType>(colorType),
                                               static_cast<SkAlphaType>(alphaType));
 
-    if (!buffer->IsArrayBuffer())
-        g_throw(TypeError, "Argument `buffer` must be an ArrayBuffer");
+    if (!array->IsUint8Array() || !array.As<v8::Uint8Array>()->HasBuffer())
+        g_throw(TypeError, "Argument `buffer` must be an allocated ArrayBuffer");
 
-    return create_bitmap_from_buffer(buffer.As<v8::ArrayBuffer>(), imageInfo);
+    auto u8_array = array.As<v8::Uint8Array>();
+    return create_bitmap_from_buffer(u8_array->Buffer()->GetBackingStore(),
+                                     u8_array->ByteOffset(),
+                                     stride,
+                                     imageInfo);
 }
 
 v8::Local<v8::Value> CkBitmapWrap::MakeFromEncodedFile(const std::string& path)
@@ -106,66 +126,71 @@ v8::Local<v8::Value> CkBitmapWrap::MakeFromEncodedFile(const std::string& path)
 
     SkImageInfo info = codec->getInfo();
 
-    v8::Local<v8::ArrayBuffer> buffer = v8::ArrayBuffer::New(isolate, info.computeMinByteSize());
+    std::shared_ptr<v8::BackingStore> backing_store =
+            v8::ArrayBuffer::NewBackingStore(isolate, info.computeMinByteSize());
+    CHECK(backing_store);
 
-    result = codec->getPixels(info, buffer->Data(), info.minRowBytes());
+    result = codec->getPixels(info, backing_store->Data(), info.minRowBytes());
     if (result != SkCodec::Result::kSuccess)
     {
         g_throw(Error, fmt::format("Failed to read pixels from file {}: {}",
                                    path, SkCodec::ResultToString(result)));
     }
 
-    return create_bitmap_from_buffer(buffer, info);
+    CHECK(info.minRowBytes() < INT32_MAX);
+    return create_bitmap_from_buffer(backing_store, 0,
+                                     static_cast<int32_t>(info.minRowBytes()),
+                                     info);
 }
 
 int32_t CkBitmapWrap::getWidth()
 {
-    return bitmap_->width();
+    return bitmap_.width();
 }
 
 int32_t CkBitmapWrap::getHeight()
 {
-    return bitmap_->height();
+    return bitmap_.height();
 }
 
 uint32_t CkBitmapWrap::getAlphaType()
 {
-    return static_cast<uint32_t>(bitmap_->alphaType());
+    return static_cast<uint32_t>(bitmap_.alphaType());
 }
 
 uint32_t CkBitmapWrap::getColorType()
 {
-    return static_cast<uint32_t>(bitmap_->colorType());
+    return static_cast<uint32_t>(bitmap_.colorType());
 }
 
 int32_t CkBitmapWrap::getBytesPerPixel()
 {
-    return bitmap_->bytesPerPixel();
+    return bitmap_.bytesPerPixel();
 }
 
 int32_t CkBitmapWrap::getRowBytesAsPixels()
 {
-    return bitmap_->rowBytesAsPixels();
+    return bitmap_.rowBytesAsPixels();
 }
 
 int32_t CkBitmapWrap::getShiftPerPixel()
 {
-    return bitmap_->shiftPerPixel();
+    return bitmap_.shiftPerPixel();
 }
 
 size_t CkBitmapWrap::getRowBytes()
 {
-    return bitmap_->rowBytes();
+    return bitmap_.rowBytes();
 }
 
 size_t CkBitmapWrap::computeByteSize()
 {
-    return bitmap_->computeByteSize();
+    return bitmap_.computeByteSize();
 }
 
-v8::Local<v8::Value> CkBitmapWrap::toImage()
+v8::Local<v8::Value> CkBitmapWrap::asImage()
 {
-    sk_sp<SkImage> image = bitmap_->asImage();
+    sk_sp<SkImage> image = bitmap_.asImage();
     if (!image)
         g_throw(Error, "Cannot convert the bitmap to a CkImage");
     return binder::NewObject<CkImageWrap>(v8::Isolate::GetCurrent(), image);
@@ -189,7 +214,7 @@ v8::Local<v8::Value> CkBitmapWrap::makeShader(int32_t tmx, int32_t tmy, int32_t 
         matrix = &w->GetMatrix();
     }
 
-    sk_sp<SkShader> shader = bitmap_->makeShader(static_cast<SkTileMode>(tmx),
+    sk_sp<SkShader> shader = bitmap_.makeShader(static_cast<SkTileMode>(tmx),
                                                  static_cast<SkTileMode>(tmy),
                                                  SamplingToSamplingOptions(sampling),
                                                  matrix);
@@ -199,9 +224,11 @@ v8::Local<v8::Value> CkBitmapWrap::makeShader(int32_t tmx, int32_t tmy, int32_t 
     return binder::NewObject<CkShaderWrap>(isolate, shader);
 }
 
-v8::Local<v8::Value> CkBitmapWrap::getPixelBuffer()
+v8::Local<v8::Value> CkBitmapWrap::asTypedArray()
 {
-    return array_buffer_.Get(v8::Isolate::GetCurrent());
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    auto array_buffer = v8::ArrayBuffer::New(isolate, backing_store_);
+    return v8::Uint8Array::New(array_buffer, store_offset_, bitmap_.computeByteSize());
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END
