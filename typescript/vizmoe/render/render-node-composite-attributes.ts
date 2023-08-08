@@ -19,7 +19,8 @@ import {
     CkImageFilter,
     CkPath,
     BlendMode,
-    Constants as GLConst
+    Constants as GLConst,
+    CkPathMeasure
 } from 'glamor';
 
 import { Rect, RRect } from './rectangle';
@@ -42,6 +43,7 @@ export class CompositeAttributes {
     private fClippingType: ClippingType;
     private fRectClip: Rect | null;
     private fRRectClip: RRect | null;
+    private fClippingAA: boolean;
     private fPathClip: CkPath | null;
     private fOffset: Vector2f;
     private fRotate: { rad: number, pivot: Vector2f } | null;
@@ -55,7 +57,7 @@ export class CompositeAttributes {
     }
 
     public hasOffset(): boolean {
-        return (this.fOffset.x != 0 && this.fOffset.y != 0);
+        return (this.fOffset.x != 0 || this.fOffset.y != 0);
     }
 
     public hasRotate(): boolean {
@@ -99,6 +101,17 @@ export class CompositeAttributes {
     }
 
     public setPathClip(clip: CkPath): void {
+        if (clip.isEmpty()) {
+            return;
+        }
+
+        const measure = CkPathMeasure.Make(clip, false, 1);
+        do {
+            if (!measure.isClosed()) {
+                throw Error('All the contours in the clip path must be closed');
+            }
+        } while (measure.nextContour());
+
         this.fClippingType = ClippingType.kPath;
         this.fPathClip = clip;
     }
@@ -118,6 +131,10 @@ export class CompositeAttributes {
         this.fOpacity = opacity;
     }
 
+    public setClippingAntiAlias(aa: boolean): void {
+        this.fClippingAA = aa;
+    }
+
     public resetAll(): void {
         this.fImageFilter = null;
         this.fBackdropFilter = null;
@@ -125,6 +142,7 @@ export class CompositeAttributes {
         this.fBackdropFilterBoundsClip = true;
         this.fOpacity = null;
         this.fClippingType = ClippingType.kNone;
+        this.fClippingAA = false;
         this.fRectClip = null;
         this.fRRectClip = null;
         this.fPathClip = null;
@@ -170,6 +188,21 @@ export class CompositeAttributes {
 
         if (this.hasRotate()) {
             recorder.pushRotate(this.fRotate.rad, this.fRotate.pivot);
+            pushCount++;
+        }
+
+        switch (this.fClippingType) {
+            case ClippingType.kRect:
+                recorder.pushRectClip(this.fRectClip, this.fClippingAA);
+                break;
+            case ClippingType.kRRect:
+                recorder.pushRRectClip(this.fRRectClip, this.fClippingAA);
+                break;
+            case ClippingType.kPath:
+                recorder.pushPathClip(this.fPathClip, GLConst.CLIP_OP_INTERSECT, this.fClippingAA);
+                break;
+        }
+        if (this.fClippingType != ClippingType.kNone) {
             pushCount++;
         }
 

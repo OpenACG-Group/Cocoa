@@ -21,6 +21,8 @@
 #include <utility>
 #include <stdexcept>
 
+#include "Core/Errors.h"
+
 namespace cocoa {
 
 template<typename T>
@@ -28,8 +30,7 @@ class UniquePersistent
 {
 public:
     static T *Instance() {
-        if (self_pointer_ == nullptr)
-            throw std::runtime_error("No available instance");
+        CHECK(self_pointer_);
         return self_pointer_;
     }
 
@@ -57,6 +58,36 @@ private:
 
 template<typename T>
 T *UniquePersistent<T>::self_pointer_ = nullptr;
+
+template<typename T>
+class ThreadLocalUniquePersistent
+{
+public:
+    static T *GetCurrent() {
+        CHECK(local_self_ptr_);
+        return local_self_ptr_;
+    }
+
+    static bool HasInstance() {
+        return local_self_ptr_;
+    }
+
+    template<typename...ArgsT>
+    static void New(ArgsT&&...args) {
+        local_self_ptr_ = new T(std::forward<ArgsT>(args)...);
+    }
+
+    static void Delete() {
+        delete local_self_ptr_;
+        local_self_ptr_ = nullptr;
+    }
+
+private:
+    thread_local static T *local_self_ptr_;
+};
+
+template<typename T>
+thread_local T *ThreadLocalUniquePersistent<T>::local_self_ptr_ = nullptr;
 
 }
 

@@ -43,7 +43,8 @@
 
         <class name="AVFilterDAG" wrapper="AVFilterDAGWrap">
             <method static="true" name="MakeFromDSL" value="@MakeFromDSL"/>
-            <method name="filter" value="@filter"/>
+            <method name="sendFrame" value="@sendFrame"/>
+            <method name="tryReceiveFrame" value="@tryReceiveFrame"/>
         </class>
 
         <class name="VideoBuffer" wrapper="VideoBufferWrap">
@@ -66,12 +67,18 @@
             <property name="strides" getter="@getStrides"/>
         </class>
 
+        <class name="HWFramesContextRef" wrapper="HWFramesContextRef">
+            <method name="dispose" value="@dispose"/>
+            <method name="clone" value="@clone"/>
+        </class>
+
         <class name="AVStreamDecoder" wrapper="AVStreamDecoderWrap">
             <method static="true" name="MakeFromFile" value="@MakeFromFile"/>
             <method name="getStreamInfo" value="@getStreamInfo"/>
             <method name="decodeNextFrame" value="@decodeNextFrame"/>
             <method name="seekStreamTo" value="@seekStreamTo"/>
             <method name="flushDecoderBuffers" value="@flushDecoderBuffers"/>
+            <method name="refHWFramesContext" value="@refHWFramesContext"/>
             <property name="hasAudioStream" getter="@hasAudioStream"/>
             <property name="hasVideoStream" getter="@hasVideoStream"/>
         </class>

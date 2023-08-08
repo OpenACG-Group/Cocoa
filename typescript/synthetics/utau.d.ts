@@ -15,6 +15,7 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+export type DAGReceiveStatus = number;
 export type SampleFormat = number;
 export type ChannelMode = number;
 export type StreamSelector = number;
@@ -30,6 +31,11 @@ export interface Rational {
 }
 
 export interface Constants {
+    DAG_RECEIVE_STATUS_OK: DAGReceiveStatus;
+    DAG_RECEIVE_STATUS_ERROR: DAGReceiveStatus;
+    DAG_RECEIVE_STATUS_AGAIN: DAGReceiveStatus;
+    DAG_RECEIVE_STATUS_EOF: DAGReceiveStatus;
+
     SAMPLE_FORMAT_UNKNOWN: SampleFormat;
     SAMPLE_FORMAT_U8: SampleFormat;
     SAMPLE_FORMAT_S16: SampleFormat;
@@ -371,7 +377,7 @@ export interface InBufferParameters {
     sampleRate?: number;
 
     pixelFormat?: number;
-    hwFrameContextFrom?: VideoBuffer;
+    hwFramesContext?: HWFramesContextRef;
     width?: number;
     height?: number;
     timeBase?: Rational;
@@ -383,19 +389,27 @@ export interface OutBufferParameters {
     mediaType: MediaType;
 }
 
-export interface DAGNamedInOutBuffer {
-    name: string;
-    mediaType: MediaType;
-
-    audioBuffer?: AudioBuffer;
-    videoBuffer?: VideoBuffer;
+interface DAGOutputInfo {
+    status: DAGReceiveStatus;
+    name?: string;
+    mediaType?: MediaType;
+    audio?: AudioBuffer;
+    video?: VideoBuffer;
 }
 
 export class AVFilterDAG {
     static MakeFromDSL(dsl: string, inparams: Array<InBufferParameters>,
                        outparams: Array<OutBufferParameters>): AVFilterDAG;
 
-    filter(inBuffers: Array<DAGNamedInOutBuffer>): Array<DAGNamedInOutBuffer>;
+    sendFrame(name: string, frame: AudioBuffer | VideoBuffer): void;
+    tryReceiveFrame(name: string): DAGOutputInfo;
+}
+
+export class HWFramesContextRef {
+    private constructor();
+
+    dispose(): void;
+    clone(): HWFramesContextRef;
 }
 
 export interface AVDecoderOptions {
@@ -437,6 +451,7 @@ export class AVStreamDecoder {
     decodeNextFrame(): AVDecodeBuffer;
     seekStreamTo(selector: StreamSelector, timestamp: number): void;
     flushDecoderBuffers(selector: StreamSelector): void;
+    refHWFramesContext(): null | HWFramesContextRef;
 }
 
 export class MediaFramePresentDispatcher {

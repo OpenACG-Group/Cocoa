@@ -33,6 +33,11 @@ void SetInstanceProperties(v8::Local<v8::Object> instance)
     using ChM = utau::AudioChannelMode;
 
     std::unordered_map<std::string, int32_t> constants{
+        { "DAG_RECEIVE_STATUS_OK", I(utau::AVFilterDAG::ReceiveStatus::kOk) },
+        { "DAG_RECEIVE_STATUS_ERROR", I(utau::AVFilterDAG::ReceiveStatus::kError) },
+        { "DAG_RECEIVE_STATUS_AGAIN", I(utau::AVFilterDAG::ReceiveStatus::kAgain) },
+        { "DAG_RECEIVE_STATUS_EOF", I(utau::AVFilterDAG::ReceiveStatus::kEOF) },
+
         { "SAMPLE_FORMAT_UNKNOWN", I(SFMT::kUnknown) },
         { "SAMPLE_FORMAT_U8",   I(SFMT::kU8)     },
         { "SAMPLE_FORMAT_S16",  I(SFMT::kS16)    },

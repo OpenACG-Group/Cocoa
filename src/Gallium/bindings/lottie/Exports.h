@@ -22,6 +22,7 @@
 #include "modules/skottie/include/Skottie.h"
 
 #include "Core/Project.h"
+#include "Gallium/bindings/ExportableObjectBase.h"
 
 #define GALLIUM_BINDINGS_LOTTIE_NS_BEGIN    namespace cocoa::gallium::bindings::lottie_wrap {
 #define GALLIUM_BINDINGS_LOTTIE_NS_END      }
@@ -32,7 +33,7 @@ GALLIUM_BINDINGS_LOTTIE_NS_BEGIN
 void SetInstanceProperties(v8::Local<v8::Object> instance);
 
 //! TSDecl: class AnimationBuilder
-class AnimationBuilderWrap
+class AnimationBuilderWrap : public ExportableObjectBase
 {
 public:
     //! TSDecl: constructor(flags: Enum<AnimationBuilderFlags>)
@@ -85,7 +86,7 @@ private:
 };
 
 //! TSDecl: class Animation
-class AnimationWrap
+class AnimationWrap : public ExportableObjectBase
 {
 public:
     explicit AnimationWrap(sk_sp<skottie::Animation> animation)

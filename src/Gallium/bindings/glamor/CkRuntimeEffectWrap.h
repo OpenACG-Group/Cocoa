@@ -21,12 +21,14 @@
 #include "include/effects/SkRuntimeEffect.h"
 #include "include/v8.h"
 
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/Types.h"
 #include "Gallium/bindings/glamor/TrivialInterface.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 //! TSDecl: class CkRuntimeEffect
-class CkRuntimeEffect : public SkiaObjectWrapper<SkRuntimeEffect>
+class CkRuntimeEffect : public ExportableObjectBase,
+                        public SkiaObjectWrapper<SkRuntimeEffect>
 {
 public:
     using SkiaObjectWrapper::SkiaObjectWrapper;

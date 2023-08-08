@@ -16,14 +16,13 @@
  */
 
 #include "Gallium/binder/Function.h"
-#include "Gallium/Runtime.h"
+#include "Gallium/RuntimeBase.h"
 GALLIUM_BINDER_NS_BEGIN
 namespace detail {
 
 void external_data::destroy_all(v8::Isolate *isolate)
 {
-    Runtime *runtime = Runtime::GetBareFromIsolate(isolate);
-    CHECK(runtime);
+    RuntimeBase *runtime = RuntimeBase::FromIsolate(isolate);
     runtime->DeleteExternalValueHolders();
 }
 
@@ -31,8 +30,7 @@ void external_data::register_external(value_holder_base *value)
 {
     CHECK(value && value->isolate);
 
-    Runtime *runtime = Runtime::GetBareFromIsolate(value->isolate);
-    CHECK(runtime);
+    RuntimeBase *runtime = RuntimeBase::FromIsolate(value->isolate);
     runtime->RegisterExternalValueHolder(value);
 }
 
@@ -40,8 +38,7 @@ void external_data::unregister_external(value_holder_base *value)
 {
     CHECK(value && value->isolate);
 
-    Runtime *runtime = Runtime::GetBareFromIsolate(value->isolate);
-    CHECK(runtime);
+    RuntimeBase *runtime = RuntimeBase::FromIsolate(value->isolate);
     runtime->UnregisterExternalValueHolder(value);
 }
 

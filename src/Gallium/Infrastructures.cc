@@ -19,13 +19,22 @@
 
 #include <map>
 
+#include "fmt/format.h"
+
 #include "Core/Errors.h"
+#include "Core/Journal.h"
 #include "Core/EventLoop.h"
+#include "Core/MeasuredTable.h"
+#include "Core/Utils.h"
+#include "Gallium/UnixPathTools.h"
 #include "Gallium/Infrastructures.h"
-#include "Gallium/Runtime.h"
+#include "Gallium/RuntimeBase.h"
 #include "Gallium/binder/Convert.h"
 #include "Gallium/binder/ThrowExcept.h"
 GALLIUM_NS_BEGIN
+
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.Infrastructures)
+
 namespace infra
 {
 
@@ -47,8 +56,8 @@ struct TimeoutPack
     uv_timer_t timer;
 };
 
-std::map<uint64_t, TimeoutPack *> timeout_callbacks_map_;
-uint64_t timeout_id_counter_ = 1;
+thread_local std::map<uint64_t, TimeoutPack *> timeout_callbacks_map_;
+thread_local uint64_t timeout_id_counter_ = 1;
 
 void clearTimer(TimeoutPack *pack)
 {
@@ -65,16 +74,17 @@ void setTimeoutCallback(uv_timer_t *timer)
     auto *pack = reinterpret_cast<TimeoutPack*>(uv_handle_get_data((uv_handle_t*) timer));
     CHECK(pack);
 
-    Runtime *runtime = Runtime::GetBareFromIsolate(pack->isolate);
+    RuntimeBase *runtime = RuntimeBase::FromIsolate(pack->isolate);
     CHECK(runtime);
 
     v8::HandleScope scope(pack->isolate);
     runtime->PerformTasksCheckpoint();
 
     v8::Local<v8::Function> func = pack->callback.Get(pack->isolate);
-    std::vector<v8::Local<v8::Value>> args;
-    for (v8::Global<v8::Value>& value : pack->args)
-        args.emplace_back(value.Get(pack->isolate));
+
+    std::vector<v8::Local<v8::Value>> args(pack->args.size());
+    for (size_t i = 0; i < pack->args.size(); i++)
+        args[i] = pack->args[i].Get(pack->isolate);
 
     v8::Local<v8::Context> context = pack->isolate->GetCurrentContext();
     v8::Local<v8::Object> receiver = context->Global();
@@ -130,7 +140,7 @@ void setTimeoutOrInterval(const v8::FunctionCallbackInfo<v8::Value>& info, bool 
     for (int32_t i = 2; i < info.Length(); i++)
         pack->args.emplace_back(isolate, info[i]);
 
-    uv_loop_t *loop = Runtime::GetBareFromIsolate(isolate)->CheckSource::eventLoop()->handle();
+    uv_loop_t *loop = RuntimeBase::FromIsolate(isolate)->GetEventLoop();
     uv_timer_init(loop, &pack->timer);
     uv_handle_set_data((uv_handle_t*) &pack->timer, pack);
     uv_timer_start(&pack->timer, setTimeoutCallback, timeout, repeat ? timeout : 0);
@@ -165,7 +175,7 @@ void JS_clearTimer(const v8::FunctionCallbackInfo<v8::Value>& info)
 }
 
 namespace {
-struct timeval tv_start_{};
+thread_local struct timeval tv_start_{};
 }
 
 void JS_millisecondTimeCounter(const v8::FunctionCallbackInfo<v8::Value>& info)
@@ -180,21 +190,30 @@ void JS_millisecondTimeCounter(const v8::FunctionCallbackInfo<v8::Value>& info)
 }
 
 void InstallOnGlobalContext(v8::Isolate *isolate,
-                            v8::Local<v8::Context> context)
+                            v8::Local<v8::Context> context,
+                            bool is_worker_scope)
 {
     v8::HandleScope scope(isolate);
     v8::Local<v8::Object> global = context->Global();
 
     gettimeofday(&tv_start_, nullptr);
 
-    /* This causes circular reference */
-    global->SetAccessor(context, binder::to_v8(isolate, "global"),
-                        GlobalObjectGetter, GlobalObjectSetter).Check();
+    if (is_worker_scope)
+    {
+        global->SetAccessor(context, binder::to_v8(isolate, "self"),
+                            GlobalObjectGetter, GlobalObjectSetter).Check();
+    }
+    else
+    {
+        global->SetAccessor(context, binder::to_v8(isolate, "global"),
+                            GlobalObjectGetter, GlobalObjectSetter).Check();
+    }
 
     v8::Local<v8::ObjectTemplate> runtimeInfo = v8::ObjectTemplate::New(isolate);
     runtimeInfo->Set(isolate, "version", binder::to_v8(isolate, COCOA_VERSION));
     runtimeInfo->Set(isolate, "implementation", binder::to_v8(isolate, COCOA_NAME));
     runtimeInfo->Set(isolate, "platform", binder::to_v8(isolate, COCOA_PLATFORM));
+    runtimeInfo->Set(isolate, "isWorkerGlobalScope", v8::Boolean::New(isolate, is_worker_scope));
 
     global->Set(context, binder::to_v8(isolate, "__runtime__"),
                 runtimeInfo->NewInstance(context).ToLocalChecked()).Check();
@@ -210,6 +229,55 @@ void InstallOnGlobalContext(v8::Isolate *isolate,
     EXPORT_FUNC("getMillisecondTimeCounter", JS_millisecondTimeCounter);
 
 #undef EXPORT_FUNC
+}
+
+void ReportUncaughtException(v8::Isolate *isolate, v8::Local<v8::Message> message,
+                             v8::Local<v8::Value> except)
+{
+    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
+    RuntimeBase *rt = RuntimeBase::FromIsolate(isolate);
+    CHECK(rt);
+
+    v8::Local<v8::String> string = except->ToString(ctx).ToLocalChecked();
+    QLOG(LOG_ERROR, "%fg<re>Uncaught exception: {}%reset", binder::from_v8<std::string>(isolate, string));
+
+    if (message->GetStackTrace().IsEmpty())
+        return;
+
+    QLOG(LOG_ERROR, "  %fg<re>Stack traceback:%reset");
+    v8::Local<v8::StackTrace> trace = message->GetStackTrace();
+    MeasuredTable mt(/* minSpace */ 1);
+    for (int32_t i = 0; i < trace->GetFrameCount(); i++)
+    {
+        v8::Local<v8::StackFrame> frame = trace->GetFrame(isolate, i);
+        std::string funcName = "<unknown>", scriptName = "<unknown>";
+        std::string funcNamePrefix;
+
+        if (frame->IsConstructor())
+            funcNamePrefix = "new ";
+
+        if (!frame->GetScriptName().IsEmpty())
+        {
+            scriptName = binder::from_v8<std::string>(isolate, frame->GetScriptName());
+            if (utils::StrStartsWith(scriptName, "file://"))
+            {
+                scriptName = "file://" + unixpath::SolveShortestPathRepresentation(scriptName.substr(7));
+            }
+        }
+        if (!frame->GetFunctionName().IsEmpty())
+            funcName = binder::from_v8<std::string>(isolate, frame->GetFunctionName());
+
+        if (frame->GetLineNumber() != v8::Message::kNoLineNumberInfo)
+            scriptName.append(fmt::format(":{}", frame->GetLineNumber()));
+        if (frame->GetColumn() != v8::Message::kNoColumnInfo)
+            scriptName.append(fmt::format(":{}", frame->GetColumn()));
+
+        mt.append(fmt::format("%fg<bl>#{}%reset %italic%fg<ye>{}{}%reset", i, funcNamePrefix, funcName),
+                  fmt::format("%fg<cy>(from {})%reset", scriptName));
+    }
+    mt.flush([](const std::string& line) {
+        QLOG(LOG_ERROR, "    {}", line);
+    });
 }
 
 } // namespace infra

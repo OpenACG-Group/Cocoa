@@ -418,15 +418,16 @@ void PerIsolateData::PostIdleTask(std::unique_ptr<v8::IdleTask> task)
 
 std::unique_ptr<Platform> Platform::Make(EventLoop *main_loop,
                                          int32_t workers,
-                                         v8::TracingController *tracing_controller)
+                                         std::unique_ptr<TracingController> tracing_controller)
 {
     CHECK(main_loop);
-    return std::make_unique<Platform>(main_loop, workers, tracing_controller);
+    return std::make_unique<Platform>(main_loop, workers, std::move(tracing_controller));
 }
 
-Platform::Platform(EventLoop *loop, int32_t workers, v8::TracingController *tc)
+Platform::Platform(EventLoop *loop, int32_t workers,
+                   std::unique_ptr<TracingController> tc)
     : main_loop_(loop)
-    , tracing_controller_(tc)
+    , tracing_controller_(std::move(tc))
     , worker_threads_pool_(std::make_unique<WorkerThreadsPool>(workers))
     , delayed_task_scheduler_(std::make_unique<DelayedTaskScheduler>(worker_threads_pool_.get()))
 {
@@ -517,7 +518,7 @@ double Platform::CurrentClockTimeMillis()
 v8::TracingController *Platform::GetTracingController()
 {
     CHECK(tracing_controller_ != nullptr);
-    return tracing_controller_;
+    return tracing_controller_.get();
 }
 
 v8::Platform::StackTracePrinter Platform::GetStackTracePrinter()

@@ -154,6 +154,7 @@
             <method name="pushBackdropFilter" value="@pushBackdropFilter"/>
             <method name="pushRectClip" value="@pushRectClip"/>
             <method name="pushRRectClip" value="@pushRRectClip"/>
+            <method name="pushPathClip" value="@pushPathClip"/>
             <method name="addPicture" value="@addPicture"/>
             <method name="addTexture" value="@addTexture"/>
             <method name="addVideoBuffer" value="@addVideoBuffer"/>

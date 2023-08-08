@@ -22,11 +22,12 @@
 #include "include/v8.h"
 
 #include "Core/Errors.h"
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/TrivialInterface.h"
 #include "Gallium/binder/ThrowExcept.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-class CkCanvas
+class CkCanvas : public ExportableObjectBase
 {
 public:
     explicit CkCanvas(SkCanvas *canvas) : canvas_(canvas) {

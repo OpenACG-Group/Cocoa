@@ -22,10 +22,11 @@
 #include "include/core/SkPaint.h"
 
 #include "Gallium/bindings/glamor/Types.h"
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/TrivialInterface.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-class CkPaint
+class CkPaint : public ExportableObjectBase
 {
 public:
     explicit CkPaint(SkPaint paint) : paint_(std::move(paint)) {}

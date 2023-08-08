@@ -58,7 +58,7 @@ AVBufferRef *extract_possible_hw_frame_ctx_from_inparams(v8::Local<v8::Object> o
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     v8::Local<v8::Context> context = isolate->GetCurrentContext();
 
-    auto maybe_buf = obj->Get(context, binder::to_v8(isolate, "hwFrameContextFrom"));
+    auto maybe_buf = obj->Get(context, binder::to_v8(isolate, "hwFramesContext"));
 
     if (maybe_buf.IsEmpty())
         return nullptr;
@@ -67,11 +67,14 @@ AVBufferRef *extract_possible_hw_frame_ctx_from_inparams(v8::Local<v8::Object> o
     if (buf->IsNullOrUndefined())
         return nullptr;
 
-    auto *wrapper = binder::UnwrapObject<VideoBufferWrap>(isolate, buf);
+    auto *wrapper = binder::UnwrapObject<HWFramesContextRef>(isolate, buf);
     if (!wrapper)
-        g_throw(TypeError, "Property `hwFrameContextFrom` must be an instance of `VideoBuffer`");
+        g_throw(TypeError, "Property `hwFramesContext` must be an instance of `HWFramesContextRef`");
 
-    return wrapper->GetBuffer()->CastUnderlyingPointer<AVFrame>()->hw_frames_ctx;
+    if (!wrapper->Get())
+        g_throw(Error, "Property `hwFramesContext` refers to a disposed `HWFramesContextRef`");
+
+    return wrapper->Get();
 }
 
 template<>
@@ -197,103 +200,6 @@ std::vector<T> extract_params_array(v8::Isolate *isolate,
     return result;
 }
 
-v8::Local<v8::Value> wrap_named_inout_buffers(v8::Isolate *isolate,
-                                              const std::vector<DAG::NamedInOutBuffer>& buffers)
-{
-    std::vector<v8::Local<v8::Value>> result;
-
-    for (const auto& buffer : buffers)
-    {
-        std::unordered_map<std::string_view, v8::Local<v8::Value>> map{
-            {"name",   binder::to_v8(isolate, buffer.name)}
-        };
-        if (buffer.media_type == utau::MediaType::kAudio)
-        {
-            map["audioBuffer"] = binder::NewObject<AudioBufferWrap>(
-                    isolate, buffer.audio_buffer);
-        }
-        else if (buffer.media_type == utau::MediaType::kVideo)
-        {
-            map["videoBuffer"] = binder::NewObject<VideoBufferWrap>(
-                    isolate, buffer.video_buffer);
-        }
-        else
-        {
-            MARK_UNREACHABLE();
-        }
-        result.emplace_back(binder::to_v8(isolate, map));
-    }
-
-    return binder::to_v8(isolate, result);
-}
-
-std::vector<DAG::NamedInOutBuffer> extract_named_inout_buffers(v8::Isolate *isolate,
-                                                               v8::Local<v8::Value> wrapped)
-{
-    std::vector<DAG::NamedInOutBuffer> result;
-
-    if (!wrapped->IsArray())
-        g_throw(TypeError, "`inbuffers` must be an array");
-
-    auto array = v8::Local<v8::Array>::Cast(wrapped);
-
-    v8::Local<v8::Context> context = isolate->GetCurrentContext();
-    for (int32_t i = 0; i < array->Length(); i++)
-    {
-        auto v = array->Get(context, i).ToLocalChecked();
-        if (!v->IsObject())
-            g_throw(TypeError, "Elements of `inbuffers` must be objects");
-
-        auto buffer_obj = v8::Local<v8::Object>::Cast(v);
-
-        // Extract name and media_type
-        DAG::NamedInOutBuffer cur{};
-        cur.name = extract_object_owned_property<std::string>(
-                isolate, buffer_obj, "name", [](v8::Local<v8::Value> v) {return v->IsString();});
-
-        int media_type_v = extract_object_owned_property<int>(
-                isolate, buffer_obj, "mediaType", [](v8::Local<v8::Value> v) {return v->IsNumber();});
-        if (media_type_v < 0 || media_type_v > static_cast<int>(utau::MediaType::kLast))
-            g_throw(RangeError, "Invalid enumeration value for `mediaType` property in `outparams`");
-
-        cur.media_type = static_cast<utau::MediaType>(media_type_v);
-
-        // Extract buffers
-        if (cur.media_type == utau::MediaType::kAudio)
-        {
-            auto maybe_buf = buffer_obj->Get(context, binder::to_v8(isolate, "audioBuffer"));
-            if (maybe_buf.IsEmpty())
-                g_throw(TypeError, fmt::format("Missing `audioBuffer` property in input `{}`", cur.name));
-
-            auto *wrapper = binder::UnwrapObject<AudioBufferWrap>(isolate, maybe_buf.ToLocalChecked());
-            if (!wrapper)
-                g_throw(TypeError, "Property `audioBuffer` must be an instance of `AudioBuffer`");
-
-            cur.audio_buffer = wrapper->GetBuffer();
-        }
-        else if (cur.media_type == utau::MediaType::kVideo)
-        {
-            auto maybe_buf = buffer_obj->Get(context, binder::to_v8(isolate, "videoBuffer"));
-            if (maybe_buf.IsEmpty())
-                g_throw(TypeError, fmt::format("Missing `videoBuffer` property in input `{}`", cur.name));
-
-            auto *wrapper = binder::UnwrapObject<VideoBufferWrap>(isolate, maybe_buf.ToLocalChecked());
-            if (!wrapper)
-                g_throw(TypeError, "Property `videoBuffer` must be an instance of `VideoBuffer`");
-
-            cur.video_buffer = wrapper->GetBuffer();
-        }
-        else
-        {
-            MARK_UNREACHABLE();
-        }
-
-        result.push_back(cur);
-    }
-
-    return result;
-}
-
 } // namespace anonymous
 
 v8::Local<v8::Value> AVFilterDAGWrap::MakeFromDSL(const std::string& dsl,
@@ -315,13 +221,64 @@ v8::Local<v8::Value> AVFilterDAGWrap::MakeFromDSL(const std::string& dsl,
             isolate, std::move(filter));
 }
 
-v8::Local<v8::Value> AVFilterDAGWrap::filter(v8::Local<v8::Value> inbuffers)
+void AVFilterDAGWrap::sendFrame(const std::string& name, v8::Local<v8::Value> frame)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    std::vector<DAG::NamedInOutBuffer> in_buffers =
-            extract_named_inout_buffers(isolate, inbuffers);
 
-    return wrap_named_inout_buffers(isolate, DAG_->Filter(in_buffers));
+    utau::AVFilterDAG::NamedInOutBuffer inbuf{
+        .name = name
+    };
+
+    auto *maybe_abuf = binder::UnwrapObject<AudioBufferWrap>(isolate, frame);
+    if (maybe_abuf)
+    {
+        inbuf.media_type = utau::MediaType::kAudio;
+        inbuf.audio_buffer = maybe_abuf->GetBuffer();
+    }
+    else
+    {
+        auto *maybe_vbuf = binder::UnwrapObject<VideoBufferWrap>(isolate, frame);
+        if (maybe_vbuf)
+        {
+            inbuf.media_type = utau::MediaType::kVideo;
+            inbuf.video_buffer = maybe_vbuf->GetBuffer();
+        }
+        else
+            g_throw(TypeError, "Argument `frame` must be either AudioBuffer or VideoBuffer");
+    }
+
+    if (!DAG_->SendFrame(inbuf))
+        g_throw(Error, "Failed to send a frame into filtergraph");
+}
+
+v8::Local<v8::Value> AVFilterDAGWrap::tryReceiveFrame(const std::string &name)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    utau::AVFilterDAG::NamedInOutBuffer outbuf{
+        .name = name
+    };
+
+    std::unordered_map<std::string_view, v8::Local<v8::Value>> ret;
+
+    using Status = utau::AVFilterDAG::ReceiveStatus;
+    Status status = DAG_->TryReceiveFrame(outbuf);
+
+    ret["status"] = v8::Int32::New(isolate, static_cast<int>(status));
+    if (status != Status::kOk)
+        return binder::to_v8(isolate, ret);
+
+    ret["name"] = binder::to_v8(isolate, outbuf.name);
+    ret["mediaType"] = v8::Int32::New(isolate, static_cast<int>(outbuf.media_type));
+
+    if (outbuf.audio_buffer)
+        ret["audio"] = binder::NewObject<AudioBufferWrap>(isolate, outbuf.audio_buffer);
+    else if (outbuf.video_buffer)
+        ret["video"] = binder::NewObject<VideoBufferWrap>(isolate, outbuf.video_buffer);
+    else
+        MARK_UNREACHABLE();
+
+    return binder::to_v8(isolate, ret);
 }
 
 GALLIUM_BINDINGS_UTAU_NS_END

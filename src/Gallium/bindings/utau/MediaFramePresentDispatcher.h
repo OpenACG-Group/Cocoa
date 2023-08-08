@@ -27,10 +27,12 @@
 #include "uv.h"
 
 #include "Gallium/bindings/utau/Exports.h"
+#include "Gallium/bindings/ExportableObjectBase.h"
 GALLIUM_BINDINGS_UTAU_NS_BEGIN
 
 //! TSDecl: class MediaFramePresentDispatcher
-class MediaFramePresentDispatcher : public MaybeGCRootObject<MediaFramePresentDispatcher>
+class MediaFramePresentDispatcher : public ExportableObjectBase,
+                                    public MaybeGCRootObject<MediaFramePresentDispatcher>
 {
 public:
     struct PresentThreadContext;

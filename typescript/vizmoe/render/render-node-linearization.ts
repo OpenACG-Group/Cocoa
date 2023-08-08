@@ -28,7 +28,9 @@ import {
     Scene,
     SamplingOption,
     Constants as GConst,
-    CkArrayXYWHRect
+    CkArrayXYWHRect,
+    CkPath,
+    ClipOp
 } from 'glamor';
 import { VideoBuffer } from 'utau';
 import { PaintRenderNode } from './render-node';
@@ -55,6 +57,7 @@ enum IROpcode {
     PushImageFilter,
     PushRectClip,
     PushRRectClip,
+    PushPathClip,
     PushOpacity,
     Pop,
 
@@ -72,6 +75,7 @@ interface RecordOperand {
     fBlendMode?: BlendMode;
     fRect?: CkArrayXYWHRect;
     fRRect?: CkRRect;
+    fPath?: CkPath;
     fMatrix?: CkMatrix;
     fVector?: Vector2f;
     fBool?: boolean;
@@ -389,6 +393,18 @@ export class Recorder {
                 builder.pushRRectClip(inst.fOperands[0].fRRect, inst.fOperands[1].fBool);
                 break;
 
+            case IROpcode.PushPathClip:
+                pushCount++;
+                const opname = inst.fOperands[1].fInt == GConst.CLIP_OP_INTERSECT
+                             ? 'intersect' : 'difference';
+                logger?.addAnnotation(`&${pushCount}`);
+                logger?.addAnnotation(`ClipOp=${opname}`);
+                logger?.addAnnotation(`AA=${inst.fOperands[2].fBool}`);
+                builder.pushPathClip(inst.fOperands[0].fPath,
+                                     inst.fOperands[1].fInt,
+                                     inst.fOperands[2].fBool);
+                break;
+
             case IROpcode.PushOpacity:
                 pushCount++;
                 logger?.addAnnotation(`&${pushCount}`);
@@ -482,6 +498,13 @@ export class Recorder {
         this.fInsts.push({
             fOpcode: IROpcode.PushRRectClip,
             fOperands: [ { fRRect: clip.toGLType() }, { fBool: AA } ]
+        });
+    }
+
+    public pushPathClip(clip: CkPath, op: ClipOp, AA: boolean): void {
+        this.fInsts.push({
+            fOpcode: IROpcode.PushPathClip,
+            fOperands: [ { fPath: clip.clone() }, { fInt: op }, { fBool: AA } ]
         });
     }
 

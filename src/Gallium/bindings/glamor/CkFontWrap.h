@@ -24,11 +24,12 @@
 #include "include/v8.h"
 
 #include "Core/Project.h"
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/Types.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 //! TSDecl: class CkFont
-class CkFont
+class CkFont : public ExportableObjectBase
 {
 public:
     explicit CkFont(SkFont font) : font_(std::move(font)) {}

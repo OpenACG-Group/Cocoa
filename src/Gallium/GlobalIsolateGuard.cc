@@ -18,11 +18,10 @@
 #include "Core/MeasuredTable.h"
 #include "Core/Journal.h"
 #include "Core/Utils.h"
-#include "Core/TraceEvent.h"
 #include "Gallium/GlobalIsolateGuard.h"
 #include "Gallium/Runtime.h"
 #include "Gallium/binder/Convert.h"
-#include "Gallium/UnixPathTools.h"
+#include "Gallium/Infrastructures.h"
 GALLIUM_NS_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium)
@@ -32,47 +31,9 @@ namespace {
 void uncaught_exception(v8::Local<v8::Message> message, v8::Local<v8::Value> except)
 {
     v8::Isolate *isolate = message->GetIsolate();
-    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
     Runtime *rt = Runtime::GetBareFromIsolate(isolate);
-    CHECK(rt);
 
-    v8::Local<v8::String> string = except->ToString(ctx).ToLocalChecked();
-    QLOG(LOG_ERROR, "%fg<re>Uncaught exception: {}%reset", binder::from_v8<std::string>(isolate, string));
-
-    QLOG(LOG_ERROR, "  %fg<re>Stack traceback:%reset");
-    v8::Local<v8::StackTrace> trace = message->GetStackTrace();
-    MeasuredTable mt(/* minSpace */ 1);
-    for (int32_t i = 0; i < trace->GetFrameCount(); i++)
-    {
-        v8::Local<v8::StackFrame> frame = trace->GetFrame(isolate, i);
-        std::string funcName = "<unknown>", scriptName = "<unknown>";
-        std::string funcNamePrefix;
-
-        if (frame->IsConstructor())
-            funcNamePrefix = "new ";
-
-        if (!frame->GetScriptName().IsEmpty())
-        {
-            scriptName = binder::from_v8<std::string>(isolate, frame->GetScriptName());
-            if (utils::StrStartsWith(scriptName, "file://"))
-            {
-                scriptName = "file://" + unixpath::SolveShortestPathRepresentation(scriptName.substr(7));
-            }
-        }
-        if (!frame->GetFunctionName().IsEmpty())
-            funcName = binder::from_v8<std::string>(isolate, frame->GetFunctionName());
-
-        if (frame->GetLineNumber() != v8::Message::kNoLineNumberInfo)
-            scriptName.append(fmt::format(":{}", frame->GetLineNumber()));
-        if (frame->GetColumn() != v8::Message::kNoColumnInfo)
-            scriptName.append(fmt::format(":{}", frame->GetColumn()));
-
-        mt.append(fmt::format("%fg<bl>#{}%reset %italic%fg<ye>{}{}%reset", i, funcNamePrefix, funcName),
-                  fmt::format("%fg<cy>(from {})%reset", scriptName));
-    }
-    mt.flush([](const std::string& line) {
-        QLOG(LOG_ERROR, "    {}", line);
-    });
+    infra::ReportUncaughtException(isolate, message, except);
 
     if (rt->GetIntrospect())
         rt->GetIntrospect()->notifyUncaughtException(except);
@@ -147,7 +108,7 @@ void per_isolate_promise_reject_handler(v8::PromiseRejectMessage message)
 
 } // namespace anonymous
 
-GlobalIsolateGuard::GlobalIsolateGuard(const std::shared_ptr<Runtime>& rt)
+GlobalIsolateGuard::GlobalIsolateGuard(Runtime *rt)
     : runtime_(rt)
     , isolate_(rt->GetIsolate())
 {

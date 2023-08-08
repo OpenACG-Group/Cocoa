@@ -18,6 +18,7 @@
 #include "Gallium/bindings/glamor/Scene.h"
 #include "Gallium/bindings/glamor/SceneBuilder.h"
 #include "Gallium/bindings/glamor/CkMatrixWrap.h"
+#include "Gallium/bindings/glamor/CkPathWrap.h"
 #include "Gallium/bindings/utau/Exports.h"
 
 #include "Glamor/Layers/TransformLayer.h"
@@ -27,6 +28,7 @@
 #include "Glamor/Layers/BackdropFilterLayer.h"
 #include "Glamor/Layers/RectClipLayer.h"
 #include "Glamor/Layers/RRectClipLayer.h"
+#include "Glamor/Layers/PathClipLayer.h"
 #include "Glamor/Layers/OpacityLayer.h"
 
 #include "Utau/VideoFrameGLEmbedder.h"
@@ -184,14 +186,33 @@ v8::Local<v8::Value> SceneBuilder::pushRRectClip(v8::Local<v8::Value> shape,
     return getSelfHandle();
 }
 
+v8::Local<v8::Value> SceneBuilder::pushPathClip(v8::Local<v8::Value> shape,
+                                                int32_t op,
+                                                bool antialias)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    auto *wrap = binder::UnwrapObject<CkPath>(isolate, shape);
+    if (!wrap)
+        g_throw(TypeError, "Argument `shape` must be a CkPath");
+
+    if (op < 0 || op > static_cast<int>(SkClipOp::kMax_EnumValue))
+        g_throw(RangeError, "Invalid enumeration value for argument `op`");
+
+    pushLayer(std::make_shared<gl::PathClipLayer>(wrap->GetPath(),
+                                                  static_cast<SkClipOp>(op),
+                                                  antialias));
+
+    return getSelfHandle();
+}
+
 v8::Local<v8::Value> SceneBuilder::addPicture(v8::Local<v8::Value> picture,
                                               bool autoFastClip,
                                               SkScalar dx, SkScalar dy)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    CkPictureWrap *unwrapped = binder::UnwrapObject<CkPictureWrap>(isolate, picture);
+    auto *unwrapped = binder::UnwrapObject<CkPictureWrap>(isolate, picture);
     if (unwrapped == nullptr)
-        g_throw(TypeError, "\'picture\' must be an instance of CkPicture");
+        g_throw(TypeError, "Argument `picture` must be a CkPicture");
 
     addLayer(std::make_shared<gl::PictureLayer>(SkPoint::Make(dx, dy),
                                                 autoFastClip,
@@ -224,8 +245,7 @@ v8::Local<v8::Value> SceneBuilder::addVideoBuffer(v8::Local<v8::Value> vbo,
                                                   int32_t sampling)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    utau_wrap::VideoBufferWrap *wrapper =
-            binder::UnwrapObject<utau_wrap::VideoBufferWrap>(isolate, vbo);
+    auto *wrapper = binder::UnwrapObject<utau_wrap::VideoBufferWrap>(isolate, vbo);
     if (!wrapper)
         g_throw(TypeError, "Argument `vbo` must be an instance of utau.VideoBuffer");
 

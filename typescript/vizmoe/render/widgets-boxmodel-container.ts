@@ -14,3 +14,13 @@
  * You should have received a copy of the GNU General Public License
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
+
+import {
+    LayoutConstraint,
+    BoxModelWidgetArgs,
+    BoxModelWidgetBase,
+    WidgetType,
+} from './widget-base';
+
+export interface DecoratedBoxArgs extends BoxModelWidgetArgs {
+}

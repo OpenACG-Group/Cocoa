@@ -184,4 +184,12 @@ void AVStreamDecoderWrap::flushDecoderBuffers(int32_t selector)
         g_throw(Error, "Failed to flush decoder buffers");
 }
 
+v8::Local<v8::Value> AVStreamDecoderWrap::refHWFramesContext()
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (!decoder_->GetHWFramesContext())
+        return v8::Null(isolate);
+    return binder::NewObject<HWFramesContextRef>(isolate, decoder_->GetHWFramesContext());
+}
+
 GALLIUM_BINDINGS_UTAU_NS_END

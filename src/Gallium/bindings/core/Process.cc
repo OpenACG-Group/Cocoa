@@ -290,7 +290,7 @@ v8::Local<v8::Value> ProcessWrap::Fork(v8::Local<v8::Object> options)
     v8::Local<v8::Object> resultObject = binder::NewObject<ProcessWrap>(isolate, proc, streams);
     binder::UnwrapObject<ProcessWrap>(isolate, resultObject)->setGCObjectSelfHandle(resultObject);
 
-    int ret = uv_spawn(EventLoop::Ref().handle(), proc, &proc_opts);
+    int ret = uv_spawn(EventLoop::GetCurrent()->handle(), proc, &proc_opts);
     if (ret < 0)
         g_throw(Error, fmt::format("Failed in spawn: {}", uv_strerror(ret)));
 

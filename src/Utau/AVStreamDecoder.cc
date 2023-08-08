@@ -104,6 +104,7 @@ struct AVStreamDecoder::DecoderPriv
         SAFE_FREE(avcodec_free_context, &acodec_ctx_)
         SAFE_FREE(avcodec_free_context, &vcodec_ctx_)
         SAFE_FREE(avformat_free_context, format_ctx_)
+        SAFE_FREE(av_buffer_unref, &hw_frames_ctx_);
     }
 #undef SAFE_FREE
 
@@ -113,6 +114,8 @@ struct AVStreamDecoder::DecoderPriv
 
     AVCodecContext *acodec_ctx_ = nullptr;
     AVCodecContext *vcodec_ctx_ = nullptr;
+
+    AVBufferRef *hw_frames_ctx_ = nullptr;
 
     AVPacket    *packet_ = nullptr;
     AVFrame     *current_frame_ = nullptr;
@@ -129,14 +132,28 @@ namespace {
 AVPixelFormat vcodec_get_format_cb(g_maybe_unused AVCodecContext *ctx,
                                    const AVPixelFormat *formats)
 {
+    bool found_vaapi = false;
     for (const AVPixelFormat *p = formats; *p != AV_PIX_FMT_NONE; p++)
     {
         if (*p == AV_PIX_FMT_VAAPI)
-            return AV_PIX_FMT_VAAPI;
+        {
+            found_vaapi = true;
+            break;
+        }
     }
 
-    QLOG(LOG_ERROR, "VAAPI is not supported by chosen decoder");
-    return AV_PIX_FMT_NONE;
+    if (!found_vaapi)
+    {
+        QLOG(LOG_ERROR, "VAAPI is not supported by chosen decoder");
+        return AV_PIX_FMT_NONE;
+    }
+
+    auto priv = reinterpret_cast<AVStreamDecoder::DecoderPriv*>(ctx->opaque);
+    CHECK(priv && priv->hw_frames_ctx_);
+
+    ctx->hw_frames_ctx = av_buffer_ref(priv->hw_frames_ctx_);
+
+    return AV_PIX_FMT_VAAPI;
 }
 
 bool open_stream_decoder(AVStreamDecoder::DecoderPriv *priv, StreamType st_type,
@@ -158,6 +175,8 @@ bool open_stream_decoder(AVStreamDecoder::DecoderPriv *priv, StreamType st_type,
     AVCodecContext *codec_ctx = avcodec_alloc_context3(nullptr);
     if (!codec_ctx)
         return false;
+
+    codec_ctx->opaque = priv;
 
     AVStream *stream = priv->format_ctx_->streams[st_index];
     int error = avcodec_parameters_to_context(codec_ctx, stream->codecpar);
@@ -207,6 +226,25 @@ bool open_stream_decoder(AVStreamDecoder::DecoderPriv *priv, StreamType st_type,
 
         codec_ctx->get_format = vcodec_get_format_cb;
         codec_ctx->hw_device_ctx = av_buffer_ref(device_ctx->GetAVContext());
+
+        // Create a new `AVHWFramesContext` to allocate frames
+        AVBufferRef *hwframe_ctx_buf = av_hwframe_ctx_alloc(codec_ctx->hw_device_ctx);
+        CHECK(hwframe_ctx_buf);
+
+        auto *hwframe_ctx = reinterpret_cast<AVHWFramesContext*>(hwframe_ctx_buf->data);
+        hwframe_ctx->format = AV_PIX_FMT_VAAPI;
+        hwframe_ctx->sw_format = AV_PIX_FMT_NV12;
+        hwframe_ctx->width = stream->codecpar->width;
+        hwframe_ctx->height = stream->codecpar->height;
+        hwframe_ctx->initial_pool_size = 20;
+
+        if (av_hwframe_ctx_init(hwframe_ctx_buf) < 0)
+        {
+            QLOG(LOG_ERROR, "Failed to create AVHWFramesContext");
+            return AV_PIX_FMT_NONE;
+        }
+
+        priv->hw_frames_ctx_ = hwframe_ctx_buf;
         QLOG(LOG_DEBUG, "Attempt to use hwaccel for video decoding");
     }
 
@@ -311,6 +349,13 @@ AVStreamDecoder::~AVStreamDecoder()
 {
     decoder_priv_.reset();
     avio_context_priv_.reset();
+}
+
+AVBufferRef *AVStreamDecoder::GetHWFramesContext() const
+{
+    if (!has_video_stream_)
+        return nullptr;
+    return decoder_priv_->hw_frames_ctx_;
 }
 
 bool AVStreamDecoder::SeekStreamTo(StreamSelector stream, int64_t ts)

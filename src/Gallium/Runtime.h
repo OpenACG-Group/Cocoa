@@ -24,53 +24,21 @@
 
 #include "include/v8.h"
 
-#include "Core/EventSource.h"
 #include "Core/Exception.h"
+#include "Gallium/RuntimeBase.h"
 #include "Gallium/binder/Convert.h"
-#include "Gallium/binder/Function.h"
 #include "Gallium/Gallium.h"
 #include "Gallium/ModuleImportURL.h"
 #include "Gallium/GlobalIsolateGuard.h"
 #include "Gallium/VMIntrospect.h"
-#include "Gallium/TracingController.h"
+#include "Gallium/WorkerRuntime.h"
+#include "Gallium/ParentThreadDelegate.h"
 GALLIUM_NS_BEGIN
-
-#define ISOLATE_DATA_SLOT_RUNTIME_PTR       0
-
-/**
- * `JS_THROW_IF` macro throws a JavaScript exception and make current function
- * return. It does NOT throw a C++ exception which can be caught by `try`
- * statement. After we have returned to the JavaScript land, V8 will handle
- * the exception correctly.
- *
- * For the native callbacks in synthetic module (language binding), use `g_throw`
- * macro provided in the `binder/ThrowExcept.h` to throw a C++ exception which contains
- * a JavaScript exception. Binder will catch the thrown exceptions and convert them
- * to a regular JavaScript exception.
- */
-#define JS_THROW_IF(cond, msg, ...)                                                     \
-    do {                                                                                \
-        if ((cond)) {                                                                   \
-            binder::throw_(v8::Isolate::GetCurrent(), msg __VA_OPT__(,) __VA_ARGS__);   \
-            return;                                                                     \
-        }                                                                               \
-    } while (false)
-
-#define JS_THROW_RET_IF(cond, msg, ret, ...)                                            \
-    do {                                                                                \
-        if ((cond)) {                                                                   \
-            binder::throw_(v8::Isolate::GetCurrent(), msg __VA_OPT__(,) __VA_ARGS__);   \
-            return ret;                                                                 \
-        }                                                                               \
-    } while (false)
-
-namespace bindings { class BindingBase; }
 
 class Platform;
 class Inspector;
 
-class Runtime : public PrepareSource,
-                public CheckSource
+class Runtime : public RuntimeBase
 {
 public:
     struct Options
@@ -93,58 +61,8 @@ public:
         bool        inspector_startup_brk = false;
     };
 
-    struct ESModuleCache
-    {
-        ESModuleCache() = default;
-        ESModuleCache(v8::Isolate *isolate, v8::Local<v8::Module> module)
-            : module(isolate, module)
-            , binding(nullptr) {}
-        ESModuleCache(v8::Isolate *isolate, v8::Local<v8::Module> module,
-                      bindings::BindingBase *pBinding)
-            : module(isolate, module)
-            , binding(pBinding) {}
-        ESModuleCache(ESModuleCache&& rhs) noexcept
-            : module(std::move(rhs.module))
-            , exports(std::move(rhs.exports))
-            , binding(rhs.binding) {
-            rhs.binding = nullptr;
-        }
-        ESModuleCache(const ESModuleCache&) = delete;
-        ESModuleCache& operator=(ESModuleCache&& rhs) noexcept {
-            module = std::move(rhs.module);
-            exports = std::move(rhs.exports);
-            binding = rhs.binding;
-            rhs.binding = nullptr;
-            return *this;
-        }
-        ESModuleCache& operator=(const ESModuleCache&) = delete;
+    Runtime(EventLoop *loop, std::shared_ptr<Platform> platform, Options opts);
 
-        inline void reset() {
-            module.Reset();
-            exports.Reset();
-            binding = nullptr;
-        }
-
-        inline void setExportsObject(v8::Isolate *isolate, v8::Local<v8::Object> obj) {
-            exports.Reset(isolate, obj);
-        }
-
-        v8::Global<v8::Module> module;
-        v8::Global<v8::Object> exports;
-        bindings::BindingBase *binding = nullptr;
-    };
-
-    using ModuleCacheMap = std::map<ModuleImportURL::SharedPtr, ESModuleCache>;
-
-    Runtime(EventLoop *loop,
-            v8::StartupData *startupData,
-            std::unique_ptr<TracingController> tracing_controller,
-            std::unique_ptr<Platform> platform,
-            v8::ArrayBuffer::Allocator *allocator,
-            v8::Isolate *isolate,
-            v8::Global<v8::Context> context,
-            std::unique_ptr<Inspector> inspector,
-            Options opts);
     Runtime(const Runtime&) = delete;
     Runtime& operator=(const Runtime&) = delete;
     ~Runtime() override;
@@ -159,47 +77,6 @@ public:
         return options_;
     }
 
-    inline v8::Local<v8::Context> GetContext() {
-        return context_.Get(isolate_);
-    }
-
-    inline v8::Isolate *GetIsolate() {
-        return isolate_;
-    }
-
-    g_nodiscard g_inline TracingController *GetTracingController() const {
-        return tracing_controller_.get();
-    }
-
-    v8::MaybeLocal<v8::Value> ExecuteScript(const char *scriptName, const char *str);
-
-    v8::Local<v8::Module> CompileModule(const ModuleImportURL::SharedPtr& referer,
-                                        const std::string& url,
-                                        bool isImport,
-                                        bool isSysInvoke);
-    v8::MaybeLocal<v8::Value> EvaluateModule(const std::string& url,
-                                             v8::Local<v8::Module> *outModule = nullptr,
-                                             const std::shared_ptr<ModuleImportURL> &referer = nullptr,
-                                             bool isImport = false,
-                                             bool isSysInvoke = false);
-
-    bindings::BindingBase *GetSyntheticModuleBinding(v8::Local<v8::Module> module);
-
-    /**
-     * Some synthetic modules depends on other synthetic modules.
-     * For example, synthetic module A has an exported class `T`,
-     * and another synthetic module B also has an exported class `R`
-     * which inherits `T`. When module B is imported by user's JavaScript
-     * before A is imported, an error will occur. That's because class `R`
-     * inherits class `T`, but `T` has not been registered when registering
-     * `R`, making binder cannot find type information of `T`.
-     *
-     * To solve this tough dependency problem, B can import A explicitly
-     * by calling this method when it is imported.
-     */
-    v8::MaybeLocal<v8::Module> GetAndCacheSyntheticModule(const ModuleImportURL::SharedPtr& url);
-
-    ModuleCacheMap& GetModuleCache();
 
     g_nodiscard inline const std::unique_ptr<VMIntrospect>& GetIntrospect() const {
         return introspect_;
@@ -211,60 +88,20 @@ public:
 
     void RunWithMainLoop();
 
-    void PerformTasksCheckpoint();
-
-    void ReportUncaughtExceptionInCallback(const v8::TryCatch& catchBlock);
-
     void NotifyRuntimeWillExit();
 
-    void DrainPlatformTasks();
-
-    void Dispose();
-
-    // Binder's memory management
-    using BinderExtValueHolderBase = binder::detail::external_data::value_holder_base;
-    g_private_api void RegisterExternalValueHolder(BinderExtValueHolderBase *value);
-    g_private_api void UnregisterExternalValueHolder(BinderExtValueHolderBase *value);
-    g_private_api void DeleteExternalValueHolders();
-
 private:
-    static void PromiseHookCallback(v8::PromiseHookType type, v8::Local<v8::Promise> promise,
-                                    v8::Local<v8::Value> parent);
+    void OnPreDispose() override;
+    void OnPostDispose() override;
+    void OnInitialize(v8::Isolate *isolate, v8::Local<v8::Context> context) override;
+    void OnPostPerformTasksCheckpoint() override;
+    void OnReportUncaughtExceptionInCallback(const v8::TryCatch& catch_block) override;
 
-    static v8::MaybeLocal<v8::Promise> DynamicImportHostCallback(v8::Local<v8::Context> context,
-                                                                 v8::Local<v8::Data> host_defined_options,
-                                                                 v8::Local<v8::Value> resource_name,
-                                                                 v8::Local<v8::String> specifier,
-                                                                 v8::Local<v8::FixedArray> import_assertions);
-
-    inline void SetGlobalIsolateGuard(std::unique_ptr<GlobalIsolateGuard> ptr) {
-        isolate_guard_ = std::move(ptr);
-    }
-
-    void UpdateIdleRequirementByPromiseCounter();
-
-    KeepInLoop prepareDispatch() override;
-    KeepInLoop checkDispatch() override;
-
-    bool                            disposed_;
     Options                         options_;
-    v8::StartupData                *startup_data_;
-    std::unique_ptr<TracingController>
-                                    tracing_controller_;
-    std::unique_ptr<Platform>       platform_;
-    v8::ArrayBuffer::Allocator     *array_buffer_allocator_;
-    v8::Isolate                    *isolate_;
     std::unique_ptr<Inspector>      inspector_;
     std::unique_ptr<GlobalIsolateGuard>
                                     isolate_guard_;
-    v8::Global<v8::Context>         context_;
     std::unique_ptr<VMIntrospect>   introspect_;
-    ModuleCacheMap                  module_cache_;
-    int32_t                         resolved_promises_;
-    uv_idle_t                       idle_;
-
-    std::list<BinderExtValueHolderBase*>
-                                    binder_external_value_holders_;
 };
 
 GALLIUM_NS_END

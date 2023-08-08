@@ -25,7 +25,12 @@ GALLIUM_NS_BEGIN
 namespace infra {
 
 void InstallOnGlobalContext(v8::Isolate *isolate,
-                            v8::Local<v8::Context> context);
+                            v8::Local<v8::Context> context,
+                            bool is_worker_scope);
+
+void ReportUncaughtException(v8::Isolate *isolate,
+                             v8::Local<v8::Message> message,
+                             v8::Local<v8::Value> except);
 
 } // namespace infra
 

@@ -359,7 +359,7 @@ v8::Local<v8::Value> ConcurrentVertexProcessor::transform(v8::Local<v8::Value> b
     auto resolver = CHECKED(v8::Promise::Resolver::New(isolate->GetCurrentContext()));
     transform_ctx->resolver.Reset(isolate, resolver);
 
-    EventLoop *loop = EventLoop::Instance();
+    EventLoop *loop = EventLoop::GetCurrent();
     for (int32_t i = 0; i < transform_ctx->per_worker_contexts.size(); i++)
     {
         loop->enqueueThreadPoolTrivialTask([ctx = transform_ctx.get(), idx = i]() {

@@ -45,6 +45,7 @@ class VideoFrameGLEmbedder;
 struct ContextOptions
 {
     std::string     hwdevice_drm_device_path;
+    int32_t         filtergraph_max_threads = 0;
 };
 
 class GlobalContext : public UniquePersistent<GlobalContext>

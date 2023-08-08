@@ -86,7 +86,24 @@ public:
         return outputs_count_;
     }
 
-    std::vector<NamedInOutBuffer> Filter(const std::vector<NamedInOutBuffer>& input);
+    enum class ReceiveStatus
+    {
+        kOk,
+
+        // An error occurred
+        kError,
+
+        // The output frame is not available at this point;
+        // more frames should be sent to the filtergraph to
+        // get more outputs.
+        kAgain,
+
+        // There will not be any frames on this output more.
+        kEOF
+    };
+
+    bool SendFrame(const NamedInOutBuffer& input);
+    ReceiveStatus TryReceiveFrame(NamedInOutBuffer& buffer);
 
 private:
     std::unique_ptr<FilterDAGPriv>  priv_;

@@ -28,6 +28,7 @@
 #include "Core/ConcurrentTaskQueue.h"
 #include "Core/EventLoop.h"
 #include "Gallium/Gallium.h"
+#include "Gallium/TracingController.h"
 GALLIUM_NS_BEGIN
 
 class PerIsolateData : public v8::TaskRunner
@@ -93,12 +94,12 @@ public:
     class WorkerThreadsPool;
     class DelayedTaskScheduler;
 
-    Platform(EventLoop *loop, int32_t workers, v8::TracingController *tc);
+    Platform(EventLoop *loop, int32_t workers, std::unique_ptr<TracingController> tc);
     ~Platform() override;
 
     static std::unique_ptr<Platform> Make(EventLoop *main_loop,
                                           int32_t workers,
-                                          v8::TracingController *tracing_controller);
+                                          std::unique_ptr<TracingController> tracing_controller);
 
     void RegisterIsolate(v8::Isolate *isolate);
     void UnregisterIsolate(v8::Isolate *isolate);
@@ -143,7 +144,7 @@ private:
     std::shared_ptr<PerIsolateData>& GetPerIsolateData(v8::Isolate *isolate);
 
     EventLoop                       *main_loop_;
-    v8::TracingController           *tracing_controller_;
+    std::unique_ptr<TracingController> tracing_controller_;
     std::unordered_map<v8::Isolate*, std::shared_ptr<PerIsolateData>>
                                      per_isolate_datas_;
     std::unique_ptr<WorkerThreadsPool> worker_threads_pool_;

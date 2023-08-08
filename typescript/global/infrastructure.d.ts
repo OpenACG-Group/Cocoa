@@ -4,20 +4,21 @@ interface RuntimeInfo {
     platform: string;
 }
 
-interface Global {
-    /**
-     * This field and the __global__ variable declared globally
-     * refer to the same Global object, which means this field
-     * in Global object refers to the object itself.
-     */
-    __global__: Global;
+interface GlobalScope {
+    global: GlobalScope;
 
     __runtime__: RuntimeInfo;
     introspect: Introspect;
 }
 
-declare let global: Global;
-declare let __runtime__: RuntimeInfo;
+interface WorkerGlobalScope {
+    self: WorkerGlobalScope;
+    __runtime__: RuntimeInfo;
+}
+
+declare const self: WorkerGlobalScope;
+declare const global: GlobalScope;
+declare const __runtime__: RuntimeInfo;
 
 declare function setTimeout(callback: Function, timeout: number, ...argv: any[]): number;
 declare function setInterval(callback: Function, interval: number, ...argv: any[]): number;

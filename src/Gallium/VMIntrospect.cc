@@ -405,7 +405,7 @@ void introspect_finish_process_tracing(const v8::FunctionCallbackInfo<v8::Value>
     if (!closure->file_stream.is_open())
         g_throw(Error, fmt::format("Could not open file {}", closure->filepath));
 
-    uv_async_init(EventLoop::Ref().handle(), &closure->async, [](uv_async_t *handle) {
+    uv_async_init(EventLoop::GetCurrent()->handle(), &closure->async, [](uv_async_t *handle) {
         auto *closure = reinterpret_cast<ReadTraceClosure*>(handle->data);
         CHECK(closure);
 

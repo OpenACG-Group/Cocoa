@@ -28,8 +28,18 @@
 #include "Gallium/binder/Function.h"
 #include "Gallium/binder/Property.h"
 #include "Gallium/binder/PtrTraits.h"
+#include "Gallium/bindings/ExportableObjectBase.h"
 
 GALLIUM_BINDER_NS_BEGIN
+
+enum ObjectInternalFields
+{
+    kObjectPtr_InternalFields           = 0,
+    kObjectRegistryPtr_InternalFields   = 1,
+    kObjectDescriptorPtr_InternalFields = 2,
+
+    kInternalFieldsCount                = 3
+};
 
 namespace detail {
 struct ClassInfo
@@ -51,8 +61,11 @@ public:
     using pointer_type = typename Traits::pointer_type;
     using const_pointer_type = typename Traits::const_pointer_type;
     using object_id = typename Traits::object_id;
+    using descriptor = bindings::ExportableObjectBase::Descriptor;
 
-    using ctor_function = std::function<pointer_type(v8::FunctionCallbackInfo<v8::Value> const& args)>;
+    using ctor_function = std::function<std::pair<pointer_type, descriptor*>(
+                                        v8::FunctionCallbackInfo<v8::Value> const& args)>;
+
     using dtor_function = std::function<void(v8::Isolate *, pointer_type const&)>;
     using cast_function = pointer_type (*)(pointer_type const&);
 
@@ -98,7 +111,9 @@ public:
 
     v8::Local<v8::Object> find_v8_object(pointer_type const& ptr) const;
 
-    v8::Local<v8::Object> wrap_object(pointer_type const& object, bool call_dtor);
+    v8::Local<v8::Object> wrap_object(pointer_type const& object,
+                                      bindings::ExportableObjectBase::Descriptor *object_descriptor,
+                                      bool call_dtor);
 
     v8::Local<v8::Object> wrap_object(v8::FunctionCallbackInfo<v8::Value> const& args);
 
@@ -229,7 +244,9 @@ public:
     Class& constructor(ctor_function create = &Create::call)
     {
         class_info_.set_ctor([create = std::move(create)](v8::FunctionCallbackInfo<v8::Value> const& args) {
-            return create(args);
+            object_pointer_type ptr = create(args);
+            return std::make_pair<pointer_type, bindings::ExportableObjectBase::Descriptor*>(
+                    ptr, ptr->GetObjectDescriptor());
         });
         return *this;
     }
@@ -398,7 +415,8 @@ public:
                                                     object_pointer_type const& ext)
     {
         using namespace detail;
-        return Classes::find<Traits>(isolate, type_id<T>()).wrap_object(ext, false);
+        return Classes::find<Traits>(isolate, type_id<T>()).wrap_object(
+                ext, ext->GetObjectDescriptor(), false);
     }
 
     /// Remove external reference from JavaScript
@@ -414,7 +432,8 @@ public:
     static v8::Local<v8::Object> import_external(v8::Isolate *isolate, object_pointer_type const& ext)
     {
         using namespace detail;
-        return Classes::find<Traits>(isolate, type_id<T>()).wrap_object(ext, true);
+        return Classes::find<Traits>(isolate, type_id<T>()).wrap_object(
+                ext, ext->GetObjectDescriptor(), true);
     }
 
     /// Get wrapped object from V8 value, may return nullptr on fail.
@@ -454,7 +473,8 @@ public:
             object_pointer_type clone = Traits::clone(obj);
             if (clone)
             {
-                wrapped_object = class_info.wrap_object(clone, true);
+                wrapped_object = class_info.wrap_object(
+                        clone, clone->GetObjectDescriptor(), true);
             }
         }
         return wrapped_object;
@@ -532,6 +552,20 @@ template<typename T, typename Traits = raw_ptr_traits>
 T *UnwrapObject(v8::Isolate *isolate, v8::Local<v8::Value> value)
 {
     return Class<T, Traits>::unwrap_object(isolate, value);
+}
+
+g_inline bindings::ExportableObjectBase::Descriptor*
+UnwrapObjectDescriptor(v8::Isolate *isolate, v8::Local<v8::Value> value)
+{
+    if (!value->IsObject())
+        return nullptr;
+    auto obj = value.As<v8::Object>();
+
+    if (obj->InternalFieldCount() != kInternalFieldsCount)
+        return nullptr;
+
+    return reinterpret_cast<bindings::ExportableObjectBase::Descriptor*>(
+            obj->GetAlignedPointerFromInternalField(kObjectDescriptorPtr_InternalFields));
 }
 
 template<typename T>

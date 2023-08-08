@@ -49,6 +49,7 @@ export class EventEmitter {
         }
         this.fEventRegistry.get(event.constructor).forEach((callback: Function) => {
             callback(event);
+            return true;
         });
     }
 

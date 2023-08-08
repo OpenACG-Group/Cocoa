@@ -22,6 +22,7 @@
 #include "modules/skresources/include/SkResources.h"
 
 #include "Core/Project.h"
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "CRPKG/VirtualDisk.h"
 
 #define GALLIUM_BINDINGS_RESOURCES_NS_BEGIN    namespace cocoa::gallium::bindings::resources_wrap {
@@ -33,7 +34,7 @@ GALLIUM_BINDINGS_RESOURCES_NS_BEGIN
 void SetInstanceProperties(v8::Local<v8::Object> instance);
 
 //! TSDecl: class ResourceProvider
-class ResourceProviderWrap
+class ResourceProviderWrap : public ExportableObjectBase
 {
 public:
     explicit ResourceProviderWrap(sk_sp<skresources::ResourceProvider> rp)
@@ -78,7 +79,7 @@ private:
 };
 
 //! TSDecl: class ImageAsset
-class ImageAssetWrap
+class ImageAssetWrap : public ExportableObjectBase
 {
 public:
     explicit ImageAssetWrap(sk_sp<skresources::ImageAsset> asset)
@@ -112,7 +113,7 @@ private:
 };
 
 //! TSDecl: class ExternalTrackAsset
-class ExternalTrackAssetWrap
+class ExternalTrackAssetWrap : public ExportableObjectBase
 {
 public:
     explicit ExternalTrackAssetWrap(sk_sp<skresources::ExternalTrackAsset> asset)
@@ -135,7 +136,7 @@ private:
 };
 
 //! TSDecl: class CRPKGStorage
-class CRPKGStorageWrap
+class CRPKGStorageWrap : public ExportableObjectBase
 {
 public:
     CRPKGStorageWrap(std::shared_ptr<crpkg::VirtualDisk> disk,
@@ -184,7 +185,7 @@ enum class CRPKGSourceType
 };
 
 //! TSDecl: class CRPKGVirtualDisk
-class CRPKGVirtualDiskWrap
+class CRPKGVirtualDiskWrap : public ExportableObjectBase
 {
 public:
     explicit CRPKGVirtualDiskWrap(std::shared_ptr<crpkg::VirtualDisk> disk)

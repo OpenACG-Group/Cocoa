@@ -26,11 +26,12 @@
 #include "include/core/SkMatrix.h"
 
 #include "Core/Project.h"
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/Types.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 //! TSDecl: class VertexBatch
-class VertexBatch
+class VertexBatch : public ExportableObjectBase
 {
 public:
     struct VertexGroup
@@ -67,7 +68,7 @@ private:
 };
 
 //! TSDecl: class VertexBatchBuilder
-class VertexBatchBuilder
+class VertexBatchBuilder : public ExportableObjectBase
 {
 public:
     //! TSDecl: constructor()
@@ -106,7 +107,7 @@ private:
 
 
 //! TSDecl: class ConcurrentVertexProcessor
-class ConcurrentVertexProcessor
+class ConcurrentVertexProcessor : public ExportableObjectBase
 {
 public:
     constexpr static uint32_t kMinPreallocateVertexCount = 32;

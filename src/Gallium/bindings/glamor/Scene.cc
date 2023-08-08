@@ -79,7 +79,7 @@ v8::Local<v8::Value> Scene::toImage(int32_t width, int32_t height)
     auto global_resolver = std::make_shared<v8::Global<v8::Promise::Resolver>>(isolate, resolver);
 
     // Submit a task to thread pool
-    EventLoop::Ref().enqueueThreadPoolTask<sk_sp<SkImage>>([picture]() -> sk_sp<SkImage> {
+    EventLoop::GetCurrent()->enqueueThreadPoolTask<sk_sp<SkImage>>([picture]() -> sk_sp<SkImage> {
         SkISize picture_size = SkISize::Make(static_cast<int32_t>(picture->cullRect().width()),
                                              static_cast<int32_t>(picture->cullRect().height()));
         SkImageInfo info = SkImageInfo::Make(picture_size,

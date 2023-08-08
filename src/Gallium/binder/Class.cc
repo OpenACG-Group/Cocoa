@@ -81,7 +81,8 @@ ObjectRegistry<Traits>::ObjectRegistry(v8::Isolate *isolate, type_info const& ty
     // each JavaScript instance has 3 internal fields:
     //  0 - pointer to a wrapped C++ object
     //  1 - pointer to this ObjectRegistry
-    func->InstanceTemplate()->SetInternalFieldCount(2);
+    //  3 - pointer to the object descriptor
+    func->InstanceTemplate()->SetInternalFieldCount(kInternalFieldsCount);
     func->Inherit(js_func);
 }
 
@@ -196,7 +197,10 @@ v8::Local<v8::Object> ObjectRegistry<Traits>::find_v8_object(pointer_type const&
 }
 
 template<typename Traits>
-v8::Local<v8::Object> ObjectRegistry<Traits>::wrap_object(pointer_type const& object, bool call_dtor)
+v8::Local<v8::Object>
+ObjectRegistry<Traits>::wrap_object(pointer_type const& object,
+                                    bindings::ExportableObjectBase::Descriptor *descriptor,
+                                    bool call_dtor)
 {
     auto it = objects_.find(object);
     if (it != objects_.end())
@@ -212,8 +216,9 @@ v8::Local<v8::Object> ObjectRegistry<Traits>::wrap_object(pointer_type const& ob
     v8::Local<v8::Object> obj = class_function_template()
             ->GetFunction(context).ToLocalChecked()->NewInstance(context).ToLocalChecked();
 
-    obj->SetAlignedPointerInInternalField(0, Traits::pointer_id(object));
-    obj->SetAlignedPointerInInternalField(1, this);
+    obj->SetAlignedPointerInInternalField(kObjectPtr_InternalFields, Traits::pointer_id(object));
+    obj->SetAlignedPointerInInternalField(kObjectRegistryPtr_InternalFields, this);
+    obj->SetAlignedPointerInInternalField(kObjectDescriptorPtr_InternalFields, descriptor);
 
     v8::Global<v8::Object> pobj(isolate_, obj);
     pobj.SetWeak(this, [](v8::WeakCallbackInfo<ObjectRegistry> const& data) {
@@ -222,6 +227,9 @@ v8::Local<v8::Object> ObjectRegistry<Traits>::wrap_object(pointer_type const& ob
         this_->remove_object(object);
     }, v8::WeakCallbackType::kInternalFields);
     objects_.emplace(object, WrappedObject{std::move(pobj), call_dtor});
+
+    // Also store a weak reference in the object itself
+    descriptor->SetObjectWeakReference(isolate_, obj);
 
     return scope.Escape(obj);
 }
@@ -234,7 +242,9 @@ v8::Local<v8::Object> ObjectRegistry<Traits>::wrap_object(v8::FunctionCallbackIn
         //assert(false && "create not allowed");
         throw std::runtime_error(class_name() + " has no constructor");
     }
-    return wrap_object(ctor_(args), true);
+
+    auto pair = ctor_(args);
+    return wrap_object(pair.first, pair.second, true);
 }
 
 template<typename Traits>
@@ -246,12 +256,13 @@ ObjectRegistry<Traits>::unwrap_object(v8::Local<v8::Value> value)
     while (value->IsObject())
     {
         v8::Local<v8::Object> obj = value.As<v8::Object>();
-        if (obj->InternalFieldCount() == 2)
+        if (obj->InternalFieldCount() == kInternalFieldsCount)
         {
-            object_id id = obj->GetAlignedPointerFromInternalField(0);
+            object_id id = obj->GetAlignedPointerFromInternalField(kObjectPtr_InternalFields);
             if (id)
             {
-                auto registry = static_cast<ObjectRegistry *>(obj->GetAlignedPointerFromInternalField(1));
+                auto registry = static_cast<ObjectRegistry *>(
+                        obj->GetAlignedPointerFromInternalField(kObjectRegistryPtr_InternalFields));
                 if (registry)
                 {
                     pointer_type ptr = registry->find_object(id, type);

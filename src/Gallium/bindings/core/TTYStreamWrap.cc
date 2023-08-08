@@ -60,7 +60,7 @@ v8::Local<v8::Value> TTYStreamWrap::OpenFromFd(int fd)
     auto *tty = reinterpret_cast<uv_tty_t*>(malloc(sizeof(uv_tty_t)));
     CHECK(tty);
 
-    uv_loop_t *loop = EventLoop::Ref().handle();
+    uv_loop_t *loop = EventLoop::GetCurrent()->handle();
     int ret = uv_tty_init(loop, tty, fd, /* ignored */ 0);
     if (ret < 0)
         g_throw(Error, fmt::format("Failed to open TTY: {}", uv_strerror(ret)));

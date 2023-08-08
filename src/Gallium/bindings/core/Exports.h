@@ -39,7 +39,7 @@ void CoreSetInstanceProperties(v8::Local<v8::Object> instance);
 // Stream-based I/O
 // =========================================
 
-class StreamAsyncIterator
+class StreamAsyncIterator : public ExportableObjectBase
 {
 public:
     explicit StreamAsyncIterator(StreamWrap *stream);
@@ -101,7 +101,7 @@ private:
 };
 
 //! TSDecl: class Stream
-class StreamWrap
+class StreamWrap : public ExportableObjectBase
 {
     friend class StreamAsyncIterator;
 
@@ -177,7 +177,8 @@ v8::Local<v8::Value> GetEnviron();
 #define GAL_PROC_STREAM_REDIRECT    2
 
 //! TSDecl: #[[core::non-constructible]] class Process
-class ProcessWrap : public PreventGCObject
+class ProcessWrap : public ExportableObjectBase,
+                    public PreventGCObject
 {
 public:
     explicit ProcessWrap(uv_process_t *handle, v8::Local<v8::Object> streams[3]);
@@ -236,7 +237,7 @@ public:
 struct FsRequest;
 
 //! TSDecl: #[[core::non-constructible]] class File
-class FileWrap
+class FileWrap : public ExportableObjectBase
 {
 public:
     explicit FileWrap(uv_file fd);
@@ -380,7 +381,7 @@ v8::Local<v8::Value> Chown(const std::string& path, uv_uid_t uid, uv_gid_t gid);
 /* JSDecL: function lchown(path: string, uid: number, gid: number): Promise<void> */
 v8::Local<v8::Value> LChown(const std::string& path, uv_uid_t uid, uv_gid_t gid);
 
-class Buffer
+class Buffer : public ExportableObjectBase
 {
 public:
     enum class Encoding : uint32_t
@@ -461,7 +462,7 @@ private:
 };
 
 //! TSDecl: class CallbackScopedBuffer
-class CallbackScopedBuffer
+class CallbackScopedBuffer : public ExportableObjectBase
 {
 public:
     class ScopeGuard

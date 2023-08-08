@@ -349,7 +349,7 @@ v8::Local<v8::Value> read_component_impl(const std::shared_ptr<utau::VideoBuffer
     auto global_resolver_sp = std::make_shared<v8::Global<v8::Promise::Resolver>>(
             isolate, resolver);
 
-    EventLoop::Ref().enqueueThreadPoolTrivialTask(
+    EventLoop::GetCurrent()->enqueueThreadPoolTrivialTask(
             read_image_func,
             [global_resolver_sp, isolate]() {
                 v8::HandleScope scope(isolate);

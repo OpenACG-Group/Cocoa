@@ -199,6 +199,10 @@ export class Rect implements Fmt.Formattable {
                         this.bottom_ + dy);
     }
 
+    public makeOffsetv(offset: Vector2f): Rect {
+        return this.makeOffset(offset.x, offset.y);
+    }
+
     public makeInset(dx: number, dy: number): Rect {
         return new Rect(this.left_ + dx,
                         this.top_ + dy,

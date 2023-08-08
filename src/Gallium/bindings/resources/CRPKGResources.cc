@@ -88,7 +88,7 @@ v8::Local<v8::Value> CRPKGStorageWrap::read(size_t src_offset, v8::Local<v8::Val
         .size = size
     };
 
-    EventLoop::Ref().enqueueThreadPoolTrivialTask(
+    EventLoop::GetCurrent()->enqueueThreadPoolTrivialTask(
             [async_read_ctx]() {
                 std::memcpy(async_read_ctx->dstptr,
                             async_read_ctx->srcptr,

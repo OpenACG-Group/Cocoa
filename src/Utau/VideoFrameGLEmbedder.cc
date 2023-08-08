@@ -497,7 +497,7 @@ public:
             promise->set_value(map_frame);
         };
 
-        EventLoop::Ref().enqueueThreadPoolTrivialTask(async_executor, {});
+        EventLoop::GetCurrent()->enqueueThreadPoolTrivialTask(async_executor, {});
     }
 
     ~VAAPIVBOAccessor() override {

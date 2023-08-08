@@ -253,7 +253,7 @@ MediaFramePresentDispatcher::MediaFramePresentDispatcher(v8::Local<v8::Value> de
 
     host_notifier_ = static_cast<uv_async_t*>(malloc(sizeof(uv_async_t)));
     CHECK(host_notifier_ && "Failed to allocate memory");
-    uv_loop_t *main_thread_loop = EventLoop::Ref().handle();
+    uv_loop_t *main_thread_loop = EventLoop::GetCurrent()->handle();
     uv_async_init(main_thread_loop, host_notifier_, PresentRequestHandler);
     host_notifier_->data = this;
 

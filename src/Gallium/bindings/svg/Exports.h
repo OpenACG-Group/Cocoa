@@ -76,7 +76,7 @@ private:
 };
 
 //! TSDecl: class SVGDOMLoader
-class SVGDOMLoaderWrap
+class SVGDOMLoaderWrap : public ExportableObjectBase
 {
 public:
     SVGDOMLoaderWrap() = default;
@@ -104,7 +104,7 @@ private:
 };
 
 //! TSDecl: class SVGDOM
-class SVGDOMWrap
+class SVGDOMWrap : public ExportableObjectBase
 {
 public:
     explicit SVGDOMWrap(sk_sp<SkSVGDOM> dom) : dom_(std::move(dom)) {}
@@ -130,7 +130,7 @@ private:
 };
 
 //! TSDecl: class SVGLengthContext
-class SVGLengthContextWrap
+class SVGLengthContextWrap : public ExportableObjectBase
 {
 public:
     SVGLengthContextWrap(const SkSize& viewport, SkScalar dpi)

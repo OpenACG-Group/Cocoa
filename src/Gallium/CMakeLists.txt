@@ -2,6 +2,7 @@ set(CIB_SCRIPT ${CMAKE_HOME_DIRECTORY}/script/collect-internal-bindings.py)
 set(CIB_SUBSCRIPT ${CMAKE_HOME_DIRECTORY}/script/modulec.py)
 set(CIB_MODULE_LISTS ${CMAKE_CURRENT_SOURCE_DIR}/bindings/ModuleLists.txt)
 set(CIB_MODULE_XML
+        bindings/workers/Module.xml
         bindings/core/Module.xml
         bindings/typetraits/Module.xml
         bindings/glamor/Module.xml
@@ -14,6 +15,7 @@ set(CIB_MODULE_XML
 
 set(CIB_OUTPUT_FILE
         ${CMAKE_CURRENT_BINARY_DIR}/internal_bindings.cc
+        ${CMAKE_CURRENT_BINARY_DIR}/module_workers.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_core.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_typetraits.cc
         ${CMAKE_CURRENT_BINARY_DIR}/module_glamor.cc
@@ -34,6 +36,8 @@ add_library(Gallium STATIC
         Gallium.h
         Platform.h
         Platform.cc
+        RuntimeBase.h
+        RuntimeBase.cc
         Runtime.h
         Runtime.cc
         TracingController.h
@@ -77,7 +81,18 @@ add_library(Gallium STATIC
         binder/CallV8.h
         binder/TypeTraits.h
         bindings/Base.h
+        bindings/ExportableObjectBase.h
+        bindings/EventEmitter.h
+        bindings/EventEmitter.cc
         ${CIB_OUTPUT_FILE}
+
+        bindings/workers/Exports.h
+        bindings/workers/MessagePort.h
+        bindings/workers/MessagePort.cc
+        bindings/workers/MessagePortWrap.cc
+        bindings/workers/Worker.cc
+        bindings/workers/WorkerRuntime.h
+        bindings/workers/WorkerRuntime.cc
 
         bindings/core/Exports.h
         bindings/core/Exports.cc
@@ -186,6 +201,7 @@ add_library(Gallium STATIC
 
         bindings/utau/Exports.h
         bindings/utau/Exports.cc
+        bindings/utau/HWFramesContextRef.cc
         bindings/utau/AudioDeviceWrap.cc
         bindings/utau/AudioSinkStreamWrap.cc
         bindings/utau/AudioBufferWrap.cc

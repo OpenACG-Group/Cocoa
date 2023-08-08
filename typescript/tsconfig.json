@@ -12,13 +12,15 @@
             "*": [ "synthetics/*" ]
         },
         "sourceMap": true,
-        "allowJs": true
+        "allowJs": true,
+        "lib": [ "ES2021" ]
     },
     "include": [
         "./global/infrastructure.d.ts",
         "./global/introspect.d.ts"
     ],
     "files": [
+        "synthetics/workers.d.ts",
         "synthetics/core.d.ts",
         "synthetics/typetraits.d.ts",
         "synthetics/glamor.d.ts",
@@ -47,6 +49,7 @@
         "samples/vizmoe-paragraph-layout.ts",
         "samples/vizmoe-video-present.ts",
         "samples/vizmoe-video-present-opencv-cvtcolor.ts",
+        "samples/vizmoe-widgets-hello.ts",
         "samples/wasm-cairo-hello.ts",
         "samples/wasm-cairo-sharing-composite.ts",
         "samples/wasm-cairo-recording-surface.ts",
@@ -56,6 +59,7 @@
         "vizmoe/base/application.ts",
         "vizmoe/base/event-dispatcher.ts",
         "vizmoe/render/geometry.ts",
+        "vizmoe/render/edge-insets.ts",
         "vizmoe/render/toplevel-window.ts",
         "vizmoe/render/draw-context.ts",
         "vizmoe/render/draw-context-submitter.ts",
@@ -65,6 +69,12 @@
         "vizmoe/render/vector.ts",
         "vizmoe/render/render-node.ts",
         "vizmoe/render/render-node-composite-attributes.ts",
+        "vizmoe/render/widget-base.ts",
+        "vizmoe/render/widget-decoration.ts",
+        "vizmoe/render/widgets-helper.ts",
+        "vizmoe/render/widgets-trivial-container.ts",
+        "vizmoe/render/widgets-boxmodel-container.ts",
+        "vizmoe/render/widgets-drawable-solid.ts",
 
         "wasm/wasm-loader-polyfill.ts"
     ],

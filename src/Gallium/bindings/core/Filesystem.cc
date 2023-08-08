@@ -113,9 +113,9 @@ void callback_reject_error_code(FsRequest *req, ssize_t err, const char *syscall
     });
     
     
-#define API_PROLOGUE                                \
-    v8::Isolate *i = v8::Isolate::GetCurrent();     \
-    uv_loop_t *loop = EventLoop::Ref().handle();    \
+#define API_PROLOGUE                                        \
+    v8::Isolate *i = v8::Isolate::GetCurrent();             \
+    uv_loop_t *loop = EventLoop::GetCurrent()->handle();    \
 
 void on_open_callback(uv_fs_t *ptr)
 {
@@ -392,7 +392,7 @@ FileWrap::~FileWrap()
 {
     if (!closed_ && !is_closing_)
     {
-        uv_loop_t *loop = EventLoop::Ref().handle();
+        uv_loop_t *loop = EventLoop::GetCurrent()->handle();
         uv_fs_t req{};
         uv_fs_close(loop, &req, fd_, nullptr);
     }

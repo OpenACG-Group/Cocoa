@@ -25,7 +25,7 @@ v8::Local<v8::Value> AudioDeviceWrap::ConnectPipeWire()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    auto device = utau::AudioDevice::MakePipeWire(EventLoop::Ref().handle());
+    auto device = utau::AudioDevice::MakePipeWire(EventLoop::GetCurrent()->handle());
     if (!device)
         g_throw(Error, "Failed to connect to PipeWire daemon");
 

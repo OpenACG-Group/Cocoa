@@ -21,12 +21,14 @@
 #include "include/core/SkFontMgr.h"
 #include "include/v8.h"
 
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/Types.h"
 #include "Gallium/bindings/glamor/TrivialInterface.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 //! TSDecl: class CkFontStyleSet
-class CkFontStyleSet : public SkiaObjectWrapper<SkFontStyleSet>
+class CkFontStyleSet : public ExportableObjectBase,
+                       public SkiaObjectWrapper<SkFontStyleSet>
 {
 public:
     using SkiaObjectWrapper::SkiaObjectWrapper;
@@ -48,7 +50,8 @@ public:
 };
 
 //! TSDecl: class CkFontMgr
-class CkFontMgr : public SkiaObjectWrapper<SkFontMgr>
+class CkFontMgr : public ExportableObjectBase,
+                  public SkiaObjectWrapper<SkFontMgr>
 {
 public:
     using SkiaObjectWrapper::SkiaObjectWrapper;

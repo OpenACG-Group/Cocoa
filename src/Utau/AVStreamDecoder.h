@@ -127,6 +127,8 @@ public:
         return has_audio_stream_;
     }
 
+    g_nodiscard AVBufferRef *GetHWFramesContext() const;
+
     g_nodiscard std::optional<StreamInfo> GetStreamInfo(StreamSelector selector);
 
     bool SeekStreamTo(StreamSelector stream, int64_t ts);

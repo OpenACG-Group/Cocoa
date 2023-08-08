@@ -22,10 +22,11 @@
 #include "include/v8.h"
 
 #include "Core/Project.h"
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/Types.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-class CkMatrix
+class CkMatrix : public ExportableObjectBase
 {
 public:
     explicit CkMatrix(const SkMatrix& matrix) : matrix_(matrix) {}

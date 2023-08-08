@@ -20,6 +20,8 @@
 
 #include "Glamor/Layers/LayerTree.h"
 #include "Glamor/Layers/Layer.h"
+
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/Exports.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
@@ -27,7 +29,7 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
  * A Scene object always holds an independent layer tree which can be applied to blender
  * through `BlenderWrap::updateScene` method. It can also be constructed by `SceneBuilder`.
  */
-class Scene
+class Scene : public ExportableObjectBase
 {
 public:
     Scene(const std::shared_ptr<gl::ContainerLayer>& rootLayer,

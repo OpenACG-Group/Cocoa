@@ -50,21 +50,23 @@ export class LinkedList<T> implements Iterable<T> {
         return (this.#head.next == this.#head);
     }
 
-    public forEach(callback: (value: T, index: number) => void): void {
+    public forEach(callback: (value: T, index: number) => boolean): void {
         let current = this.#head.next;
         let index = 0;
         while (!current.head) {
-            callback(current.value, index);
+            if (!callback(current.value, index))
+                break;
             current = current.next;
             index++;
         }
     }
 
-    public forEachNode(callback: (node: LinkedListNode<T>) => void): void {
+    public forEachNode(callback: (node: LinkedListNode<T>) => boolean): void {
         let current = this.#head.next;
         while (!current.head) {
             const next = current.next;
-            callback(current);
+            if (!callback(current))
+                break;
             current = next;
         }
     }

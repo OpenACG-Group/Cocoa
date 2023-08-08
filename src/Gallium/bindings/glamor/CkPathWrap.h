@@ -21,11 +21,12 @@
 #include "include/core/SkPath.h"
 #include "include/v8.h"
 
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/Types.h"
 #include "Gallium/bindings/glamor/TrivialInterface.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-class CkPath
+class CkPath : public ExportableObjectBase
 {
 public:
     explicit CkPath(const SkPath& path) : path_(path) {}

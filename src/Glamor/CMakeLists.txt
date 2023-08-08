@@ -86,6 +86,8 @@ add_library(
         Layers/RectClipLayer.cc
         Layers/RRectClipLayer.h
         Layers/RRectClipLayer.cc
+        Layers/PathClipLayer.h
+        Layers/PathClipLayer.cc
         Layers/OpacityLayer.h
         Layers/OpacityLayer.cc
         Layers/ExternalTextureLayer.h

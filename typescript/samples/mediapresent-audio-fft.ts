@@ -118,11 +118,13 @@ class AudioFFTContext {
     }
 
     public transform(buffer: utau.AudioBuffer): FFTResultTriple[] {
-        const resampled = this.fResampler.filter([{
-            name: 'in',
-            mediaType: utau.Constants.MEDIA_TYPE_AUDIO,
-            audioBuffer: buffer
-        }])[0].audioBuffer;
+        this.fResampler.sendFrame('in', buffer);
+        const out = this.fResampler.tryReceiveFrame('out');
+        if (out.status != utau.Constants.DAG_RECEIVE_STATUS_OK) {
+            std.print('Failed to resample audio\n');
+        }
+
+        const resampled = out.audio;
 
         const samplesBuffer = new Float32Array(resampled.samplesCount);
         resampled.read(0, resampled.samplesCount, 0, 0, samplesBuffer.buffer);
@@ -345,7 +347,6 @@ async function main(): Promise<void> {
     dispatcher.onAudioPresentNotify = (buffer) => {
         ctx.render(fftContext.transform(buffer));
         ctx.submit(window.drawContext.submitter);
-        buffer.dispose();
     };
 
     dispatcher.onErrorOrEOF = async () => {

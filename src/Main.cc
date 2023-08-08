@@ -170,8 +170,6 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
     if (state == cmd::ParseState::kError)
         return cmd::ParseState::kError;
 
-    EventLoop::New();
-
     char delimiter = ',';
 
     bool justInitialize = false;
@@ -190,7 +188,7 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
         {
             if (arg.value->v_int < 0)
             {
-                fmt::print(stderr, "v8-concurrent-workers should ba a positive integer\n");
+                fmt::print(stderr, "--v8-concurrent-workers should ba a positive integer\n");
                 return cmd::ParseState::kError;
             }
             gallium_options.v8_platform_thread_pool = arg.value->v_int;
@@ -323,6 +321,15 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
         {
             utau_options.hwdevice_drm_device_path = arg.value->v_str;
         }
+        else if arg_longopt_match("utau-filtergraph-max-threads")
+        {
+            utau_options.filtergraph_max_threads = arg.value->v_int;
+            if (utau_options.filtergraph_max_threads < 0)
+            {
+                fmt::print(stderr, "Error: Option --utau-filtergraph-max-threads has an invalid value");
+                return cmd::ParseState::kError;
+            }
+        }
     }
 
     return justInitialize ? cmd::ParseState::kJustInitialize : cmd::ParseState::kSuccess;
@@ -335,10 +342,11 @@ void mainloop_execute(bool justInitialize,
                       const gl::ContextOptions& gl_options,
                       const utau::ContextOptions& utau_options)
 {
+    EventLoop::New();
     crpkg::ResourceManager::New();
 
     // Initialize Glamor (rendering engine)
-    gl::GlobalScope::New(gl_options, EventLoop::Instance());
+    gl::GlobalScope::New(gl_options, EventLoop::GetCurrent());
 
     // Initialize Utau (multimedia processing engine)
     utau::InitializePlatform(utau_options);
@@ -353,7 +361,7 @@ void mainloop_execute(bool justInitialize,
 
     if (!justInitialize)
     {
-        auto runtime = gallium::Runtime::Make(EventLoop::Instance(), options);
+        auto runtime = gallium::Runtime::Make(EventLoop::GetCurrent(), options);
 
         ScopeExitAutoInvoker disposer([&runtime] {
             runtime->Dispose();
@@ -392,7 +400,7 @@ void mainloop_execute(bool justInitialize,
 
     // RenderHost message queue profiler may register a threadpool work.
     // To make sure the task performed properly, we run event loop again.
-    EventLoop::Ref().run();
+    EventLoop::GetCurrent()->run();
 
     crpkg::ResourceManager::Delete();
     EventLoop::Delete();

@@ -26,6 +26,7 @@
 #include "include/v8.h"
 
 #include "Core/Project.h"
+#include "Gallium/bindings/ExportableObjectBase.h"
 
 #define GALLIUM_BINDINGS_PARAGRAPH_NS_BEGIN namespace cocoa::gallium::bindings::paragraph_wrap {
 #define GALLIUM_BINDINGS_PARAGRAPH_NS_END   }
@@ -95,7 +96,7 @@ skia::textlayout::TextShadow
 ExtractTextShadow(v8::Isolate *isolate, v8::Local<v8::Value> v);
 
 //! TSDecl: class TextStyle
-class TextStyleWrap
+class TextStyleWrap : public ExportableObjectBase
 {
 public:
     //! TSDecl: constructor()
@@ -206,7 +207,7 @@ private:
 
 
 //! TSDecl: class ParagraphStyle
-class ParagraphStyleWrap
+class ParagraphStyleWrap : public ExportableObjectBase
 {
 public:
     //! TSDecl: constructor()
@@ -283,7 +284,7 @@ private:
 
 
 //! TSDecl: class ParagraphBuilder
-class ParagraphBuilderWrap
+class ParagraphBuilderWrap : public ExportableObjectBase
 {
 public:
     ParagraphBuilderWrap(v8::Isolate *isolate,
@@ -323,7 +324,7 @@ private:
 };
 
 //! TSDecl: class Paragraph
-class ParagraphWrap
+class ParagraphWrap : public ExportableObjectBase
 {
 public:
     explicit ParagraphWrap(std::unique_ptr<skia::textlayout::Paragraph> paragraph)

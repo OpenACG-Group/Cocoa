@@ -106,7 +106,7 @@ public:
 };
 
 //! TSDecl: class GProfiler
-class GProfilerWrap
+class GProfilerWrap : public ExportableObjectBase
 {
 public:
     explicit GProfilerWrap(gl::Shared<gl::GProfiler> profiler)
@@ -124,7 +124,7 @@ private:
 };
 
 //! TSDecl: class RenderClientObject
-class RenderClientObjectWrap
+class RenderClientObjectWrap : public ExportableObjectBase
 {
 public:
     explicit RenderClientObjectWrap(gl::Shared<gl::RenderClientObject> object);
@@ -363,7 +363,8 @@ private:
 };
 
 //! TSDecl: class CkImageFilter
-class CkImageFilterWrap : public SkiaObjectWrapper<SkImageFilter>
+class CkImageFilterWrap : public ExportableObjectBase,
+                          public SkiaObjectWrapper<SkImageFilter>
 {
 public:
     using SkiaObjectWrapper::SkiaObjectWrapper;
@@ -405,7 +406,8 @@ public:
 };
 
 //! TSDecl: class CkColorFilter
-class CkColorFilterWrap : public SkiaObjectWrapper<SkColorFilter>
+class CkColorFilterWrap : public ExportableObjectBase,
+                          public SkiaObjectWrapper<SkColorFilter>
 {
 public:
     using SkiaObjectWrapper::SkiaObjectWrapper;
@@ -423,7 +425,8 @@ public:
 };
 
 //! TSDecl: class CkShader
-class CkShaderWrap : public SkiaObjectWrapper<SkShader>
+class CkShaderWrap : public ExportableObjectBase,
+                     public SkiaObjectWrapper<SkShader>
 {
 public:
     using SkiaObjectWrapper::SkiaObjectWrapper;
@@ -440,7 +443,8 @@ public:
 };
 
 //! TSDecl: class CkBlender
-class CkBlenderWrap : public SkiaObjectWrapper<SkBlender>
+class CkBlenderWrap : public ExportableObjectBase,
+                      public SkiaObjectWrapper<SkBlender>
 {
 public:
     using SkiaObjectWrapper::SkiaObjectWrapper;
@@ -454,7 +458,7 @@ public:
 };
 
 //! TSDecl: class CriticalPicture
-class CriticalPictureWrap
+class CriticalPictureWrap : public ExportableObjectBase
 {
 public:
     explicit CriticalPictureWrap(const gl::MaybeGpuObject<SkPicture>& picture)
@@ -479,7 +483,7 @@ private:
 };
 
 //! TSDecl: class CkPicture
-class CkPictureWrap
+class CkPictureWrap : public ExportableObjectBase
 {
 public:
     explicit CkPictureWrap(sk_sp<SkPicture> picture);
@@ -517,7 +521,7 @@ private:
 };
 
 //! TSDecl: class CkBitmap
-class CkBitmapWrap
+class CkBitmapWrap : public ExportableObjectBase
 {
 public:
     CkBitmapWrap(std::shared_ptr<v8::BackingStore> backing_store,
@@ -601,7 +605,7 @@ private:
 };
 
 //! TSDecl: class CkImage
-class CkImageWrap
+class CkImageWrap : public ExportableObjectBase
 {
 public:
     explicit CkImageWrap(sk_sp<SkImage> image);

@@ -28,6 +28,7 @@
 #include "Gallium/binder/Module.h"
 #include "Gallium/binder/Factory.h"
 #include "Gallium/binder/Class.h"
+#include "Gallium/bindings/ExportableObjectBase.h"
 
 GALLIUM_BINDINGS_NS_BEGIN
 

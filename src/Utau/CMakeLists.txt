@@ -19,8 +19,6 @@ add_library(
         AudioDevice.h
         AudioSinkStream.h
         AudioSinkStream.cc
-        AudioFilterInputSinkStream.h
-        AudioFilterInputSinkStream.cc
 
         VideoBufferInfo.h
         VideoBufferInfo.cc

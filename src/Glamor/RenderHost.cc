@@ -412,7 +412,7 @@ void RenderHost::FlushProfileSamplesAsync()
     CHECK(work);
 
     uv_handle_set_data(reinterpret_cast<uv_handle_t *>(work), closure);
-    uv_queue_work(EventLoop::Ref().handle(), work, threadpool_perform_sampler_serialize,
+    uv_queue_work(EventLoop::GetCurrent()->handle(), work, threadpool_perform_sampler_serialize,
                   threadpool_after_perform_sampler_serialize);
 }
 

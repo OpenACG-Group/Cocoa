@@ -21,10 +21,12 @@
 #include "include/core/SkPathEffect.h"
 #include "include/v8.h"
 
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/TrivialInterface.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-class CkPathEffect : public SkiaObjectWrapper<SkPathEffect>
+class CkPathEffect : public ExportableObjectBase,
+                     public SkiaObjectWrapper<SkPathEffect>
 {
 public:
     using SkiaObjectWrapper::SkiaObjectWrapper;

@@ -70,7 +70,9 @@ export class CompositeRenderNode extends RenderNode {
         this.fChildrenList.forEach((child) => {
             if (node == child) {
                 hasNode = true;
+                return false;
             }
+            return true;
         });
         if (hasNode) {
             return;

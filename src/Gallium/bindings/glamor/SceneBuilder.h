@@ -20,6 +20,7 @@
 
 #include <stack>
 
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Glamor/Layers/Layer.h"
 #include "Glamor/Layers/ContainerLayer.h"
@@ -28,7 +29,7 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 //! TSDecl: import * as utau from 'synthetics://utau'
 
 //! TSDecl: class SceneBuilder
-class SceneBuilder
+class SceneBuilder : public ExportableObjectBase
 {
 public:
     SceneBuilder(int32_t width, int32_t height);
@@ -74,6 +75,9 @@ public:
 
     //! TSDecl: function pushRRectClip(shape: CkRRect, antialias: boolean): SceneBuilder
     v8::Local<v8::Value> pushRRectClip(v8::Local<v8::Value> shape, bool AA);
+
+    //! TSDecl: function pushPathClip(shape: CkPath, op: Enum<ClipOp>, antialias: boolean): SceneBuilder
+    v8::Local<v8::Value> pushPathClip(v8::Local<v8::Value> shape, int32_t op, bool antialias);
 
     //! TSDecl: function addTexture(textureId: number,
     //!                             dx: number,

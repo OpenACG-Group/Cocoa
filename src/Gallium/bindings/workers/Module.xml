@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module>
+    <info name="workers" description="Multithreading support for JavaScript based on Worker"/>
+    <metadata namespace="cocoa::gallium::bindings::workers_wrap" class="WorkersBinding"/>
+    <include src="Gallium/bindings/workers/Exports.h"/>
+
+    <exports>
+        <class name="Worker" wrapper="WorkerWrap">
+            <method static="true" name="MakeFromURL" value="@MakeFromURL"/>
+            <property name="port" getter="@getPort"/>
+        </class>
+
+        <class name="MessagePort" wrapper="MessagePortWrap">
+            <method static="true" name="MakeConnectedPair" value="@MakeConnectedPair"/>
+            <method name="close" value="@close"/>
+            <method name="postMessage" value="@postMessage"/>
+            <method name="onMessage" value="@onMessage"/>
+        </class>
+    </exports>
+</module>

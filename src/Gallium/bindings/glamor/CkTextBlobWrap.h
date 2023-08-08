@@ -21,12 +21,14 @@
 #include "include/core/SkTextBlob.h"
 #include "include/v8.h"
 
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/Types.h"
 #include "Gallium/bindings/glamor/TrivialInterface.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 //! TSDecl: class CkTextBlob
-class CkTextBlob : public SkiaObjectWrapper<SkTextBlob>
+class CkTextBlob : public ExportableObjectBase,
+                   public SkiaObjectWrapper<SkTextBlob>
 {
 public:
     using SkiaObjectWrapper::SkiaObjectWrapper;

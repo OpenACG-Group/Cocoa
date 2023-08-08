@@ -15,21 +15,10 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef COCOA_UTAU_AUDIOFILTERINPUTSINKSTREAM_H
-#define COCOA_UTAU_AUDIOFILTERINPUTSINKSTREAM_H
+#ifndef COCOA_GALLIUM_BINDINGS_WORKERS_TYPES_H
+#define COCOA_GALLIUM_BINDINGS_WORKERS_TYPES_H
 
-#include "Utau/Utau.h"
-#include "Utau/AudioSinkStream.h"
-UTAU_NAMESPACE_BEGIN
+#define GALLIUM_BINDINGS_WORKERS_NS_BEGIN   namespace cocoa::gallium::bindings::workers_wrap {
+#define GALLIUM_BINDINGS_WORKERS_NS_END     }
 
-class AVFilterDAG;
-
-class AudioFilterInputSinkStream : public AudioSinkStream
-{
-public:
-    static std::unique_ptr<AudioFilterInputSinkStream>
-    Make(const std::shared_ptr<AVFilterDAG>& );
-};
-
-UTAU_NAMESPACE_END
-#endif //COCOA_UTAU_AUDIOFILTERINPUTSINKSTREAM_H
+#endif //COCOA_GALLIUM_BINDINGS_WORKERS_TYPES_H

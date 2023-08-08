@@ -49,7 +49,7 @@ v8::Local<v8::Value> CkImageWrap::MakeFromEncodedData(v8::Local<v8::Value> array
 
     // Submit a task to thread pool
     using DecodeResult = std::tuple<sk_sp<SkImage>, SkCodec::Result>;
-    EventLoop::Ref().enqueueThreadPoolTask<DecodeResult>([mem = *buffer_memory]() {
+    EventLoop::GetCurrent()->enqueueThreadPoolTask<DecodeResult>([mem = *buffer_memory]() {
         // Copy data and decode asynchronously
         sk_sp<SkData> data = SkData::MakeWithCopy(mem.ptr, mem.byte_size);
         CHECK(data);
@@ -106,7 +106,7 @@ v8::Local<v8::Value> CkImageWrap::MakeFromEncodedFile(const std::string& path)
     auto global_resolver = std::make_shared<v8::Global<v8::Promise::Resolver>>(isolate, resolver);
 
     // Submit a task to thread pool
-    EventLoop::Ref().enqueueThreadPoolTask<sk_sp<SkImage>>([path]() -> sk_sp<SkImage> {
+    EventLoop::GetCurrent()->enqueueThreadPoolTask<sk_sp<SkImage>>([path]() -> sk_sp<SkImage> {
         // Do decode here
         sk_sp<SkData> data = SkData::MakeFromFileName(path.c_str());
         if (!data)

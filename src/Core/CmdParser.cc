@@ -214,6 +214,13 @@ const Template g_templates[] = {
             .desc = "Specify a DRM device to be used for hardware-accelerated\n"
                     "video decoding and processing, /dev/dri/renderD128 by default."
         },
+        {
+            .long_name = "utau-filtergraph-max-threads",
+            .has_value = Template::RequireValue::kNecessary,
+            .value_type = ValueType::kInteger,
+            .desc = "Specify the maximum number of threads that the filtergraph use;\n"
+                    "Zero (the default) means that it is determined automatically."
+        }
 };
 
 namespace {

@@ -685,6 +685,8 @@ export class SceneBuilder {
 
     public pushRRectClip(shape: CkRRect, AA: boolean): SceneBuilder;
 
+    public pushPathClip(shape: CkPath, op: ClipOp, AA: boolean): SceneBuilder;
+
     public pushBackdropFilter(filter: CkImageFilter,
                               blendMode: BlendMode,
                               autoChildClipping: boolean): SceneBuilder;

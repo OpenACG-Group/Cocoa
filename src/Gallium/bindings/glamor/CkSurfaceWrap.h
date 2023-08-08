@@ -21,12 +21,14 @@
 #include "include/v8.h"
 #include "include/core/SkSurface.h"
 
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/Types.h"
 #include "Gallium/bindings/glamor/TrivialInterface.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 //! TSDecl: class CkSurface
-class CkSurface : public SkiaObjectWrapper<SkSurface>
+class CkSurface : public ExportableObjectBase,
+                  public SkiaObjectWrapper<SkSurface>
 {
 public:
     CkSurface(const sk_sp<SkSurface>& surface, ssize_t increase_gc);

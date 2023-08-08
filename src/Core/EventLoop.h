@@ -30,7 +30,7 @@
 namespace cocoa
 {
 
-class EventLoop : public UniquePersistent<EventLoop>
+class EventLoop : public ThreadLocalUniquePersistent<EventLoop>
 {
 public:
     EventLoop();
@@ -92,5 +92,91 @@ void EventLoop::enqueueThreadPoolTask(const TaskRoutine<T>& task, const PostTask
     });
 }
 
+namespace uv {
+
+template<typename T>
+class HandleBase
+{
+    CO_NONASSIGNABLE(HandleBase)
+    CO_NONCOPYABLE(HandleBase)
+
+public:
+    HandleBase() : handle_(new T{}) {}
+
+    HandleBase(HandleBase<T>&& rhs) noexcept
+        : handle_(rhs.handle_) { rhs.handle_ = nullptr; }
+
+    ~HandleBase() {
+        if (!handle_)
+            return;
+        uv_close(reinterpret_cast<uv_handle_t *>(handle_), [](uv_handle_t *p) {
+            delete reinterpret_cast<T *>(p);
+        });
+    }
+
+    g_nodiscard g_inline T *Get() const {
+        return handle_;
+    }
+
+    void Unref() {
+        uv_unref(reinterpret_cast<uv_handle_t *>(handle_));
+    }
+
+    void Ref() {
+        uv_ref(reinterpret_cast<uv_handle_t *>(handle_));
+    }
+
+private:
+    T *handle_;
+};
+
+#define START_STOP_HANDLE_IMPL(cl, name)                            \
+    class cl : public HandleBase<uv_##name##_t>                     \
+    {                                                               \
+    public:                                                         \
+        explicit cl(uv_loop_t *loop) {                              \
+            uv_##name##_init(loop, Get());                          \
+            Get()->data = this;                                     \
+        }                                                           \
+        void Start(std::function<void(void)> func) {                \
+            func_ = std::move(func);                                \
+            uv_##name##_start(Get(), [](uv_##name##_t *h) {         \
+                reinterpret_cast<cl*>(h->data)->func_();            \
+            });                                                     \
+        }                                                           \
+        void Stop() {                                               \
+            uv_##name##_stop(Get());                                \
+        }                                                           \
+    private:                                                        \
+        std::function<void(void)> func_;                            \
+    };
+
+START_STOP_HANDLE_IMPL(CheckHandle, check)
+START_STOP_HANDLE_IMPL(PrepareHandle, prepare)
+START_STOP_HANDLE_IMPL(IdleHandle, idle)
+
+#undef START_STOP_HANDLE_IMPL
+
+class AsyncHandle : public HandleBase<uv_async_t>
+{
+public:
+    explicit AsyncHandle(uv_loop_t *loop, std::function<void(void)> func)
+        : func_(std::move(func))
+    {
+        uv_async_init(loop, Get(), [](uv_async_t *h) {
+            reinterpret_cast<AsyncHandle*>(h->data)->func_();
+        });
+        Get()->data = this;
+    }
+
+    void Send() {
+        uv_async_send(Get());
+    }
+
+private:
+    std::function<void(void)> func_;
+};
+
+} // namespace uv
 } // namespace cocoa
 #endif //COCOA_CORE_EVENTLOOP_H

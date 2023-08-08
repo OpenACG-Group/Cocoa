@@ -270,8 +270,9 @@ AVFilterDAG::MakeFromDSL(const std::string& dsl,
     if (!priv->graph)
         return nullptr;
 
-    // TODO(sora): allow user to specify this from commandline
-    priv->graph->nb_threads = 4;
+    priv->graph->nb_threads = utau::GlobalContext::Ref()
+                            .GetOptions()
+                            .filtergraph_max_threads;
 
     // Parse filter DAG descriptor (DSL)
     AVFilterInOut *inputs = nullptr, *outputs = nullptr;
@@ -309,108 +310,111 @@ AVFilterDAG::AVFilterDAG()
 
 AVFilterDAG::~AVFilterDAG() = default;
 
-std::vector<DAG::NamedInOutBuffer>
-AVFilterDAG::Filter(const std::vector<NamedInOutBuffer>& inputs)
+bool AVFilterDAG::SendFrame(const NamedInOutBuffer& inbuf)
 {
-    for (const auto& inbuf : inputs)
+    auto itr = std::find_if(priv_->in_filters.begin(), priv_->in_filters.end(),
+                            [inbuf](const NamedInOutFilterCtx& ctx) {
+                                return (ctx.label_name == inbuf.name);
+                            });
+    if (itr == priv_->in_filters.end())
     {
-        auto itr = std::find_if(priv_->in_filters.begin(), priv_->in_filters.end(),
-                                [inbuf](const NamedInOutFilterCtx& ctx) {
-            return (ctx.label_name == inbuf.name);
-        });
-        if (itr == priv_->in_filters.end())
-        {
-            QLOG(LOG_WARNING, "No input buffer named '{}' in the graph", inbuf.name);
-            continue;
-        }
-
-        if (inbuf.media_type != itr->media_type)
-        {
-            QLOG(LOG_ERROR, "Media type mismatched on input buffer '{}'", inbuf.name);
-            return {};
-        }
-
-        AVFrame *frame;
-        if (itr->media_type == MediaType::kAudio)
-        {
-            if (!inbuf.audio_buffer)
-            {
-                QLOG(LOG_ERROR, "Invalid input buffer '{}'", inbuf.name);
-                return {};
-            }
-            frame = inbuf.audio_buffer->CastUnderlyingPointer<AVFrame>();
-        }
-        else if (itr->media_type == MediaType::kVideo)
-        {
-            if (!inbuf.video_buffer)
-            {
-                QLOG(LOG_ERROR, "Invalid input buffer '{}'", inbuf.name);
-                return {};
-            }
-            frame = inbuf.video_buffer->CastUnderlyingPointer<AVFrame>();
-        }
-        else
-        {
-            MARK_UNREACHABLE();
-        }
-
-        if (frame->hw_frames_ctx && !itr->enable_hw_frame)
-        {
-            QLOG(LOG_ERROR, "Input buffer '{}' does not accept HW frames", inbuf.name);
-            return {};
-        }
-
-        if (av_buffersrc_add_frame_flags(itr->context, frame, 0) < 0)
-        {
-            QLOG(LOG_ERROR, "Failed to push input buffer '{}' into DAG", inbuf.name);
-            return {};
-        }
+        QLOG(LOG_WARNING, "No input buffer named '{}' in the graph", inbuf.name);
+        return false;
     }
 
-    std::vector<NamedInOutBuffer> outbufs;
-
-    for (const auto& output : priv_->out_filters)
+    if (inbuf.media_type != itr->media_type)
     {
-        AVFrame *frame = av_frame_alloc();
-        CHECK(frame && "Failed to allocate memory");
-
-        if (av_buffersink_get_frame(output.context, frame) < 0)
-            continue;
-
-        ScopeExitAutoInvoker frame_releaser([&frame] {
-            av_frame_free(&frame);
-        });
-
-        outbufs.emplace_back(NamedInOutBuffer{
-            .name = output.label_name,
-            .media_type = output.media_type
-        });
-
-        if (output.media_type == MediaType::kAudio)
-        {
-            outbufs.back().audio_buffer = AudioBuffer::MakeFromAVFrame(frame);
-            if (!outbufs.back().audio_buffer)
-            {
-                QLOG(LOG_ERROR, "Failed in wrapping output frame of pad '{}'", output.label_name);
-                return {};
-            }
-        }
-        else if (output.media_type == MediaType::kVideo)
-        {
-            outbufs.back().video_buffer = VideoBuffer::MakeFromAVFrame(frame);
-            if (!outbufs.back().video_buffer)
-            {
-                QLOG(LOG_ERROR, "Failed in wrapping output frame of pad '{}'", output.label_name);
-                return {};
-            }
-        }
-        else
-        {
-            MARK_UNREACHABLE();
-        }
+        QLOG(LOG_ERROR, "Media type mismatched on input buffer '{}'", inbuf.name);
+        return false;
     }
 
-    return outbufs;
+    AVFrame *frame;
+    if (itr->media_type == MediaType::kAudio)
+    {
+        if (!inbuf.audio_buffer)
+        {
+            QLOG(LOG_ERROR, "Invalid input buffer '{}'", inbuf.name);
+            return false;
+        }
+        frame = inbuf.audio_buffer->CastUnderlyingPointer<AVFrame>();
+    }
+    else if (itr->media_type == MediaType::kVideo)
+    {
+        if (!inbuf.video_buffer)
+        {
+            QLOG(LOG_ERROR, "Invalid input buffer '{}'", inbuf.name);
+            return false;
+        }
+        frame = inbuf.video_buffer->CastUnderlyingPointer<AVFrame>();
+    }
+    else
+    {
+        MARK_UNREACHABLE();
+    }
+
+    if (frame->hw_frames_ctx && !itr->enable_hw_frame)
+    {
+        QLOG(LOG_ERROR, "Input buffer '{}' does not accept HW frames", inbuf.name);
+        return false;
+    }
+
+    if (av_buffersrc_add_frame_flags(itr->context, frame, 0) < 0)
+    {
+        QLOG(LOG_ERROR, "Failed to push input buffer '{}' into DAG", inbuf.name);
+        return false;
+    }
+
+    return true;
+}
+
+AVFilterDAG::ReceiveStatus AVFilterDAG::TryReceiveFrame(NamedInOutBuffer& outbuf)
+{
+    auto itr = std::find_if(priv_->out_filters.begin(), priv_->out_filters.end(),
+                            [outbuf](const NamedInOutFilterCtx& ctx) {
+                                return (ctx.label_name == outbuf.name);
+                            });
+    if (itr == priv_->out_filters.end())
+    {
+        QLOG(LOG_WARNING, "No output buffer named '{}' in the graph", outbuf.name);
+        return ReceiveStatus::kError;
+    }
+
+    AVFrame *frame = av_frame_alloc();
+    CHECK(frame && "Failed to allocate frame");
+
+    ScopeExitAutoInvoker frame_releaser([&frame] {
+        av_frame_free(&frame);
+    });
+
+    int ret = av_buffersink_get_frame(itr->context, frame);
+    if (ret == AVERROR(EAGAIN))
+        return ReceiveStatus::kAgain;
+    else if (ret == AVERROR(EOF))
+        return ReceiveStatus::kEOF;
+    else if (ret < 0)
+    {
+        char err[512];
+        av_strerror(ret, err, sizeof(err));
+        QLOG(LOG_ERROR, "Failed to get DAG output frame '{}': {}", outbuf.name, err);
+        return ReceiveStatus::kError;
+    }
+
+    outbuf.media_type = itr->media_type;
+    outbuf.audio_buffer = nullptr;
+    outbuf.video_buffer = nullptr;
+
+    if (itr->media_type == MediaType::kAudio)
+    {
+        outbuf.audio_buffer = AudioBuffer::MakeFromAVFrame(frame);
+        CHECK(outbuf.audio_buffer);
+    }
+    else
+    {
+        outbuf.video_buffer = VideoBuffer::MakeFromAVFrame(frame);
+        CHECK(outbuf.video_buffer);
+    }
+
+    return ReceiveStatus::kOk;
 }
 
 UTAU_NAMESPACE_END

@@ -74,7 +74,7 @@ uint64_t getCurrentTimestampMs();
 v8::Local<v8::Value> getPixelFormatDescriptor(int32_t fmt);
 
 //! TSDecl: class AudioDevice
-class AudioDeviceWrap
+class AudioDeviceWrap : public ExportableObjectBase
 {
 public:
     explicit AudioDeviceWrap(std::shared_ptr<utau::AudioDevice> device)
@@ -95,7 +95,7 @@ private:
 };
 
 //! TSDecl: class AudioSinkStream
-class AudioSinkStreamWrap
+class AudioSinkStreamWrap : public ExportableObjectBase
 {
 public:
     class JSListener;
@@ -140,7 +140,7 @@ private:
 };
 
 //! TSDecl: class AudioBuffer
-class AudioBufferWrap
+class AudioBufferWrap : public ExportableObjectBase
 {
 public:
     explicit AudioBufferWrap(std::shared_ptr<utau::AudioBuffer> buffer);
@@ -204,7 +204,7 @@ private:
 };
 
 //! TSDecl: class AudioFilterDAG
-class AVFilterDAGWrap
+class AVFilterDAGWrap : public ExportableObjectBase
 {
 public:
     explicit AVFilterDAGWrap(std::unique_ptr<utau::AVFilterDAG> DAG)
@@ -221,7 +221,7 @@ public:
     //!   sampleRate?: number;
     //!
     //!   pixelFormat?: number;
-    //!   hwFrameContextFrom?: VideoBuffer;
+    //!   hwFramesContext?: HWFramesContextRef;
     //!   width?: number;
     //!   height?: number;
     //!   timeBase?: Rational;
@@ -241,8 +241,20 @@ public:
                                             v8::Local<v8::Value> inparams,
                                             v8::Local<v8::Value> outparams);
 
-    //! TSDecl: function filter(inBuffers: Array<DAGNamedInOutBuffer>): Array<DAGNamedInOutBuffer>
-    v8::Local<v8::Value> filter(v8::Local<v8::Value> inbuffers);
+    //! TSDecl: function sendFrame(name: string, frame: AudioBuffer | VideoBuffer): void
+    void sendFrame(const std::string& name, v8::Local<v8::Value> frame);
+
+    //! TSDecl:
+    //! interface DAGOutputInfo {
+    //!   status: Enum<DAGReceiveStatus>;
+    //!   name?: string;
+    //!   mediaType?: Enum<MediaType>;
+    //!   audio?: AudioBuffer;
+    //!   video?: VideoBuffer;
+    //! }
+
+    //! TSDecl: function tryReceiveFrame(name: string): DAGOutputInfo
+    v8::Local<v8::Value> tryReceiveFrame(const std::string& name);
 
 private:
     std::unique_ptr<utau::AVFilterDAG> DAG_;
@@ -260,7 +272,7 @@ enum class ComponentSelector
 };
 
 //! TSDecl: class VideoBuffer
-class VideoBufferWrap
+class VideoBufferWrap : public ExportableObjectBase
 {
 public:
     explicit VideoBufferWrap(std::shared_ptr<utau::VideoBuffer> buffer);
@@ -380,8 +392,29 @@ private:
     std::shared_ptr<utau::VideoBuffer> buffer_;
 };
 
+//! TSDecl: class HWFramesContextRef
+class HWFramesContextRef : public ExportableObjectBase
+{
+public:
+    explicit HWFramesContextRef(AVBufferRef *ref);
+    ~HWFramesContextRef();
+
+    g_nodiscard AVBufferRef *Get() const {
+        return ref_;
+    }
+
+    //! TSDecl: function clone(): HWFramesContextRef
+    v8::Local<v8::Value> clone();
+
+    //! TSDecl: function dispose(): void
+    void dispose();
+    
+private:
+    AVBufferRef *ref_;
+};
+
 //! TSDecl: class AVStreamDecoder
-class AVStreamDecoderWrap
+class AVStreamDecoderWrap : public ExportableObjectBase
 {
 public:
     explicit AVStreamDecoderWrap(std::unique_ptr<utau::AVStreamDecoder> decoder)
@@ -438,6 +471,9 @@ public:
 
     //! TSDecl: function flushDecoderBuffers(selector: Enum<StreamSelector>): void
     void flushDecoderBuffers(int32_t selector);
+
+    //! TSDecl: function refHWFramesContext(): HWFramesContextRef | null
+    v8::Local<v8::Value> refHWFramesContext();
 
 private:
     std::unique_ptr<utau::AVStreamDecoder> decoder_;

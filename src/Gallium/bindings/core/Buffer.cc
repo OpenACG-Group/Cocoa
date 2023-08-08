@@ -332,7 +332,7 @@ v8::Local<v8::Promise> Buffer::MakeFromFile(const std::string& path)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     v8::Local<v8::Context> context = isolate->GetCurrentContext();
-    EventLoop *loop = EventLoop::Instance();
+    EventLoop *loop = EventLoop::GetCurrent();
 
     auto resolver = v8::Promise::Resolver::New(context).ToLocalChecked();
     auto global = std::make_shared<v8::Global<v8::Promise::Resolver>>(isolate, resolver);

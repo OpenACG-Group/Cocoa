@@ -21,11 +21,12 @@
 #include "include/v8.h"
 #include "include/core/SkPathMeasure.h"
 
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/Types.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 //! TSDecl: class CkPathMeasure
-class CkPathMeasureWrap
+class CkPathMeasureWrap : public ExportableObjectBase
 {
 public:
     CkPathMeasureWrap(const SkPath& path, bool forceClosed, SkScalar resScale);

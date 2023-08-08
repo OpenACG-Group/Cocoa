@@ -22,7 +22,7 @@
 #include "Core/Exception.h"
 #include "Core/TraceEvent.h"
 #include "Gallium/bindings/glamor/PromiseHelper.h"
-#include "Gallium/Runtime.h"
+#include "Gallium/RuntimeBase.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 PromiseClosure::PromiseClosure(v8::Isolate *isolate, InfoConverter conv)
@@ -134,7 +134,7 @@ void slot_closure_callback(SlotClosure *closure, gl::RenderHostSlotCallbackInfo&
 
     if (catchBlock.HasCaught())
     {
-        Runtime *rt = Runtime::GetBareFromIsolate(closure->isolate_);
+        RuntimeBase *rt = RuntimeBase::FromIsolate(closure->isolate_);
         rt->ReportUncaughtExceptionInCallback(catchBlock);
     }
 }

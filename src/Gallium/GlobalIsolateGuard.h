@@ -31,15 +31,15 @@ class Runtime;
 class GlobalIsolateGuard
 {
 public:
-    explicit GlobalIsolateGuard(const std::shared_ptr<Runtime>& rt);
+    explicit GlobalIsolateGuard(Runtime *rt);
     ~GlobalIsolateGuard();
 
     g_nodiscard inline v8::Isolate *getIsolate() const {
         return isolate_;
     }
 
-    g_nodiscard inline std::shared_ptr<Runtime> getRuntime() const {
-        return runtime_.lock();
+    g_nodiscard inline Runtime *getRuntime() const {
+        return runtime_;
     }
 
     void pushMaybeUnhandledRejectPromise(v8::Local<v8::Promise> promise, v8::Local<v8::Value> value);
@@ -73,7 +73,7 @@ private:
 
     using PromiseValueList = std::list<PromiseWithValue>;
 
-    std::weak_ptr<Runtime> runtime_;
+    Runtime               *runtime_;
     v8::Isolate           *isolate_;
     PromiseValueList       reject_promises_;
 };
