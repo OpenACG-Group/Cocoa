@@ -22,56 +22,11 @@
 
 #include "Core/EnumClassBitfield.h"
 #include "Gallium/bindings/glamor/Exports.h"
+#include "Gallium/bindings/EventEmitter.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-/* A helper structure for asynchronous operations on RenderClient objects */
-struct PromiseClosure
-{
-    using InfoConverter = std::function<v8::Local<v8::Value>(v8::Isolate*, gl::RenderHostCallbackInfo&)>;
-
-    PromiseClosure(v8::Isolate *isolate, InfoConverter conv);
-    ~PromiseClosure();
-
-    static std::shared_ptr<PromiseClosure> New(v8::Isolate *isolate, const InfoConverter& converter);
-    static void HostCallback(gl::RenderHostCallbackInfo& info);
-
-    bool rejectIfEssential(gl::RenderHostCallbackInfo& info);
-
-    v8::Local<v8::Promise> getPromise();
-
-    template<typename Wrapper, typename T>
-    static v8::Local<v8::Value> CreateObjectConverter(v8::Isolate *isolate,
-                                                      gl::RenderHostCallbackInfo& info)
-    {
-        return binder::NewObject<Wrapper>(isolate, info.GetReturnValue<T>());
-    }
-
-    v8::Isolate *isolate_;
-    v8::Global<v8::Promise::Resolver> resolver_;
-    InfoConverter info_converter_;
-};
-
-struct SlotClosure
-{
-    static std::unique_ptr<SlotClosure> New(v8::Isolate *isolate,
-                                            v8::Local<v8::Object> self,
-                                            int32_t signal,
-                                            const std::string& signal_name,
-                                            const gl::Shared<gl::RenderClientObject>& client,
-                                            v8::Local<v8::Function> callback,
-                                            InfoAcceptor acceptor);
-
-    ~SlotClosure();
-
-    v8::Isolate *isolate_;
-    v8::Global<v8::Object> self_;
-    v8::Global<v8::Function> callback_;
-    gl::Shared<gl::RenderClientObject> client_;
-    InfoAcceptor acceptor_;
-    uint32_t slot_id_;
-    int32_t signal_code_;
-    std::string signal_name_;
-};
+using InvokeResultConverter = std::function<v8::Local<v8::Value>(
+        v8::Isolate*, gl::RenderHostCallbackInfo&)>;
 
 template<typename RealT, typename CastT, bool CreateObj = false, bool ExtractValue = false>
 struct InfoAcceptorCast
@@ -88,8 +43,8 @@ using NoCast = InfoAcceptorCast<T, T>;
 template<typename T>
 using AutoEnumCast = InfoAcceptorCast<T, typename std::underlying_type<T>::type>;
 
-template<typename ParamT, typename ObjT>
-using CreateObjCast = InfoAcceptorCast<ParamT, ObjT, true>;
+template<typename ObjT, typename WrapperT>
+using CreateObjCast = InfoAcceptorCast<ObjT, WrapperT, true>;
 
 template<typename Enum, typename Target = typename Bitfield<Enum>::T>
 using EnumBitfieldCast = InfoAcceptorCast<Bitfield<Enum>, Target, false, true>;
@@ -134,12 +89,81 @@ InfoAcceptorResult GenericInfoAcceptor(v8::Isolate *isolate,
                                        gl::RenderHostSlotCallbackInfo& info)
 {
     size_t i = 0;
-    InfoAcceptorResult::value_type result{
+    InfoAcceptorResult result{
         acceptor_traits::ConvertGeneric<ArgsT>(isolate, info, i++)...
     };
 
-    return std::move(result);
+    return result;
 }
+
+struct SignalEventInfo
+{
+    const char *name;
+    uint32_t signum;
+    InfoAcceptor args_converter;
+};
+void DefineSignalEventsOnEventEmitter(EventEmitterBase *this_,
+                                      const std::shared_ptr<gl::RenderClientObject>& handle,
+                                      const std::vector<SignalEventInfo>& info_vec);
+
+
+struct PromisifiedRemoteCall
+{
+    static void ResultCallback(gl::RenderHostCallbackInfo& info);
+
+    template<typename...ArgsT>
+    static v8::Local<v8::Promise> Call(v8::Isolate *isolate,
+                                       const std::shared_ptr<gl::RenderClientObject>& handle,
+                                       InvokeResultConverter result_converter,
+                                       gl::RenderClientObject::OpCode opcode,
+                                       ArgsT&&...args)
+    {
+        v8::Local<v8::Context> context = isolate->GetCurrentContext();
+        auto resolver = v8::Promise::Resolver::New(context).ToLocalChecked();
+
+        auto closure = std::make_shared<PromisifiedRemoteCall>();
+        closure->isolate = isolate;
+        closure->result_converter = std::move(result_converter);
+        closure->resolver.Reset(isolate, resolver);
+
+        handle->Invoke(opcode, closure, ResultCallback, std::forward<ArgsT>(args)...);
+        return resolver->GetPromise();
+    }
+
+    template<typename T>
+    static v8::Local<v8::Value> GenericConvert(v8::Isolate *isolate,
+                                               gl::RenderHostCallbackInfo& info)
+    {
+        if constexpr (T::extract_value)
+        {
+            static_assert(T::real_type::kHasExtractValue,
+                          "Class must have signature CO_CLASS_HAS_EXTRACT_VALUE");
+            static_assert(!T::create_obj, "Illegal usage of InfoAcceptorCast<...>");
+            return binder::to_v8(isolate, static_cast<typename T::cast_type>(
+                    info.GetReturnValue<typename T::real_type>().value()));
+        }
+        else if constexpr (T::create_obj)
+        {
+            return binder::NewObject<typename T::cast_type>(
+                    isolate, info.GetReturnValue<typename T::real_type>());
+        }
+        else if constexpr (std::is_same<typename T::real_type, typename T::cast_type>::value)
+        {
+            return binder::to_v8(
+                    isolate, info.GetReturnValue<typename T::real_type>());
+        }
+        else
+        {
+            return binder::to_v8(
+                isolate, static_cast<typename T::cast_type>(
+                    info.GetReturnValue<typename T::real_type>()));
+        }
+    }
+
+    v8::Isolate                      *isolate;
+    InvokeResultConverter             result_converter;
+    v8::Global<v8::Promise::Resolver> resolver;
+};
 
 GALLIUM_BINDINGS_GLAMOR_NS_END
 #endif //COCOA_GALLIUM_BINDINGS_GLAMOR_PROMISEHELPER_H

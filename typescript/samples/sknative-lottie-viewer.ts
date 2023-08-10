@@ -36,17 +36,16 @@ GL.RenderHost.Initialize({
 let display = await GL.RenderHost.Connect();
 let surface = await display.createHWComposeSurface(WINDOW_WIDTH, WINDOW_HEIGHT);
 
-surface.connect('closed', () => {
+surface.addOnceListener('closed', () => {
     display.close();
 });
 
-display.connect('closed', GL.RenderHost.Dispose);
+display.addOnceListener('closed', GL.RenderHost.Dispose);
 
 surface.setTitle('Lottie Viewer');
 
 let blender = await surface.createBlender();
 
-let frameSlotConnect = 0;
 function playLottie(file: string) {
     const animation = new Lottie.AnimationBuilder(0)
         .makeFromFile(file);
@@ -74,14 +73,14 @@ function playLottie(file: string) {
         blender.update(scene).then(() => { scene.dispose(); });
     }
 
-    frameSlotConnect = surface.connect('frame', drawFrame);
+    surface.addOnceListener('close', () => {
+        surface.removeListener('frame', drawFrame);
+        blender.dispose();
+        surface.close();
+    });
+
+    surface.addListener('frame', drawFrame);
     surface.requestNextFrame();
 }
-
-surface.connect('close', () => {
-    surface.disconnect(frameSlotConnect);
-    blender.dispose();
-    surface.close();
-});
 
 playLottie(std.args[0]);

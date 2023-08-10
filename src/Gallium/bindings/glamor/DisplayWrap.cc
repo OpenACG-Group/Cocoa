@@ -15,6 +15,8 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <utility>
+
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/PromiseHelper.h"
 
@@ -22,40 +24,44 @@
 #include "Glamor/Monitor.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-DisplayWrap::DisplayWrap(gl::Shared<gl::RenderClientObject> object)
-    : RenderClientObjectWrap(std::move(object))
-    , PreventGCObject(v8::Isolate::GetCurrent())
+DisplayWrap::DisplayWrap(gl::Shared<gl::RenderClientObject> handle)
+    : PreventGCObject(v8::Isolate::GetCurrent())
+    , handle_(std::move(handle))
 {
-    DefineSignal("closed", GLSI_DISPLAY_CLOSED, nullptr);
-    DefineSignal("monitor-added", GLSI_DISPLAY_MONITOR_ADDED,
-                 [this](v8::Isolate *i, gl::RenderHostSlotCallbackInfo &info) -> InfoAcceptorResult {
-                     v8::HandleScope scope(i);
-                     auto monitor = info.Get<gl::Shared<gl::Monitor>>(0);
-
-                     v8::Local<v8::Object> result = binder::NewObject<MonitorWrap>(i, monitor);
-                     this->monitor_objects_map_[monitor].Reset(i, result);
-
-                     return {std::vector<v8::Local<v8::Value>>{result}};
-                 });
-    DefineSignal("monitor-removed", GLSI_DISPLAY_MONITOR_REMOVED,
-                 [this](v8::Isolate *i, gl::RenderHostSlotCallbackInfo &info) -> InfoAcceptorResult {
-                     v8::HandleScope scope(i);
-                     auto monitor = info.Get<gl::Shared<gl::Monitor>>(0);
-
-                     v8::Local<v8::Object> result;
-                     if (LIKELY(this->monitor_objects_map_.count(monitor) > 0)) {
-                         result = this->monitor_objects_map_[monitor].Get(i);
-                         this->monitor_objects_map_.erase(monitor);
-                     } else {
-                         // If `monitor` has no corresponding JavaScript instance in V8,
-                         // we should create one as a temporary object.
-                         // It is always safe to retain an instance of `Monitor` after `monitor-removed`
-                         // signal is emitted as `Monitor` itself does not keep any GLAMOR resources.
-                         result = binder::NewObject<MonitorWrap>(i, monitor);
-                     }
-
-                     return {std::vector<v8::Local<v8::Value>>{result}};
-                 });
+    DefineSignalEventsOnEventEmitter(this, handle_, {
+        { "closed", GLSI_DISPLAY_CLOSED },
+        {
+            "monitor-added",
+            GLSI_DISPLAY_MONITOR_ADDED,
+            [this](v8::Isolate *i, gl::RenderHostSlotCallbackInfo &info) {
+                v8::HandleScope scope(i);
+                auto monitor = info.Get<gl::Shared<gl::Monitor>>(0);
+                v8::Local<v8::Object> result = binder::NewObject<MonitorWrap>(i, monitor);
+                this->monitor_objects_map_[monitor].Reset(i, result);
+                return std::vector<v8::Local<v8::Value>>{result};
+            }
+        },
+        {
+            "monitor-removed",
+            GLSI_DISPLAY_MONITOR_REMOVED,
+            [this](v8::Isolate *i, gl::RenderHostSlotCallbackInfo &info) {
+                v8::HandleScope scope(i);
+                auto monitor = info.Get<gl::Shared<gl::Monitor>>(0);
+                v8::Local<v8::Object> result;
+                if (LIKELY(this->monitor_objects_map_.count(monitor) > 0)) {
+                    result = this->monitor_objects_map_[monitor].Get(i);
+                    this->monitor_objects_map_.erase(monitor);
+                } else {
+                    // If `monitor` has no corresponding JavaScript instance in V8,
+                    // we should create one as a temporary object.
+                    // It is always safe to retain an instance of `Monitor` after `monitor-removed`
+                    // signal is emitted as `Monitor` itself does not keep any GLAMOR resources.
+                    result = binder::NewObject<MonitorWrap>(i, monitor);
+                }
+                return std::vector<v8::Local<v8::Value>>{result};
+            }
+        }
+    });
 }
 
 DisplayWrap::~DisplayWrap() = default;
@@ -63,97 +69,91 @@ DisplayWrap::~DisplayWrap() = default;
 v8::Local<v8::Value> DisplayWrap::close()
 {
     markCanBeGarbageCollected();
-
-    auto closure = PromiseClosure::New(v8::Isolate::GetCurrent(), nullptr);
-    GetObject()->Invoke(GLOP_DISPLAY_CLOSE,
-                        closure,
-                        PromiseClosure::HostCallback);
-    return closure->getPromise();
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    return PromisifiedRemoteCall::Call(isolate, handle_, {}, GLOP_DISPLAY_CLOSE);
 }
 
 namespace {
 
-v8::Local<v8::Value> create_surface_invoke(const gl::Shared<gl::RenderClientObject>& display,
-                                           bool hwCompose,
-                                           v8::Isolate *isolate, int32_t width, int32_t height)
+v8::Local<v8::Value> create_surface_invoke(DisplayWrap *wrap,
+                                           const gl::Shared<gl::RenderClientObject>& display,
+                                           bool hw_compose,
+                                           int32_t width, int32_t height)
 {
     if (width <= 0 || height <= 0)
         g_throw(RangeError, "Surface width and height must be positive integers");
 
-    using Sp = gl::Shared<gl::RenderClientObject>;
-    auto closure = PromiseClosure::New(isolate,
-                                       PromiseClosure::CreateObjectConverter<SurfaceWrap, Sp>);
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    auto self_sp = std::make_shared<v8::Global<v8::Object>>(
+            isolate, wrap->GetObjectWeakReference().Get(isolate));
 
-    // TODO: Select a appropriate color format
-    display->Invoke(hwCompose ? GLOP_DISPLAY_CREATE_HW_COMPOSE_SURFACE : GLOP_DISPLAY_CREATE_RASTER_SURFACE,
-                    closure,
-                    PromiseClosure::HostCallback,
-                    width, height, SkColorType::kBGRA_8888_SkColorType);
+    // TODO(sora): Select a appropriate color format
 
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(
+            isolate, display,
+            [self_sp](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
+                auto surface = info.GetReturnValue<std::shared_ptr<gl::RenderClientObject>>();
+                return binder::NewObject<SurfaceWrap>(i, surface, self_sp->Get(i));
+            },
+            hw_compose ? GLOP_DISPLAY_CREATE_HW_COMPOSE_SURFACE
+                       : GLOP_DISPLAY_CREATE_RASTER_SURFACE,
+            width,
+            height,
+            SkColorType::kBGRA_8888_SkColorType
+    );
 }
 
 } // namespace anonymous
 
 v8::Local<v8::Value> DisplayWrap::createRasterSurface(int32_t width, int32_t height)
 {
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return create_surface_invoke(GetObject(), false, isolate, width, height);
+    return create_surface_invoke(this, handle_, false, width, height);
 }
 
 v8::Local<v8::Value> DisplayWrap::createHWComposeSurface(int32_t width, int32_t height)
 {
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return create_surface_invoke(GetObject(), true, isolate, width, height);
+    return create_surface_invoke(this, handle_, true, width, height);
 }
 
 v8::Local<v8::Value> DisplayWrap::requestMonitorList()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    auto closure = PromiseClosure::New(isolate, [this](v8::Isolate *i,
-            gl::RenderHostCallbackInfo& info) -> v8::Local<v8::Value> {
-        // Receive responded monitor objects and add them to local `monitor_objects_map_`
-        v8::EscapableHandleScope scope(i);
+    auto self_sp = std::make_shared<v8::Global<v8::Object>>(
+            isolate, GetObjectWeakReference().Get(isolate));
 
-        auto list = info.GetReturnValue<gl::Display::MonitorList>();
-        std::vector<v8::Local<v8::Object>> objects;
-
-        for (const auto& monitor : list)
-        {
-            CHECK(monitor);
-            v8::Local<v8::Object> monitor_obj;
-
-            if (this->monitor_objects_map_.count(monitor) == 0)
-            {
-                monitor_obj = binder::NewObject<MonitorWrap>(i, monitor);
-                this->monitor_objects_map_[monitor].Reset(i, monitor_obj);
-            }
-            else
-            {
-                monitor_obj = monitor_objects_map_[monitor].Get(i);
-            }
-
-            objects.push_back(monitor_obj);
-        }
-
-        return scope.Escape(binder::to_v8(i, objects));
-    });
-
-    GetObject()->Invoke(GLOP_DISPLAY_REQUEST_MONITOR_LIST, closure, PromiseClosure::HostCallback);
-
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(
+            isolate,
+            handle_,
+            [self_sp, this](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
+                auto list = info.GetReturnValue<gl::Display::MonitorList>();
+                std::vector<v8::Local<v8::Object>> objects;
+                for (const auto& monitor : list)
+                {
+                    CHECK(monitor);
+                    v8::Local<v8::Object> monitor_obj;
+                    if (this->monitor_objects_map_.count(monitor) == 0)
+                    {
+                        monitor_obj = binder::NewObject<MonitorWrap>(i, monitor);
+                        this->monitor_objects_map_[monitor].Reset(i, monitor_obj);
+                    }
+                    else
+                        monitor_obj = monitor_objects_map_[monitor].Get(i);
+                    objects.push_back(monitor_obj);
+                }
+                return binder::to_v8(i, objects);
+            },
+            GLOP_DISPLAY_REQUEST_MONITOR_LIST
+    );
 }
 
 v8::Local<v8::Value> DisplayWrap::loadCursorTheme(const std::string& name, int size)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    using W = CursorThemeWrap;
-    using T = gl::Shared<gl::CursorTheme>;
-    auto closure = PromiseClosure::New(isolate, PromiseClosure::CreateObjectConverter<W, T>);
-    GetObject()->Invoke(GLOP_DISPLAY_LOAD_CURSOR_THEME, closure,
-                        PromiseClosure::HostCallback, name, size);
-    return closure->getPromise();
+    using ObjCast = CreateObjCast<std::shared_ptr<gl::CursorTheme>, CursorThemeWrap>;
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, PromisifiedRemoteCall::GenericConvert<ObjCast>,
+            GLOP_DISPLAY_LOAD_CURSOR_THEME, name, size);
 }
 
 v8::Local<v8::Value> DisplayWrap::createCursor(v8::Local<v8::Value> bitmap, int hotspotX, int hotspotY)
@@ -165,14 +165,11 @@ v8::Local<v8::Value> DisplayWrap::createCursor(v8::Local<v8::Value> bitmap, int 
         g_throw(TypeError, "Argument \'bitmap\' must be an instance of CkBitmap");
 
     auto bitmap_extracted = std::make_shared<SkBitmap>(unwrapped->getBitmap());
-    using W = CursorWrap;
-    using T = gl::Shared<gl::Cursor>;
-    auto closure = PromiseClosure::New(isolate, PromiseClosure::CreateObjectConverter<W, T>);
-    GetObject()->Invoke(GLOP_DISPLAY_CREATE_CURSOR, closure,
-                        PromiseClosure::HostCallback, bitmap_extracted,
-                        hotspotX, hotspotY);
-
-    return closure->getPromise();
+    using ObjCast = CreateObjCast<std::shared_ptr<gl::Cursor>, CursorWrap>;
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, PromisifiedRemoteCall::GenericConvert<ObjCast>,
+            GLOP_DISPLAY_CREATE_CURSOR,
+            bitmap_extracted, hotspotX, hotspotY);
 }
 
 v8::Local<v8::Value> DisplayWrap::getDefaultCursorTheme()
@@ -181,7 +178,7 @@ v8::Local<v8::Value> DisplayWrap::getDefaultCursorTheme()
     if (!default_cursor_theme_.IsEmpty())
         return default_cursor_theme_.Get(isolate);
 
-    auto theme = GetObject()->As<gl::Display>()->GetDefaultCursorTheme();
+    auto theme = handle_->As<gl::Display>()->GetDefaultCursorTheme();
     CHECK(theme);
 
     auto obj = binder::NewObject<CursorThemeWrap>(isolate, theme);
@@ -190,9 +187,9 @@ v8::Local<v8::Value> DisplayWrap::getDefaultCursorTheme()
     return obj;
 }
 
-v8::Local<v8::Object> DisplayWrap::OnGetThisObject(v8::Isolate *isolate)
+v8::Local<v8::Object> DisplayWrap::OnGetObjectSelf(v8::Isolate *isolate)
 {
-    return binder::FindObjectRawPtr(v8::Isolate::GetCurrent(), this);
+    return GetObjectWeakReference().Get(isolate);
 }
 
 namespace {
@@ -201,7 +198,7 @@ InfoAcceptorResult monitor_property_set_transcription(v8::Isolate *isolate,
                                                       gl::RenderHostSlotCallbackInfo& info)
 {
     auto props = info.Get<gl::Shared<gl::Monitor::PropertySet>>(0);
-    std::map<std::string_view, v8::Local<v8::Value>> fields_map = {
+    std::unordered_map<std::string_view, v8::Local<v8::Value>> fields_map{
         { "logicalX", binder::to_v8(isolate, props->logical_position.x()) },
         { "logicalY", binder::to_v8(isolate, props->logical_position.y()) },
         { "subpixel", binder::to_v8(isolate, static_cast<uint32_t>(props->subpixel)) },
@@ -217,32 +214,31 @@ InfoAcceptorResult monitor_property_set_transcription(v8::Isolate *isolate,
         { "description", binder::to_v8(isolate, props->description) }
     };
 
-    std::vector<v8::Local<v8::Value>> result{binder::to_v8(isolate, fields_map)};
-    return std::move(result);
+    return std::vector<v8::Local<v8::Value>>{binder::to_v8(isolate, fields_map)};
 }
 
 } // namespace anonymous
 
-MonitorWrap::MonitorWrap(gl::Shared<gl::RenderClientObject> object)
-    : RenderClientObjectWrap(std::move(object))
+MonitorWrap::MonitorWrap(gl::Shared<gl::RenderClientObject> handle)
+    : handle_(std::move(handle))
 {
-    DefineSignal("properties-changed", GLSI_MONITOR_PROPERTIES_CHANGED, monitor_property_set_transcription);
-    DefineSignal("detached", GLSI_MONITOR_DETACHED, {});
+    DefineSignalEventsOnEventEmitter(this, handle_, {
+        { "properties-changed",
+          GLSI_MONITOR_PROPERTIES_CHANGED, monitor_property_set_transcription },
+        { "detached", GLSI_MONITOR_DETACHED }
+    });
 }
 
 v8::Local<v8::Value> MonitorWrap::requestPropertySet()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-
-    auto closure = PromiseClosure::New(isolate, nullptr);
-    GetObject()->Invoke(GLOP_MONITOR_REQUEST_PROPERTIES, closure, PromiseClosure::HostCallback);
-
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, {}, GLOP_MONITOR_REQUEST_PROPERTIES);
 }
 
-v8::Local<v8::Object> MonitorWrap::OnGetThisObject(v8::Isolate *isolate)
+v8::Local<v8::Object> MonitorWrap::OnGetObjectSelf(v8::Isolate *isolate)
 {
-    return binder::FindObjectRawPtr(v8::Isolate::GetCurrent(), this);
+    return GetObjectWeakReference().Get(isolate);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

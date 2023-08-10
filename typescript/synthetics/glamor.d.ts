@@ -18,6 +18,8 @@
 import {Buffer} from 'synthetic://core';
 import {VideoBuffer} from 'synthetic://utau';
 
+import { EventEmitterBase } from 'private/base';
+
 /**
  * Error class thrown when an asynchronous operation fails.
  * Promise may be rejected with its instance.
@@ -70,6 +72,10 @@ export interface CkRRect {
     */
    borderRadii: Float32Array | Array<number>;
 }
+
+type TypedArray = Uint8Array | Int8Array | Uint8ClampedArray | Uint16Array | Int16Array
+                | Uint32Array | Int32Array | Float64Array | Float32Array | BigInt64Array
+                | BigUint64Array;
 
 // [x, y]
 export type CkPoint = [number, number];
@@ -192,58 +198,22 @@ export class RenderHost {
     public static CollectCriticalSharedResources(): void;
 }
 
-// A unique number to identify a signal slot.
-type SlotID = number;
-
-/**
- * `RenderClientObject` is the base class of other classes that support
- * asynchronous method call and signal mechanism.
- */
-export class RenderClientObject {
-    /**
-     * Connect a certain callback function (slot) to the specified signal.
-     * The callback function will be fired in the event loop when the signal
-     * is emitted (by rendering thread or current thread).
-     * Note that when there are multiple slots connect to the same signal,
-     * the order where the callback functions are called is unreliable,
-     * so the caller should assume that they are called in random order.
-     * 
-     * @param signal Name of the signal to connect to.
-     * @param slot A callback function.
-     * @return Slot ID, a unique number within the scope of this object which represents
-     *         the created connection (slot). It can be used with `disconnect` to disconnect
-     *         the slot.
-     */
-    public connect(signal: string, slot: Function): SlotID;
-
-    /**
-     * Disconnect the specified slot with its signal. The corresponding
-     * callback function will not be called anymore.
-     * 
-     * @param id A unique ID returned by `connect` method.
-     */
-    public disconnect(id: SlotID): void;
-
-    /* Experimental interface. Undocumented. */
-    public inspectObject(): object;
-}
-
 /**
  * An abstracted interface for system's display server (like Wayland, X11, etc.).
  * 
- * @signal [closed] Emitted when the display is closed.
- *         Prototype: () -> void
+ * @event [closed] Emitted when the display is closed.
+ *        Prototype: () -> void
  * 
- * @signal [monitor-added] Emitted when a new monitor was plugged into the system.
- *                         Note that the monitors that have existed in the system when the
- *                         display object is created will not cause this signal to be emitted.
- *         Prototype: (monitor: Monitor) -> void
+ * @event [monitor-added] Emitted when a new monitor was plugged into the system.
+ *                        Note that the monitors that have existed in the system when the
+ *                        display object is created will not cause this signal to be emitted.
+ *        Prototype: (monitor: Monitor) -> void
  * 
- * @signal [monitor-removed] Emitted when an existing monitor was removed.
- *                           The corresponding `Monitor` object will also be notified by `detached` signal.
- *         Prototype: (monitor: Monitor) -> void
+ * @event [monitor-removed] Emitted when an existing monitor was removed.
+ *                          The corresponding `Monitor` object will also be notified by `detached` signal.
+ *        Prototype: (monitor: Monitor) -> void
  */
-export class Display extends RenderClientObject {
+export class Display extends EventEmitterBase {
     /**
      * Close the display. This method should not be called for multiple times.
      * Signal `closed` will be emitted when the display is actually closed.
@@ -288,12 +258,12 @@ export class Display extends RenderClientObject {
     public createCursor(bitmap: CkBitmap, hotspotX: number, hotspotY: number): Promise<Cursor>;
 }
 
-export class CursorTheme extends RenderClientObject {
+export class CursorTheme {
     public dispose(): Promise<void>;
     public loadCursorFromName(name: string): Promise<Cursor>;
 }
 
-export class Cursor extends RenderClientObject {
+export class Cursor {
     public dispose(): Promise<void>;
     public getHotspotVector(): Promise<{x: number, y: number}>;
 }
@@ -320,34 +290,17 @@ export interface MonitorPropertySet {
 /**
  * Monitor connected to the system.
  * 
- * @signal [properties-changed] Notify that the properties of the Monitor has changed.
- *                              New properties are provided as an argument of the signal.
- *                              It also can be triggered by call `requestPropertySet` manually.
- *         Prototype: (properties: MonitorPropertySet) -> void
+ * @event [properties-changed] Notify that the properties of the Monitor has changed.
+ *                             New properties are provided as an argument of the signal.
+ *                             It also can be triggered by call `requestPropertySet` manually.
+ *        Prototype: (properties: MonitorPropertySet) -> void
  * 
- * @signal [detached] Monitor has been detached from the `Display` object,
- *                    which means the corresponding physical monitor has been removed from
- *                    the system or disabled.
- *         Prototype: () -> void
+ * @event [detached] Monitor has been detached from the `Display` object,
+ *                   which means the corresponding physical monitor has been removed from
+ *                   the system or disabled.
+ *        Prototype: () -> void
  */
-export class Monitor extends RenderClientObject {
-    static readonly SUBPIXEL_UNKNOWN: MonitorSubpixel;
-    static readonly SUBPIXEL_NONE: MonitorSubpixel;
-    static readonly SUBPIXEL_HORIZONTAL_RGB: MonitorSubpixel;
-    static readonly SUBPIXEL_HORIZONTAL_BGR: MonitorSubpixel;
-    static readonly SUBPIXEL_VERTICAL_RGB: MonitorSubpixel;
-    static readonly SUBPIXEL_VERTICAL_BGR: MonitorSubpixel;
-    static readonly TRANSFORM_NORMAL: MonitorTransform;
-    static readonly TRANSFORM_ROTATE_90: MonitorTransform;
-    static readonly TRANSFORM_ROTATE_180: MonitorTransform;
-    static readonly TRANSFORM_ROTATE_270: MonitorTransform;
-    static readonly TRANSFORM_FLIPPED: MonitorTransform;
-    static readonly TRANSFORM_FLIPPED_90: MonitorTransform;
-    static readonly TRANSFORM_FLIPPED_180: MonitorTransform;
-    static readonly TRANSFORM_FLIPPED_270: MonitorTransform;
-    static readonly MODE_CURRENT: MonitorMode;
-    static readonly MODE_PREFERRED: MonitorMode;
-
+export class Monitor extends EventEmitterBase {
     /**
      * Get a set of monitor's properties.
      * Promise returned by the function will be resolved when the rendering thread
@@ -363,58 +316,46 @@ export class Monitor extends RenderClientObject {
  * a `Blender` object, which provides methods for rendering and frame scheduling,
  * should be associated with the `Surface` object.
  * 
- * @signal [closed] Emitted when the window has been closed.
- *                  Prototype: () -> void
- * 
- * @signal [resize] Emitted when the window has been resized.
- *                  Prototype: (width: number, height: number) -> void
- * 
- * @signal [configure] Emitted when the Window Manager notified us that the window
- *                     should be reconfigured (resize, move, etc.)
- *                  Prototype: (width: number, height: number, state: ToplevelStates) -> void
- * 
- * @signal [frame] Emitted when it is a good time to start submitting a new frame.
- *                 This signal is related to the VSync mechanism where the system will
- *                 notify us when the monitor will refresh for next frame.
- *                 There are two ways to schedule this signal: call `Surface.requestNextFrame`
- *                 explicitly or call `Blender.update`, which also calls `requestNextFrame` implicitly.
+ * @event [closed] Emitted when the window has been closed.
  *                 Prototype: () -> void
  * 
- * @signal [pointer-hovering] Emitted when the pointer device enters or leaves the window area.
- *                            Prototype: (enter: boolean) -> void
+ * @event [resize] Emitted when the window has been resized.
+ *                 Prototype: (width: number, height: number) -> void
  * 
- * @signal [pointer-motion] Emitted when a pointer moves on the window.
- *                          Prototype: (double x, double y) -> void
+ * @event [configure] Emitted when the Window Manager notified us that the window
+ *                    should be reconfigured (resize, move, etc.)
+ *                    Prototype: (width: number, height: number, state: ToplevelStates) -> void
  * 
- * @signal [pointer-button] Emitted when a button of pointer device is pressed or released.
- *                          Prototype: (button: PointerButton, pressed: boolean) -> void
+ * @event [frame] Emitted when it is a good time to start submitting a new frame.
+ *                This signal is related to the VSync mechanism where the system will
+ *                notify us when the monitor will refresh for next frame.
+ *                There are two ways to schedule this signal: call `Surface.requestNextFrame`
+ *                explicitly or call `Blender.update`, which also calls `requestNextFrame` implicitly.
+ *                Prototype: () -> void
+ * 
+ * @event [pointer-hovering] Emitted when the pointer device enters or leaves the window area.
+ *                           Prototype: (enter: boolean) -> void
+ * 
+ * @event [pointer-motion] Emitted when a pointer moves on the window.
+ *                         Prototype: (double x, double y) -> void
+ * 
+ * @event [pointer-button] Emitted when a button of pointer device is pressed or released.
+ *                         Prototype: (button: PointerButton, pressed: boolean) -> void
  *
- * @signal [pointer-axis] <Undocumented>
- *                        Prototype: (sourceType: PointerAxisSource, dx: number, dy: number) -> void
+ * @event [pointer-axis] <Undocumented>
+ *                       Prototype: (sourceType: PointerAxisSource, dx: number, dy: number) -> void
  *
  *
- * @signal [pointer-highres-scroll] <Undocumented>
- *                                  Prototype: (sourceType: PointerAxisSource, dx: number, dy: number) -> void
+ * @event [pointer-highres-scroll] <Undocumented>
+ *                                 Prototype: (sourceType: PointerAxisSource, dx: number, dy: number) -> void
  *
- * @signal [keyboard-focus] <Undocumented>
- *                          Prototype: (focused: boolean) -> void
+ * @event [keyboard-focus] <Undocumented>
+ *                         Prototype: (focused: boolean) -> void
  *
- * @signal [keyboard-key] <Undocumented>
- *                        Prototype: (key: KeyboardKey, modifiers: KeyboardModifiers, pressed: boolean) -> void
+ * @event [keyboard-key] <Undocumented>
+ *                       Prototype: (key: KeyboardKey, modifiers: KeyboardModifiers, pressed: boolean) -> void
  */
-
-export type TopLevelStates = number;
-export class Surface extends RenderClientObject {
-    // ToplevelStates
-    static readonly TOPLEVEL_MAXIMIZED: number;
-    static readonly TOPLEVEL_FULLSCREEN: number;
-    static readonly TOPLEVEL_RESIZING: number;
-    static readonly TOPLEVEL_ACTIVATED: number;
-    static readonly TOPLEVEL_TILED_LEFT: number;
-    static readonly TOPLEVEL_TILED_RIGHT: number;
-    static readonly TOPLEVEL_TILED_TOP: number;
-    static readonly TOPLEVEL_TILED_BOTTOM: number;
-
+export class Surface extends EventEmitterBase {
     /* Window width in pixels. */
     public readonly width: number;
     /* Window height in pixels. */
@@ -581,16 +522,16 @@ type TextureId = number;
  * implicitly. See `Surface.createBlender` for more details about
  * creating a Blender.
  *
- * @signal [picture-captured] A captured Picture of current frame has been delivered
- *                            from rendering thread. The serial number corresponds with the
- *                            number returned by `captureNextFrameAsPicture`.
- *                            Prototype: (pict: CriticalPicture, serial: number) -> void
+ * @event [picture-captured] A captured Picture of current frame has been delivered
+ *                           from rendering thread. The serial number corresponds with the
+ *                           number returned by `captureNextFrameAsPicture`.
+ *                           Prototype: (pict: CriticalPicture, serial: number) -> void
  *
- * @signal [<dynamic: texture deletion>] A texture has been deleted. Name of the signal
- *                                       is specified by user.
- *                                       Prototype: () -> void
+ * @event [<dynamic: texture deletion>] A texture has been deleted. Name of the signal
+ *                                      is specified by user.
+ *                                      Prototype: () -> void
  */
-export class Blender extends RenderClientObject {
+export class Blender extends EventEmitterBase {
     public readonly profiler: GProfiler | null;
 
     public dispose(): Promise<void>;
@@ -731,6 +672,7 @@ export type RuntimeEffectUniformFlag = number;
 export type RuntimeEffectChildType = number;
 export type VerticesVertexMode = number;
 export type CkSurfaceContentChangeMode = number;
+export type ToplevelStates = number;
 
 interface Constants {
     readonly CAPABILITY_HWCOMPOSE_ENABLED: Capability;
@@ -1069,6 +1011,32 @@ interface Constants {
     readonly KEY_RIGHT_ALT: KeyboardKey;
     readonly KEY_RIGHT_SUPER: KeyboardKey;
     readonly KEY_MENU: KeyboardKey;
+
+    readonly MONITOR_SUBPIXEL_UNKNOWN: MonitorSubpixel;
+    readonly MONITOR_SUBPIXEL_NONE: MonitorSubpixel;
+    readonly MONITOR_SUBPIXEL_HORIZONTAL_RGB: MonitorSubpixel;
+    readonly MONITOR_SUBPIXEL_HORIZONTAL_BGR: MonitorSubpixel;
+    readonly MONITOR_SUBPIXEL_VERTICAL_RGB: MonitorSubpixel;
+    readonly MONITOR_SUBPIXEL_VERTICAL_BGR: MonitorSubpixel;
+    readonly MONITOR_TRANSFORM_NORMAL: MonitorTransform;
+    readonly MONITOR_TRANSFORM_ROTATE_90: MonitorTransform;
+    readonly MONITOR_TRANSFORM_ROTATE_180: MonitorTransform;
+    readonly MONITOR_TRANSFORM_ROTATE_270: MonitorTransform;
+    readonly MONITOR_TRANSFORM_FLIPPED: MonitorTransform;
+    readonly MONITOR_TRANSFORM_FLIPPED_90: MonitorTransform;
+    readonly MONITOR_TRANSFORM_FLIPPED_180: MonitorTransform;
+    readonly MONITOR_TRANSFORM_FLIPPED_270: MonitorTransform;
+    readonly MONITOR_MODE_CURRENT: MonitorMode;
+    readonly MONITOR_MODE_PREFERRED: MonitorMode;
+
+    readonly SURFACE_TOPLEVEL_MAXIMIZED: ToplevelStates;
+    readonly SURFACE_TOPLEVEL_FULLSCREEN: ToplevelStates;
+    readonly SURFACE_TOPLEVEL_RESIZING: ToplevelStates;
+    readonly SURFACE_TOPLEVEL_ACTIVATED: ToplevelStates;
+    readonly SURFACE_TOPLEVEL_TILED_LEFT: ToplevelStates;
+    readonly SURFACE_TOPLEVEL_TILED_RIGHT: ToplevelStates;
+    readonly SURFACE_TOPLEVEL_TILED_TOP: ToplevelStates;
+    readonly SURFACE_TOPLEVEL_TILED_BOTTOM: ToplevelStates;
 }
 
 export declare let Constants: Constants;
@@ -1566,10 +1534,10 @@ export class CkImage {
 }
 
 export class CkPicture {
-    public static MakeFromData(buffer: Buffer): CkPicture;
+    public static MakeFromData(buffer: TypedArray): CkPicture;
     public static MakeFromFile(path: string): CkPicture;
 
-    public serialize(): Buffer;
+    public serialize(): ArrayBuffer;
     public approximateOpCount(nested: boolean): number;
     public approximateByteUsed(): number;
     public uniqueId(): number;
@@ -1586,7 +1554,7 @@ export class CkPictureRecorder {
 export class CriticalPicture {
     private constructor();
     public sanitize(): Promise<CkPicture>;
-    public serialize(): Promise<Buffer>;
+    public serialize(): Promise<ArrayBuffer>;
     public discardOwnership(): void;
     public setCollectionCallback(F: () => void): void;
 }

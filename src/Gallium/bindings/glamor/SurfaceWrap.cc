@@ -26,141 +26,140 @@
 #include "Glamor/Cursor.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-SurfaceWrap::SurfaceWrap(gl::Shared<gl::RenderClientObject> object)
-    : RenderClientObjectWrap(std::move(object))
+SurfaceWrap::SurfaceWrap(gl::Shared<gl::RenderClientObject> handle,
+                         v8::Local<v8::Object> display)
+    : handle_(std::move(handle))
+    , display_wrapped_(v8::Isolate::GetCurrent(), display)
 {
-    DefineSignal("closed", GLSI_SURFACE_CLOSED, nullptr);
-    DefineSignal("resize", GLSI_SURFACE_RESIZE, GenericInfoAcceptor<NoCast<int32_t>, NoCast<int32_t>>);
-    DefineSignal("close", GLSI_SURFACE_CLOSE, nullptr);
-    DefineSignal("configure", GLSI_SURFACE_CONFIGURE,
-                 GenericInfoAcceptor<NoCast<int32_t>, NoCast<int32_t>,
-                         InfoAcceptorCast<Bitfield<gl::ToplevelStates>, uint32_t>>);
-    DefineSignal("frame", GLSI_SURFACE_FRAME, GenericInfoAcceptor<NoCast<uint32_t>>);
-    DefineSignal("pointer-hovering", GLSI_SURFACE_POINTER_HOVERING, GenericInfoAcceptor<NoCast<bool>>);
-    DefineSignal("pointer-motion", GLSI_SURFACE_POINTER_MOTION,
-                 GenericInfoAcceptor<NoCast<double>, NoCast<double>>);
-    DefineSignal("pointer-button", GLSI_SURFACE_POINTER_BUTTON,
-                 GenericInfoAcceptor<AutoEnumCast<gl::PointerButton>, NoCast<bool>>);
-    DefineSignal("pointer-axis", GLSI_SURFACE_POINTER_AXIS,
-                 GenericInfoAcceptor<AutoEnumCast<gl::AxisSourceType>, NoCast<double>, NoCast<double>>);
-    DefineSignal("pointer-highres-scroll", GLSI_SURFACE_POINTER_HIGHRES_SCROLL,
-                 GenericInfoAcceptor<AutoEnumCast<gl::AxisSourceType>, NoCast<int32_t>, NoCast<int32_t>>);
-    DefineSignal("keyboard-focus", GLSI_SURFACE_KEYBOARD_FOCUS,
-                 GenericInfoAcceptor<NoCast<bool>>);
+    DefineSignalEventsOnEventEmitter(this, handle_, {
+        { "closed", GLSI_SURFACE_CLOSED },
+        { "resize", GLSI_SURFACE_RESIZE,
+          GenericInfoAcceptor<NoCast<int32_t>, NoCast<int32_t>> },
+        { "close", GLSI_SURFACE_CLOSE },
+        { "configure", GLSI_SURFACE_CONFIGURE,
+          GenericInfoAcceptor<NoCast<int32_t>,
+                              NoCast<int32_t>,
+                              InfoAcceptorCast<Bitfield<gl::ToplevelStates>, uint32_t>> },
+        { "frame", GLSI_SURFACE_FRAME, GenericInfoAcceptor<NoCast<uint32_t>> },
+        { "pointer-hovering", GLSI_SURFACE_POINTER_HOVERING,
+          GenericInfoAcceptor<NoCast<bool>> },
+        { "pointer-motion", GLSI_SURFACE_POINTER_MOTION,
+          GenericInfoAcceptor<NoCast<double>, NoCast<double>> },
+        { "pointer-button", GLSI_SURFACE_POINTER_BUTTON,
+          GenericInfoAcceptor<AutoEnumCast<gl::PointerButton>, NoCast<bool>> },
+        { "pointer-axis", GLSI_SURFACE_POINTER_AXIS,
+          GenericInfoAcceptor<AutoEnumCast<gl::AxisSourceType>, NoCast<double>, NoCast<double>> },
+        { "pointer-highres-scroll", GLSI_SURFACE_POINTER_HIGHRES_SCROLL,
+          GenericInfoAcceptor<AutoEnumCast<gl::AxisSourceType>, NoCast<int32_t>, NoCast<int32_t>> },
+        { "keyboard-focus", GLSI_SURFACE_KEYBOARD_FOCUS, GenericInfoAcceptor<NoCast<bool>> },
+        { "keyboard-key", GLSI_SURFACE_KEYBOARD_KEY,
+          GenericInfoAcceptor<AutoEnumCast<gl::KeyboardKey>,
+                              EnumBitfieldCast<gl::KeyboardModifiers>,
+                              NoCast<bool>> }
+    });
 
-    DefineSignal("keyboard-key", GLSI_SURFACE_KEYBOARD_KEY,
-                 GenericInfoAcceptor<AutoEnumCast<gl::KeyboardKey>,
-                         EnumBitfieldCast<gl::KeyboardModifiers>,
-                         NoCast<bool>>);
+    using InfoT = gl::RenderHostSlotCallbackInfo;
+    surface_closed_slot_ = handle_->Connect(
+            GLSI_SURFACE_CLOSED, [this](InfoT& info) { display_wrapped_.Reset(); });
 }
 
-SurfaceWrap::~SurfaceWrap() = default;
+SurfaceWrap::~SurfaceWrap()
+{
+    handle_->Disconnect(surface_closed_slot_);
+}
 
 int32_t SurfaceWrap::getWidth()
 {
-    return GetObject()->Cast<gl::Surface>()->GetWidth();
+    return handle_->Cast<gl::Surface>()->GetWidth();
 }
 
 int32_t SurfaceWrap::getHeight()
 {
-    return GetObject()->Cast<gl::Surface>()->GetHeight();
+    return handle_->Cast<gl::Surface>()->GetHeight();
+}
+
+v8::Local<v8::Value> SurfaceWrap::getDisplay()
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (display_wrapped_.IsEmpty())
+        return v8::Null(isolate);
+    return display_wrapped_.Get(isolate);
 }
 
 v8::Local<v8::Value> SurfaceWrap::createBlender()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    using W = BlenderWrap;
-    using T = gl::Shared<gl::Blender>;
-    auto closure = PromiseClosure::New(isolate, PromiseClosure::CreateObjectConverter<W, T>);
-    GetObject()->Invoke(GLOP_SURFACE_CREATE_BLENDER, closure, PromiseClosure::HostCallback);
-    return closure->getPromise();
+    using CreateCast = CreateObjCast<gl::Shared<gl::Blender>, BlenderWrap>;
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_,
+            PromisifiedRemoteCall::GenericConvert<CreateCast>,
+            GLOP_SURFACE_CREATE_BLENDER);
 }
 
 v8::Local<v8::Value> SurfaceWrap::close()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto closure = PromiseClosure::New(isolate, nullptr);
-    GetObject()->Invoke(GLOP_SURFACE_CLOSE, closure, PromiseClosure::HostCallback);
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(isolate, handle_, {}, GLOP_SURFACE_CLOSE);
 }
 
 v8::Local<v8::Value> SurfaceWrap::setTitle(const std::string& str)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto closure = PromiseClosure::New(isolate, nullptr);
-    GetObject()->Invoke(GLOP_SURFACE_SET_TITLE, closure, PromiseClosure::HostCallback, str);
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(isolate, handle_, {},
+                                       GLOP_SURFACE_SET_TITLE, str);
 }
 
 v8::Local<v8::Value> SurfaceWrap::resize(int32_t width, int32_t height)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto closure = PromiseClosure::New(isolate, nullptr);
-
-    GetObject()->Invoke(GLOP_SURFACE_RESIZE, closure, PromiseClosure::HostCallback,
-                        width, height);
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(isolate, handle_, {},
+                                       GLOP_SURFACE_RESIZE, width, height);
 }
 
 v8::Local<v8::Value> SurfaceWrap::getBuffersDescriptor()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    using LV = v8::Local<v8::Value>;
-    auto closure = PromiseClosure::New(isolate,
-        [](v8::Isolate *isolate, gl::RenderHostCallbackInfo& info) -> LV {
-        return binder::to_v8(isolate, info.GetReturnValue<std::string>());
-    });
-
-    GetObject()->Invoke(GLOP_SURFACE_GET_BUFFERS_DESCRIPTOR,
-                        closure, PromiseClosure::HostCallback);
-
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_,
+            PromisifiedRemoteCall::GenericConvert<NoCast<std::string>>,
+            GLOP_SURFACE_GET_BUFFERS_DESCRIPTOR);
 }
 
 v8::Local<v8::Value> SurfaceWrap::requestNextFrame()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    using LV = v8::Local<v8::Value>;
-    auto closure = PromiseClosure::New(isolate,
-        [](v8::Isolate *isolate, gl::RenderHostCallbackInfo& info) -> LV {
-            return binder::to_v8(isolate, info.GetReturnValue<uint32_t>());
-    });
-
-    GetObject()->Invoke(GLOP_SURFACE_REQUEST_NEXT_FRAME, closure, PromiseClosure::HostCallback);
-
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_,
+            PromisifiedRemoteCall::GenericConvert<NoCast<uint32_t>>,
+            GLOP_SURFACE_REQUEST_NEXT_FRAME);
 }
-
-#define IMPL_SET_XXX_SIZE(op, w, h)                                         \
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();                       \
-    auto closure = PromiseClosure::New(isolate, nullptr);                   \
-    GetObject()->Invoke(op, closure, PromiseClosure::HostCallback, w, h);   \
-    return closure->getPromise();
 
 v8::Local<v8::Value> SurfaceWrap::setMinSize(int32_t width, int32_t height)
 {
-    IMPL_SET_XXX_SIZE(GLOP_SURFACE_SET_MIN_SIZE, width, height)
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, {}, GLOP_SURFACE_SET_MIN_SIZE, width, height);
 }
 
 v8::Local<v8::Value> SurfaceWrap::setMaxSize(int32_t width, int32_t height)
 {
-    IMPL_SET_XXX_SIZE(GLOP_SURFACE_SET_MAX_SIZE, width, height)
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, {}, GLOP_SURFACE_SET_MAX_SIZE, width, height);
 }
-
-#define IMPL_SET_BOOLEAN_VALUE(op, value)                                   \
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();                       \
-    auto closure = PromiseClosure::New(isolate, nullptr);                   \
-    GetObject()->Invoke(op, closure, PromiseClosure::HostCallback, value);  \
-    return closure->getPromise();
 
 v8::Local<v8::Value> SurfaceWrap::setMinimized(bool value)
 {
-    IMPL_SET_BOOLEAN_VALUE(GLOP_SURFACE_SET_MINIMIZED, value);
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, {}, GLOP_SURFACE_SET_MINIMIZED, value);
 }
 
 v8::Local<v8::Value> SurfaceWrap::setMaximized(bool value)
 {
-    IMPL_SET_BOOLEAN_VALUE(GLOP_SURFACE_SET_MAXIMIZED, value);
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, {}, GLOP_SURFACE_SET_MAXIMIZED, value);
 }
 
 v8::Local<v8::Value> SurfaceWrap::setFullscreen(bool value, v8::Local<v8::Value> monitor)
@@ -171,7 +170,7 @@ v8::Local<v8::Value> SurfaceWrap::setFullscreen(bool value, v8::Local<v8::Value>
 
     if (!monitor->IsNullOrUndefined())
     {
-        MonitorWrap *unwrapped = binder::UnwrapObject<MonitorWrap>(isolate, monitor);
+        auto *unwrapped = binder::UnwrapObject<MonitorWrap>(isolate, monitor);
         if (!unwrapped)
             g_throw(TypeError, "Argument \'monitor\' must be an instance of Monitor");
     }
@@ -179,34 +178,26 @@ v8::Local<v8::Value> SurfaceWrap::setFullscreen(bool value, v8::Local<v8::Value>
     if (value && !monitor_ptr)
         g_throw(Error, "Argument \'monitor\' must be provided when enter fullscreen state");
 
-    auto closure = PromiseClosure::New(isolate, nullptr);
-    GetObject()->Invoke(GLOP_SURFACE_SET_FULLSCREEN, closure, PromiseClosure::HostCallback,
-                                    value, monitor_ptr);
-
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, {}, GLOP_SURFACE_SET_FULLSCREEN, value, monitor_ptr);
 }
 
 v8::Local<v8::Value> SurfaceWrap::setAttachedCursor(v8::Local<v8::Value> cursor)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    CursorWrap *unwrapped = binder::UnwrapObject<CursorWrap>(isolate, cursor);
-    if (!unwrapped)
+    auto *wrap = binder::UnwrapObject<CursorWrap>(isolate, cursor);
+    if (!wrap)
         g_throw(TypeError, "Argument \'cursor\' must be an instance of Cursor");
 
-    gl::Shared<gl::Cursor> extracted_cursor = unwrapped->GetObject()->As<gl::Cursor>();
-    CHECK(extracted_cursor);
-
-    auto closure = PromiseClosure::New(isolate, nullptr);
-    GetObject()->Invoke(GLOP_SURFACE_SET_ATTACHED_CURSOR, closure,
-                                    PromiseClosure::HostCallback, extracted_cursor);
-
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, {}, GLOP_SURFACE_SET_ATTACHED_CURSOR,
+            wrap->GetCursorHandle());
 }
 
-v8::Local<v8::Object> SurfaceWrap::OnGetThisObject(v8::Isolate *isolate)
+v8::Local<v8::Object> SurfaceWrap::OnGetObjectSelf(v8::Isolate *isolate)
 {
-    return binder::FindObjectRawPtr(v8::Isolate::GetCurrent(), this);
+    return GetObjectWeakReference().Get(isolate);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

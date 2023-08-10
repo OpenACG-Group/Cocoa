@@ -215,14 +215,14 @@ async function main(): Promise<void> {
     });
 
     const display = await gl.RenderHost.Connect();
-    display.connect('closed', () => {
+    display.addOnceListener('closed', () => {
         gl.RenderHost.Dispose();
     });
 
     const window = await display.createRasterSurface(vpWidth, vpHeight);
     await window.setTitle('FFT Drawing');
 
-    window.connect('keyboard-key', (key: gl.KeyboardKey, modifiers: gl.KeyboardModifiers, pressed: boolean) => {
+    window.addListener('keyboard-key', (key: gl.KeyboardKey, modifiers: gl.KeyboardModifiers, pressed: boolean) => {
         if (pressed == true) {
             return;
         }
@@ -249,13 +249,13 @@ async function main(): Promise<void> {
         animationCtx.currentPointInContour = 0;
     });
 
-    window.connect('close', () => {
+    window.addOnceListener('close', () => {
         animationCtx.stop = true;
         blender.dispose();
         window.close();
     });
 
-    window.connect('closed', () => {
+    window.addOnceListener('closed', () => {
         display.close();
     });
 

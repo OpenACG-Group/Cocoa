@@ -82,22 +82,24 @@ MessagePortWrap::MessagePortWrap(std::shared_ptr<MessagePort> port)
                            {}, MessagePortWrapFlattenedData::Transfer)
     , port_(std::move(port))
 {
-    EmitterDefineEvent("Message", [this] {
-        auto emit = EmitterWrapAsCallable("Message");
+    EmitterDefineEvent("message", [this] {
+        auto emit = EmitterWrapAsCallable("message");
         port_->SetReceiveCallback([emit](v8::Local<v8::Value> v) {
             emit({v});
         });
-    }, [this] {
+        return 0;
+    }, [this](uint64_t) {
         port_->SetReceiveCallback({});
     });
 
-    EmitterDefineEvent("Error", [this] {
-        auto emit = EmitterWrapAsCallable("Error");
+    EmitterDefineEvent("error", [this] {
+        auto emit = EmitterWrapAsCallable("error");
         port_->SetErrorCallback([emit](const std::string& err) {
             v8::Isolate *isolate = v8::Isolate::GetCurrent();
             emit({binder::to_v8(isolate, err)});
         });
-    }, [this] {
+        return 0;
+    }, [this](uint64_t) {
         port_->SetErrorCallback({});
     });
 }

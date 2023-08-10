@@ -33,6 +33,8 @@
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/Scene.h"
 #include "Gallium/bindings/glamor/CkFontMgrWrap.h"
+#include "Glamor/Monitor.h"
+#include "Glamor/Surface.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 #define EV(x) static_cast<uint32_t>(x)
@@ -382,7 +384,35 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
         { "KEY_RIGHT_CONTROL", 		EV(KEY::kKey_RIGHT_CONTROL) },
         { "KEY_RIGHT_ALT", 			EV(KEY::kKey_RIGHT_ALT)     },
         { "KEY_RIGHT_SUPER", 		EV(KEY::kKey_RIGHT_SUPER)   },
-        { "KEY_MENU", 				EV(KEY::kKey_MENU)          }
+        { "KEY_MENU", 				EV(KEY::kKey_MENU)          },
+
+        { "MONITOR_SUBPIXEL_UNKNOWN", EV(gl::MonitorSubpixel::kUnknown) },
+        { "MONITOR_SUBPIXEL_NONE", EV(gl::MonitorSubpixel::kNone) },
+        { "MONITOR_SUBPIXEL_HORIZONTAL_RGB", EV(gl::MonitorSubpixel::kHorizontalRGB) },
+        { "MONITOR_SUBPIXEL_HORIZONTAL_BGR", EV(gl::MonitorSubpixel::kHorizontalBGR) },
+        { "MONITOR_SUBPIXEL_VERTICAL_RGB", EV(gl::MonitorSubpixel::kVerticalRGB) },
+        { "MONITOR_SUBPIXEL_VERTICAL_BGR", EV(gl::MonitorSubpixel::kVerticalBGR) },
+
+        { "MONITOR_TRANSFORM_NORMAL", EV(gl::MonitorTransform::kNormal) },
+        { "MONITOR_TRANSFORM_ROTATE_90", EV(gl::MonitorTransform::kRotate90) },
+        { "MONITOR_TRANSFORM_ROTATE_180", EV(gl::MonitorTransform::kRotate180) },
+        { "MONITOR_TRANSFORM_ROTATE_270", EV(gl::MonitorTransform::kRotate270) },
+        { "MONITOR_TRANSFORM_FLIPPED", EV(gl::MonitorTransform::kFlipped) },
+        { "MONITOR_TRANSFORM_FLIPPED_90", EV(gl::MonitorTransform::kFlipped90) },
+        { "MONITOR_TRANSFORM_FLIPPED_180", EV(gl::MonitorTransform::kFlipped180) },
+        { "MONITOR_TRANSFORM_FLIPPED_270", EV(gl::MonitorTransform::kFlipped270) },
+
+        { "MONITOR_MODE_CURRENT", EV(gl::MonitorMode::kCurrent) },
+        { "MONITOR_MODE_PREFERRED", EV(gl::MonitorMode::kPreferred) },
+
+        { "SURFACE_TOPLEVEL_MAXIMIZED", EV(gl::ToplevelStates::kMaximized) },
+        { "SURFACE_TOPLEVEL_FULLSCREEN", EV(gl::ToplevelStates::kFullscreen) },
+        { "SURFACE_TOPLEVEL_ACTIVATED", EV(gl::ToplevelStates::kActivated) },
+        { "SURFACE_TOPLEVEL_TILED_LEFT", EV(gl::ToplevelStates::kTiledLeft) },
+        { "SURFACE_TOPLEVEL_TILED_RIGHT", EV(gl::ToplevelStates::kTiledRight) },
+        { "SURFACE_TOPLEVEL_TILED_TOP", EV(gl::ToplevelStates::kTiledTop) },
+        { "SURFACE_TOPLEVEL_TILED_BOTTOM", EV(gl::ToplevelStates::kTiledBottom) },
+        { "SURFACE_TOPLEVEL_RESIZING", EV(gl::ToplevelStates::kResizing) }
     };
 
     instance->Set(ctx, binder::to_v8(isolate, "Constants"),

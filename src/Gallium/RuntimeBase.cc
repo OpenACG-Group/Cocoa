@@ -264,6 +264,8 @@ void RuntimeBase::Initialize()
     v8::Isolate::Scope isolate_scope(isolate_);
     v8::HandleScope handle_scope(isolate_);
     v8::Context::Scope context_scope(GetContext());
+
+    BindingManager::NotifyIsolateHasCreated(isolate_);
     OnInitialize(isolate_, GetContext());
 
     external_callbacks_.CallGroup(ExternalCallbackType::kAfterRuntimeInitialize);

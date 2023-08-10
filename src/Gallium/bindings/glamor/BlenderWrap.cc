@@ -24,16 +24,18 @@
 #include "Gallium/bindings/glamor/Scene.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-BlenderWrap::BlenderWrap(gl::Shared<gl::RenderClientObject> object)
-    : RenderClientObjectWrap(std::move(object))
+BlenderWrap::BlenderWrap(gl::Shared<gl::RenderClientObject> handle)
+    : handle_(std::move(handle))
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
     using PictCast = CreateObjCast<gl::MaybeGpuObject<SkPicture>, CriticalPictureWrap>;
-    DefineSignal("picture-captured", GLSI_BLENDER_PICTURE_CAPTURED,
-                 GenericInfoAcceptor<PictCast, NoCast<int32_t>>);
+    DefineSignalEventsOnEventEmitter(this, handle_, {
+        { "picture-captured", GLSI_BLENDER_PICTURE_CAPTURED,
+          GenericInfoAcceptor<PictCast, NoCast<int32_t>> }
+    });
 
-    gl::Shared<gl::Blender> blender = GetObject()->As<gl::Blender>();
+    gl::Shared<gl::Blender> blender = handle_->As<gl::Blender>();
     if (blender->GetAttachedProfiler())
     {
         gl::Shared<gl::GProfiler> profiler = blender->GetAttachedProfiler();
@@ -43,38 +45,6 @@ BlenderWrap::BlenderWrap(gl::Shared<gl::RenderClientObject> object)
 }
 
 BlenderWrap::~BlenderWrap() = default;
-
-namespace {
-
-template<typename...ArgsT>
-v8::Local<v8::Value> invoke_void_return(v8::Isolate *isolate,
-                                        uint32_t op,
-                                        RenderClientObjectWrap *wrap,
-                                        ArgsT&&...args)
-{
-    auto closure = PromiseClosure::New(isolate, nullptr);
-    wrap->GetObject()->Invoke(op, closure, PromiseClosure::HostCallback,
-                              std::forward<ArgsT>(args)...);
-    return closure->getPromise();
-}
-
-template<typename Ret, typename...ArgsT>
-v8::Local<v8::Value> invoke_primitive_type_return(v8::Isolate *isolate,
-                                                  uint32_t op,
-                                                  RenderClientObjectWrap *wrap,
-                                                  ArgsT&&...args)
-{
-    auto acceptor = [](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
-        return binder::to_v8(i, info.GetReturnValue<Ret>());
-    };
-
-    auto closure = PromiseClosure::New(isolate, acceptor);
-    wrap->GetObject()->Invoke(op, closure, PromiseClosure::HostCallback,
-                              std::forward<ArgsT>(args)...);
-    return closure->getPromise();
-}
-
-} // namespace anonymous
 
 v8::Local<v8::Value> BlenderWrap::getProfiler()
 {
@@ -87,8 +57,8 @@ v8::Local<v8::Value> BlenderWrap::getProfiler()
 
 v8::Local<v8::Value> BlenderWrap::dispose()
 {
-    return invoke_void_return(v8::Isolate::GetCurrent(),
-                              GLOP_BLENDER_DISPOSE, this);
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    return PromisifiedRemoteCall::Call(isolate, handle_, {}, GLOP_BLENDER_DISPOSE);
 }
 
 v8::Local<v8::Value> BlenderWrap::update(v8::Local<v8::Value> sceneObject)
@@ -97,52 +67,44 @@ v8::Local<v8::Value> BlenderWrap::update(v8::Local<v8::Value> sceneObject)
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    Scene *scene = binder::UnwrapObject<Scene>(isolate, sceneObject);
+    auto *scene = binder::UnwrapObject<Scene>(isolate, sceneObject);
     if (scene == nullptr)
         g_throw(TypeError, "Argument 'scene' must be an instance of Scene");
 
     std::shared_ptr<gl::LayerTree> layer_tree(scene->takeLayerTree());
     CHECK(layer_tree.unique());
 
-    auto closure = PromiseClosure::New(isolate, nullptr);
-    GetObject()->Invoke(GLOP_BLENDER_UPDATE, closure, PromiseClosure::HostCallback, layer_tree);
-
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, {}, GLOP_BLENDER_UPDATE, layer_tree);
 }
 
 v8::Local<v8::Value> BlenderWrap::deleteTexture(int64_t id)
 {
     TRACE_EVENT("main", "BlenderWrap::deleteTexture");
-
-    return invoke_void_return(v8::Isolate::GetCurrent(),
-                              GLOP_BLENDER_DELETE_TEXTURE,
-                              this,
-                              id);
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, {}, GLOP_BLENDER_DELETE_TEXTURE, id);
 }
 
 v8::Local<v8::Value>
 BlenderWrap::newTextureDeletionSubscriptionSignal(int64_t id,
-                                                  const std::string& sigName)
+                                                  const std::string& signal_name)
 {
     TRACE_EVENT("main", "BlenderWrap::newTextureDeletionSubscriptionSignal");
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-
-    auto acceptor = [this, sigName](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
-        int32_t signal_num = info.GetReturnValue<int32_t>();
-
-        // Register a named signal on the `RenderClientObjectWrap` interface.
-        this->DefineSignal(sigName.c_str(), signal_num, {});
-        return v8::Undefined(i);
-    };
-
-    auto closure = PromiseClosure::New(isolate, acceptor);
-    GetObject()->Invoke(GLOP_BLENDER_NEW_TEXTURE_DELETION_SUBSCRIPTION_SIGNAL,
-                        closure,
-                        PromiseClosure::HostCallback,
-                        id);
-
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(
+        isolate, handle_,
+        [this, signal_name](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
+            int32_t signal_num = info.GetReturnValue<int32_t>();
+            DefineSignalEventsOnEventEmitter(this, this->handle_, {
+                    { signal_name.c_str(), static_cast<uint32_t>(signal_num) }
+            });
+            return v8::Undefined(i);
+        },
+        GLOP_BLENDER_NEW_TEXTURE_DELETION_SUBSCRIPTION_SIGNAL,
+        id
+    );
 }
 
 v8::Local<v8::Value> BlenderWrap::createTextureFromImage(v8::Local<v8::Value> image,
@@ -152,7 +114,7 @@ v8::Local<v8::Value> BlenderWrap::createTextureFromImage(v8::Local<v8::Value> im
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    CkImageWrap *wrapper = binder::UnwrapObject<CkImageWrap>(isolate, image);
+    auto *wrapper = binder::UnwrapObject<CkImageWrap>(isolate, image);
     if (!wrapper)
         g_throw(TypeError, "`image` must be an instance of `CkImage`");
 
@@ -160,11 +122,12 @@ v8::Local<v8::Value> BlenderWrap::createTextureFromImage(v8::Local<v8::Value> im
     // and it is safe to reference and retain in another thread.
     sk_sp<SkImage> skia_image = wrapper->getImage();
 
-    return invoke_primitive_type_return<int64_t>(isolate,
-                                                 GLOP_BLENDER_CREATE_TEXTURE_FROM_IMAGE,
-                                                 this,
-                                                 skia_image,
-                                                 annotation);
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_,
+            PromisifiedRemoteCall::GenericConvert<NoCast<int64_t>>,
+            GLOP_BLENDER_CREATE_TEXTURE_FROM_IMAGE,
+            skia_image, annotation
+    );
 }
 
 v8::Local<v8::Value>
@@ -199,23 +162,17 @@ BlenderWrap::createTextureFromEncodedData(v8::Local<v8::Value> buffer,
     // of array buffer still belongs to `buffer`.
     auto data = Data::MakeFromPtrWithoutCopy(array_memory->ptr, array_memory->byte_size, false);
 
-    // We use the persistent handle to prevent `buffer` from being destroyed
-    // by V8's garbage collector.
     using InfoT = gl::RenderHostCallbackInfo;
-    auto acceptor = [bufref = array_memory->memory](v8::Isolate *i, InfoT& info) mutable {
-        bufref.reset();
-        return binder::to_v8(i, info.GetReturnValue<int64_t>());
-    };
-
-    auto closure = PromiseClosure::New(isolate, acceptor);
-    GetObject()->Invoke(GLOP_BLENDER_CREATE_TEXTURE_FROM_ENCODED_DATA,
-                                    closure,
-                                    PromiseClosure::HostCallback,
-                                    data,
-                                    alpha_type_enum,
-                                    annotation);
-
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_,
+            [bufref = array_memory->memory](v8::Isolate *i, InfoT& info) {
+                int64_t v = info.GetReturnValue<int64_t>();
+                CHECK(v >= 0 && v <= 0xffffffff);
+                return v8::Uint32::NewFromUnsigned(i, static_cast<uint32_t>(v));
+            },
+            GLOP_BLENDER_CREATE_TEXTURE_FROM_ENCODED_DATA,
+            data, alpha_type_enum, annotation
+    );
 }
 
 v8::Local<v8::Value>
@@ -252,45 +209,39 @@ BlenderWrap::createTextureFromPixmap(v8::Local<v8::Value> buffer,
     SkImageInfo image_info = SkImageInfo::Make(width, height,
                                                color_type_enum, alpha_type_enum);
 
-    // We use the persistent handle to prevent `buffer` from being destroyed
-    // by V8's garbage collector.
     using InfoT = gl::RenderHostCallbackInfo;
-    auto acceptor = [bufref = array_memory->memory](v8::Isolate *i, InfoT& info) mutable {
-        bufref.reset();
-        return binder::to_v8(i, info.GetReturnValue<int64_t>());
-    };
-
-    auto closure = PromiseClosure::New(isolate, acceptor);
-    GetObject()->Invoke(GLOP_BLENDER_CREATE_TEXTURE_FROM_PIXMAP,
-                                    closure,
-                                    PromiseClosure::HostCallback,
-                                    array_memory->ptr,
-                                    image_info,
-                                    annotation);
-
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_,
+            [bufref = array_memory->memory](v8::Isolate *i, InfoT& info) {
+                int64_t v = info.GetReturnValue<int64_t>();
+                CHECK(v >= 0 && v <= 0xffffffff);
+                return v8::Uint32::NewFromUnsigned(i, static_cast<uint32_t>(v));
+            },
+            GLOP_BLENDER_CREATE_TEXTURE_FROM_PIXMAP,
+            array_memory->ptr, image_info, annotation
+    );
 }
 
 v8::Local<v8::Value> BlenderWrap::captureNextFrameAsPicture()
 {
     TRACE_EVENT("main", "BlenderWrap::captureNextFrameAsPicture");
-
-    return invoke_primitive_type_return<int32_t>(v8::Isolate::GetCurrent(),
-                                                 GLOP_BLENDER_CAPTURE_NEXT_FRAME_AS_PICTURE,
-                                                 this);
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, PromisifiedRemoteCall::GenericConvert<NoCast<int32_t>>,
+            GLOP_BLENDER_CAPTURE_NEXT_FRAME_AS_PICTURE);
 }
 
 v8::Local<v8::Value> BlenderWrap::purgeRasterCacheResources()
 {
     TRACE_EVENT("main", "BlenderWrap::purgeRasterCacheResources");
-
-    return invoke_void_return(v8::Isolate::GetCurrent(),
-                              GLOP_BLENDER_PURGE_RASTER_CACHE_RESOURCES, this);
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, {}, GLOP_BLENDER_PURGE_RASTER_CACHE_RESOURCES);
 }
 
-v8::Local<v8::Object> BlenderWrap::OnGetThisObject(v8::Isolate *isolate)
+v8::Local<v8::Object> BlenderWrap::OnGetObjectSelf(v8::Isolate *isolate)
 {
-    return binder::FindObjectRawPtr(v8::Isolate::GetCurrent(), this);
+    return GetObjectWeakReference().Get(isolate);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

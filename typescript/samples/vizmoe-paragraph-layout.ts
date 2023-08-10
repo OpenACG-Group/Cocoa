@@ -15,7 +15,6 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as std from 'core';
 import * as gl from 'glamor';
 import * as Para from 'paragraph';
 import {
@@ -27,7 +26,6 @@ import {
 import { CompositeRenderNode, PaintRenderNode } from '../vizmoe/render/render-node';
 import { DrawContextSubmitter } from '../vizmoe/render/draw-context-submitter';
 import { Rect } from '../vizmoe/render/rectangle';
-import { Vector2f } from '../vizmoe/render/vector';
 
 const CONTENTS = [
     // Text from:

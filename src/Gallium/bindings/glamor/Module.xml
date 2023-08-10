@@ -43,13 +43,7 @@
             <method name="generateCurrentReport" value="@generateCurrentReport"/>
         </class>
 
-        <class name="RenderClientObject" wrapper="RenderClientObjectWrap" invisible="true">
-            <method name="connect" value="@connect"/>
-            <method name="disconnect" value="@disconnect"/>
-            <method name="inspectObject" value="@inspectObject"/>
-        </class>
-
-        <class name="Display" wrapper="DisplayWrap" inherit="RenderClientObjectWrap">
+        <class name="Display" wrapper="DisplayWrap" inherit="EventEmitterBase">
             <method name="close" value="@close"/>
             <method name="createRasterSurface" value="@createRasterSurface"/>
             <method name="createHWComposeSurface" value="@createHWComposeSurface"/>
@@ -59,45 +53,24 @@
             <method name="createCursor" value="@createCursor"/>
         </class>
 
-        <class name="Monitor" wrapper="MonitorWrap" inherit="RenderClientObjectWrap">
+        <class name="Monitor" wrapper="MonitorWrap" inherit="EventEmitterBase">
             <method name="requestPropertySet" value="@requestPropertySet"/>
-
-            <!-- Enumeration map for gl::MonitorSubpixel -->
-            <property static="true" name="SUBPIXEL_UNKNOWN" value="V_CAST_U32(gl::MonitorSubpixel::kUnknown)"/>
-            <property static="true" name="SUBPIXEL_NONE" value="V_CAST_U32(gl::MonitorSubpixel::kNone)"/>
-            <property static="true" name="SUBPIXEL_HORIZONTAL_RGB" value="V_CAST_U32(gl::MonitorSubpixel::kHorizontalRGB)"/>
-            <property static="true" name="SUBPIXEL_HORIZONTAL_BGR" value="V_CAST_U32(gl::MonitorSubpixel::kHorizontalBGR)"/>
-            <property static="true" name="SUBPIXEL_VERTICAL_RGB" value="V_CAST_U32(gl::MonitorSubpixel::kVerticalRGB)"/>
-            <property static="true" name="SUBPIXEL_VERTICAL_BGR" value="V_CAST_U32(gl::MonitorSubpixel::kVerticalBGR)"/>
-
-            <!-- Enumeration map for gl::MonitorTransform -->
-            <property static="true" name="TRANSFORM_NORMAL" value="V_CAST_U32(gl::MonitorTransform::kNormal)"/>
-            <property static="true" name="TRANSFORM_ROTATE_90" value="V_CAST_U32(gl::MonitorTransform::kRotate90)"/>
-            <property static="true" name="TRANSFORM_ROTATE_180" value="V_CAST_U32(gl::MonitorTransform::kRotate180)"/>
-            <property static="true" name="TRANSFORM_ROTATE_270" value="V_CAST_U32(gl::MonitorTransform::kRotate270)"/>
-            <property static="true" name="TRANSFORM_FLIPPED" value="V_CAST_U32(gl::MonitorTransform::kFlipped)"/>
-            <property static="true" name="TRANSFORM_FLIPPED_90" value="V_CAST_U32(gl::MonitorTransform::kFlipped90)"/>
-            <property static="true" name="TRANSFORM_FLIPPED_180" value="V_CAST_U32(gl::MonitorTransform::kFlipped180)"/>
-            <property static="true" name="TRANSFORM_FLIPPED_270" value="V_CAST_U32(gl::MonitorTransform::kFlipped270)"/>
-
-            <!-- Enumeration map for gl::MonitorMode -->
-            <property static="true" name="MODE_CURRENT" value="V_CAST_U32(gl::MonitorMode::kCurrent)"/>
-            <property static="true" name="MODE_PREFERRED" value="V_CAST_U32(gl::MonitorMode::kPreferred)"/>
         </class>
 
-        <class name="CursorTheme" wrapper="CursorThemeWrap" inherit="RenderClientObjectWrap">
+        <class name="CursorTheme" wrapper="CursorThemeWrap">
             <method name="dispose" value="@dispose"/>
             <method name="loadCursorFromName" value="@loadCursorFromName"/>
         </class>
 
-        <class name="Cursor" wrapper="CursorWrap" inherit="RenderClientObjectWrap">
+        <class name="Cursor" wrapper="CursorWrap">
             <method name="dispose" value="@dispose"/>
             <method name="getHotspotVector" value="@getHotspotVector"/>
         </class>
 
-        <class name="Surface" wrapper="SurfaceWrap" inherit="RenderClientObjectWrap">
+        <class name="Surface" wrapper="SurfaceWrap" inherit="EventEmitterBase">
             <property name="width" getter="@getWidth"/>
             <property name="height" getter="@getHeight"/>
+            <property name="display" getter="@getDisplay"/>
             <method name="createBlender" value="@createBlender"/>
             <method name="close" value="@close"/>
             <method name="resize" value="@resize"/>
@@ -110,19 +83,9 @@
             <method name="setMinimized" value="@setMinimized"/>
             <method name="setFullscreen" value="@setFullscreen"/>
             <method name="setAttachedCursor" value="@setAttachedCursor"/>
-
-            <!-- Enumeration map for gl::ToplevelStates -->
-            <property static="true" name="TOPLEVEL_MAXIMIZED" value="V_CAST_U32(gl::ToplevelStates::kMaximized)"/>
-            <property static="true" name="TOPLEVEL_FULLSCREEN" value="V_CAST_U32(gl::ToplevelStates::kFullscreen)"/>
-            <property static="true" name="TOPLEVEL_RESIZING" value="V_CAST_U32(gl::ToplevelStates::kResizing)"/>
-            <property static="true" name="TOPLEVEL_ACTIVATED" value="V_CAST_U32(gl::ToplevelStates::kActivated)"/>
-            <property static="true" name="TOPLEVEL_TILED_LEFT" value="V_CAST_U32(gl::ToplevelStates::kTiledLeft)"/>
-            <property static="true" name="TOPLEVEL_TILED_RIGHT" value="V_CAST_U32(gl::ToplevelStates::kTiledRight)"/>
-            <property static="true" name="TOPLEVEL_TILED_TOP" value="V_CAST_U32(gl::ToplevelStates::kTiledTop)"/>
-            <property static="true" name="TOPLEVEL_TILED_BOTTOM" value="V_CAST_U32(gl::ToplevelStates::kTiledBottom)"/>
         </class>
 
-        <class name="Blender" wrapper="BlenderWrap" inherit="RenderClientObjectWrap">
+        <class name="Blender" wrapper="BlenderWrap" inherit="EventEmitterBase">
             <property name="profiler" getter="@getProfiler"/>
             <method name="dispose" value="@dispose"/>
             <method name="update" value="@update"/>

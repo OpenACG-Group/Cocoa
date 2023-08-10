@@ -16,7 +16,8 @@ interface WorkerGlobalScope {
     __runtime__: RuntimeInfo;
 }
 
-declare const self: WorkerGlobalScope;
+// TODO(sora): make this available for workers
+// declare const self: WorkerGlobalScope;
 declare const global: GlobalScope;
 declare const __runtime__: RuntimeInfo;
 

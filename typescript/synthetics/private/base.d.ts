@@ -15,19 +15,9 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { EventEmitterBase } from 'private/base';
-
-export class Worker {
-    private constructor();
-    public static MakeFromURL(url: string): Worker;
-
-    readonly port: Worker;
-}
-
-export class MessagePort extends EventEmitterBase {
-    private constructor();
-    public static MakeConnectedPair(): [MessagePort, MessagePort];
-
-    public close(): void;
-    public postMessage(message: any, transferList?: Array<any>): void;
+export class EventEmitterBase {
+    public addListener(event: string, listener: Function): void;
+    public addOnceListener(event: string, listener: Function): void;
+    public removeListener(event: string, listener: Function): boolean;
+    public removeAllListeners(event: string): void;
 }

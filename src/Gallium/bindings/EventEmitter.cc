@@ -15,6 +15,8 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "fmt/format.h"
+
 #include "Gallium/bindings/EventEmitter.h"
 #include "Gallium/RuntimeBase.h"
 GALLIUM_BINDINGS_NS_BEGIN
@@ -25,13 +27,14 @@ EventEmitterBase::EventEmitterBase()
 }
 
 void EventEmitterBase::EmitterDefineEvent(const std::string& name,
-                                          std::function<void(void)> on_set,
-                                          std::function<void(void)> on_clear)
+                                          std::function<uint64_t(void)> on_set,
+                                          std::function<void(uint64_t)> on_clear)
 {
     CHECK(events_map_.count(name) == 0 && "Duplicated event definition");
     events_map_[name] = EventData{
         .on_listener_set = std::move(on_set),
-        .on_listener_clear = std::move(on_clear)
+        .on_listener_clear = std::move(on_clear),
+        .on_listener_set_ret = 0
     };
 }
 
@@ -47,17 +50,17 @@ EventEmitterBase::EmitterWrapAsCallable(const std::string &name)
 
     // Listeners only can be added to `events_map_`, the pointer is
     // valid during the whole lifetime of this object.
-    ListenersList *listeners = &events_map_[name].listeners;
+    EventData *event_data = &events_map_[name];
 
-    return [isolate, g_self_sp, listeners](const ListenerArgsT& args) {
+    return [isolate, g_self_sp, event_data](const ListenerArgsT& args) {
         CHECK(isolate == v8::Isolate::GetCurrent() && "Different v8::Isolate");
         v8::HandleScope handle_scope(isolate);
         v8::Local<v8::Object> self = g_self_sp->Get(isolate);
-        EventEmitterBase::CallListeners(*listeners, self, args);
+        EventEmitterBase::CallListeners(*event_data, self, args);
     };
 }
 
-void EventEmitterBase::CallListeners(ListenersList& listeners,
+void EventEmitterBase::CallListeners(EventData& event_data,
                                      v8::Local<v8::Value> recv,
                                      const ListenerArgsT& args)
 {
@@ -69,10 +72,12 @@ void EventEmitterBase::CallListeners(ListenersList& listeners,
     v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
     RuntimeBase *rt = RuntimeBase::FromIsolate(isolate);
 
-    for (const v8::Global<v8::Function>& g_func : listeners)
+    ListenersList& listeners = event_data.listeners;
+    auto itr = listeners.begin();
+    while (itr != listeners.end())
     {
-        CHECK(!g_func.IsEmpty());
-        v8::Local<v8::Function> func = g_func.Get(isolate);
+        CHECK(!itr->func.IsEmpty());
+        v8::Local<v8::Function> func = itr->func.Get(isolate);
         // FIXME(sora): Is it a safe conversion (cast away `const` qualifier)?
         //              Why V8 does not make it a const parameter?
         auto *ptr_args = const_cast<v8::Local<v8::Value>*>(args.data());
@@ -83,35 +88,106 @@ void EventEmitterBase::CallListeners(ListenersList& listeners,
             CHECK(try_catch.HasCaught());
             rt->ReportUncaughtExceptionInCallback(try_catch);
         }
+
+        if (itr->once)
+            itr = listeners.erase(itr);
+        else
+            itr++;
     }
+
+    if (listeners.empty() && event_data.on_listener_clear)
+        event_data.on_listener_clear(event_data.on_listener_set_ret);
 }
 
 void EventEmitterBase::EmitterSetListener(const std::string &name,
-                                          v8::Local<v8::Value> func)
+                                          v8::Local<v8::Value> func,
+                                          bool once)
 {
     if (disposed_)
         g_throw(Error, "Event emitter has been disposed (closed)");
 
     if (events_map_.count(name) == 0)
-        g_throw(Error, "Undefined event name");
+        g_throw(Error, fmt::format("Undefined event name `{}`", name));
 
     if (!func->IsFunction())
         g_throw(TypeError, "Argument `func` must be a Function");
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     EventData& event_data = events_map_[name];
-    event_data.listeners.emplace_back(isolate, func.As<v8::Function>());
+    event_data.listeners.emplace_back(once, isolate, func.As<v8::Function>());
 
-    if (event_data.on_listener_set)
-        event_data.on_listener_set();
-
-    if (event_data.listeners.size() == 1)
-        OnActivateEventEmitter();
+    // Call the `on_listener_set` callback if it is the
+    // first listener on this event.
+    if (event_data.on_listener_set && event_data.listeners.size() == 1)
+        event_data.on_listener_set_ret = event_data.on_listener_set();
 }
 
 void EventEmitterBase::EmitterDispose()
 {
     disposed_ = true;
+}
+
+void EventEmitterBase::addListener(const std::string& name, v8::Local<v8::Value> func)
+{
+    EmitterSetListener(name, func, false);
+}
+
+void EventEmitterBase::addOnceListener(const std::string& name, v8::Local<v8::Value> func)
+{
+    EmitterSetListener(name, func, true);
+}
+
+bool EventEmitterBase::removeListener(const std::string& name, v8::Local<v8::Value> func)
+{
+    if (events_map_.count(name) == 0)
+        g_throw(Error, fmt::format("Undefined event name `{}`", name));
+    if (!func->IsFunction())
+        g_throw(TypeError, "Argument `func` must be a Function");
+
+    EventData& event_data = events_map_[name];
+    if (event_data.listeners.empty())
+        return false;
+
+    bool found = false;
+    auto itr = event_data.listeners.begin();
+    while (itr != event_data.listeners.end())
+    {
+        if (itr->func == func)
+        {
+            found = true;
+            itr = event_data.listeners.erase(itr);
+        }
+        else
+            itr++;
+    }
+
+    if (event_data.listeners.empty() && event_data.on_listener_clear)
+        event_data.on_listener_clear(event_data.on_listener_set_ret);
+
+    return found;
+}
+
+void EventEmitterBase::removeAllListeners(const std::string &name)
+{
+    if (events_map_.count(name) == 0)
+        g_throw(Error, fmt::format("Undefined event name `{}`", name));
+
+    EventData& event_data = events_map_[name];
+    if (event_data.listeners.empty())
+        return;
+
+    event_data.listeners.clear();
+    if (event_data.on_listener_clear)
+        event_data.on_listener_clear(event_data.on_listener_set_ret);
+}
+
+void EventEmitterBase::RegisterClass(v8::Isolate *isolate)
+{
+    binder::Class<EventEmitterBase>(isolate)
+        .set("addListener", &EventEmitterBase::addListener)
+        .set("addOnceListener", &EventEmitterBase::addOnceListener)
+        .set("removeListener", &EventEmitterBase::removeListener)
+        .set("removeAllListeners", &EventEmitterBase::removeAllListeners);
 }
 
 GALLIUM_BINDINGS_NS_END

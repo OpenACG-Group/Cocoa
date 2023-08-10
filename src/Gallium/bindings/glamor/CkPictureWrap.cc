@@ -22,7 +22,6 @@
 
 #include "Gallium/binder/CallV8.h"
 #include "Gallium/bindings/glamor/Exports.h"
-#include "Gallium/bindings/core/Exports.h"
 #include "Gallium/bindings/glamor/PromiseHelper.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
@@ -64,6 +63,10 @@ v8::Local<v8::Value> CriticalPictureWrap::sanitize()
         sk_sp<SkData> data = picture->serialize();
         if (!data)
         {
+            // This exception could be handled by the remote call
+            // mechanism, then converted to a string to reject the
+            // corresponding promise automatically.
+            // See `PromisifiedRemoteCall::ResultCallback` for more details.
             throw std::runtime_error("Failed to serialize the picture");
         }
 
@@ -75,21 +78,18 @@ v8::Local<v8::Value> CriticalPictureWrap::sanitize()
         return {SkPicture::MakeFromData(data.get())};
     };
 
-    using W = CkPictureWrap;
-    using T = sk_sp<SkPicture>;
-    auto closure = PromiseClosure::New(isolate, PromiseClosure::CreateObjectConverter<W, T>);
-
     // The picture itself may contain critical GPU resources which are owned by
     // rendering thread only. Sanitizer will download those critical GPU textures
     // into system memory and serialize them. To avoid touching them unexpectedly,
     // it is essential to execute the sanitizer function on rendering thread.
-    auto task_runner = gl::GlobalScope::Ref().GetRenderHost()
-            ->GetRenderHostTaskRunner();
+    auto task_runner = gl::GlobalScope::Ref()
+                       .GetRenderHost()->GetRenderHostTaskRunner();
     CHECK(task_runner);
-    task_runner->Invoke(GLOP_TASKRUNNER_RUN, closure,
-                        PromiseClosure::HostCallback, sanitizer);
 
-    return closure->getPromise();
+    using ObjCast = CreateObjCast<sk_sp<SkPicture>, CkPictureWrap>;
+    return PromisifiedRemoteCall::Call(
+            isolate, task_runner, PromisifiedRemoteCall::GenericConvert<ObjCast>,
+            GLOP_TASKRUNNER_RUN, sanitizer);
 }
 
 v8::Local<v8::Value> CriticalPictureWrap::serialize()
@@ -109,24 +109,27 @@ v8::Local<v8::Value> CriticalPictureWrap::serialize()
         return {data};
     };
 
-    auto runner = gl::GlobalScope::Ref().GetRenderHost()
-            ->GetRenderHostTaskRunner();
+    auto runner = gl::GlobalScope::Ref()
+                  .GetRenderHost()->GetRenderHostTaskRunner();
     CHECK(runner);
 
-    auto converter = [](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
-        // Note that `SkData` only allows accessing `writable_data()` when
-        // `SkData` object does not be referenced by other owners.
-        auto data = std::move(info.GetReturnValue<sk_sp<SkData>>());
-        CHECK(data);
+    return PromisifiedRemoteCall::Call(
+            isolate, runner,
+            [](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
+                // Note that `SkData` only allows accessing `writable_data()` when
+                // `SkData` object does not be referenced by other owners.
+                auto data = std::move(info.GetReturnValue<sk_sp<SkData>>());
+                CHECK(data);
 
-        return Buffer::MakeFromExternal(data->writable_data(), data->size(),
-                                        [data]() {});
-    };
-    auto closure = PromiseClosure::New(isolate, converter);
+                void *writable_data = data->writable_data();
+                auto backing_store = binder::CreateBackingStoreFromSmartPtrMemory(
+                        data, writable_data, data->size());
 
-    runner->Invoke(GLOP_TASKRUNNER_RUN, closure, PromiseClosure::HostCallback, serializer);
-
-    return closure->getPromise();
+                return v8::ArrayBuffer::New(i, backing_store);
+            },
+            GLOP_TASKRUNNER_RUN,
+            serializer
+    );
 }
 
 CkPictureWrap::CkPictureWrap(sk_sp<SkPicture> picture)
@@ -158,9 +161,15 @@ v8::Local<v8::Value> CkPictureWrap::serialize()
     if (data == nullptr)
         g_throw(Error, "Failed to serialize SkPicture object");
 
-    v8::Local<v8::Object> buffer = Buffer::MakeFromExternal(data->writable_data(), data->size(),
-                                                            [data]() {});
-    return buffer;
+    // `SkData::writable_data()` assert the refcnt is 1.
+    // However, the `binder::CreateBackingStoreFromStartPtrMemory` call copies
+    // a reference of `SkData`, so we should get the writable data pointer
+    // before calling `binder::CreateBackingStoreFromStartPtrMemory`.
+    void *writable_data = data->writable_data();
+    auto backing_store = binder::CreateBackingStoreFromSmartPtrMemory(
+            data, writable_data, data->size());
+
+    return v8::ArrayBuffer::New(v8::Isolate::GetCurrent(), backing_store);
 }
 
 const sk_sp<SkPicture>& CkPictureWrap::getPicture() const
@@ -178,14 +187,17 @@ uint32_t CkPictureWrap::approximateByteUsed()
     return picture_->approximateBytesUsed();
 }
 
-v8::Local<v8::Value> CkPictureWrap::MakeFromData(v8::Local<v8::Value> bufferObject)
+v8::Local<v8::Value> CkPictureWrap::MakeFromData(v8::Local<v8::Value> buffer)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    Buffer *buffer = binder::UnwrapObject<Buffer>(isolate, bufferObject);
-    if (!buffer)
-        g_throw(TypeError, "'buffer' must be an instance of core.Buffer");
+    if (!buffer->IsTypedArray() || !buffer.As<v8::TypedArray>()->HasBuffer())
+        g_throw(TypeError, "Argument `buffer` must be an allocated TypedArray");
 
-    sk_sp<SkPicture> pict = SkPicture::MakeFromData(buffer->addressU8(), buffer->length());
+    auto memory = binder::GetTypedArrayMemory<v8::TypedArray>(buffer);
+    if (!memory)
+        g_throw(Error, "Not a valid TypedArray");
+
+    sk_sp<SkPicture> pict = SkPicture::MakeFromData(memory->ptr, memory->size);
     if (!pict)
         g_throw(Error, "Cannot serialize a CkPicture from buffer");
 

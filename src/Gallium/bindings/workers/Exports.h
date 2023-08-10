@@ -51,7 +51,7 @@ private:
 
 //! TSDecl: class MessagePort
 class MessagePortWrap : public ExportableObjectBase,
-                        public EventEmitter<MessagePortWrap>
+                        public EventEmitterBase
 {
 public:
     //! TSDecl: function MakeConnectedPair(): [MessagePort, MessagePort]
@@ -63,12 +63,6 @@ public:
     g_nodiscard g_inline std::shared_ptr<MessagePort> GetPort() const {
         return port_;
     }
-
-    //! TSDecl: function onMessage(func: (data: any) => void): void
-    EVENT_EMITTER_LISTENER_SETTER(Message)
-
-    //! TSDecl: function onError(func: (error: string) => void): void
-    EVENT_EMITTER_LISTENER_SETTER(Error)
 
     //! TSDecl: function close(): void
     void close();

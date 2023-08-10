@@ -58,12 +58,10 @@ export class FrameCapturedEvent extends Event {
 export class DrawContext extends EventEmitter {
     private readonly fSurface: GL.Surface;
     private readonly fBlender: GL.Blender;
-    private fSurfaceSlots: GL.SlotID[];
-    private fBlenderSlots: GL.SlotID[];
     private fWidth: number;
     private fHeight: number;
     private fLastCaptureSerial: number;
-    private fSubmitter: DrawContextSubmitter;
+    private readonly fSubmitter: DrawContextSubmitter;
 
     public static async Make(surface: GL.Surface): Promise<DrawContext> {
         const blender = await surface.createBlender();
@@ -78,32 +76,26 @@ export class DrawContext extends EventEmitter {
         this.fWidth = surface_.width;
         this.fHeight = surface_.height;
         this.fLastCaptureSerial = 0;
-
-        this.fSurfaceSlots = [
-            surface_.connect('frame', () => {
-                super.emitEvent(new PaintEvent(this.fWidth, this.fHeight, this))
-            }),
-            surface_.connect('resize', (w: number, h: number) => {
-                this.fWidth = w;
-                this.fHeight = h;
-                super.emitEvent(new ResizeEvent(w, h, this));
-            })
-        ];
-
-        this.fBlenderSlots = [
-            blender_.connect('picture-captured', (picture: GL.CriticalPicture, serial: number) => {
-                if (serial != this.fLastCaptureSerial) {
-                    return;
-                }
-                super.emitEvent(new FrameCapturedEvent(picture, this));
-            })
-        ];
-
         this.fSubmitter = new DrawContextSubmitter(this);
 
-        super.registerEvent(PaintEvent);
-        super.registerEvent(ResizeEvent);
-        super.registerEvent(FrameCapturedEvent);
+        this.forwardNative(surface_, 'frame', PaintEvent, () => {
+            return new PaintEvent(this.fWidth, this.fHeight, this);
+        });
+
+        this.forwardNative(surface_, 'resize', ResizeEvent, (w: number, h: number) => {
+            this.fWidth = w;
+            this.fHeight = h;
+            return new ResizeEvent(w, h, this);
+        });
+
+        this.forwardNative(blender_, 'picture-captured', FrameCapturedEvent,
+            (picture: GL.CriticalPicture, serial: number) => {
+                if (serial != this.fLastCaptureSerial) {
+                    return null;
+                }
+                return new FrameCapturedEvent(picture, this);
+            }
+        );
     }
 
     public get surface() {
@@ -127,16 +119,9 @@ export class DrawContext extends EventEmitter {
     }
 
     public async dispose(): Promise<void> {
-        for (const id of this.fBlenderSlots) {
-            this.fBlender.disconnect(id);
-        }
-        this.fBlenderSlots = [];
-
-        for (const id of this.fSurfaceSlots) {
-            this.fSurface.disconnect(id);
-        }
-        this.fSurfaceSlots = [];
-
+        this.removeAllListeners(PaintEvent);
+        this.removeAllListeners(ResizeEvent);
+        this.removeAllListeners(FrameCapturedEvent);
         return this.fBlender.dispose();
     }
 

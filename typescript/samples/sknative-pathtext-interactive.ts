@@ -102,7 +102,7 @@ async function setupWindowContext(): Promise<WindowContext> {
     });
 
     const display = await GL.RenderHost.Connect();
-    display.connect('closed', GL.RenderHost.Dispose);
+    display.addOnceListener('closed', GL.RenderHost.Dispose);
 
     const surface = await display.createRasterSurface(WINDOW_WIDTH, WINDOW_HEIGHT);
     const blender = await surface.createBlender();
@@ -174,7 +174,7 @@ async function main(): Promise<void> {
     let hitPointIdx = -1;
     let cursorX = 0, cursorY = 0;
 
-    ctx.surface.connect('pointer-motion', (x: number, y: number) => {
+    ctx.surface.addListener('pointer-motion', (x: number, y: number) => {
         cursorX = x;
         cursorY = y;
         if (hitPointIdx >= 0) {
@@ -183,7 +183,7 @@ async function main(): Promise<void> {
         }
     });
 
-    ctx.surface.connect('pointer-button', (button: GL.PointerButton, pressed: boolean) => {
+    ctx.surface.addListener('pointer-button', (button: GL.PointerButton, pressed: boolean) => {
         if (button != GL.Constants.POINTER_BUTTON_LEFT) {
             return;
         }
@@ -199,13 +199,13 @@ async function main(): Promise<void> {
         }
     });
 
-    ctx.surface.connect('close', () => {
+    ctx.surface.addOnceListener('close', () => {
         ctx.blender.dispose().then(() => {
             ctx.surface.close();
         });
     });
 
-    ctx.surface.connect('closed', () => {
+    ctx.surface.addOnceListener('closed', () => {
         ctx.display.close();
     });
 }

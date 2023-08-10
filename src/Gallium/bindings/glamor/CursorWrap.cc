@@ -21,76 +21,53 @@
 #include "Glamor/CursorTheme.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-CursorThemeWrap::CursorThemeWrap(const std::shared_ptr<gl::CursorTheme>& theme)
-    : RenderClientObjectWrap(theme)
+CursorThemeWrap::CursorThemeWrap(std::shared_ptr<gl::CursorTheme> handle)
+    : handle_(std::move(handle))
 {
 }
 
 v8::Local<v8::Value> CursorThemeWrap::dispose()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto closure = PromiseClosure::New(isolate, nullptr);
-    GetObject()->Invoke(GLOP_CURSORTHEME_DISPOSE, closure, PromiseClosure::HostCallback);
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, {}, GLOP_CURSORTHEME_DISPOSE);
 }
 
 v8::Local<v8::Value> CursorThemeWrap::loadCursorFromName(const std::string& name)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-
-    using W = CursorWrap;
-    using T = gl::Shared<gl::Cursor>;
-    auto closure = PromiseClosure::New(isolate,
-                                       PromiseClosure::CreateObjectConverter<W, T>);
-
-    GetObject()->Invoke(GLOP_CURSORTHEME_LOAD_CURSOR_FROM_NAME, closure,
-                        PromiseClosure::HostCallback, name);
-
-    return closure->getPromise();
+    using ObjCast = CreateObjCast<std::shared_ptr<gl::Cursor>, CursorWrap>;
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_, PromisifiedRemoteCall::GenericConvert<ObjCast>,
+            GLOP_CURSORTHEME_LOAD_CURSOR_FROM_NAME, name);
 }
 
-v8::Local<v8::Object> CursorThemeWrap::OnGetThisObject(v8::Isolate *isolate)
-{
-    return binder::FindObjectRawPtr(v8::Isolate::GetCurrent(), this);
-}
-
-CursorWrap::CursorWrap(const std::shared_ptr<gl::Cursor>& cursor)
-    : RenderClientObjectWrap(cursor)
+CursorWrap::CursorWrap(std::shared_ptr<gl::Cursor> handle)
+    : handle_(std::move(handle))
 {
 }
 
 v8::Local<v8::Value> CursorWrap::dispose()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto closure = PromiseClosure::New(isolate, nullptr);
-    GetObject()->Invoke(GLOP_CURSOR_DISPOSE, closure, PromiseClosure::HostCallback);
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(isolate, handle_, {}, GLOP_CURSOR_DISPOSE);
 }
 
 v8::Local<v8::Value> CursorWrap::getHotspotVector()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-
-    auto converter = [](v8::Isolate *i, gl::RenderHostCallbackInfo& info) -> v8::Local<v8::Value> {
-        v8::EscapableHandleScope scope(i);
-        auto v = info.GetReturnValue<SkIVector>();
-        std::map<std::string_view, v8::Local<v8::Value>> bound_keys{
-            {"x", binder::to_v8(i, v.x())},
-            {"y", binder::to_v8(i, v.y())}
-        };
-        return scope.Escape(binder::to_v8(i, bound_keys));
-    };
-
-    auto closure = PromiseClosure::New(isolate, converter);
-
-    GetObject()->Invoke(GLOP_CURSOR_GET_HOTSPOT_VECTOR, closure,
-                        PromiseClosure::HostCallback);
-    return closure->getPromise();
-}
-
-v8::Local<v8::Object> CursorWrap::OnGetThisObject(v8::Isolate *isolate)
-{
-    return binder::FindObjectRawPtr(v8::Isolate::GetCurrent(), this);
+    return PromisifiedRemoteCall::Call(
+            isolate, handle_,
+            [](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
+                auto v = info.GetReturnValue<SkIVector>();
+                using Map = std::unordered_map<std::string_view, v8::Local<v8::Value>>;
+                return binder::to_v8(i, Map{
+                    { "x", binder::to_v8(i, v.x()) },
+                    { "y", binder::to_v8(i, v.y()) }
+                });
+            },
+            GLOP_CURSOR_GET_HOTSPOT_VECTOR
+    );
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

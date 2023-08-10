@@ -22,6 +22,7 @@
 #include "Core/Journal.h"
 #include "Gallium/BindingManager.h"
 #include "Gallium/bindings/Base.h"
+#include "Gallium/bindings/EventEmitter.h"
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.BindingManager)
 
@@ -59,6 +60,7 @@ BindingManager::~BindingManager()
 
 void BindingManager::NotifyIsolateHasCreated(v8::Isolate *isolate)
 {
+    bindings::EventEmitterBase::RegisterClass(isolate);
 }
 
 bindings::BindingBase *BindingManager::search(const std::string& name)

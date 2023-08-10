@@ -68,7 +68,7 @@ bool MessagePort::AttachToEventLoop(uv_loop_t *event_loop)
     message_notifier_.emplace(event_loop, [&] { OnMessageReceive(); });
     port_detached_ = false;
 
-    if (!receive_callback_ && !error_callback_)
+    if (!receive_callback_)
         message_notifier_->Unref();
 
     return true;
@@ -77,15 +77,16 @@ bool MessagePort::AttachToEventLoop(uv_loop_t *event_loop)
 void MessagePort::SetReceiveCallback(ReceiveCallback callback)
 {
     receive_callback_ = std::move(callback);
+
     if (receive_callback_ && message_notifier_)
         message_notifier_->Ref();
+    else if (message_notifier_)
+        message_notifier_->Unref();
 }
 
 void MessagePort::SetErrorCallback(ErrorCallback callback)
 {
     error_callback_ = std::move(callback);
-    if (error_callback_ && message_notifier_)
-        message_notifier_->Ref();
 }
 
 namespace {

@@ -24,6 +24,7 @@
 #include "Gallium/bindings/glamor/Types.h"
 #include "Gallium/bindings/glamor/TrivialInterface.h"
 #include "Gallium/binder/Class.h"
+#include "Gallium/bindings/EventEmitter.h"
 #include "Glamor/ForwardTypeDecls.h"
 #include "Glamor/RenderClientObject.h"
 #include "Glamor/RenderHostCallbackInfo.h"
@@ -50,11 +51,9 @@ class CkPictureWrap;
 class CkImageWrap;
 class CkBitmapWrap;
 
-struct SlotClosure;
-
 void GlamorSetInstanceProperties(v8::Local<v8::Object> instance);
 
-using InfoAcceptorResult = std::optional<std::vector<v8::Local<v8::Value>>>;
+using InfoAcceptorResult = std::vector<v8::Local<v8::Value>>;
 // using InfoAcceptor = InfoAcceptorResult(*)(v8::Isolate*, ::cocoa::gl::RenderHostSlotCallbackInfo&);
 using InfoAcceptor = std::function<InfoAcceptorResult(v8::Isolate*, gl::RenderHostSlotCallbackInfo&)>;
 
@@ -123,56 +122,13 @@ private:
     gl::Shared<gl::GProfiler> profiler_;
 };
 
-//! TSDecl: class RenderClientObject
-class RenderClientObjectWrap : public ExportableObjectBase
-{
-public:
-    explicit RenderClientObjectWrap(gl::Shared<gl::RenderClientObject> object);
-    virtual ~RenderClientObjectWrap();
-
-    g_nodiscard const gl::Shared<gl::RenderClientObject>& GetObject() {
-        return object_;
-    }
-
-    //! TSDecl: function connect(name: string, callback: Function): number
-    uint32_t connect(const std::string& name, v8::Local<v8::Function> callback);
-
-    //! TSDecl: function disconnect(id: number): void
-    void disconnect(uint32_t slotId);
-
-    //! TSDecl:
-    //! interface RCOInspectSignal {
-    //!   name: string;
-    //!   code: number;
-    //!   connectedCallbacks: Function[];
-    //! }
-    //! interface RCOInspectResult {
-    //!   objectType: string;
-    //!   signals: RCOInspectSignal[];
-    //! }
-
-    //! TSDecl: function inspectObject(): RCOInspectResult
-    v8::Local<v8::Value> inspectObject();
-
-    void DefineSignal(const char *name, int32_t code, InfoAcceptor acceptor);
-    int32_t GetSignalCodeByName(const std::string& name);
-
-protected:
-    virtual v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) = 0;
-
-private:
-    gl::Shared<gl::RenderClientObject> object_;
-    std::map<std::string, int32_t>            signal_name_map_;
-    std::map<uint32_t, InfoAcceptor>          acceptors_map_;
-    std::map<uint32_t, std::unique_ptr<SlotClosure>> slot_closures_map_;
-};
-
-//! TSDecl: class Display extends RenderClientObject
-class DisplayWrap : public RenderClientObjectWrap,
+//! TSDecl: class Display extends EventEmitterBase
+class DisplayWrap : public ExportableObjectBase,
+                    public EventEmitterBase,
                     public PreventGCObject
 {
 public:
-    explicit DisplayWrap(gl::Shared<gl::RenderClientObject> object);
+    explicit DisplayWrap(gl::Shared<gl::RenderClientObject> handle);
     ~DisplayWrap() override;
 
     //! TSDecl: function close(): Promise<void>
@@ -197,32 +153,38 @@ public:
     v8::Local<v8::Value> createCursor(v8::Local<v8::Value> bitmap, int hotspotX, int hotspotY);
 
 private:
-    v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) override;
+    v8::Local<v8::Object> OnGetObjectSelf(v8::Isolate *isolate) override;
 
-    std::map<gl::Shared<gl::Monitor>, v8::Global<v8::Object>> monitor_objects_map_;
-    v8::Global<v8::Object> default_cursor_theme_;
+    using MonitorsMap = std::map<std::shared_ptr<gl::Monitor>, v8::Global<v8::Object>>;
+
+    std::shared_ptr<gl::RenderClientObject>     handle_;
+    MonitorsMap                                 monitor_objects_map_;
+    v8::Global<v8::Object>                      default_cursor_theme_;
 };
 
-//! TSDecl: class Monitor extends RenderClientObject
-class MonitorWrap : public RenderClientObjectWrap
+//! TSDecl: class Monitor extends EventEmitterBase
+class MonitorWrap : public ExportableObjectBase,
+                    public EventEmitterBase
 {
 public:
-    explicit MonitorWrap(gl::Shared<gl::RenderClientObject> object);
+    explicit MonitorWrap(gl::Shared<gl::RenderClientObject> handle);
     ~MonitorWrap() override = default;
 
     //! TSDecl: function requestPropertySet(): Promise<void>
     v8::Local<v8::Value> requestPropertySet();
 
 private:
-    v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) override;
+    v8::Local<v8::Object> OnGetObjectSelf(v8::Isolate *isolate) override;
+
+    std::shared_ptr<gl::RenderClientObject> handle_;
 };
 
-//! TSDecl: class CursorTheme extends RenderClientObject
-class CursorThemeWrap : public RenderClientObjectWrap
+//! TSDecl: class CursorTheme
+class CursorThemeWrap : public ExportableObjectBase
 {
 public:
-    explicit CursorThemeWrap(const std::shared_ptr<gl::CursorTheme>& theme);
-    ~CursorThemeWrap() override = default;
+    explicit CursorThemeWrap(std::shared_ptr<gl::CursorTheme> handle);
+    ~CursorThemeWrap() = default;
 
     //! TSDecl: function dispose(): Promise<void>;
     v8::Local<v8::Value> dispose();
@@ -231,15 +193,19 @@ public:
     v8::Local<v8::Value> loadCursorFromName(const std::string& name);
 
 private:
-    v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) override;
+    std::shared_ptr<gl::CursorTheme> handle_;
 };
 
-//! TSDecl: class Cursor extends RenderClientObject
-class CursorWrap : public RenderClientObjectWrap
+//! TSDecl: class Cursor
+class CursorWrap : public ExportableObjectBase
 {
 public:
-    explicit CursorWrap(const std::shared_ptr<gl::Cursor>& cursor);
-    ~CursorWrap() override = default;
+    explicit CursorWrap(std::shared_ptr<gl::Cursor> handle);
+    ~CursorWrap() = default;
+
+    g_nodiscard g_inline std::shared_ptr<gl::Cursor> GetCursorHandle() const {
+        return handle_;
+    }
 
     //! TSDecl: function dispose(): Promise<void>;
     v8::Local<v8::Value> dispose();
@@ -248,14 +214,16 @@ public:
     v8::Local<v8::Value> getHotspotVector();
 
 private:
-    v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) override;
+    std::shared_ptr<gl::Cursor> handle_;
 };
 
-//! TSDecl: class Surface extends RenderClientObject
-class SurfaceWrap : public RenderClientObjectWrap
+//! TSDecl: class Surface extends EventEmitterBase
+class SurfaceWrap : public ExportableObjectBase,
+                    public EventEmitterBase
 {
 public:
-    explicit SurfaceWrap(gl::Shared<gl::RenderClientObject> object);
+    SurfaceWrap(gl::Shared<gl::RenderClientObject> handle,
+                v8::Local<v8::Object> display);
     ~SurfaceWrap() override;
 
     //! TSDecl: readonly width: number
@@ -263,6 +231,9 @@ public:
 
     //! TSDecl: readonly height: number
     g_nodiscard int32_t getHeight();
+
+    //! TSDecl: readonly display: Display
+    g_nodiscard v8::Local<v8::Value> getDisplay();
 
     //! TSDecl: function createBlender(): Promise<Blender>
     g_nodiscard v8::Local<v8::Value> createBlender();
@@ -301,15 +272,25 @@ public:
     g_nodiscard v8::Local<v8::Value> setAttachedCursor(v8::Local<v8::Value> cursor);
 
 private:
-    v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) override;
+    v8::Local<v8::Object> OnGetObjectSelf(v8::Isolate *isolate) override;
+
+    std::shared_ptr<gl::RenderClientObject> handle_;
+    v8::Global<v8::Object>                  display_wrapped_;
+    uint32_t                                surface_closed_slot_;
 };
 
-//! TSDecl: class Blender extends RenderClientObject
-class BlenderWrap : public RenderClientObjectWrap
+//! TSDecl: class Blender extends EventEmitterBase
+class BlenderWrap : public ExportableObjectBase
+                  , public EventEmitterBase
 {
 public:
-    explicit BlenderWrap(gl::Shared<gl::RenderClientObject> object);
+    explicit BlenderWrap(gl::Shared<gl::RenderClientObject> handle);
     ~BlenderWrap() override;
+
+    g_nodiscard g_inline std::shared_ptr<gl::RenderClientObject>
+    GetRenderClientHandle() const {
+        return handle_;
+    }
 
     //! TSDecl: readonly profiler: null | GProfiler
     v8::Local<v8::Value> getProfiler();
@@ -348,7 +329,7 @@ public:
     v8::Local<v8::Value> deleteTexture(int64_t id);
 
     //! TSDecl: function newTextureDeletionSubscriptionSignal(id: number, sigName: string): Promise<void>
-    v8::Local<v8::Value> newTextureDeletionSubscriptionSignal(int64_t id, const std::string& sigName);
+    v8::Local<v8::Value> newTextureDeletionSubscriptionSignal(int64_t id, const std::string& signal_name);
 
     //! TSDecl: function captureNextFrameAsPicture(): Promise<number>
     v8::Local<v8::Value> captureNextFrameAsPicture();
@@ -357,8 +338,9 @@ public:
     v8::Local<v8::Value> purgeRasterCacheResources();
 
 private:
-    v8::Local<v8::Object> OnGetThisObject(v8::Isolate *isolate) override;
+    v8::Local<v8::Object> OnGetObjectSelf(v8::Isolate *isolate) override;
 
+    std::shared_ptr<gl::RenderClientObject> handle_;
     v8::Global<v8::Object> wrapped_profiler_;
 };
 
@@ -468,7 +450,7 @@ public:
     //! TSDecl: function sanitize(): Promise<CkPicture>
     v8::Local<v8::Value> sanitize();
 
-    //! TSDecl: function serialize(): Promise<core.Buffer>
+    //! TSDecl: function serialize(): Promise<ArrayBuffer>
     v8::Local<v8::Value> serialize();
 
     //! TSDecl: function discardOwnership(): void
@@ -489,7 +471,7 @@ public:
     explicit CkPictureWrap(sk_sp<SkPicture> picture);
     ~CkPictureWrap();
 
-    //! TSDecl: function MakeFromData(buffer: core.Buffer): CkPicture
+    //! TSDecl: function MakeFromData(buffer: TypedArray): CkPicture
     static v8::Local<v8::Value> MakeFromData(v8::Local<v8::Value> buffer);
 
     /**
@@ -503,7 +485,7 @@ public:
 
     g_nodiscard const sk_sp<SkPicture>& getPicture() const;
 
-    //! TSDecl: function serialize(): core.Buffer
+    //! TSDecl: function serialize(): ArrayBuffer
     g_nodiscard v8::Local<v8::Value> serialize();
 
     //! TSDecl: function approximateOpCount(nested: bool): number

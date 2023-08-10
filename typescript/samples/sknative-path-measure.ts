@@ -31,22 +31,14 @@ GL.RenderHost.Initialize({
 let display = await GL.RenderHost.Connect();
 let surface = await display.createHWComposeSurface(WINDOW_WIDTH, WINDOW_HEIGHT);
 
-surface.connect('closed', () => {
+surface.addOnceListener('closed', () => {
     display.close();
 });
 
-display.connect('closed', GL.RenderHost.Dispose);
+display.addOnceListener('closed', GL.RenderHost.Dispose);
 surface.setTitle('PathMeasure');
 
 let blender = await surface.createBlender();
-
-let frameSlot = 0;
-
-surface.connect('close', () => {
-    surface.disconnect(frameSlot);
-    blender.dispose();
-    surface.close();
-});
 
 const path = new GL.CkPath();
 path.moveTo(100, 200);
@@ -108,6 +100,12 @@ function render(): void {
     t = (t + 0.001) % 1;
 }
 
-frameSlot = surface.connect('frame', render);
+surface.addListener('frame', render);
+
+surface.addOnceListener('close', () => {
+    surface.removeListener('frame', render);
+    blender.dispose();
+    surface.close();
+});
 
 render();

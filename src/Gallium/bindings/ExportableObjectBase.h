@@ -35,7 +35,10 @@ GALLIUM_BINDINGS_NS_BEGIN
 class ExportableObjectBase
 {
 public:
-    enum Attrs
+    /**
+     * A set of object attributes describes the object itself.
+     */
+    enum ObjectAttributes
     {
         /**
          * Object is transferable.
@@ -55,6 +58,7 @@ public:
          */
         kCloneable_Attr = 0x02,
 
+        // For `MessagePortWrap` of `workers` binding only
         kMessagePort_Attr = 0x04
     };
 
@@ -68,12 +72,14 @@ public:
 
     using MaybeFlattened = v8::Maybe<std::shared_ptr<FlattenedData>>;
 
-    // A function that serializes the given object `base`, and returns a
-    // `v8::Just<std::shared_ptr<FlattenedData>>(...)` if succeeds.
-    // If `pretest` is `true`, the function should not serialize any object,
-    // just return `v8::Just(nullptr)` to indicate that the given object
-    // can be transferred or cloned (it has not been transferred to other
-    // contexts), otherwise, return `v8::Nothing(nullptr)`.
+    /**
+     * A function that serializes the given object `base`, and returns a
+     * `v8::Just<std::shared_ptr<FlattenedData>>(...)` if succeeds.
+     * If `pretest` is `true`, the function should not serialize any object,
+     * just return `FlattenPretestResult(true)` to indicate that the given
+     * object can be transferred or cloned (it has not been transferred to
+     * other Isolates), otherwise, return `FlattenPretestResult(false)`.
+     */
     using SerializerFunc = MaybeFlattened(*)(
             v8::Isolate *isolate, ExportableObjectBase *base, bool pretest);
 
@@ -154,15 +160,32 @@ public:
         return static_cast<T*>(this);
     }
 
+    /**
+     * Get the unique descriptor of the object.
+     * Attributes accessing, object cloning/transferring are implemented
+     * with the help of descriptor. Returned pointer is valid during the
+     * whole lifetime of the object.
+     * Descriptor also could be got from the JavaScript handle of the object
+     * by using `binder::UnwrapObjectDescriptor()`.
+     */
     g_nodiscard g_inline Descriptor *GetObjectDescriptor() {
         return &descriptor_;
     }
 
     /**
      * Get the weak-referenced handle of the object itself.
-     * Our memory-model keeps this weak reference valid during
-     * the whole lifetime of this object. As long as the object
-     * has not been destructed, the weak handle is valid.
+     * Our memory-model keeps this weak reference valid during the whole lifetime
+     * of this object. As long as the object has not been destructed, the weak
+     * handle is valid.
+     *
+     * As the returned handle refers to the object itself, if you convert it to
+     * a strong-referenced `v8::Global` or `v8::Persistent` handle, and store it
+     * directly or indirectly as a member of the object, the object will never be
+     * collected by GC (because it holds a reference to itself). It will be freed
+     * when `binder::Cleanup()` is called (when `RuntimeBase::Dispose` is called).
+     *
+     * Only after `on_object_weak_ref_valid` callback given from constructor is
+     * called, could you call this method. Otherwise, it crashes the program.
      */
     g_nodiscard g_inline const v8::Global<v8::Object>& GetObjectWeakReference() const {
         CHECK(!self_weak_.IsEmpty());

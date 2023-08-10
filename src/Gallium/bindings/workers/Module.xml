@@ -10,11 +10,10 @@
             <property name="port" getter="@getPort"/>
         </class>
 
-        <class name="MessagePort" wrapper="MessagePortWrap">
+        <class name="MessagePort" wrapper="MessagePortWrap" inherit="EventEmitterBase">
             <method static="true" name="MakeConnectedPair" value="@MakeConnectedPair"/>
             <method name="close" value="@close"/>
             <method name="postMessage" value="@postMessage"/>
-            <method name="onMessage" value="@onMessage"/>
         </class>
     </exports>
 </module>

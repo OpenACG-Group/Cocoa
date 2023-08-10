@@ -247,7 +247,6 @@ export class ToplevelWindow extends EventEmitter {
     private readonly fDisplay: gl.Display;
     private readonly fSurface: gl.Surface;
     private readonly fDrawContext: DrawContext;
-    private readonly fSurfaceSlots: gl.SlotID[];
     private fClosed: boolean;
 
     public static async Create(display: gl.Display, width: number,
@@ -275,51 +274,47 @@ export class ToplevelWindow extends EventEmitter {
         this.fDisplay = display;
         this.fSurface = surface;
         this.fDrawContext = DC;
-        this.fSurfaceSlots = [];
         this.fClosed = false;
 
-        this.fSurfaceSlots.push(
-            this.fSurface.connect('close', () => {
-                this.emitEvent(new CloseRequestEvent(this));
-            }),
-            this.fSurface.connect('pointer-hovering', (enter: boolean) => {
-                this.emitEvent(new PointerHoverEvent(
-                    this, enter ? PointerHoverState.kEnter : PointerHoverState.kLeave
-                ))
-            }),
-            this.fSurface.connect('pointer-motion', (x: number, y: number) => {
-                this.emitEvent(new PointerMotionEvent(this, x, y));
-            }),
-            this.fSurface.connect('pointer-button', (button: gl.PointerButton, pressed: boolean) => {
-                this.emitEvent(new PointerButtonEvent(
-                    this, button as PointerButton,
-                    pressed ? PointerButtonState.kPressed : PointerButtonState.kReleased
-                ));
-            }),
-            this.fSurface.connect('pointer-axis', (source: gl.PointerAxisSource, dx: number, dy: number) => {
-                this.emitEvent(new PointerAxisEvent(
-                    this, source as PointerAxisSource, dx, dy
-                ));
-            }),
-            this.fSurface.connect('keyboard-focus', (focused: boolean) => {
-                this.emitEvent(new KeyboardFocusEvent(this, focused))
-            }),
-            this.fSurface.connect('keyboard-key', (key: gl.KeyboardKey, modifiers: number, pressed: boolean) => {
-                this.emitEvent(new KeyboardKeyEvent(
-                    this, modifiers, key as KeyboardKey, pressed
-                ));
-            })
+        this.forwardNative(surface, 'close', CloseRequestEvent, () => {
+            return new CloseRequestEvent(this);
+        });
+
+        this.forwardNative(surface, 'pointer-hovering', PointerHoverEvent,
+            (enter: boolean) => {
+                return new PointerHoverEvent(this,
+                    enter ? PointerHoverState.kEnter : PointerHoverState.kLeave);
+            }
         );
 
-        [
-            CloseRequestEvent,
-            PointerHoverEvent,
-            PointerMotionEvent,
-            PointerButtonEvent,
-            PointerAxisEvent,
-            KeyboardFocusEvent,
-            KeyboardKeyEvent
-        ].forEach(ctor => this.registerEvent(ctor));
+        this.forwardNative(surface, 'pointer-motion', PointerMotionEvent,
+            (x: number, y: number) => { return new PointerMotionEvent(this, x, y); }
+        );
+
+        this.forwardNative(surface, 'pointer-button', PointerButtonEvent,
+            (button: gl.PointerButton, pressed: boolean) => {
+                return new PointerButtonEvent(this, button as PointerButton,
+                    pressed ? PointerButtonState.kPressed : PointerButtonState.kReleased);
+            }
+        );
+
+        this.forwardNative(surface, 'pointer-axis', PointerAxisEvent,
+            (source: gl.PointerAxisSource, dx: number, dy: number) => {
+                return new PointerAxisEvent(this, source as PointerAxisSource, dx, dy);
+            }
+        );
+
+        this.forwardNative(surface, 'keyboard-focus', KeyboardFocusEvent,
+            (focused: boolean) => {
+                return new KeyboardFocusEvent(this, focused);
+            }
+        );
+
+        this.forwardNative(surface, 'keyboard-key', KeyboardKeyEvent,
+            (key: gl.KeyboardKey, modifiers: gl.KeyboardModifiers, pressed: boolean) => {
+                return new KeyboardKeyEvent(this, modifiers, key as KeyboardKey, pressed);
+            }
+        );
     }
 
     public async close(): Promise<void> {
@@ -328,9 +323,15 @@ export class ToplevelWindow extends EventEmitter {
         }
 
         await this.fDrawContext.dispose();
-        for (const slot of this.fSurfaceSlots) {
-            this.fSurface.disconnect(slot);
-        }
+
+        this.removeAllListeners(CloseRequestEvent);
+        this.removeAllListeners(PointerHoverEvent);
+        this.removeAllListeners(PointerMotionEvent);
+        this.removeAllListeners(PointerButtonEvent);
+        this.removeAllListeners(PointerAxisEvent);
+        this.removeAllListeners(KeyboardFocusEvent);
+        this.removeAllListeners(KeyboardKeyEvent);
+
         await this.fSurface.close();
         this.fClosed = true;
     }

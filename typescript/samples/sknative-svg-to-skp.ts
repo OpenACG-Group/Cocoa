@@ -73,7 +73,8 @@ function main(): void {
 
     std.File.WriteFileSync(
         output,
-        recorder.finishRecordingAsPicture().serialize()
+        std.Buffer.MakeFromAdoptBuffer(
+            new Uint8Array(recorder.finishRecordingAsPicture().serialize()))
     );
 }
 

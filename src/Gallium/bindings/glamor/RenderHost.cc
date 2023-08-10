@@ -25,7 +25,6 @@
 
 #include "Glamor/RenderHost.h"
 
-#include <utility>
 #include "Glamor/RenderClient.h"
 #include "Glamor/RenderClientObject.h"
 #include "Glamor/RenderHostCreator.h"
@@ -103,21 +102,18 @@ v8::Local<v8::Value> RenderHostWrap::Connect(const v8::FunctionCallbackInfo<v8::
 
     auto creator = gl::GlobalScope::Ref().GetRenderHost()->GetRenderHostCreator();
 
-    using T = gl::Shared<gl::RenderClientObject>;
-    auto pack = PromiseClosure::New(isolate, [](v8::Isolate *isolate, gl::RenderHostCallbackInfo &info) {
-        auto obj = binder::NewObject<DisplayWrap>(isolate, info.GetReturnValue<T>());
-        auto *ptr = binder::UnwrapObject<DisplayWrap>(isolate, obj);
-        ptr->setGCObjectSelfHandle(obj);
-
-        return obj;
-    });
-
-    creator->Invoke(GLOP_RENDERHOSTCREATOR_CREATE_DISPLAY,
-                    pack,
-                    PromiseClosure::HostCallback,
-                    name);
-
-    return pack->getPromise();
+    using Sp = std::shared_ptr<gl::RenderClientObject>;
+    return PromisifiedRemoteCall::Call(
+            isolate, creator,
+            [](v8::Isolate *isolate, gl::RenderHostCallbackInfo &info) {
+                auto obj = binder::NewObject<DisplayWrap>(isolate, info.GetReturnValue<Sp>());
+                auto *ptr = binder::UnwrapObject<DisplayWrap>(isolate, obj);
+                ptr->setGCObjectSelfHandle(obj);
+                return obj;
+            },
+            GLOP_RENDERHOSTCREATOR_CREATE_DISPLAY,
+            name
+    );
 }
 
 void RenderHostWrap::WaitForSyncBarrier(int64_t timeout)
@@ -143,11 +139,7 @@ v8::Local<v8::Value> RenderHostWrap::SleepRendererFor(int64_t timeout)
     };
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto closure = PromiseClosure::New(isolate, nullptr);
-
-    runner->Invoke(GLOP_TASKRUNNER_RUN, closure, PromiseClosure::HostCallback, task);
-
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(isolate, runner, {}, GLOP_TASKRUNNER_RUN, task);
 }
 
 namespace {
@@ -172,26 +164,26 @@ v8::Local<v8::Value> RenderHostWrap::TraceGraphicsResources()
         {
             // TaskRunner will catch and handle the thrown exception
             // appropriately by returning a wrong state in the asynchronous
-            // invocation. Then the `Promise::HostCallback` handler will
-            // detect that and reject the promise object automatically.
+            // invocation. Then the `PromisifiedRemoteCall::ResultCallback`
+            // handler will detect that and reject the promise object automatically.
             throw std::runtime_error("Failed to trace graphics resources");
         }
         trace_result->str = *maybe;
         return {};
     };
 
-    auto acceptor = [trace_result](v8::Isolate *isolate,
-                                   gl::RenderHostCallbackInfo& info) {
-        return binder::to_v8(isolate, trace_result->str);
-    };
-
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto closure = PromiseClosure::New(isolate, acceptor);
-
     auto runner = host->GetRenderHostTaskRunner();
-    runner->Invoke(GLOP_TASKRUNNER_RUN, closure, PromiseClosure::HostCallback, task);
+    CHECK(runner);
 
-    return closure->getPromise();
+    return PromisifiedRemoteCall::Call(
+            isolate, runner,
+            [trace_result](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
+                return binder::to_v8(i, trace_result->str);
+            },
+            GLOP_TASKRUNNER_RUN,
+            task
+    );
 }
 
 void RenderHostWrap::CollectCriticalSharedResources()
@@ -201,98 +193,6 @@ void RenderHostWrap::CollectCriticalSharedResources()
     auto collector = gl::GlobalScope::Ref().GetGpuThreadSharedObjectsCollector();
     CHECK(collector);
     collector->Collect();
-}
-
-// ============================
-// RenderClientObjectWrap
-// ============================
-
-RenderClientObjectWrap::RenderClientObjectWrap(gl::Shared<gl::RenderClientObject> object)
-    : object_(std::move(object))
-{
-}
-
-RenderClientObjectWrap::~RenderClientObjectWrap()
-{
-    slot_closures_map_.clear();
-}
-
-void RenderClientObjectWrap::DefineSignal(const char *name, int32_t code, InfoAcceptor acceptor)
-{
-    CHECK(signal_name_map_.count(name) == 0 || acceptors_map_.count(code) == 0);
-    signal_name_map_[name] = code;
-    acceptors_map_[code] = std::move(acceptor);
-}
-
-int32_t RenderClientObjectWrap::GetSignalCodeByName(const std::string& name)
-{
-    if (signal_name_map_.count(name) == 0)
-        return -1;
-    return signal_name_map_[name];
-}
-
-uint32_t RenderClientObjectWrap::connect(const std::string& name, v8::Local<v8::Function> callback)
-{
-    int32_t code = GetSignalCodeByName(name);
-    if (code < 0)
-    {
-        g_throw(Error, fmt::format("\'{}\' is not a valid signal name for slot to connect to", name));
-    }
-
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-
-    auto self = OnGetThisObject(isolate);
-    CHECK(!self.IsEmpty());
-
-    auto closure = SlotClosure::New(isolate, self, code, name,
-                                    GetObject(), callback, acceptors_map_[code]);
-    uint32_t slot_id = closure->slot_id_;
-    slot_closures_map_[closure->slot_id_] = std::move(closure);
-
-    return slot_id;
-}
-
-void RenderClientObjectWrap::disconnect(uint32_t id)
-{
-    if (slot_closures_map_.count(id) == 0)
-    {
-        g_throw(Error, fmt::format("{} is not a valid slot ID", id));
-    }
-    slot_closures_map_.erase(id);
-}
-
-v8::Local<v8::Value> RenderClientObjectWrap::inspectObject()
-{
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-
-    using RCO = gl::RenderClientObject;
-
-    std::vector<v8::Local<v8::Object>> signals_array;
-    for (const auto& signal : signal_name_map_)
-    {
-        std::vector<v8::Local<v8::Value>> callbacks;
-        for (const auto& slot : slot_closures_map_)
-        {
-            if (slot.second->signal_code_ != signal.second)
-                continue;
-            callbacks.emplace_back(slot.second->callback_.Get(isolate));
-        }
-
-        std::map<std::string_view, v8::Local<v8::Value>> item{
-            { "name", binder::to_v8(isolate, signal.first) },
-            { "code", binder::to_v8(isolate, signal.second) },
-            { "connectedCallbacks", binder::to_v8(isolate, callbacks) }
-        };
-
-        signals_array.emplace_back(binder::to_v8(isolate, item));
-    }
-
-    std::map<std::string_view, v8::Local<v8::Value>> inspect_result{
-        { "objectType", binder::to_v8(isolate, RCO::GetTypeName(object_->GetRealType())) },
-        { "signals", binder::to_v8(isolate, signals_array) }
-    };
-
-    return binder::to_v8(isolate, inspect_result);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END
