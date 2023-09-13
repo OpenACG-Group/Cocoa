@@ -21,9 +21,7 @@
 #include "Glamor/Glamor.h"
 GLAMOR_NAMESPACE_BEGIN
 
-class RenderHost;
-class RenderClient;
-class RenderClientObject;
+class PresentRemoteHandle;
 class Display;
 class Monitor;
 class Cursor;

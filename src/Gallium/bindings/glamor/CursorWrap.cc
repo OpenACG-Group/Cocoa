@@ -58,7 +58,7 @@ v8::Local<v8::Value> CursorWrap::getHotspotVector()
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     return PromisifiedRemoteCall::Call(
             isolate, handle_,
-            [](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
+            [](v8::Isolate *i, gl::PresentRemoteCallReturn& info) {
                 auto v = info.GetReturnValue<SkIVector>();
                 using Map = std::unordered_map<std::string_view, v8::Local<v8::Value>>;
                 return binder::to_v8(i, Map{

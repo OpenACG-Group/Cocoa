@@ -25,20 +25,20 @@ GLAMOR_TRAMPOLINE_IMPL(CursorTheme, Dispose)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(0);
     info.GetThis()->As<CursorTheme>()->Dispose();
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(CursorTheme, LoadCursorFromName)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
     auto theme = info.GetThis()->As<CursorTheme>()->LoadCursorFromName(info.Get<std::string>(0));
-    info.SetReturnStatus(theme ? RenderClientCallInfo::Status::kOpSuccess
-                               : RenderClientCallInfo::Status::kOpFailed);
+    info.SetReturnStatus(theme ? PresentRemoteCall::Status::kOpSuccess
+                               : PresentRemoteCall::Status::kOpFailed);
     info.SetReturnValue(theme);
 }
 
 CursorTheme::CursorTheme()
-    : RenderClientObject(RealType::kCursorTheme)
+    : PresentRemoteHandle(RealType::kCursorTheme)
     , disposed_(false)
 {
     SetMethodTrampoline(GLOP_CURSORTHEME_DISPOSE,

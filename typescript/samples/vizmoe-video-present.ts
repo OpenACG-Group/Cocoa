@@ -21,6 +21,7 @@ import * as std from 'core';
 import { CloseRequestEvent, ToplevelWindow } from "../vizmoe/render/toplevel-window";
 import { CompositeRenderNode, VideoTextureRenderNode } from '../vizmoe/render/render-node';
 import { DrawContextSubmitter } from "../vizmoe/render/draw-context-submitter";
+import * as GL from "glamor";
 
 class RenderContext {
     private readonly fDecoder: utau.AVStreamDecoder;
@@ -107,9 +108,9 @@ class RenderContext {
 
 const ctx = new RenderContext(std.args[0]);
 
-gl.RenderHost.Initialize({name: 'Video Present', major: 1, minor: 0, patch: 0});
+const presentThread = await GL.PresentThread.Start();
 
-gl.RenderHost.Connect().then((display) => {
+presentThread.createDisplay().then((display) => {
     return ToplevelWindow.Create(display, ctx.width, ctx.height, true);
 }).then((window) => {
     window.addEventListener(CloseRequestEvent, async event => {
@@ -118,7 +119,7 @@ gl.RenderHost.Connect().then((display) => {
         const display = window.display;
         await window.close();
         await display.close();
-        gl.RenderHost.Dispose();
+        presentThread.dispose();
     });
 
     ctx.setSubmitter(window.drawContext.submitter);

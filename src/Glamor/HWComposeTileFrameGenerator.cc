@@ -134,7 +134,7 @@ HWComposeTileFrameGenerator::HWComposeTileFrameGenerator(const Shared<Blender>& 
 
     Shared<HWComposeSwapchain> swapchain = rt->GetHWComposeSwapchain();
     CHECK(swapchain);
-    sk_sp<GrDirectContext> directCtx = swapchain->GetSkiaDirectContext();
+    sk_sp<GrDirectContext> directCtx = swapchain->GetSkiaGpuContext();
     CHECK(directCtx);
 
     for (const SkIRect& clip : clips)

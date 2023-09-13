@@ -26,8 +26,8 @@ GLAMOR_NAMESPACE_BEGIN
 GraphicsResourcesTrackable::Tracer::Tracer()
     : tracings_(nullptr)
 {
-    root_value_["type"] = "Cocoa GLAMOR resources tracing";
-    root_value_["tracer"] = "GLAMOR embedded tracer (GraphicsResourcesTrackable)";
+    root_value_["type"] = "cocoa.gl.tracings.presentresources";
+    root_value_["tracer"] = "cocoa.gl.GraphicsResourcesTrackable.Tracer";
 
     tracings_ = &root_value_["tracings"];
 }

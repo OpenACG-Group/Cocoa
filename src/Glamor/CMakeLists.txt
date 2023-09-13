@@ -7,25 +7,22 @@ add_library(
         ForwardTypeDecls.h
         MaybeGpuObject.h
         MaybeGpuObject.cc
-        RenderHost.h
-        RenderHost.cc
-        RenderHostInvocation.h
-        RenderHostCallbackInfo.h
-        RenderHostCallbackInfo.cc
-        RenderHostSlotCallbackInfo.h
-        RenderHostSlotCallbackInfo.cc
-        RenderHostCreator.h
-        RenderHostCreator.cc
-        RenderHostTaskRunner.h
-        RenderHostTaskRunner.cc
-        RenderClient.h
-        RenderClient.cc
-        RenderClientObject.h
-        RenderClientObject.cc
-        RenderClientCallInfo.h
-        RenderClientEmitterInfo.h
-        RenderClientTransfer.h
-        RenderClientSignalEmit.h
+
+        PresentThread.h
+        PresentThread.cc
+        PresentMessage.h
+        PresentRemoteCallMessage.h
+        PresentRemoteCall.h
+        PresentRemoteCallReturn.h
+        PresentRemoteCallReturn.cc
+        PresentSignalMessage.h
+        PresentSignal.h
+        PresentSignalArgs.h
+        PresentSignalArgs.cc
+        PresentThreadTaskRunner.h
+        PresentThreadTaskRunner.cc
+        PresentRemoteHandle.h
+        PresentRemoteHandle.cc
         RenderTarget.h
         RenderTarget.cc
         Display.h
@@ -42,20 +39,20 @@ add_library(
         RasterFrameGenerator.cc
         HWComposeContext.h
         HWComposeContext.cc
+        HWComposeDevice.h
+        HWComposeDevice.cc
         HWComposeSwapchain.h
         HWComposeSwapchain.cc
+        HWComposeOffscreen.h
+        HWComposeOffscreen.cc
+        SkiaGpuContextOwner.h
+        SkiaGpuContextOwner.cc
         GraphicsResourcesTrackable.h
         GraphicsResourcesTrackable.cc
         Cursor.h
         Cursor.cc
         CursorTheme.h
         CursorTheme.cc
-        TextureFactory.h
-        TextureFactory.cc
-        Texture.h
-        Texture.cc
-        TextureManager.h
-        TextureManager.cc
         GProfiler.h
         GProfiler.cc
         SkEventTracerImpl.h
@@ -75,8 +72,6 @@ add_library(
         Layers/PictureLayer.cc
         Layers/TransformLayer.h
         Layers/TransformLayer.cc
-        Layers/TextureLayer.h
-        Layers/TextureLayer.cc
         Layers/ImageFilterLayer.h
         Layers/ImageFilterLayer.cc
         Layers/BackdropFilterLayer.h

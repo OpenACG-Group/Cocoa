@@ -16,15 +16,12 @@
  */
 
 #include "include/core/SkGraphics.h"
-#include "include/core/SkTraceMemoryDump.h"
 #include "Core/StandaloneThreadPool.h"
 #include "Core/Journal.h"
 #include "Glamor/Glamor.h"
-#include "Glamor/RenderHost.h"
-#include "Glamor/RenderClient.h"
-#include "Glamor/MaybeGpuObject.h"
-#include "Glamor/GProfiler.h"
 #include "Glamor/SkEventTracerImpl.h"
+#include "Glamor/HWComposeContext.h"
+#include "Glamor/PresentThread.h"
 GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor)
@@ -40,6 +37,7 @@ ContextOptions::ContextOptions()
     , enable_profiler_(false)
     , profiler_rb_threshold_(GLAMOR_PROFILER_RINGBUFFER_THRESHOLD_DEFAULT)
     , disable_hw_compose_(false)
+    , disable_hw_compose_present_(false)
     , enable_vkdbg_(false)
     , vkdbg_filter_severities_{"general", "performance", "validation"}
     , vkdbg_filter_levels_{"verbose", "info", "warning", "error"}
@@ -98,13 +96,11 @@ void ContextOptions::SetTileWidth(int32_t width)
 
 GlobalScope::GlobalScope(const ContextOptions& options, EventLoop *loop)
     : options_(options)
+    , application_info_("Cocoa", std::make_tuple(0, 0, 0))
     , event_loop_(loop)
-    , render_host_(nullptr)
-    , render_client_(nullptr)
-    , external_data_{nullptr, {}}
-    , thread_shared_objs_collector_(
-            std::make_unique<GpuThreadSharedObjectsCollector>())
     , skia_event_tracer_impl_(new SkEventTracerImpl())
+    , hw_compose_context_creation_failed_(false)
+    , hw_compose_disabled_(false)
 {
     SkEventTracer::SetInstance(skia_event_tracer_impl_, false);
 
@@ -112,54 +108,7 @@ GlobalScope::GlobalScope(const ContextOptions& options, EventLoop *loop)
         SkGraphics::AllowJIT();
 }
 
-void GlobalScope::Initialize(const ApplicationInfo& info)
-{
-    if (render_host_ || render_client_)
-    {
-        QLOG(LOG_WARNING, "Initialize GlobalScope multiple times");
-        return;
-    }
-
-    render_host_ = new RenderHost(event_loop_, info);
-    render_client_ = new RenderClient(render_host_);
-    render_host_->SetRenderClient(render_client_);
-}
-
-void GlobalScope::Dispose()
-{
-    // Destroy all the alive GPU objects which are referenced
-    // by all other threads except GPU thread.
-    if (thread_shared_objs_collector_)
-        thread_shared_objs_collector_->Collect();
-    thread_shared_objs_collector_.reset();
-
-    if (external_data_.ptr && external_data_.deleter)
-        external_data_.deleter(external_data_.ptr);
-    external_data_.ptr = nullptr;
-    external_data_.deleter = {};
-
-    if (!render_client_ || !render_host_)
-    {
-        QLOG(LOG_ERROR, "Disposing GlobalScope without an initialization");
-        return;
-    }
-
-    delete render_client_;
-    render_client_ = nullptr;
-    render_host_->OnDispose();
-    /* This method may be called in a callback of host invocation,
-     * so we should not delete @p render_host_ here. */
-}
-
-GlobalScope::~GlobalScope()
-{
-    if (render_client_)
-    {
-        QLOG(LOG_ERROR, "Destructing GlobalScope without disposing it is unexpected");
-        delete render_client_;
-    }
-    delete render_host_;
-}
+GlobalScope::~GlobalScope() = default;
 
 ContextOptions& GlobalScope::GetOptions()
 {
@@ -178,68 +127,124 @@ const Unique<StandaloneThreadPool>& GlobalScope::GetRenderWorkersThreadPool()
     return render_workers_;
 }
 
-std::optional<std::string> GlobalScope::TraceResourcesToJson()
+bool GlobalScope::StartPresentThread()
 {
-    if (!render_client_ || !render_host_)
-        return {};
+    present_thread_ = PresentThread::Start(event_loop_->handle());
+    if (!present_thread_)
+    {
+        QLOG(LOG_ERROR, "Failed to start present thread");
+        return false;
+    }
+    return true;
+}
 
-    GraphicsResourcesTrackable::Tracer tracer;
-    tracer.TraceRootObject("RenderClient", render_client_);
-    tracer.TraceRootObject("ThreadSharedObjectsCollector",
-                           thread_shared_objs_collector_.get());
-
-    // TODO(sora): Also trace `RenderHost`
-    return tracer.ToJsonString();
+void GlobalScope::DisposePresentThread()
+{
+    if (!present_thread_)
+        return;
+    present_thread_->Dispose();
+    present_thread_.reset();
 }
 
 namespace {
 
-class SkiaMemoryTracer : public SkTraceMemoryDump
-{
-public:
-    void dumpNumericValue(const char* dumpName,
-                          const char* valueName,
-                          const char* units,
-                          uint64_t value) override
-    {
-        fmt::print("{}: {} = {} {}\n", dumpName, valueName, value, units);
-    }
+using VkDBGTypeFilter = HWComposeContext::Options::VkDBGTypeFilter;
+using VkDBGLevelFilter = HWComposeContext::Options::VkDBGLevelFilter;
 
-    void dumpStringValue(const char* dumpName,
-                         const char* valueName,
-                         const char* value) override
-    {
-        fmt::print("{}: {} = \"{}\"\n", dumpName, valueName, value);
-    }
+// NOLINTNEXTLINE
+std::map<std::string, VkDBGTypeFilter> g_vkdbg_type_filters_name = {
+    { "general",     VkDBGTypeFilter::kGeneral     },
+    { "performance", VkDBGTypeFilter::kPerformance },
+    { "validation",  VkDBGTypeFilter::kValidation  }
+};
 
-    void setMemoryBacking(const char* dumpName,
-                          const char* backingType,
-                          const char* backingObjectId) override
-    {
-        //fmt::print("{}: [memory backing] type={}, object={}\n", dumpName, backingType,
-        //           backingObjectId);
-    }
-
-
-    void setDiscardableMemoryBacking(const char* dumpName,
-                                     const SkDiscardableMemory& discardableMemoryObject) override
-    {
-    }
-
-    g_nodiscard LevelOfDetail getRequestedDetails() const override
-    {
-        return LevelOfDetail::kObjectsBreakdowns_LevelOfDetail;
-    }
+// NOLINTNEXTLINE
+std::map<std::string, VkDBGLevelFilter> g_vkdbg_level_filters_name = {
+    { "verbose",  VkDBGLevelFilter::kVerbose },
+    { "info",     VkDBGLevelFilter::kInfo    },
+    { "warning",  VkDBGLevelFilter::kWarning },
+    { "error",    VkDBGLevelFilter::kError   }
 };
 
 } // namespace anonymous
 
-void GlobalScope::TraceSkiaMemoryResources()
+Shared<HWComposeContext> GlobalScope::GetHWComposeContext()
 {
-    SkiaMemoryTracer tracer;
-    fmt::print("===== Dump Begin ====\n");
-    SkGraphics::DumpMemoryStatistics(&tracer);
-    fmt::print("===== Dump End ====\n");
+    // Only one thread can create a `HWComposeContext` at the same time.
+    // Once a context is created, it will be used by all the threads.
+    std::scoped_lock<std::mutex> lock(hw_compose_creation_lock_);
+
+    if (hw_compose_context_creation_failed_ || hw_compose_disabled_)
+        return nullptr;
+
+    if (GlobalScope::Ref().GetOptions().GetDisableHWCompose())
+    {
+        QLOG(LOG_INFO, "HWCompose is disabled for current environment");
+        hw_compose_disabled_ = true;
+        return nullptr;
+    }
+
+    if (hw_compose_context_)
+        return hw_compose_context_;
+
+    HWComposeContext::Options options{};
+
+    options.application_name = application_info_.name;
+    options.application_version_major = std::get<0>(application_info_.version_triple);
+    options.application_version_minor = std::get<1>(application_info_.version_triple);
+    options.application_version_patch = std::get<2>(application_info_.version_triple);
+    options.use_vkdbg = false;
+
+    ContextOptions& gl_options = GlobalScope::Ref().GetOptions();
+
+    if (gl_options.GetEnableVkDBG())
+    {
+        QLOG(LOG_INFO, "Enabled VkDBG feature for HWCompose context");
+        options.use_vkdbg = true;
+
+        for (const std::string& name : gl_options.GetVkDBGFilterSeverities())
+        {
+            if (g_vkdbg_type_filters_name.count(name) == 0)
+            {
+                QLOG(LOG_WARNING, "Unrecognized severity name of VkDBG filter: {}", name);
+                continue;
+            }
+            options.vkdbg_type_filter |= g_vkdbg_type_filters_name[name];
+        }
+
+        for (const std::string& name : gl_options.GetVkDBGFilterLevels())
+        {
+            if (g_vkdbg_level_filters_name.count(name) == 0)
+            {
+                QLOG(LOG_WARNING, "Unrecognized information level of VkDBG filter: {}", name);
+                continue;
+            }
+            options.vkdbg_level_filter |= g_vkdbg_level_filters_name[name];
+        }
+    }
+
+    options.device_extensions.emplace_back("VK_KHR_external_memory");
+    options.device_extensions.emplace_back("VK_KHR_external_memory_fd");
+    options.device_extensions.emplace_back("VK_KHR_external_semaphore");
+    options.device_extensions.emplace_back("VK_KHR_external_semaphore_fd");
+
+    if (!gl_options.GetDisableHWComposePresent())
+    {
+        switch (gl_options.GetBackend())
+        {
+        case Backends::kWayland:
+            options.instance_extensions.emplace_back("VK_KHR_surface");
+            options.instance_extensions.emplace_back("VK_KHR_wayland_surface");
+            break;
+        }
+    }
+
+    hw_compose_context_ = HWComposeContext::MakeVulkan(options);
+
+    if (!hw_compose_context_)
+        hw_compose_context_creation_failed_ = true;
+
+    return hw_compose_context_;
 }
 
 GLAMOR_NAMESPACE_END

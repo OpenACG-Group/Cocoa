@@ -24,16 +24,15 @@
 #include "Glamor/Monitor.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-DisplayWrap::DisplayWrap(gl::Shared<gl::RenderClientObject> handle)
-    : PreventGCObject(v8::Isolate::GetCurrent())
-    , handle_(std::move(handle))
+DisplayWrap::DisplayWrap(gl::Shared<gl::PresentRemoteHandle> handle)
+    : handle_(std::move(handle))
 {
     DefineSignalEventsOnEventEmitter(this, handle_, {
         { "closed", GLSI_DISPLAY_CLOSED },
         {
             "monitor-added",
             GLSI_DISPLAY_MONITOR_ADDED,
-            [this](v8::Isolate *i, gl::RenderHostSlotCallbackInfo &info) {
+            [this](v8::Isolate *i, gl::PresentSignalArgs &info) {
                 v8::HandleScope scope(i);
                 auto monitor = info.Get<gl::Shared<gl::Monitor>>(0);
                 v8::Local<v8::Object> result = binder::NewObject<MonitorWrap>(i, monitor);
@@ -44,7 +43,7 @@ DisplayWrap::DisplayWrap(gl::Shared<gl::RenderClientObject> handle)
         {
             "monitor-removed",
             GLSI_DISPLAY_MONITOR_REMOVED,
-            [this](v8::Isolate *i, gl::RenderHostSlotCallbackInfo &info) {
+            [this](v8::Isolate *i, gl::PresentSignalArgs &info) {
                 v8::HandleScope scope(i);
                 auto monitor = info.Get<gl::Shared<gl::Monitor>>(0);
                 v8::Local<v8::Object> result;
@@ -68,15 +67,17 @@ DisplayWrap::~DisplayWrap() = default;
 
 v8::Local<v8::Value> DisplayWrap::close()
 {
-    markCanBeGarbageCollected();
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return PromisifiedRemoteCall::Call(isolate, handle_, {}, GLOP_DISPLAY_CLOSE);
+    v8::Local<v8::Value> promise = PromisifiedRemoteCall::Call(
+            isolate, handle_, {}, GLOP_DISPLAY_CLOSE);
+    handle_.reset();
+    return promise;
 }
 
 namespace {
 
 v8::Local<v8::Value> create_surface_invoke(DisplayWrap *wrap,
-                                           const gl::Shared<gl::RenderClientObject>& display,
+                                           const gl::Shared<gl::PresentRemoteHandle>& display,
                                            bool hw_compose,
                                            int32_t width, int32_t height)
 {
@@ -91,8 +92,8 @@ v8::Local<v8::Value> create_surface_invoke(DisplayWrap *wrap,
 
     return PromisifiedRemoteCall::Call(
             isolate, display,
-            [self_sp](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
-                auto surface = info.GetReturnValue<std::shared_ptr<gl::RenderClientObject>>();
+            [self_sp](v8::Isolate *i, gl::PresentRemoteCallReturn& info) {
+                auto surface = info.GetReturnValue<std::shared_ptr<gl::PresentRemoteHandle>>();
                 return binder::NewObject<SurfaceWrap>(i, surface, self_sp->Get(i));
             },
             hw_compose ? GLOP_DISPLAY_CREATE_HW_COMPOSE_SURFACE
@@ -125,7 +126,7 @@ v8::Local<v8::Value> DisplayWrap::requestMonitorList()
     return PromisifiedRemoteCall::Call(
             isolate,
             handle_,
-            [self_sp, this](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
+            [self_sp, this](v8::Isolate *i, gl::PresentRemoteCallReturn& info) {
                 auto list = info.GetReturnValue<gl::Display::MonitorList>();
                 std::vector<v8::Local<v8::Object>> objects;
                 for (const auto& monitor : list)
@@ -194,8 +195,8 @@ v8::Local<v8::Object> DisplayWrap::OnGetObjectSelf(v8::Isolate *isolate)
 
 namespace {
 
-InfoAcceptorResult monitor_property_set_transcription(v8::Isolate *isolate,
-                                                      gl::RenderHostSlotCallbackInfo& info)
+SignalArgsVector monitor_property_set_transcription(v8::Isolate *isolate,
+                                                    gl::PresentSignalArgs& info)
 {
     auto props = info.Get<gl::Shared<gl::Monitor::PropertySet>>(0);
     std::unordered_map<std::string_view, v8::Local<v8::Value>> fields_map{
@@ -219,7 +220,7 @@ InfoAcceptorResult monitor_property_set_transcription(v8::Isolate *isolate,
 
 } // namespace anonymous
 
-MonitorWrap::MonitorWrap(gl::Shared<gl::RenderClientObject> handle)
+MonitorWrap::MonitorWrap(gl::Shared<gl::PresentRemoteHandle> handle)
     : handle_(std::move(handle))
 {
     DefineSignalEventsOnEventEmitter(this, handle_, {

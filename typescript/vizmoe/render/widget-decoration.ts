@@ -46,13 +46,13 @@ export class Border {
 // TODO(sora): implement this class
 export class Decoration {
     public static None(): Decoration {
-        return null;
+        return new Decoration();
     }
 
     public diffUpdate(other: Decoration): void {
     }
 
     public aggregateDecoration(positioner: RenderPositioner, contentRN: RenderNode): RenderNode {
-        return null;
+        return contentRN;
     }
 }

@@ -21,6 +21,7 @@
 #include <memory>
 #include <vector>
 #include <optional>
+#include <mutex>
 
 #include "Core/Project.h"
 #include "Core/UniquePersistent.h"
@@ -59,10 +60,24 @@ enum class Backends
     kDefault = kWayland
 };
 
-class RenderHost;
-class RenderClient;
-class GpuThreadSharedObjectsCollector;
+enum class PresentMessageMilestone : uint8_t
+{
+    kHostConstruction   = 0,
+    kHostEnqueued       = 1,
+    kClientReceived     = 2,
+    kClientProcessed    = 3,
+    kClientFeedback     = 4,
+
+    kHostReceived       = 5,
+
+    kClientEmitted      = 6,
+
+    kLast = 7
+};
+
 class GProfiler;
+class HWComposeContext;
+class PresentThread;
 
 class ContextOptions
 {
@@ -83,6 +98,10 @@ public:
 
     g_nodiscard g_inline bool GetShowTileBoundaries() const {
         return show_tile_boundaries_;
+    }
+
+    g_nodiscard g_inline bool GetDisableHWComposePresent() const {
+        return disable_hw_compose_present_;
     }
 
     // Use a specific window system integration backend
@@ -157,6 +176,25 @@ public:
         vkdbg_filter_levels_ = v;
     }
 
+    /**
+     * Whether to disable onscreen rendering support of HWCompose.
+     *
+     * If HWCompose present is enabled, onscreen rendering is available
+     * and the related Vulkan extensions are required for initiating
+     * HWCompose context. No matter whether the created HWCompose context
+     * will be used for onscreen or offscreen rendering, initiation will
+     * fail if the required extensions are not available.
+     *
+     * But if HWCompose present is disabled, presentation extensions are
+     * not required for initiating HWCompose context, and the created
+     * HWCompose context can only be used for offscreen rendering.
+     * That is, `HWComposeSwapchain` (for presentation) cannot be created,
+     * and only `HWComposeOffscreen` can be created.
+     */
+    g_inline void SetDisableHWComposePresent(bool v) {
+        disable_hw_compose_present_ = v;
+    }
+
 private:
     Backends    backend_;
     bool        skia_jit_;
@@ -168,6 +206,7 @@ private:
     bool        enable_profiler_;
     size_t      profiler_rb_threshold_;
     bool        disable_hw_compose_;
+    bool        disable_hw_compose_present_;
 
     bool        enable_vkdbg_;
     std::vector<std::string> vkdbg_filter_severities_;
@@ -184,20 +223,9 @@ public:
         ApplicationInfo() = default;
         ApplicationInfo(const std::string_view& name, VersionTriple triple)
                 : name(name), version_triple(std::move(triple)) {}
-        ApplicationInfo(const ApplicationInfo&) = default;
-        ApplicationInfo(ApplicationInfo&& rhs) noexcept
-                : name(std::move(rhs.name))
-                , version_triple(std::move(rhs.version_triple)) {}
 
         std::string         name;
         VersionTriple       version_triple;
-    };
-
-    struct ExternalData
-    {
-        using Deleter = std::function<void(void*)>;
-        void *ptr;
-        Deleter deleter;
     };
 
     GlobalScope(const ContextOptions& options, EventLoop *loop);
@@ -205,66 +233,39 @@ public:
 
     g_nodiscard ContextOptions& GetOptions();
 
-    void Initialize(const ApplicationInfo& info);
-    void Dispose();
-
-    g_nodiscard g_inline bool HasInitialized() const {
-        return (render_host_ && render_client_);
+    void SetApplicationInfo(const ApplicationInfo& info) {
+        application_info_ = info;
     }
 
-    g_nodiscard g_inline RenderHost *GetRenderHost() {
-        return render_host_;
-    }
+    bool StartPresentThread();
+    void DisposePresentThread();
 
-    g_nodiscard g_inline RenderClient *GetRenderClient() {
-        return render_client_;
+    g_nodiscard PresentThread *GetPresentThread() {
+        return present_thread_.get();
     }
 
     const Unique<StandaloneThreadPool>& GetRenderWorkersThreadPool();
 
-    /**
-     * Get a using report of graphics resources in JSON format.
-     * The method traces alive graphics objects and their members recursively,
-     * collects information about graphics memory, GPU handles, etc. and
-     * finally gives a JSON report.
-     * The method should be called in the rendering thread to avoid synchronous
-     * problems. If it is necessary to trace resources from other threads,
-     * use `RenderHostTaskRunner` to call it asynchronously.
-     */
-    std::optional<std::string> TraceResourcesToJson();
-
-    void TraceSkiaMemoryResources();
-
-    g_nodiscard g_inline SkEventTracerImpl *GetSkEventTracerImpl() {
+    g_nodiscard SkEventTracerImpl *GetSkEventTracerImpl() {
         return skia_event_tracer_impl_;
     }
 
-    g_inline void SetExternalDataPointer(void *ptr, ExternalData::Deleter deleter) {
-        if (external_data_.ptr && external_data_.deleter)
-            external_data_.deleter(external_data_.ptr);
-        external_data_.ptr = ptr;
-        external_data_.deleter = std::move(deleter);
-    }
-
-    g_nodiscard g_inline void *GetExternalDataPointer() const {
-        return external_data_.ptr;
-    }
-
-    g_nodiscard g_inline auto *GetGpuThreadSharedObjectsCollector() const {
-        return thread_shared_objs_collector_.get();
-    }
+    g_nodiscard Shared<HWComposeContext> GetHWComposeContext();
 
 private:
     ContextOptions  options_;
+    ApplicationInfo application_info_;
     EventLoop      *event_loop_;
-    RenderHost     *render_host_;
-    RenderClient   *render_client_;
     Unique<StandaloneThreadPool>  render_workers_;
-    ExternalData    external_data_;
-    Unique<GpuThreadSharedObjectsCollector>
-                    thread_shared_objs_collector_;
     SkEventTracerImpl
                     *skia_event_tracer_impl_;
+
+    std::mutex               hw_compose_creation_lock_;
+    bool                     hw_compose_context_creation_failed_;
+    bool                     hw_compose_disabled_;
+    Shared<HWComposeContext> hw_compose_context_;
+
+    std::unique_ptr<PresentThread> present_thread_;
 };
 
 GLAMOR_NAMESPACE_END

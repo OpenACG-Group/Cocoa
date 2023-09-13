@@ -18,6 +18,7 @@
 #include <cstring>
 
 #include "include/v8.h"
+#include "fmt/format.h"
 
 #include "Gallium/bindings/core/Exports.h"
 #include "Gallium/binder/Class.h"
@@ -61,7 +62,7 @@ v8::Local<v8::Value> CallbackScopedBuffer::read(v8::Local<v8::Value> dst,
     if (size == 0)
         return v8::Number::New(isolate, 0);
 
-    if (!dst->IsUint8Array() || !dst.As<v8::Uint8Array>()->HasBuffer())
+    if (!dst->IsUint8Array())
         g_throw(TypeError, "Argument `dst` must be an allocated Uint8Array");
 
     v8::Local<v8::Uint8Array> arr = dst.As<v8::Uint8Array>();
@@ -89,8 +90,8 @@ v8::Local<v8::Value> CallbackScopedBuffer::write(v8::Local<v8::Value> src,
     if (offset > size_)
         g_throw(RangeError, "Invalid data offset");
 
-    if (!src->IsUint8Array() || !src.As<v8::Uint8Array>()->HasBuffer())
-        g_throw(TypeError, "Argument `src` must be an allocated Uint8Array");
+    if (!src->IsUint8Array())
+        g_throw(TypeError, "Argument `src` must be a Uint8Array");
 
     v8::Local<v8::Uint8Array> arr = src.As<v8::Uint8Array>();
 

@@ -115,10 +115,10 @@ void WaylandDisplay::RegistryHandleGlobalRemove(void *data,
             d->monitors_list_.erase(itr);
 
             // Notify monitor's listeners that monitor was detached from display
-            wl_monitor->Emit(GLSI_MONITOR_DETACHED, RenderClientEmitterInfo());
+            wl_monitor->Emit(GLSI_MONITOR_DETACHED, PresentSignal());
 
             // Notify display's listeners that a monitor was removed from list
-            RenderClientEmitterInfo emitterInfo;
+            PresentSignal emitterInfo;
             emitterInfo.EmplaceBack<Shared<Monitor>>(wl_monitor);
             d->Emit(GLSI_DISPLAY_MONITOR_REMOVED, std::move(emitterInfo));
         }
@@ -276,58 +276,51 @@ Shared<WaylandDisplay> WaylandDisplay::Connect(uv_loop_t *loop, const std::strin
     return display;
 }
 
-void WaylandDisplay::PrepareCallback(uv_prepare_t *prepare)
+void WaylandDisplay::PrepareCallback()
 {
-    WaylandDisplay *d = WaylandDisplay::BareCast(prepare->data);
-    while (wl_display_prepare_read(d->wl_display_) != 0)
-        wl_display_dispatch_pending(d->wl_display_);
-
-    if (wl_display_flush(d->wl_display_) < 0 && errno != EAGAIN)
+    while (wl_display_prepare_read(wl_display_) != 0)
+        wl_display_dispatch_pending(wl_display_);
+    if (wl_display_flush(wl_display_) < 0 && errno != EAGAIN)
     {
         QLOG(LOG_ERROR, "Lost connection to compositor");
-        wl_display_cancel_read(d->wl_display_);
-        d->Close();
+        wl_display_cancel_read(wl_display_);
+        Close();
     }
-
-    d->display_is_reading_ = true;
+    display_is_reading_ = true;
 }
 
-void WaylandDisplay::PollCallback(uv_poll_t *poll, int status, int events)
+void WaylandDisplay::PollCallback(int status, int events)
 {
-    WaylandDisplay *d = WaylandDisplay::BareCast(poll->data);
-
     if (status < 0)
     {
         QLOG(LOG_ERROR, "Error: {}", uv_strerror(status));
-        wl_display_cancel_read(d->wl_display_);
+        wl_display_cancel_read(wl_display_);
     }
     else if (events == UV_READABLE)
     {
-        wl_display_read_events(d->wl_display_);
-        wl_display_dispatch_pending(d->wl_display_);
-        for (const Shared<Surface>& surface : d->GetSurfacesList())
+        wl_display_read_events(wl_display_);
+        wl_display_dispatch_pending(wl_display_);
+        for (const Shared<Surface>& surface : GetSurfacesList())
         {
             auto rt = std::static_pointer_cast<WaylandRenderTarget>(surface->GetRenderTarget());
-            wl_display_dispatch_queue_pending(d->wl_display_, rt->GetWaylandEventQueue());
+            wl_display_dispatch_queue_pending(wl_display_, rt->GetWaylandEventQueue());
         }
     }
     else
     {
         QLOG(LOG_ERROR, "Lost connection to compositor");
-        wl_display_cancel_read(d->wl_display_);
-        d->Close();
+        wl_display_cancel_read(wl_display_);
+        Close();
     }
-
-    d->display_is_reading_ = false;
+    display_is_reading_ = false;
 }
 
-void WaylandDisplay::CheckCallback(uv_check_t *check)
+void WaylandDisplay::CheckCallback()
 {
-    WaylandDisplay *d = WaylandDisplay::BareCast(check->data);
-    if (d->display_is_reading_)
+    if (display_is_reading_)
     {
-        wl_display_cancel_read(d->wl_display_);
-        d->display_is_reading_ = false;
+        wl_display_cancel_read(wl_display_);
+        display_is_reading_ = false;
     }
 }
 
@@ -338,14 +331,14 @@ WaylandRoundtripScope::WaylandRoundtripScope(Shared<WaylandDisplay> display)
     if (display_->display_is_reading_)
     {
         changed_ = true;
-        display_->CheckCallback(display_->uv_check_handle_);
+        display_->CheckCallback();
     }
 }
 
 WaylandRoundtripScope::~WaylandRoundtripScope()
 {
     if (changed_)
-        display_->PrepareCallback(display_->uv_prepare_handle_);
+        display_->PrepareCallback();
 }
 
 WaylandDisplay::WaylandDisplay(uv_loop_t *loop, int fd)
@@ -353,41 +346,20 @@ WaylandDisplay::WaylandDisplay(uv_loop_t *loop, int fd)
     , wl_display_(nullptr)
     , wl_registry_(nullptr)
     , globals_(std::make_unique<Globals>())
-    , uv_prepare_handle_(nullptr)
-    , uv_check_handle_(nullptr)
-    , uv_poll_handle_(nullptr)
     , display_is_reading_(false)
 {
-    uv_prepare_handle_ = reinterpret_cast<uv_prepare_t *>(::malloc(sizeof(uv_prepare_t)));
-    uv_prepare_init(loop, uv_prepare_handle_);
-    uv_prepare_start(uv_prepare_handle_, PrepareCallback);
-    uv_handle_set_data(reinterpret_cast<uv_handle_t *>(uv_prepare_handle_), this);
+    uv_prepare_.emplace(loop);
+    uv_check_.emplace(loop);
+    uv_poll_.emplace(loop, fd);
 
-    uv_check_handle_ = reinterpret_cast<uv_check_t *>(::malloc(sizeof(uv_check_t)));
-    uv_check_init(loop, uv_check_handle_);
-    uv_check_start(uv_check_handle_, CheckCallback);
-    uv_handle_set_data(reinterpret_cast<uv_handle_t *>(uv_check_handle_), this);
-
-    uv_poll_handle_ = reinterpret_cast<uv_poll_t *>(::malloc(sizeof(uv_poll_t)));
-    uv_poll_init(loop, uv_poll_handle_, fd);
-    uv_poll_start(uv_poll_handle_, UV_READABLE | UV_DISCONNECT, PollCallback);
-    uv_handle_set_data(reinterpret_cast<uv_handle_t *>(uv_poll_handle_), this);
-}
-
-WaylandDisplay::~WaylandDisplay()
-{
-    uv_close(reinterpret_cast<uv_handle_t *>(uv_prepare_handle_), [](uv_handle_t *hnd) {
-        ::free(hnd);
-    });
-
-    uv_close(reinterpret_cast<uv_handle_t *>(uv_check_handle_), [](uv_handle_t *hnd) {
-        ::free(hnd);
-    });
-
-    uv_close(reinterpret_cast<uv_handle_t *>(uv_poll_handle_), [](uv_handle_t *hnd) {
-        ::free(hnd);
+    uv_prepare_->Start([this] { PrepareCallback(); });
+    uv_check_->Start([this] { CheckCallback(); });
+    uv_poll_->Start(UV_READABLE | UV_DISCONNECT, [this](int status, int events) {
+        PollCallback(status, events);
     });
 }
+
+WaylandDisplay::~WaylandDisplay() = default;
 
 WaylandDisplay::Globals::~Globals()
 {
@@ -405,9 +377,9 @@ WaylandDisplay::Globals::~Globals()
 
 void WaylandDisplay::OnDispose()
 {
-    uv_prepare_stop(uv_prepare_handle_);
-    uv_check_stop(uv_check_handle_);
-    uv_poll_stop(uv_poll_handle_);
+    uv_prepare_.reset();
+    uv_check_.reset();
+    uv_poll_.reset();
 
     // Check each seat to make sure they are not referenced by other scopes.
     for (const auto& seat : seats_list_)

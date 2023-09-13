@@ -24,6 +24,7 @@ import { CloseRequestEvent, ToplevelWindow } from '../vizmoe/render/toplevel-win
 import { CompositeRenderNode, PaintRenderNode } from '../vizmoe/render/render-node';
 import { DrawContextSubmitter, SubmittedEvent } from '../vizmoe/render/draw-context-submitter';
 import { Rect } from '../vizmoe/render/rectangle';
+import * as GL from "glamor";
 
 const cv = await LoadFromProjectThirdParty<OpenCVLib>('opencv_js.wasm', 'opencv.js');
 
@@ -192,9 +193,9 @@ class RenderContext {
 
 const ctx = new RenderContext(std.args[0]);
 
-gl.RenderHost.Initialize({name: 'Video Present', major: 1, minor: 0, patch: 0});
+const presentThread = await GL.PresentThread.Start();
 
-gl.RenderHost.Connect().then((display) => {
+presentThread.createDisplay().then((display) => {
     return ToplevelWindow.Create(display, ctx.width, ctx.height, false);
 }).then((window) => {
     window.addEventListener(CloseRequestEvent, async () => {
@@ -203,7 +204,7 @@ gl.RenderHost.Connect().then((display) => {
         const display = window.display;
         await window.close();
         await display.close();
-        gl.RenderHost.Dispose();
+        presentThread.dispose();
     });
 
     window.drawContext.submitter.addEventListener(SubmittedEvent, event => {

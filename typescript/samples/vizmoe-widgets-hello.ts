@@ -27,17 +27,18 @@ import { EdgeInsets } from '../vizmoe/render/edge-insets';
 import * as color from '../vizmoe/render/color';
 import { Rect } from '../vizmoe/render/rectangle';
 import { Vector2f } from '../vizmoe/render/vector';
+import * as GL from "glamor";
 
-gl.RenderHost.Initialize({name: 'Widgets', major: 1, minor: 0, patch: 0});
+const presentThread = await GL.PresentThread.Start();
 
-gl.RenderHost.Connect().then((display) => {
+presentThread.createDisplay().then((display) => {
     return ToplevelWindow.Create(display, 800, 600, true);
 }).then((window) => {
     window.addEventListener(CloseRequestEvent, async event => {
         const display = window.display;
         await window.close();
         await display.close();
-        gl.RenderHost.Dispose();
+        presentThread.dispose();
     });
 
     const NewConstraintSolid = (color: color.Color4f, w: number, h: number) => {

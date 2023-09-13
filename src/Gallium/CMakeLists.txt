@@ -110,14 +110,16 @@ add_library(Gallium STATIC
         bindings/glamor/Types.h
         bindings/glamor/Exports.h
         bindings/glamor/Exports.cc
+        bindings/glamor/SkiaMemoryTrace.cc
         bindings/glamor/Capabilities.cc
         bindings/glamor/PromiseHelper.h
         bindings/glamor/PromiseHelper.cc
-        bindings/glamor/RenderHost.cc
+        bindings/glamor/PresentThreadWrap.cc
         bindings/glamor/DisplayWrap.cc
         bindings/glamor/SurfaceWrap.cc
         bindings/glamor/BlenderWrap.cc
         bindings/glamor/CkPictureWrap.cc
+        bindings/glamor/CkImageWrap.h
         bindings/glamor/CkImageWrap.cc
         bindings/glamor/CkBitmapWrap.cc
         bindings/glamor/CkImageFilterWrap.cc
@@ -165,6 +167,10 @@ add_library(Gallium STATIC
         bindings/glamor/CkPathMeasureWrap.cc
         bindings/glamor/ConcurrentVertexProcessor.h
         bindings/glamor/ConcurrentVertexProcessor.cc
+        bindings/glamor/GpuDirectContext.h
+        bindings/glamor/GpuDirectContext.cc
+        bindings/glamor/CkPixmapWrap.h
+        bindings/glamor/CkPixmapWrap.cc
 
         bindings/pixencoder/Exports.h
         bindings/pixencoder/Exports.cc

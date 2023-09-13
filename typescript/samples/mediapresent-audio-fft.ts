@@ -313,9 +313,9 @@ function extractMediaCoverImage(file: string): gl.CkImage {
 const AUDIO_FILE = std.args[0];
 
 async function main(): Promise<void> {
-    gl.RenderHost.Initialize({name: 'AudioFFT', major: 1, minor: 0, patch: 0});
+    const presentThread = await gl.PresentThread.Start();
 
-    const display = await gl.RenderHost.Connect();
+    const display = await presentThread.createDisplay();
     const window = await ToplevelWindow.Create(display, 800, 600, true);
 
     await window.setTitle('[Cocoa/Vizmoe] Audio Realtime FFT');
@@ -354,7 +354,7 @@ async function main(): Promise<void> {
         audioSinkStream.dispose();
         await window.close();
         await display.close();
-        gl.RenderHost.Dispose();
+        presentThread.dispose();
     };
 
     // Go!
@@ -367,7 +367,7 @@ async function main(): Promise<void> {
 
         await event.window.close();
         await display.close();
-        gl.RenderHost.Dispose();
+        presentThread.dispose();
     });
 }
 

@@ -84,7 +84,7 @@ public:
     //! TSDecl: function MakeFromFile(file: string, index: number): CkTypeface
     static v8::Local<v8::Value> MakeFromFile(const std::string& file, int32_t index);
 
-    //! TSDecl: function MakeFromData(buffer: core.Buffer, index: number): CkTypeface
+    //! TSDecl: function MakeFromData(buffer: TypedArray, index: number): CkTypeface
     static v8::Local<v8::Value> MakeFromData(v8::Local<v8::Value> buffer, int32_t index);
 
     using SkiaObjectWrapper::SkiaObjectWrapper;

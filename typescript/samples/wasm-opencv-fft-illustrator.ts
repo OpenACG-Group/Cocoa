@@ -20,6 +20,7 @@ import * as gl from 'glamor';
 import { MatVector, OpenCVLib } from '../wasm/opencv/lib/opencv';
 import { LoadFromProjectThirdParty } from '../wasm/wasm-loader-polyfill';
 import { FFT } from './fft';
+import * as GL from "glamor";
 
 const cvPromise = LoadFromProjectThirdParty<OpenCVLib>('opencv_js.wasm', 'opencv.js');
 
@@ -207,16 +208,10 @@ async function main(): Promise<void> {
 
     std.print(`Image preprocessing is done\n`);
 
-    gl.RenderHost.Initialize({
-        name: 'FFT Drawing',
-        major: 1,
-        minor: 0,
-        patch: 0
-    });
-
-    const display = await gl.RenderHost.Connect();
+    const presentThread = await GL.PresentThread.Start();
+    let display = await presentThread.createDisplay();
     display.addOnceListener('closed', () => {
-        gl.RenderHost.Dispose();
+        presentThread.dispose();
     });
 
     const window = await display.createRasterSurface(vpWidth, vpHeight);

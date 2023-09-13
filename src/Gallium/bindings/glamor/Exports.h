@@ -26,8 +26,8 @@
 #include "Gallium/binder/Class.h"
 #include "Gallium/bindings/EventEmitter.h"
 #include "Glamor/ForwardTypeDecls.h"
-#include "Glamor/RenderClientObject.h"
-#include "Glamor/RenderHostCallbackInfo.h"
+#include "Glamor/PresentRemoteHandle.h"
+#include "Glamor/PresentRemoteCallReturn.h"
 #include "Glamor/MaybeGpuObject.h"
 
 #include "include/core/SkRRect.h"
@@ -39,8 +39,6 @@
 
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-class RenderClientObjectWrap;
-class RenderHostWrap;
 class DisplayWrap;
 class SurfaceWrap;
 class BlenderWrap;
@@ -52,10 +50,6 @@ class CkImageWrap;
 class CkBitmapWrap;
 
 void GlamorSetInstanceProperties(v8::Local<v8::Object> instance);
-
-using InfoAcceptorResult = std::vector<v8::Local<v8::Value>>;
-// using InfoAcceptor = InfoAcceptorResult(*)(v8::Isolate*, ::cocoa::gl::RenderHostSlotCallbackInfo&);
-using InfoAcceptor = std::function<InfoAcceptorResult(v8::Isolate*, gl::RenderHostSlotCallbackInfo&)>;
 
 enum class Capabilities : uint32_t
 {
@@ -70,38 +64,39 @@ enum class Capabilities : uint32_t
 //! TSDecl: function queryCapabilities(cap: Enum<Capabilities>): boolean | number | string
 v8::Local<v8::Value> QueryCapabilities(uint32_t cap);
 
-//! TSDecl: class RenderHost
-class RenderHostWrap
+//! TSDecl: function setApplicationInfo(name: string, major: number,
+//!                                     minor: number, patch: number): void
+void SetApplicationInfo(const std::string& name, int32_t major,
+                        int32_t minor, int32_t patch);
+
+//! TSDecl: function traceSkiaMemoryJSON(): string
+v8::Local<v8::Value> TraceSkiaMemoryJSON();
+
+//! TSDecl: class PresentThread
+class PresentThreadWrap : public ExportableObjectBase
 {
 public:
-    //! TSDecl:
-    //! interface ApplicationInfo {
-    //!   name: string;
-    //!   major: number;
-    //!   minor: number;
-    //!   patch: number;
-    //! }
+    explicit PresentThreadWrap(gl::PresentThread *thread) : thread_(thread) {}
 
-    //! TSDecl: function Initialize(info: ApplicationInfo): void
-    static void Initialize(v8::Local<v8::Object> info);
+    //! TSDecl: function Start(): PresentThread
+    static v8::Local<v8::Value> Start();
 
-    //! TSDecl: function Dispose(): void
-    static void Dispose();
+    //! TSDecl: function dispose(): void
+    void dispose();
 
-    //! TSDecl: function Connect(name?: string): Promise<Display>
-    static v8::Local<v8::Value> Connect(const v8::FunctionCallbackInfo<v8::Value>& info);
+    //! TSDecl: function createDisplay(): Promise<Display>
+    v8::Local<v8::Value> createDisplay();
 
-    //! TSDecl: function WaitForSyncBarrier(timeoutInMs: number): void;
-    static void WaitForSyncBarrier(int64_t timeout);
+    //! TSDecl: function traceResourcesJSON(): Promise<string>
+    v8::Local<v8::Value> traceResourcesJSON();
 
-    //! TSDecl: function SleepRendererFor(timeoutInMs: number): Promise<void>;
-    static v8::Local<v8::Value> SleepRendererFor(int64_t timeout);
+    //! TSDecl: function collect(): void
+    void collect();
 
-    //! TSDecl: function TraceGraphicsResources(): Promise<string>
-    static v8::Local<v8::Value> TraceGraphicsResources();
+private:
+    void CheckDisposeOrThrow();
 
-    //! TSDecl: function CollectCriticalSharedResources(): void
-    static void CollectCriticalSharedResources();
+    gl::PresentThread *thread_;
 };
 
 //! TSDecl: class GProfiler
@@ -124,11 +119,10 @@ private:
 
 //! TSDecl: class Display extends EventEmitterBase
 class DisplayWrap : public ExportableObjectBase,
-                    public EventEmitterBase,
-                    public PreventGCObject
+                    public EventEmitterBase
 {
 public:
-    explicit DisplayWrap(gl::Shared<gl::RenderClientObject> handle);
+    explicit DisplayWrap(gl::Shared<gl::PresentRemoteHandle> handle);
     ~DisplayWrap() override;
 
     //! TSDecl: function close(): Promise<void>
@@ -157,7 +151,7 @@ private:
 
     using MonitorsMap = std::map<std::shared_ptr<gl::Monitor>, v8::Global<v8::Object>>;
 
-    std::shared_ptr<gl::RenderClientObject>     handle_;
+    std::shared_ptr<gl::PresentRemoteHandle>     handle_;
     MonitorsMap                                 monitor_objects_map_;
     v8::Global<v8::Object>                      default_cursor_theme_;
 };
@@ -167,7 +161,7 @@ class MonitorWrap : public ExportableObjectBase,
                     public EventEmitterBase
 {
 public:
-    explicit MonitorWrap(gl::Shared<gl::RenderClientObject> handle);
+    explicit MonitorWrap(gl::Shared<gl::PresentRemoteHandle> handle);
     ~MonitorWrap() override = default;
 
     //! TSDecl: function requestPropertySet(): Promise<void>
@@ -176,7 +170,7 @@ public:
 private:
     v8::Local<v8::Object> OnGetObjectSelf(v8::Isolate *isolate) override;
 
-    std::shared_ptr<gl::RenderClientObject> handle_;
+    std::shared_ptr<gl::PresentRemoteHandle> handle_;
 };
 
 //! TSDecl: class CursorTheme
@@ -222,7 +216,7 @@ class SurfaceWrap : public ExportableObjectBase,
                     public EventEmitterBase
 {
 public:
-    SurfaceWrap(gl::Shared<gl::RenderClientObject> handle,
+    SurfaceWrap(gl::Shared<gl::PresentRemoteHandle> handle,
                 v8::Local<v8::Object> display);
     ~SurfaceWrap() override;
 
@@ -274,7 +268,7 @@ public:
 private:
     v8::Local<v8::Object> OnGetObjectSelf(v8::Isolate *isolate) override;
 
-    std::shared_ptr<gl::RenderClientObject> handle_;
+    std::shared_ptr<gl::PresentRemoteHandle> handle_;
     v8::Global<v8::Object>                  display_wrapped_;
     uint32_t                                surface_closed_slot_;
 };
@@ -284,13 +278,8 @@ class BlenderWrap : public ExportableObjectBase
                   , public EventEmitterBase
 {
 public:
-    explicit BlenderWrap(gl::Shared<gl::RenderClientObject> handle);
+    explicit BlenderWrap(gl::Shared<gl::PresentRemoteHandle> handle);
     ~BlenderWrap() override;
-
-    g_nodiscard g_inline std::shared_ptr<gl::RenderClientObject>
-    GetRenderClientHandle() const {
-        return handle_;
-    }
 
     //! TSDecl: readonly profiler: null | GProfiler
     v8::Local<v8::Value> getProfiler();
@@ -301,46 +290,22 @@ public:
     //! TSDecl: function update(scene: Scene): Promise<void>
     v8::Local<v8::Value> update(v8::Local<v8::Value> sceneObject);
 
-    //! TSDecl: function createTextureFromImage(image: CkImage, annotation: string): Promise<number>
-    v8::Local<v8::Value> createTextureFromImage(v8::Local<v8::Value> image,
-                                                const std::string& annotation);
-
-    //! TSDecl: function createTextureFromEncodedData(data: Uint8Array,
-    //!                                               alphaType: number | null,
-    //!                                               annotation: string): Promise<number>
-    v8::Local<v8::Value> createTextureFromEncodedData(v8::Local<v8::Value> buffer,
-                                                      v8::Local<v8::Value> alphaType,
-                                                      const std::string& annotation);
-
-    //! TSDecl: function createTextureFromPixmap(pixels: Uint8Array,
-    //!                                          width: number,
-    //!                                          height: number,
-    //!                                          colorType: number,
-    //!                                          alphaType: number,
-    //!                                          annotation: string): Promise<number>
-    v8::Local<v8::Value> createTextureFromPixmap(v8::Local<v8::Value> buffer,
-                                                 int32_t width,
-                                                 int32_t height,
-                                                 int32_t colorType,
-                                                 int32_t alphaType,
-                                                 const std::string& annotation);
-
-    //! TSDecl: function deleteTexture(id: number): Promise<void>
-    v8::Local<v8::Value> deleteTexture(int64_t id);
-
-    //! TSDecl: function newTextureDeletionSubscriptionSignal(id: number, sigName: string): Promise<void>
-    v8::Local<v8::Value> newTextureDeletionSubscriptionSignal(int64_t id, const std::string& signal_name);
-
     //! TSDecl: function captureNextFrameAsPicture(): Promise<number>
     v8::Local<v8::Value> captureNextFrameAsPicture();
 
     //! TSDecl: function purgeRasterCacheResources(): Promise<void>
     v8::Local<v8::Value> purgeRasterCacheResources();
 
+    //! TSDecl: function importGpuSemaphoreFd(fd: GpuExportedFd): Promise<bigint>
+    v8::Local<v8::Value> importGpuSemaphoreFd(v8::Local<v8::Value> fd);
+
+    //! TSDecl: function deleteImportedSemaphore(id: bigint): Promise<void>
+    v8::Local<v8::Value> deleteImportedGpuSemaphore(v8::Local<v8::Value> id);
+
 private:
     v8::Local<v8::Object> OnGetObjectSelf(v8::Isolate *isolate) override;
 
-    std::shared_ptr<gl::RenderClientObject> handle_;
+    std::shared_ptr<gl::PresentRemoteHandle> handle_;
     v8::Global<v8::Object> wrapped_profiler_;
 };
 
@@ -380,10 +345,10 @@ public:
     static v8::Local<v8::Value> MakeFromDSL(v8::Local<v8::Value> dsl,
                                             v8::Local<v8::Value> kwargs);
 
-    //! TSDecl: function Deserialize(buffer: core.Buffer): CkImageFilter
+    //! TSDecl: function Deserialize(buffer: TypedArray): CkImageFilter
     static v8::Local<v8::Value> Deserialize(v8::Local<v8::Value> buffer);
 
-    //! TSDecl: function serialize(): core.Buffer
+    //! TSDecl: function serialize(): ArrayBuffer
     v8::Local<v8::Value> serialize();
 };
 
@@ -399,10 +364,10 @@ public:
     static v8::Local<v8::Value> MakeFromDSL(v8::Local<v8::Value> dsl,
                                             v8::Local<v8::Value> kwargs);
 
-    //! TSDecl: function Deserialize(buffer: core.Buffer): CkColorFilter
+    //! TSDecl: function Deserialize(buffer: TypedArray): CkColorFilter
     static v8::Local<v8::Value> Deserialize(v8::Local<v8::Value> buffer);
 
-    //! TSDecl: function serialize(): core.Buffer
+    //! TSDecl: function serialize(): ArrayBuffer
     v8::Local<v8::Value> serialize();
 };
 
@@ -511,7 +476,7 @@ public:
                  SkBitmap bitmap);
     ~CkBitmapWrap() = default;
 
-    inline const SkBitmap& getBitmap() const {
+    g_nodiscard const SkBitmap& getBitmap() const {
         return bitmap_;
     }
 
@@ -584,67 +549,6 @@ private:
     std::shared_ptr<v8::BackingStore> backing_store_;
     size_t      store_offset_;
     SkBitmap    bitmap_;
-};
-
-//! TSDecl: class CkImage
-class CkImageWrap : public ExportableObjectBase
-{
-public:
-    explicit CkImageWrap(sk_sp<SkImage> image);
-
-    g_nodiscard inline const sk_sp<SkImage>& getImage() const {
-        return image_;
-    }
-
-    //! TSDecl: function MakeFromEncodedData(buffer: Uint8Array): Promise<CkImage>
-    static v8::Local<v8::Value> MakeFromEncodedData(v8::Local<v8::Value> buffer);
-
-    //! TSDecl: function MakeFromEncodedFile(path: string): Promise<CkImage>
-    static v8::Local<v8::Value> MakeFromEncodedFile(const std::string& path);
-
-    //! TSDecl: function MakeFromVideoBuffer(vbo: utau.VideoBuffer): CkImage
-    static v8::Local<v8::Value> MakeFromVideoBuffer(v8::Local<v8::Value> vbo);
-
-    //! TSDecl: readonly width: number
-    g_nodiscard int32_t getWidth();
-
-    //! TSDecl: readonly height: number
-    g_nodiscard int32_t getHeight();
-
-    //! TSDecl: readonly alphaType: number
-    g_nodiscard uint32_t getAlphaType();
-
-    //! TSDecl: readonly colorType: number
-    g_nodiscard uint32_t getColorType();
-
-    //! TSDecl: function uniqueId(): number
-    g_nodiscard uint32_t uniqueId();
-
-    //! TSDecl:
-    //! interface ImageExportedPixelsBuffer {
-    //!   buffer: ArrayBuffer;
-    //!   width: number;
-    //!   height: number;
-    //!   colorType: ColorType;
-    //!   alphaType: AlphaType;
-    //!   rowBytes: number;
-    //! }
-
-    //! TSDecl: function makeSharedPixelsBuffer(): ImageExportedPixelsBuffer
-    v8::Local<v8::Value> makeSharedPixelsBuffer();
-
-    //! TSDecl: function makeShader(tmx: Enum<TileMode>, tmy: Enum<TileMode>,
-    //!                             sampling: Enum<Sampling>, local_matrix: CkMatrix | null): CkShader | null
-    v8::Local<v8::Value> makeShader(int32_t tmx, int32_t tmy, int32_t sampling,
-                                    v8::Local<v8::Value> local_matrix);
-
-    //! TSDecl: function makeRawShader(tmx: Enum<TileMode>, tmy: Enum<TileMode>,
-    //!                                sampling: Enum<Sampling>, local_matrix: CkMatrix | null): CkShader | null
-    v8::Local<v8::Value> makeRawShader(int32_t tmx, int32_t tmy, int32_t sampling,
-                                       v8::Local<v8::Value> local_matrix);
-
-private:
-    sk_sp<SkImage>      image_;
 };
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

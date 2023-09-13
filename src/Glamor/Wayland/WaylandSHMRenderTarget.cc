@@ -23,6 +23,7 @@
 #include "Glamor/Wayland/WaylandDisplay.h"
 #include "Glamor/Wayland/WaylandSHMRenderTarget.h"
 #include "Glamor/Wayland/WaylandSharedMemoryHelper.h"
+#include "Glamor/Wayland/WaylandMonitor.h"
 GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.Wayland.SHMRenderTarget)
@@ -154,6 +155,39 @@ void WaylandSHMRenderTarget::ReleaseAllBuffers(bool forceRelease)
 void WaylandSHMRenderTarget::AllocateAppendBuffers(int32_t count, int32_t width, int32_t height,
                                                    SkColorType format)
 {
+    std::optional<MonitorSubpixel> subpixel;
+    for (const auto& monitor : GetDisplay()->RequestMonitorList())
+    {
+        MonitorSubpixel cur = monitor->GetCurrentProperties().subpixel;
+        if (subpixel && cur != subpixel)
+        {
+            subpixel = MonitorSubpixel::kUnknown;
+            break;
+        }
+        subpixel = cur;
+    }
+
+    SkPixelGeometry sk_subpixel;
+    switch (*subpixel)
+    {
+    case MonitorSubpixel::kUnknown:
+    case MonitorSubpixel::kNone:
+        sk_subpixel = SkPixelGeometry::kUnknown_SkPixelGeometry;
+        break;
+    case MonitorSubpixel::kHorizontalRGB:
+        sk_subpixel = SkPixelGeometry::kRGB_H_SkPixelGeometry;
+        break;
+    case MonitorSubpixel::kHorizontalBGR:
+        sk_subpixel = SkPixelGeometry::kBGR_H_SkPixelGeometry;
+        break;
+    case MonitorSubpixel::kVerticalRGB:
+        sk_subpixel = SkPixelGeometry::kRGB_V_SkPixelGeometry;
+        break;
+    case MonitorSubpixel::kVerticalBGR:
+        sk_subpixel = SkPixelGeometry::kBGR_V_SkPixelGeometry;
+        break;
+    }
+
     size_t allocSingleSize = SkColorTypeBytesPerPixel(format) * width * height;
     size_t stride = SkColorTypeBytesPerPixel(format) * width;
     size_t poolAllocSize = allocSingleSize * count;
@@ -179,7 +213,8 @@ void WaylandSHMRenderTarget::AllocateAppendBuffers(int32_t count, int32_t width,
         buffer->rt = this;
 
         SkImageInfo info = SkImageInfo::Make(width, height, format, SkAlphaType::kPremul_SkAlphaType);
-        buffer->surface = SkSurfaces::WrapPixels(info, buffer->ptr, stride);
+        SkSurfaceProps props(0, sk_subpixel);
+        buffer->surface = SkSurfaces::WrapPixels(info, buffer->ptr, stride, &props);
 
         wl_buffer_add_listener(buffer->buffer, &g_buffer_listener, buffer.get());
 
@@ -234,7 +269,16 @@ const wl_callback_listener g_frame_callback_listener = {
 
 } // namespace anonymous
 
-void WaylandSHMRenderTarget::OnSubmitFrame(SkSurface *surface, const SkRegion& damage)
+void WaylandSHMRenderTarget::OnSubmitFrame(SkSurface *surface,
+                                           const FrameSubmitInfo &submit_info)
+{
+    // Drawing operations on the raster backend is always performed
+    // immediately. We don't need to "submit" the drawing commands
+    // as they are not deferred.
+}
+
+void WaylandSHMRenderTarget::OnPresentFrame(SkSurface *surface,
+                                            const FrameSubmitInfo& submit_info)
 {
     TRACE_EVENT("rendering", "WaylandSHMRenderTarget::OnSubmitFrame");
 
@@ -245,6 +289,7 @@ void WaylandSHMRenderTarget::OnSubmitFrame(SkSurface *surface, const SkRegion& d
         return;
     }
 
+    const SkRegion& damage = submit_info.damage_region;
     if (committed_buffer_idx_ != RT_EMPTY_INDEX || damage.isEmpty())
         return;
 
@@ -312,11 +357,16 @@ std::string WaylandSHMRenderTarget::GetBufferStateDescriptor()
 
 void WaylandSHMRenderTarget::OnClearFrameBuffers()
 {
+    FrameSubmitInfo submit_info{
+        .damage_region = SkRegion(SkIRect::MakeWH(GetWidth(), GetHeight()))
+    };
+
     for (int i = 0; i < RT_INITIAL_BUFFERS; i++)
     {
         SkSurface *pSurface = BeginFrame();
         pSurface->getCanvas()->clear(SK_ColorBLACK);
-        Submit(SkRegion(SkIRect::MakeWH(GetWidth(), GetHeight())));
+        Submit(submit_info);
+        Present();
     }
 }
 

@@ -19,14 +19,14 @@
 #define COCOA_GLAMOR_BLENDER_H
 
 #include <optional>
+#include <vulkan/vulkan_core.h>
 
 #include "include/core/SkImage.h"
 
 #include "Core/Data.h"
 #include "Glamor/Glamor.h"
-#include "Glamor/RenderClientObject.h"
+#include "Glamor/PresentRemoteHandle.h"
 #include "Glamor/RenderTarget.h"
-#include "Glamor/Texture.h"
 #include "Glamor/GraphicsResourcesTrackable.h"
 #include "Glamor/Layers/RasterCache.h"
 
@@ -38,23 +38,18 @@ class Surface;
 
 class Blender;
 class LayerTree;
-class TextureManager;
-class VAAPITextureEmbedder;
 class GProfiler;
 
 #define GLOP_BLENDER_DISPOSE                            1
 #define GLOP_BLENDER_UPDATE                             2
-#define GLOP_BLENDER_DELETE_TEXTURE                     3
-#define GLOP_BLENDER_NEW_TEXTURE_DELETION_SUBSCRIPTION_SIGNAL   4
-#define GLOP_BLENDER_CREATE_TEXTURE_FROM_IMAGE          5
-#define GLOP_BLENDER_CREATE_TEXTURE_FROM_ENCODED_DATA   6
-#define GLOP_BLENDER_CREATE_TEXTURE_FROM_PIXMAP         7
 #define GLOP_BLENDER_CAPTURE_NEXT_FRAME_AS_PICTURE      8
 #define GLOP_BLENDER_PURGE_RASTER_CACHE_RESOURCES       9
+#define GLOP_BLENDER_IMPORT_GPU_SEMAPHORE_FROM_FD       10
+#define GLOP_BLENDER_DELETE_IMPORTED_GPU_SEMAPHORE      11
 
 #define GLSI_BLENDER_PICTURE_CAPTURED                   8
 
-class Blender : public RenderClientObject,
+class Blender : public PresentRemoteHandle,
                 public GraphicsResourcesTrackable
 {
 public:
@@ -77,7 +72,7 @@ public:
 
     static Shared<Blender> Make(const Shared<Surface>& surface);
 
-    explicit Blender(const Shared<Surface>& surface, Unique<TextureManager> texture_manager);
+    explicit Blender(const Shared<Surface>& surface);
     ~Blender() override;
 
     g_nodiscard g_inline Shared<Surface> GetOutputSurface() const {
@@ -108,24 +103,13 @@ public:
     g_async_api int32_t CaptureNextFrameAsPicture();
     g_async_api void Dispose();
 
-    using MaybeTextureId = std::optional<Texture::TextureId>;
-
-    g_async_api MaybeTextureId CreateTextureFromImage(const sk_sp<SkImage>& image,
-                                                      const std::string& annotation);
-
-    g_async_api MaybeTextureId CreateTextureFromEncodedData(const Shared<Data>& data,
-                                                            std::optional<SkAlphaType> alpha_type,
-                                                            const std::string& annotation);
-
-    g_async_api MaybeTextureId CreateTextureFromPixmap(const void *pixels,
-                                                       const SkImageInfo& image_info,
-                                                       const std::string& annotation);
-
-    g_async_api bool DeleteTexture(Texture::TextureId id);
-
-    g_async_api int32_t NewTextureDeletionSubscriptionSignal(Texture::TextureId id);
-
     g_async_api void PurgeRasterCacheResources();
+
+    using ImportedSemaphoreId = int64_t;
+    g_async_api ImportedSemaphoreId ImportGpuSemaphoreFromFd(int32_t fd, bool auto_close);
+    g_async_api void DeleteImportedGpuSemaphore(ImportedSemaphoreId id);
+
+    g_private_api VkSemaphore GetImportedGpuSemaphore(ImportedSemaphoreId id);
 
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 
@@ -140,12 +124,16 @@ private:
     Shared<LayerTree>              layer_tree_;
     SkIRect                        current_dirty_rect_;
     FrameScheduleState             frame_schedule_state_;
-    Unique<TextureManager>         texture_manager_;
     Unique<RasterCache>            raster_cache_;
     Shared<GProfiler>              gfx_profiler_;
 
     bool                           should_capture_next_frame_;
     int32_t                        capture_next_frame_serial_;
+
+    using ImportedSemaphoreIdMap =
+            std::unordered_map<ImportedSemaphoreId, VkSemaphore>;
+    ImportedSemaphoreIdMap         imported_semaphore_ids_;
+    int64_t                        imported_semaphore_ids_cnt_;
 };
 
 GLAMOR_NAMESPACE_END

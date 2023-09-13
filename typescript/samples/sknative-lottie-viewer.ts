@@ -26,21 +26,17 @@ if (std.args.length != 1) {
     throw Error('Provide a lottie file in the arguments list');
 }
 
-GL.RenderHost.Initialize({
-    name: 'Example',
-    major: 1,
-    minor: 0,
-    patch: 0
-});
-
-let display = await GL.RenderHost.Connect();
+const presentThread = await GL.PresentThread.Start();
+let display = await presentThread.createDisplay();
 let surface = await display.createHWComposeSurface(WINDOW_WIDTH, WINDOW_HEIGHT);
 
 surface.addOnceListener('closed', () => {
     display.close();
 });
 
-display.addOnceListener('closed', GL.RenderHost.Dispose);
+display.addOnceListener('closed', () => {
+    presentThread.dispose();
+});
 
 surface.setTitle('Lottie Viewer');
 

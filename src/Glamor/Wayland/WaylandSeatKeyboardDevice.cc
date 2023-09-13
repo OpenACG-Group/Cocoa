@@ -390,7 +390,7 @@ void WaylandSeatKeyboardDevice::on_enter(void *data,
 
     surface_object->SetKeyboardEntered(keyboard);
 
-    RenderClientEmitterInfo emit;
+    PresentSignal emit;
     emit.EmplaceBack<bool>(true);
     surface_object->Emit(GLSI_SURFACE_KEYBOARD_FOCUS, std::move(emit));
 }
@@ -415,7 +415,7 @@ void WaylandSeatKeyboardDevice::on_leave(void *data,
 
     listener->TryStopKeyRepeat();
 
-    RenderClientEmitterInfo emit;
+    PresentSignal emit;
     emit.EmplaceBack<bool>(false);
     surface_object->Emit(GLSI_SURFACE_KEYBOARD_FOCUS, std::move(emit));
 }
@@ -498,7 +498,7 @@ void WaylandSeatKeyboardDevice::on_key(void *data,
 
     listener->UpdateKeyRepeat(key, pressed);
 
-    RenderClientEmitterInfo emit;
+    PresentSignal emit;
     emit.EmplaceBack<KeyboardKey>(key);
     emit.EmplaceBack<Bitfield<KeyboardModifiers>>(listener->modifiers_);
     emit.EmplaceBack<bool>(pressed);
@@ -570,7 +570,7 @@ void WaylandSeatKeyboardDevice::repeat_timer_callback(uv_timer_t *timer)
 
     for (bool state : sequence)
     {
-        RenderClientEmitterInfo emit;
+        PresentSignal emit;
         emit.PushBack(listener->repeating_key_);
         emit.PushBack(listener->modifiers_);
         emit.PushBack(state);

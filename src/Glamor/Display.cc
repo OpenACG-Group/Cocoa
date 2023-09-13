@@ -24,12 +24,12 @@
 
 #include "Core/Journal.h"
 #include "Core/Errors.h"
-#include "Glamor/RenderClient.h"
 #include "Glamor/Cursor.h"
 #include "Glamor/CursorTheme.h"
 #include "Glamor/Display.h"
 #include "Glamor/Surface.h"
 #include "Glamor/Wayland/WaylandDisplay.h"
+#include "Glamor/PresentThread.h"
 GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.Display)
@@ -45,7 +45,7 @@ GLAMOR_TRAMPOLINE_IMPL(Display, Close)
 {
     auto this_ = info.GetThis()->As<Display>();
     this_->Close();
-    info.SetReturnStatus(RenderClientObject::ReturnStatus::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteHandle::ReturnStatus::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Display, CreateRasterSurface)
@@ -56,11 +56,11 @@ GLAMOR_TRAMPOLINE_IMPL(Display, CreateRasterSurface)
                                                         info.Get<int32_t>(1),
                                                         info.Get<SkColorType>(2));
     if (result == nullptr)
-        info.SetReturnStatus(RenderClientObject::ReturnStatus::kOpFailed);
+        info.SetReturnStatus(PresentRemoteHandle::ReturnStatus::kOpFailed);
     else
     {
-        info.SetReturnStatus(RenderClientObject::ReturnStatus::kOpSuccess);
-        info.SetReturnValue(result->Cast<RenderClientObject>());
+        info.SetReturnStatus(PresentRemoteHandle::ReturnStatus::kOpSuccess);
+        info.SetReturnValue(result->Cast<PresentRemoteHandle>());
     }
 }
 
@@ -72,11 +72,11 @@ GLAMOR_TRAMPOLINE_IMPL(Display, CreateHWComposeSurface)
                                                            info.Get<int32_t>(1),
                                                            info.Get<SkColorType>(2));
     if (result == nullptr)
-        info.SetReturnStatus(RenderClientObject::ReturnStatus::kOpFailed);
+        info.SetReturnStatus(PresentRemoteHandle::ReturnStatus::kOpFailed);
     else
     {
-        info.SetReturnStatus(RenderClientObject::ReturnStatus::kOpSuccess);
-        info.SetReturnValue(result->Cast<RenderClientObject>());
+        info.SetReturnStatus(PresentRemoteHandle::ReturnStatus::kOpSuccess);
+        info.SetReturnValue(result->Cast<PresentRemoteHandle>());
     }
 }
 
@@ -84,7 +84,7 @@ GLAMOR_TRAMPOLINE_IMPL(Display, RequestMonitorList)
 {
     auto this_ = info.GetThis()->As<Display>();
     info.SetReturnValue(this_->RequestMonitorList());
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Display, CreateCursor)
@@ -93,8 +93,8 @@ GLAMOR_TRAMPOLINE_IMPL(Display, CreateCursor)
     auto _this = info.GetThis()->As<Display>();
     auto cursor = _this->CreateCursor(info.Get<Shared<SkBitmap>>(0),
                                       info.Get<int32_t>(1), info.Get<int32_t>(2));
-    info.SetReturnStatus(cursor ? RenderClientCallInfo::Status::kOpSuccess
-                                : RenderClientCallInfo::Status::kOpFailed);
+    info.SetReturnStatus(cursor ? PresentRemoteCall::Status::kOpSuccess
+                                : PresentRemoteCall::Status::kOpFailed);
     info.SetReturnValue(cursor);
 }
 
@@ -103,8 +103,8 @@ GLAMOR_TRAMPOLINE_IMPL(Display, LoadCursorTheme)
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(2);
     auto _this = info.GetThis()->As<Display>();
     auto theme = _this->LoadCursorTheme(info.Get<std::string>(0), info.Get<int>(1));
-    info.SetReturnStatus(theme ? RenderClientCallInfo::Status::kOpSuccess
-                               : RenderClientCallInfo::Status::kOpFailed);
+    info.SetReturnStatus(theme ? PresentRemoteCall::Status::kOpSuccess
+                               : PresentRemoteCall::Status::kOpFailed);
     info.SetReturnValue(theme);
 }
 
@@ -122,17 +122,22 @@ Shared<Display> Display::Connect(uv_loop_t *loop, const std::string& name)
 
     QLOG(LOG_INFO, "Connecting to {} display [{}]",
          backends_name_map_[backend], name.empty() ? "default" : name);
+
+    std::shared_ptr<Display> result;
     switch (backend)
     {
     case Backends::kWayland:
-        return WaylandDisplay::Connect(loop, name);
+        result = WaylandDisplay::Connect(loop, name);
     }
-
-    MARK_UNREACHABLE();
+    if (!result)
+        return nullptr;
+    auto *thread_ctx = PresentThread::LocalContext::GetCurrent();
+    thread_ctx->AddActiveDisplay(result);
+    return result;
 }
 
 Display::Display(uv_loop_t *eventLoop)
-    : RenderClientObject(RealType::kDisplay)
+    : PresentRemoteHandle(RealType::kDisplay)
     , event_loop_(eventLoop)
     , has_disposed_(false)
 {
@@ -142,8 +147,6 @@ Display::Display(uv_loop_t *eventLoop)
     SetMethodTrampoline(GLOP_DISPLAY_REQUEST_MONITOR_LIST, Display_RequestMonitorList_Trampoline);
     SetMethodTrampoline(GLOP_DISPLAY_CREATE_CURSOR, Display_CreateCursor_Trampoline);
     SetMethodTrampoline(GLOP_DISPLAY_LOAD_CURSOR_THEME, Display_LoadCursorTheme_Trampoline);
-
-    GlobalScope::Ref().GetRenderClient()->RegisterDisplay(this);
 }
 
 Display::~Display()
@@ -188,9 +191,10 @@ void Display::Close()
         this->OnDispose();
 
         has_disposed_ = true;
-        RenderClientObject::Emit(GLSI_DISPLAY_CLOSED, RenderClientEmitterInfo());
+        PresentRemoteHandle::Emit(GLSI_DISPLAY_CLOSED, PresentSignal());
 
-        GlobalScope::Ref().GetRenderClient()->UnregisterDisplay(this);
+        auto *thread_ctx = PresentThread::LocalContext::GetCurrent();
+        thread_ctx->RemoveActiveDisplay(PresentRemoteHandle::As<Display>());
     }
 }
 
@@ -226,7 +230,7 @@ void Display::AppendMonitor(const Shared<Monitor>& monitor)
     {
         monitors_list_.push_back(monitor);
 
-        RenderClientEmitterInfo info;
+        PresentSignal info;
         info.EmplaceBack<Shared<Monitor>>(monitor);
         Emit(GLSI_DISPLAY_MONITOR_ADDED, std::move(info));
     }
@@ -239,7 +243,7 @@ bool Display::RemoveMonitor(const Shared<Monitor>& monitor)
     {
         monitors_list_.remove(monitor);
 
-        RenderClientEmitterInfo info;
+        PresentSignal info;
         info.EmplaceBack<Shared<Monitor>>(monitor);
         Emit(GLSI_DISPLAY_MONITOR_REMOVED, std::move(info));
 

@@ -27,6 +27,7 @@
 #include "Gallium/bindings/glamor/CkFontWrap.h"
 #include "Gallium/bindings/glamor/CkTextBlobWrap.h"
 #include "Gallium/bindings/glamor/CkVerticesWrap.h"
+#include "Gallium/bindings/glamor/CkImageWrap.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/binder/Class.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN

@@ -296,48 +296,15 @@ SkRRect ExtractCkRRect(v8::Isolate *isolate, v8::Local<v8::Value> value)
 
 SkImageInfo ExtractCkImageInfo(v8::Isolate *isolate, v8::Local<v8::Value> object)
 {
-    if (!object->IsObject())
-        g_throw(TypeError, "CkImageInfo must be an object");
-    v8::Local<v8::Object> obj = v8::Local<v8::Object>::Cast(object);
-    v8::Local<v8::Context> ctx = isolate->GetCurrentContext();
-
-    int32_t color_type_v, alpha_type_v, colorspace_v, width, height;
-
-    for (auto [key, ptr] : {std::make_pair("colorType", &color_type_v),
-                            std::make_pair("alphaType", &alpha_type_v),
-                            std::make_pair("colorSpace", &colorspace_v),
-                            std::make_pair("width", &width),
-                            std::make_pair("height", &height)})
-    {
-        auto res = obj->Get(ctx, binder::to_v8(isolate, key)).FromMaybe(v8::Local<v8::Value>());
-        if (res.IsEmpty())
-            g_throw(TypeError, fmt::format("Missing required property `{}` for `CkImageInfo`", key));
-        *ptr = binder::from_v8<int32_t>(isolate, res);
-    }
-
-    SkColorType ct = ExtractCkColorType(color_type_v);
-    SkAlphaType at = ExtractCkAlphaType(alpha_type_v);
-    sk_sp<SkColorSpace> cs = ExtrackCkColorSpace(colorspace_v);
-
-    return SkImageInfo::Make(width, height, ct, at, cs);
+    auto *wrapper = binder::UnwrapObject<CkImageInfo>(isolate, object);
+    if (!wrapper)
+        g_throw(TypeError, "Requires an instance of `CkImageInfo`");
+    return wrapper->GetWrapped();
 }
 
 v8::Local<v8::Value> NewCkImageInfo(v8::Isolate *isolate, const SkImageInfo& info)
 {
-    ColorSpace cs = ColorSpace::kSRGB;
-    if (info.colorSpace())
-    {
-        // TODO(sora): support other colorspaces
-        cs = info.colorSpace()->isSRGB() ? ColorSpace::kSRGB : ColorSpace::kUnknown;
-    }
-
-    return binder::to_v8(isolate, ObjectProtoMap{
-        { "colorType", binder::to_v8(isolate, static_cast<int32_t>(info.colorType())) },
-        { "alphaType", binder::to_v8(isolate, static_cast<int32_t>(info.alphaType())) },
-        { "colorSpace", binder::to_v8(isolate, static_cast<int32_t>(cs)) },
-        { "width", binder::to_v8(isolate, info.width()) },
-        { "height", binder::to_v8(isolate, info.height()) }
-    });
+    return binder::NewObject<CkImageInfo>(isolate, info);
 }
 
 sk_sp<SkColorSpace> ExtrackCkColorSpace(int32_t v)
@@ -493,6 +460,108 @@ v8::Local<v8::Object> NewCkRSXform(v8::Isolate *isolate, const SkRSXform& from)
         { "tx", v8::Number::New(isolate, from.fTx) },
         { "ty", v8::Number::New(isolate, from.fTy) }
     });
+}
+
+#define CHECK_ALPHA_TYPE(at)                                                   \
+    if (at < 0 || at > static_cast<int>(SkAlphaType::kLastEnum_SkAlphaType)) { \
+        g_throw(RangeError, "Invalid enumeration for `alphaType`");            \
+    }
+
+#define CHECK_COLOR_TYPE(ct)                                                   \
+    if (ct < 0 || ct > static_cast<int>(SkColorType::kLastEnum_SkColorType)) { \
+        g_throw(RangeError, "Invalid enumeration for `colorType`");            \
+    }
+
+#define CHECK_DIMENSIONS(w, h)                           \
+    if (w < 0 || h < 0) {                                \
+        g_throw(RangeError, "Invalid image dimensions"); \
+    }
+
+
+v8::Local<v8::Value> CkImageInfo::MakeSRGB(int32_t w, int32_t h,
+                                           int32_t color_type, int32_t alpha_type)
+{
+    CHECK_DIMENSIONS(w, h)
+    CHECK_COLOR_TYPE(color_type)
+    CHECK_ALPHA_TYPE(alpha_type)
+    return binder::NewObject<CkImageInfo>(
+            v8::Isolate::GetCurrent(),
+            SkImageInfo::Make(w, h,
+                              static_cast<SkColorType>(color_type),
+                              static_cast<SkAlphaType>(alpha_type)));
+}
+
+v8::Local<v8::Value> CkImageInfo::MakeN32(int32_t w, int32_t h, int32_t alpha_type)
+{
+    CHECK_DIMENSIONS(w, h)
+    CHECK_ALPHA_TYPE(alpha_type)
+    return binder::NewObject<CkImageInfo>(
+            v8::Isolate::GetCurrent(),
+            SkImageInfo::MakeN32(w, h,
+                                 static_cast<SkAlphaType>(alpha_type)));
+}
+
+v8::Local<v8::Value> CkImageInfo::MakeS32(int32_t w, int32_t h, int32_t alpha_type)
+{
+    CHECK_DIMENSIONS(w, h)
+    CHECK_ALPHA_TYPE(alpha_type)
+    return binder::NewObject<CkImageInfo>(
+            v8::Isolate::GetCurrent(),
+            SkImageInfo::MakeS32(w, h,
+                                 static_cast<SkAlphaType>(alpha_type)));
+}
+
+v8::Local<v8::Value> CkImageInfo::MakeN32Premul(int32_t w, int32_t h)
+{
+    CHECK_DIMENSIONS(w, h)
+    return binder::NewObject<CkImageInfo>(
+            v8::Isolate::GetCurrent(), SkImageInfo::MakeN32Premul(w, h));
+}
+
+v8::Local<v8::Value> CkImageInfo::MakeA8(int32_t w, int32_t h)
+{
+    CHECK_DIMENSIONS(w, h)
+    return binder::NewObject<CkImageInfo>(
+            v8::Isolate::GetCurrent(), SkImageInfo::MakeA8(w, h));
+}
+
+v8::Local<v8::Value> CkImageInfo::MakeUnknown(int32_t w, int32_t h)
+{
+    CHECK_DIMENSIONS(w, h)
+    return binder::NewObject<CkImageInfo>(
+            v8::Isolate::GetCurrent(), SkImageInfo::MakeUnknown(w, h));
+}
+
+v8::Local<v8::Value> CkImageInfo::makeWH(int32_t w, int32_t h)
+{
+    CHECK_DIMENSIONS(w, h)
+    return binder::NewObject<CkImageInfo>(
+            v8::Isolate::GetCurrent(), info_.makeWH(w, h));
+}
+
+v8::Local<v8::Value> CkImageInfo::makeAlphaType(int32_t type)
+{
+    CHECK_ALPHA_TYPE(type)
+    return binder::NewObject<CkImageInfo>(
+            v8::Isolate::GetCurrent(),
+            info_.makeAlphaType(static_cast<SkAlphaType>(type)));
+}
+
+v8::Local<v8::Value> CkImageInfo::makeColorType(int32_t type)
+{
+    CHECK_COLOR_TYPE(type)
+    return binder::NewObject<CkImageInfo>(
+            v8::Isolate::GetCurrent(),
+            info_.makeColorType(static_cast<SkColorType>(type)));
+}
+
+bool CkImageInfo::equalsTo(v8::Local<v8::Value> other)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    auto *i = binder::UnwrapObject<CkImageInfo>(isolate, other);
+    if (!i)
+        g_throw(TypeError, "Argument `other` must be an instance of `CkImageInfo`");
+    return (info_ == i->info_);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

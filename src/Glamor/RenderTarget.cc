@@ -16,8 +16,11 @@
  */
 
 #include "Core/TraceEvent.h"
+#include "Core/Journal.h"
 #include "Glamor/RenderTarget.h"
 GLAMOR_NAMESPACE_BEGIN
+
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.RenderTarget)
 
 RenderTarget::RenderTarget(const Shared<Display>& display, RenderDevice device,
                            int32_t width, int32_t height, SkColorType format)
@@ -34,6 +37,12 @@ RenderTarget::RenderTarget(const Shared<Display>& display, RenderDevice device,
 SkSurface *RenderTarget::BeginFrame()
 {
     TRACE_EVENT("rendering", "RenderTarget::BeginFrame");
+    if (current_frame_)
+    {
+        QLOG(LOG_WARNING, "Could not begin a new frame: a pending frame has"
+                          " not been presented yet");
+        return nullptr;
+    }
     current_frame_ = this->OnBeginFrame();
     return current_frame_;
 }
@@ -43,10 +52,29 @@ SkSurface *RenderTarget::GetCurrentFrameSurface()
     return current_frame_;
 }
 
-void RenderTarget::Submit(const SkRegion& damage)
+void RenderTarget::Submit(const FrameSubmitInfo& submit_info)
 {
     TRACE_EVENT("rendering", "RenderTarget::Submit");
-    this->OnSubmitFrame(current_frame_, damage);
+    if (last_submit_info_)
+    {
+        QLOG(LOG_WARNING, "Frame cannot be submitted more than once"
+                          " in a rendering cycle");
+        return;
+    }
+    last_submit_info_ = submit_info;
+    this->OnSubmitFrame(current_frame_, submit_info);
+}
+
+void RenderTarget::Present()
+{
+    TRACE_EVENT("rendering", "RenderTarget::Present");
+    if (!last_submit_info_)
+    {
+        QLOG(LOG_WARNING, "Frame must be submitted before being presented");
+        return;
+    }
+    this->OnPresentFrame(current_frame_, *last_submit_info_);
+    last_submit_info_.reset();
     current_frame_ = nullptr;
 }
 

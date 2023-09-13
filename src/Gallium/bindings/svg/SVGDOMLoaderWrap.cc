@@ -87,8 +87,8 @@ v8::Local<v8::Value> SVGDOMLoaderWrap::makeFromString(v8::Local<v8::Value> str)
 v8::Local<v8::Value> SVGDOMLoaderWrap::makeFromData(v8::Local<v8::Value> data)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    if (!data->IsUint8Array() || !data.As<v8::Uint8Array>()->HasBuffer())
-        g_throw(TypeError, "Argument `data` must be an allocated Uint8Array");
+    if (!data->IsUint8Array())
+        g_throw(TypeError, "Argument `data` must be a Uint8Array");
 
     v8::Local<v8::Uint8Array> arr = data.As<v8::Uint8Array>();
     uint8_t *ptr = reinterpret_cast<uint8_t*>(arr->Buffer()->Data())

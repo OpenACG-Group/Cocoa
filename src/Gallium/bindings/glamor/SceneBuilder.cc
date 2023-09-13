@@ -23,7 +23,6 @@
 
 #include "Glamor/Layers/TransformLayer.h"
 #include "Glamor/Layers/PictureLayer.h"
-#include "Glamor/Layers/TextureLayer.h"
 #include "Glamor/Layers/ImageFilterLayer.h"
 #include "Glamor/Layers/BackdropFilterLayer.h"
 #include "Glamor/Layers/RectClipLayer.h"
@@ -221,21 +220,6 @@ v8::Local<v8::Value> SceneBuilder::addPicture(v8::Local<v8::Value> picture,
 }
 
 #define EV(v)   static_cast<typename std::underlying_type<Sampling>::type>(v)
-
-v8::Local<v8::Value> SceneBuilder::addTexture(int64_t textureId,
-                                              SkScalar dx,
-                                              SkScalar dy,
-                                              SkScalar width,
-                                              SkScalar height,
-                                              int32_t sampling)
-{
-    SkPoint offset = SkPoint::Make(dx, dy);
-    SkISize size = SkSize::Make(width, height).toRound();
-    SkSamplingOptions sampling_options = SamplingToSamplingOptions(sampling);
-
-    addLayer(std::make_shared<gl::TextureLayer>(textureId, offset, size, sampling_options));
-    return getSelfHandle();
-}
 
 v8::Local<v8::Value> SceneBuilder::addVideoBuffer(v8::Local<v8::Value> vbo,
                                                   SkScalar dx,

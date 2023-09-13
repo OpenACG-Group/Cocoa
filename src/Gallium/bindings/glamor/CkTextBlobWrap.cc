@@ -47,8 +47,8 @@ std::tuple<void*, size_t> extract_text_buffer_pair(v8::Isolate *isolate,
                                                    v8::Local<v8::Value> b,
                                                    const char *argname)
 {
-    if (!b->IsUint8Array() || !b.As<v8::Uint8Array>()->HasBuffer())
-        g_throw(TypeError, fmt::format("Argument `{}` must be an allocated Uint8Array", argname));
+    if (!b->IsUint8Array())
+        g_throw(TypeError, fmt::format("Argument `{}` must be a Uint8Array", argname));
 
     v8::Local<v8::Uint8Array> array = b.As<v8::Uint8Array>();
     uint8_t *ptr = reinterpret_cast<uint8_t*>(array->Buffer()->Data())

@@ -29,7 +29,7 @@ GLAMOR_TRAMPOLINE_IMPL(Surface, Close)
 {
     auto this_ = info.GetThis()->Cast<Surface>();
     this_->Close();
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Surface, Resize)
@@ -38,8 +38,8 @@ GLAMOR_TRAMPOLINE_IMPL(Surface, Resize)
     auto this_ = info.GetThis()->Cast<Surface>();
     bool result = this_->Resize(info.Get<int32_t>(0), info.Get<int32_t>(1));
 
-    info.SetReturnStatus(result ? RenderClientCallInfo::Status::kOpSuccess
-                                : RenderClientCallInfo::Status::kOpFailed);
+    info.SetReturnStatus(result ? PresentRemoteCall::Status::kOpSuccess
+                                : PresentRemoteCall::Status::kOpFailed);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Surface, SetTitle)
@@ -47,19 +47,19 @@ GLAMOR_TRAMPOLINE_IMPL(Surface, SetTitle)
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
     auto this_ = info.GetThis()->Cast<Surface>();
     this_->SetTitle(info.Get<std::string>(0));
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Surface, GetBuffersDescriptor)
 {
     auto this_ = info.GetThis()->Cast<Surface>();
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
     info.SetReturnValue(this_->GetBuffersDescriptor());
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Surface, RequestNextFrame)
 {
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
     info.SetReturnValue(info.GetThis()->Cast<Surface>()->RequestNextFrame());
 }
 
@@ -67,43 +67,43 @@ GLAMOR_TRAMPOLINE_IMPL(Surface, SetMinSize)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(2);
     info.GetThis()->Cast<Surface>()->SetMinSize(info.Get<int32_t>(0), info.Get<int32_t>(1));
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Surface, SetMaxSize)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(2);
     info.GetThis()->Cast<Surface>()->SetMaxSize(info.Get<int32_t>(0), info.Get<int32_t>(1));
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Surface, SetMaximized)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
     info.GetThis()->Cast<Surface>()->SetMaximized(info.Get<bool>(0));
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Surface, SetMinimized)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
     info.GetThis()->Cast<Surface>()->SetMinimized(info.Get<bool>(0));
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Surface, SetFullscreen)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(2);
     info.GetThis()->Cast<Surface>()->SetFullscreen(info.Get<bool>(0), info.Get<Shared<Monitor>>(1));
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Surface, CreateBlender)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(0);
     Shared<Blender> blender = info.GetThis()->Cast<Surface>()->CreateBlender();
-    info.SetReturnStatus(blender ? RenderClientCallInfo::Status::kOpSuccess
-                                 : RenderClientCallInfo::Status::kOpFailed);
+    info.SetReturnStatus(blender ? PresentRemoteCall::Status::kOpSuccess
+                                 : PresentRemoteCall::Status::kOpFailed);
     info.SetReturnValue(blender);
 }
 
@@ -111,11 +111,11 @@ GLAMOR_TRAMPOLINE_IMPL(Surface, SetAttachedCursor)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
     info.GetThis()->As<Surface>()->SetAttachedCursor(info.Get<Shared<Cursor>>(0));
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 Surface::Surface(Shared<RenderTarget> rt)
-    : RenderClientObject(RealType::kSurface)
+    : PresentRemoteHandle(RealType::kSurface)
     , has_disposed_(false)
     , render_target_(std::move(rt))
     , display_(render_target_->GetDisplay())
@@ -165,7 +165,7 @@ void Surface::Close()
         this->OnClose();
         has_disposed_ = true;
         render_target_.reset();
-        Emit(GLSI_SURFACE_CLOSED, RenderClientEmitterInfo());
+        Emit(GLSI_SURFACE_CLOSED, PresentSignal());
         GetDisplay()->RemoveSurfaceFromList(Self()->Cast<Surface>());
         QLOG(LOG_DEBUG, "Surface has been disposed");
     }
@@ -182,7 +182,7 @@ bool Surface::Resize(int32_t width, int32_t height)
 
     render_target_->Resize(width, height);
 
-    RenderClientEmitterInfo info;
+    PresentSignal info;
     info.EmplaceBack<int32_t>(width);
     info.EmplaceBack<int32_t>(height);
     Emit(GLSI_SURFACE_RESIZE, std::move(info));
@@ -218,7 +218,7 @@ const SkMatrix& Surface::OnGetRootTransformation() const
 
 void Surface::OnFrameNotification(uint32_t sequence)
 {
-    RenderClientEmitterInfo info;
+    PresentSignal info;
     info.EmplaceBack<uint32_t>(sequence);
     Emit(GLSI_SURFACE_FRAME, std::move(info));
 }

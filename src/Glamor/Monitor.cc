@@ -25,11 +25,11 @@ uint32_t g_monitor_unique_id_counter = 0;
 GLAMOR_TRAMPOLINE_IMPL(Monitor, RequestProperties)
 {
     info.GetThis()->As<Monitor>()->RequestProperties();
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 Monitor::Monitor(const Weak<Display>& display)
-    : RenderClientObject(RealType::kMonitor)
+    : PresentRemoteHandle(RealType::kMonitor)
     , display_(display)
     , unique_id_(0)
     , logical_x_(0)
@@ -58,6 +58,24 @@ void Monitor::RequestProperties()
     NotifyPropertiesChanged();
 }
 
+Monitor::PropertySet Monitor::GetCurrentProperties() const
+{
+    PropertySet prop;
+    prop.logical_position.set(logical_x_, logical_y_);
+    prop.physical_metrics.set(physical_width_, physical_height_);
+    prop.subpixel = subpixel_;
+    prop.manufacture_name = manufacture_name_;
+    prop.model_name = model_name_;
+    prop.transform = transform_;
+    prop.mode_flags = mode_flags_;
+    prop.mode_size.set(mode_width_, mode_height_);
+    prop.refresh_rate_mhz = refresh_rate_mhz_;
+    prop.scale_factor = scale_factor_;
+    prop.connector_name = connector_name_;
+    prop.description = description_;
+    return prop;
+}
+
 void Monitor::NotifyPropertiesChanged()
 {
     auto prop = std::make_shared<PropertySet>();
@@ -74,7 +92,7 @@ void Monitor::NotifyPropertiesChanged()
     prop->connector_name = connector_name_;
     prop->description = description_;
 
-    RenderClientEmitterInfo info;
+    PresentSignal info;
     info.EmplaceBack<Shared<PropertySet>>(std::move(prop));
 
     Emit(GLSI_MONITOR_PROPERTIES_CHANGED, std::move(info));

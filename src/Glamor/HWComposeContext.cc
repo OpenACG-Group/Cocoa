@@ -384,36 +384,27 @@ HWComposeContext::~HWComposeContext()
         vkDestroyInstance(vk_instance_, nullptr);
 }
 
-Shared<HWComposeSwapchain> HWComposeContext::CreateSwapchain(VkSurfaceFactory& factory,
-                                                             int32_t width, int32_t height)
-{
-    VkSurfaceKHR surface = factory.Create(shared_from_this());
-    if (surface == VK_NULL_HANDLE)
-        return nullptr;
-    return HWComposeSwapchain::Make(shared_from_this(), surface, width, height);
-}
-
 void HWComposeContext::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept
 {
-    tracer->TraceResource("Vulkan Instance",
+    tracer->TraceResource("VkInstance",
                           TRACKABLE_TYPE_HANDLE,
                           TRACKABLE_DEVICE_CPU,
                           TRACKABLE_OWNERSHIP_STRICT_OWNED,
                           TraceIdFromPointer(vk_instance_));
 
-    tracer->TraceResource("Vulkan Physical Device",
+    tracer->TraceResource("VkPhysicalDevice",
                           TRACKABLE_TYPE_HANDLE,
-                          TRACKABLE_DEVICE_CPU,
+                          TRACKABLE_DEVICE_GPU,
                           TRACKABLE_OWNERSHIP_STRICT_OWNED,
                           TraceIdFromPointer(vk_physical_device_));
 
     if (vk_debug_messenger_)
     {
-        tracer->TraceResource("Vulkan Debug Messenger",
+        tracer->TraceResource("VkDebugUtilsMessengerEXT",
                               TRACKABLE_TYPE_HANDLE,
                               TRACKABLE_DEVICE_CPU,
                               TRACKABLE_OWNERSHIP_STRICT_OWNED,
-                              TraceIdFromPointer(vk_instance_));
+                              TraceIdFromPointer(vk_debug_messenger_));
     }
 }
 

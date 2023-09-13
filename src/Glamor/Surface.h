@@ -23,7 +23,7 @@
 #include "include/core/SkRegion.h"
 
 #include "Glamor/Glamor.h"
-#include "Glamor/RenderClientObject.h"
+#include "Glamor/PresentRemoteHandle.h"
 #include "Glamor/FrameNotificationRouter.h"
 #include "Glamor/GraphicsResourcesTrackable.h"
 GLAMOR_NAMESPACE_BEGIN
@@ -104,7 +104,7 @@ enum class ToplevelStates : uint32_t
     kTiledBottom    = (1 << 8)
 };
 
-class Surface : public RenderClientObject,
+class Surface : public PresentRemoteHandle,
                 public FrameNotificationRouter,
                 public GraphicsResourcesTrackable
 {

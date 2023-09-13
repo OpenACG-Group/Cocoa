@@ -20,7 +20,6 @@
 #include "fmt/format.h"
 
 #include "Glamor/Layers/ExternalTextureLayer.h"
-#include "Glamor/RenderClient.h"
 GLAMOR_NAMESPACE_BEGIN
 
 ExternalTextureLayer::ExternalTextureLayer(std::unique_ptr<Accessor> frame_accessor,

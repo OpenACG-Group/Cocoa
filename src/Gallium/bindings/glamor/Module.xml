@@ -3,6 +3,7 @@
     <info name="glamor" description="Cocoa Glamor 2D Rendering Infrastructure"/>
     <metadata namespace="cocoa::gallium::bindings::glamor_wrap" class="GlamorBinding"/>
     <include src="Gallium/bindings/glamor/Exports.h"/>
+    <include src="Gallium/bindings/glamor/TrivialInterface.h"/>
     <include src="Gallium/bindings/glamor/Scene.h"/>
     <include src="Gallium/bindings/glamor/SceneBuilder.h"/>
     <include src="Gallium/bindings/glamor/CkMatrixWrap.h"/>
@@ -20,6 +21,9 @@
     <include src="Gallium/bindings/glamor/CkVerticesWrap.h"/>
     <include src="Gallium/bindings/glamor/CkFontMgrWrap.h"/>
     <include src="Gallium/bindings/glamor/ConcurrentVertexProcessor.h"/>
+    <include src="Gallium/bindings/glamor/GpuDirectContext.h"/>
+    <include src="Gallium/bindings/glamor/CkPixmapWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkImageWrap.h"/>
     <include src="Glamor/Surface.h"/>
     <include src="Glamor/Monitor.h"/>
     <hook on="instantiate" call="GlamorSetInstanceProperties"/>
@@ -27,15 +31,15 @@
         <toplevel type="declaration" name="Constants"/>
         <toplevel type="declaration" name="defaultFontMgr"/>
         <toplevel type="function" name="queryCapabilities" value="QueryCapabilities"/>
+        <toplevel type="function" name="setApplicationInfo" value="SetApplicationInfo"/>
+        <toplevel type="function" name="traceSkiaMemoryJSON" value="TraceSkiaMemoryJSON"/>
 
-        <class name="RenderHost" wrapper="RenderHostWrap">
-            <method static="true" name="Initialize" value="@Initialize"/>
-            <method static="true" name="Dispose" value="@Dispose"/>
-            <method static="true" name="Connect" value="@Connect"/>
-            <method static="true" name="WaitForSyncBarrier" value="@WaitForSyncBarrier"/>
-            <method static="true" name="SleepRendererFor" value="@SleepRendererFor"/>
-            <method static="true" name="TraceGraphicsResources" value="@TraceGraphicsResources"/>
-            <method static="true" name="CollectCriticalSharedResources" value="@CollectCriticalSharedResources"/>
+        <class name="PresentThread" wrapper="PresentThreadWrap">
+            <method static="true" name="Start" value="@Start"/>
+            <method name="dispose" value="@dispose"/>
+            <method name="createDisplay" value="@createDisplay"/>
+            <method name="traceResourcesJSON" value="@traceResourcesJSON"/>
+            <method name="collect" value="@collect"/>
         </class>
 
         <class name="GProfiler" wrapper="GProfilerWrap">
@@ -89,13 +93,10 @@
             <property name="profiler" getter="@getProfiler"/>
             <method name="dispose" value="@dispose"/>
             <method name="update" value="@update"/>
-            <method name="createTextureFromImage" value="@createTextureFromImage"/>
-            <method name="createTextureFromEncodedData" value="@createTextureFromEncodedData"/>
-            <method name="createTextureFromPixmap" value="@createTextureFromPixmap"/>
-            <method name="deleteTexture" value="@deleteTexture"/>
-            <method name="newTextureDeletionSubscriptionSignal" value="@newTextureDeletionSubscriptionSignal"/>
             <method name="captureNextFrameAsPicture" value="@captureNextFrameAsPicture"/>
             <method name="purgeRasterCacheResources" value="@purgeRasterCacheResources"/>
+            <method name="importGpuSemaphoreFd" value="@importGpuSemaphoreFd"/>
+            <method name="deleteImportedGpuSemaphore" value="@deleteImportedGpuSemaphore"/>
         </class>
 
         <class name="Scene" wrapper="Scene">
@@ -119,8 +120,56 @@
             <method name="pushRRectClip" value="@pushRRectClip"/>
             <method name="pushPathClip" value="@pushPathClip"/>
             <method name="addPicture" value="@addPicture"/>
-            <method name="addTexture" value="@addTexture"/>
             <method name="addVideoBuffer" value="@addVideoBuffer"/>
+        </class>
+
+        <class name="GpuDirectContext" wrapper="GpuDirectContext">
+            <method static="true" name="Make" value="@Make"/>
+            <method name="dispose" value="@dispose"/>
+            <method name="isDisposed" value="@isDisposed"/>
+            <method name="makeSurface" value="@makeSurface"/>
+            <method name="makeBinarySemaphore" value="@makeBinarySemaphore"/>
+            <method name="exportSemaphoreFd" value="@exportSemaphoreFd"/>
+            <method name="importSemaphoreFd" value="@importSemaphoreFd"/>
+            <method name="flush" value="@flush"/>
+            <method name="submit" value="@submit"/>
+        </class>
+
+        <class name="GpuExportedFd" wrapper="GpuExportedFd">
+            <method name="close" value="@close"/>
+            <method name="isImportedOrClosed" value="@isImportedOrClosed"/>
+        </class>
+
+        <class name="GpuBinarySemaphore" wrapper="GpuBinarySemaphore">
+            <method name="dispose" value="@dispose"/>
+            <method name="detach" value="@detach"/>
+            <method name="isDetachedOrDisposed" value="@isDetachedOrDisposed"/>
+        </class>
+
+        <class name="CkImageInfo" wrapper="CkImageInfo">
+            <method static="true" name="MakeSRGB" value="@MakeSRGB"/>
+            <method static="true" name="MakeN32" value="@MakeN32"/>
+            <method static="true" name="MakeS32" value="@MakeS32"/>
+            <method static="true" name="MakeN32Premul" value="@MakeN32Premul"/>
+            <method static="true" name="MakeA8" value="@MakeA8"/>
+            <method static="true" name="MakeUnknown" value="@MakeUnknown"/>
+            <property name="alphaType" getter="@getAlphaType"/>
+            <property name="colorType" getter="@getColorType"/>
+            <property name="width" getter="@getWidth"/>
+            <property name="height" getter="@getHeight"/>
+            <property name="isEmpty" getter="@getIsEmpty"/>
+            <property name="isOpaque" getter="@getIsOpaque"/>
+            <method name="makeWH" value="@makeWH"/>
+            <method name="makeAlphaType" value="@makeAlphaType"/>
+            <method name="makeColorType" value="@makeColorType"/>
+            <property name="bytesPerPixel" getter="@getBytesPerPixel"/>
+            <property name="shiftPerPixel" getter="@getShiftPerPixel"/>
+            <property name="minRowBytes" getter="@getMinRowBytes"/>
+            <method name="computeOffset" value="@computeOffset"/>
+            <method name="equalsTo" value="@equalsTo"/>
+            <method name="computeByteSize" value="@computeByteSize"/>
+            <method name="computeMinByteSize" value="@computeMinByteSize"/>
+            <method name="validRowBytes" value="@validRowBytes"/>
         </class>
 
         <class name="CkMatrix" wrapper="CkMatrix">
@@ -253,16 +302,23 @@
             <property name="height" getter="@getHeight"/>
             <property name="generationID" getter="@getGenerationID"/>
             <property name="imageInfo" getter="@getImageInfo"/>
-            <property name="sharedPixels" getter="@getSharedPixels"/>
             <method static="true" name="MakeRaster" value="@MakeRaster"/>
             <method static="true" name="MakeNull" value="@MakeNull"/>
-            <method static="true" name="MakeSharedPixels" value="@MakeSharedPixels"/>
+            <method static="true" name="WrapPixels" value="@WrapPixels"/>
+            <method name="dispose" value="@dispose"/>
+            <method name="isDisposed" value="@isDisposed"/>
             <method name="getCanvas" value="@getCanvas"/>
+            <method name="getGpuDirectContext" value="@getGpuDirectContext"/>
             <method name="makeSurface" value="@makeSurface"/>
             <method name="makeImageSnapshot" value="@makeImageSnapshot"/>
             <method name="draw" value="@draw"/>
+            <method name="peekPixels" value="@peekPixels"/>
             <method name="readPixels" value="@readPixels"/>
+            <method name="readPixelsToPixmap" value="@readPixelsToPixmap"/>
+            <method name="writePixels" value="@writePixels"/>
             <method name="notifyContentWillChange" value="@notifyContentWillChange"/>
+            <method name="waitOnGpu" value="@waitOnGpu"/>
+            <method name="flush" value="@flush"/>
         </class>
 
         <class name="CkCanvas" wrapper="CkCanvas">
@@ -438,6 +494,29 @@
             <method static="true" name="MakeFromDSL" value="@MakeFromDSL"/>
         </class>
 
+        <class name="CkPixmap" wrapper="CkPixmap">
+            <constructor prototype="const v8::FunctionCallbackInfo&lt;v8::Value&gt;&amp;"/>
+            <method name="resetEmpty" value="@resetEmpty"/>
+            <method name="reset" value="@reset"/>
+            <method name="extractSubset" value="@extractSubset"/>
+            <property name="width" getter="@getWidth"/>
+            <property name="height" getter="@getHeight"/>
+            <property name="colorType" getter="@getColorType"/>
+            <property name="alphaType" getter="@getAlphaType"/>
+            <property name="isOpaque" getter="@getIsOpaque"/>
+            <property name="bounds" getter="@getBounds"/>
+            <property name="rowBytesAsPixels" getter="@getRowBytesAsPixels"/>
+            <property name="shiftPerPixel" getter="@getShiftPerPixel"/>
+            <method name="computeByteSize" value="@computeByteSize"/>
+            <method name="computeIsOpaque" value="@computeIsOpaque"/>
+            <method name="getColor4f" value="@getColor4f"/>
+            <method name="getAlphaf" value="@getAlphaf"/>
+            <method name="readPixels" value="@readPixels"/>
+            <method name="copy" value="@copy"/>
+            <method name="scale" value="@scale"/>
+            <method name="erase" value="@erase"/>
+        </class>
+
         <class name="CkBitmap" wrapper="CkBitmapWrap">
             <method static="true" name="MakeFromBuffer" value="@MakeFromBuffer"/>
             <method static="true" name="MakeFromEncodedFile" value="@MakeFromEncodedFile"/>
@@ -461,8 +540,18 @@
             <method static="true" name="MakeFromEncodedData" value="@MakeFromEncodedData"/>
             <method static="true" name="MakeFromEncodedFile" value="@MakeFromEncodedFile"/>
             <method static="true" name="MakeFromVideoBuffer" value="@MakeFromVideoBuffer"/>
+            <method name="dispose" value="@dispose"/>
+            <method name="isDisposed" value="@isDisposed"/>
             <method name="uniqueId" value="@uniqueId"/>
-            <method name="makeSharedPixelsBuffer" value="@makeSharedPixelsBuffer"/>
+            <method name="hasMipmaps" value="@hasMipmaps"/>
+            <method name="withDefaultMipmaps" value="@withDefaultMipmaps"/>
+            <method name="isTextureBacked" value="@isTextureBacked"/>
+            <method name="approximateTextureSize" value="@approximateTextureSize"/>
+            <method name="isValid" value="@isValid"/>
+            <method name="makeNonTextureImage" value="@makeNonTextureImage"/>
+            <method name="makeRasterImage" value="@makeRasterImage"/>
+            <method name="makeWithFilter" value="@makeWithFilter"/>
+            <method name="peekPixels" value="@peekPixels"/>
             <method name="makeShader" value="@makeShader"/>
             <method name="makeRawShader" value="@makeRawShader"/>
             <property name="width" getter="@getWidth"/>

@@ -79,19 +79,6 @@ public:
     //! TSDecl: function pushPathClip(shape: CkPath, op: Enum<ClipOp>, antialias: boolean): SceneBuilder
     v8::Local<v8::Value> pushPathClip(v8::Local<v8::Value> shape, int32_t op, bool antialias);
 
-    //! TSDecl: function addTexture(textureId: number,
-    //!                             dx: number,
-    //!                             dy: number,
-    //!                             width: number,
-    //!                             height: number,
-    //!                             sampling: number): SceneBuilder
-    v8::Local<v8::Value> addTexture(int64_t textureId,
-                                    SkScalar dx,
-                                    SkScalar dy,
-                                    SkScalar width,
-                                    SkScalar height,
-                                    int32_t sampling);
-
     //! TSDecl: function addVideoBuffer(vbo: utau.VideoBuffer,
     //!                                 dx: number,
     //!                                 dy: number,

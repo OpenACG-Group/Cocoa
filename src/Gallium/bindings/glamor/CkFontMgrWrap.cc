@@ -22,6 +22,7 @@
 #include "Gallium/bindings/glamor/CkFontMgrWrap.h"
 #include "Gallium/bindings/glamor/CkTypefaceWrap.h"
 #include "Gallium/binder/Class.h"
+#include "Gallium/binder/TypeTraits.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 int CkFontMgr::countFamilies()
@@ -83,43 +84,18 @@ v8::Local<v8::Value> CkFontMgr::makeFromFile(const std::string& path, int32_t tt
     return binder::NewObject<CkTypeface>(isolate, tf);
 }
 
-namespace {
-
-struct U8ArrayRef
-{
-    std::shared_ptr<v8::BackingStore> store;
-};
-
-}
-
 v8::Local<v8::Value> CkFontMgr::makeFromData(v8::Local<v8::Value> data, int32_t ttc_index)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     if (!data->IsUint8Array())
         g_throw(TypeError, "Argument `data` must be a Uint8Array");
 
-    v8::Local<v8::Uint8Array> arr = data.As<v8::Uint8Array>();
-    if (!arr->HasBuffer())
+    auto memory = binder::GetTypedArrayMemory<v8::Uint8Array>(data);
+    if (!memory)
         g_throw(Error, "Argument `data` must be a allocated Uint8Array");
-
-    uint8_t *ptr = reinterpret_cast<uint8_t*>(arr->Buffer()->Data())
-                    + arr->ByteOffset();
-
-    CHECK(ptr);
-
-    auto *ref = new U8ArrayRef{ arr->Buffer()->GetBackingStore() };
-
-    sk_sp<SkData> skdata = SkData::MakeWithProc(
-            ptr, arr->ByteLength(),
-            [](const void *ptr, void *ctx) {
-                CHECK(ctx);
-                delete reinterpret_cast<U8ArrayRef*>(ctx);
-            }, ref
-    );
-
-    CHECK(skdata);
-
-    sk_sp<SkTypeface> tf = GetSkObject()->makeFromData(skdata, ttc_index);
+    sk_sp<SkData> shared_data = MakeSkDataFromTypedArrayMem(*memory);
+    CHECK(shared_data);
+    sk_sp<SkTypeface> tf = GetSkObject()->makeFromData(shared_data, ttc_index);
     if (!tf)
         g_throw(Error, "Failed to create typeface from provided data");
 

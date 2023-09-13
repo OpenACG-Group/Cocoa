@@ -141,7 +141,7 @@ private:
         void Start(std::function<void(void)> func) {                \
             func_ = std::move(func);                                \
             uv_##name##_start(Get(), [](uv_##name##_t *h) {         \
-                reinterpret_cast<cl*>(h->data)->func_();            \
+                static_cast<cl*>(h->data)->func_();                 \
             });                                                     \
         }                                                           \
         void Stop() {                                               \
@@ -160,11 +160,11 @@ START_STOP_HANDLE_IMPL(IdleHandle, idle)
 class AsyncHandle : public HandleBase<uv_async_t>
 {
 public:
-    explicit AsyncHandle(uv_loop_t *loop, std::function<void(void)> func)
+    AsyncHandle(uv_loop_t *loop, std::function<void(void)> func)
         : func_(std::move(func))
     {
         uv_async_init(loop, Get(), [](uv_async_t *h) {
-            reinterpret_cast<AsyncHandle*>(h->data)->func_();
+            static_cast<AsyncHandle*>(h->data)->func_();
         });
         Get()->data = this;
     }
@@ -175,6 +175,29 @@ public:
 
 private:
     std::function<void(void)> func_;
+};
+
+class PollHandle : public HandleBase<uv_poll_t>
+{
+public:
+    PollHandle(uv_loop_t *loop, int fd) {
+        uv_poll_init(loop, Get(), fd);
+        Get()->data = this;
+    }
+
+    void Start(int events, std::function<void(int, int)> func) {
+        func_ = std::move(func);
+        uv_poll_start(Get(), events, [](uv_poll_t *h, int status, int events) {
+            static_cast<PollHandle*>(h->data)->func_(status, events);
+        });
+    }
+
+    void Stop() {
+        uv_poll_stop(Get());
+    }
+
+private:
+    std::function<void(int, int)> func_;
 };
 
 } // namespace uv

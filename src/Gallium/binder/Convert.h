@@ -145,10 +145,8 @@ struct convert<T, typename std::enable_if<std::is_integral_v<T>>::type>
     using from_type = T;
     using to_type = v8::Local<v8::Number>;
 
-    enum
-    {
-        bits = sizeof(T) * CHAR_BIT, is_signed = std::is_signed<T>::value
-    };
+    static constexpr int kBits = sizeof(T) * CHAR_BIT;
+    static constexpr bool kIsSigned = std::is_signed<T>::value;
 
     static bool is_valid(v8::Isolate *, v8::Local<v8::Value> value)
     {
@@ -160,9 +158,9 @@ struct convert<T, typename std::enable_if<std::is_integral_v<T>>::type>
         if (!is_valid(isolate, value))
             throw invalid_argument(isolate, value, "Number");
 
-        if constexpr (bits <= 32)
+        if constexpr (kBits <= 32)
         {
-            if constexpr (is_signed)
+            if constexpr (kIsSigned)
                 return static_cast<T>(value->Int32Value(isolate->GetCurrentContext()).FromJust());
             else
                 return static_cast<T>(value->Uint32Value(isolate->GetCurrentContext()).FromJust());
@@ -172,9 +170,9 @@ struct convert<T, typename std::enable_if<std::is_integral_v<T>>::type>
 
     static to_type to_v8(v8::Isolate *isolate, T value)
     {
-        if constexpr (bits <= 32)
+        if constexpr (kBits <= 32)
         {
-            if constexpr (is_signed)
+            if constexpr (kIsSigned)
                 return v8::Integer::New(isolate, static_cast<int32_t>(value));
             else
                 return v8::Integer::NewFromUnsigned(isolate, static_cast<uint32_t>(value));

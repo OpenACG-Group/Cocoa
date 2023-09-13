@@ -28,14 +28,14 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 struct EventDefinitionData
 {
     EventEmitterBase                        *this_ = nullptr;
-    std::shared_ptr<gl::RenderClientObject>  handle;
+    std::shared_ptr<gl::PresentRemoteHandle>  handle;
     std::string                              name;
     uint32_t                                 signum = 0;
-    InfoAcceptor                             args_converter;
+    SignalArgsConverter                      args_converter;
 };
 
 void DefineSignalEventsOnEventEmitter(EventEmitterBase *this_,
-                                      const std::shared_ptr<gl::RenderClientObject>& handle,
+                                      const std::shared_ptr<gl::PresentRemoteHandle>& handle,
                                       const std::vector<SignalEventInfo>& info_vec)
 {
     for (const SignalEventInfo& event_info : info_vec)
@@ -51,7 +51,7 @@ void DefineSignalEventsOnEventEmitter(EventEmitterBase *this_,
             auto emit = sp_event_data->this_->EmitterWrapAsCallable(sp_event_data->name);
             return sp_event_data->handle->Connect(
                 sp_event_data->signum,
-                [emit, sp_event_data](gl::RenderHostSlotCallbackInfo& info) {
+                [emit, sp_event_data](gl::PresentSignalArgs& info) {
                     v8::Isolate *isolate = v8::Isolate::GetCurrent();
                     v8::HandleScope handle_scope(isolate);
                     if (sp_event_data->args_converter)
@@ -66,7 +66,7 @@ void DefineSignalEventsOnEventEmitter(EventEmitterBase *this_,
     }
 }
 
-void PromisifiedRemoteCall::ResultCallback(gl::RenderHostCallbackInfo& info)
+void PromisifiedRemoteCall::ResultCallback(gl::PresentRemoteCallReturn& info)
 {
     auto closure = info.GetClosure<std::shared_ptr<PromisifiedRemoteCall>>();
 
@@ -75,34 +75,34 @@ void PromisifiedRemoteCall::ResultCallback(gl::RenderHostCallbackInfo& info)
 
     v8::Local<v8::Promise::Resolver> resolver = closure->resolver.Get(isolate);
 
-    std::shared_ptr<gl::RenderClientObject> receiver = info.GetReceiver();
+    std::shared_ptr<gl::PresentRemoteHandle> receiver = info.GetReceiver();
     std::string error = fmt::format("[RemoteCall(receiver={}@{} opcode={})] ",
-                                    gl::RenderClientObject::GetTypeName(receiver->GetRealType()),
+                                    gl::PresentRemoteHandle::GetTypeName(receiver->GetRealType()),
                                     fmt::ptr(receiver.get()),
                                     info.GetOpcode());
 
     switch (info.GetReturnStatus())
     {
-    case gl::RenderClientCallInfo::Status::kOpCodeInvalid:
+    case gl::PresentRemoteCall::Status::kOpCodeInvalid:
         error += "Invalid opcode";
         break;
-    case gl::RenderClientCallInfo::Status::kArgsInvalid:
+    case gl::PresentRemoteCall::Status::kArgsInvalid:
         error += "Invalid number or type of arguments";
         break;
-    case gl::RenderClientCallInfo::Status::kCaught:
+    case gl::PresentRemoteCall::Status::kCaught:
         error += fmt::format("Caught error: {}", info.GetCaughtException());
         break;
-    case gl::RenderClientCallInfo::Status::kOpFailed:
+    case gl::PresentRemoteCall::Status::kOpFailed:
         error += "Operation failed";
         break;
-    case gl::RenderClientCallInfo::Status::kOpSuccess:
+    case gl::PresentRemoteCall::Status::kOpSuccess:
         break;
     default:
         MARK_UNREACHABLE();
     }
 
     v8::Local<v8::Context> context = isolate->GetCurrentContext();
-    if (info.GetReturnStatus() != gl::RenderClientCallInfo::Status::kOpSuccess)
+    if (info.GetReturnStatus() != gl::PresentRemoteCall::Status::kOpSuccess)
     {
         CHECK(resolver->Reject(context, binder::to_v8(isolate, error)).ToChecked());
         return;
@@ -124,6 +124,34 @@ void PromisifiedRemoteCall::ResultCallback(gl::RenderHostCallbackInfo& info)
         result = v8::Undefined(isolate);
 
     CHECK(resolver->Resolve(context, result).ToChecked());
+}
+
+v8::Local<v8::Promise>
+PromisifiedRemoteTask::SubmitNoRet(v8::Isolate *isolate, TaskNoRetF task_func)
+{
+    v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    auto resolver = v8::Promise::Resolver::New(context).ToLocalChecked();
+
+    auto closure = std::make_shared<PromisifiedRemoteTask>();
+    closure->isolate = isolate;
+    closure->resolver.Reset(isolate, resolver);
+
+    auto *thread = gl::GlobalScope::Ref().GetPresentThread();
+    thread->SubmitTaskNoRet(std::move(task_func), [closure]() {
+        v8::HandleScope scope(closure->isolate);
+        auto r = closure->resolver.Get(closure->isolate);
+        r->Resolve(closure->isolate->GetCurrentContext(),
+                   v8::Undefined(closure->isolate)).ToChecked();
+    }, [closure](std::string error) {
+        v8::HandleScope scope(closure->isolate);
+        auto r = closure->resolver.Get(closure->isolate);
+        r->Reject(closure->isolate->GetCurrentContext(),
+                  v8::String::NewFromUtf8(closure->isolate,
+                                          error.c_str()).ToLocalChecked()
+        ).ToChecked();
+    });
+
+    return resolver->GetPromise();
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

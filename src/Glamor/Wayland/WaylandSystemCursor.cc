@@ -2,7 +2,7 @@
 
 #include "Core/Errors.h"
 #include "Core/Journal.h"
-#include "Glamor/RenderClient.h"
+#include "Glamor/PresentThread.h"
 #include "Glamor/Wayland/WaylandSystemCursor.h"
 #include "Glamor/Wayland/WaylandDisplay.h"
 GLAMOR_NAMESPACE_BEGIN
@@ -18,8 +18,8 @@ WaylandSystemCursor::WaylandSystemCursor(const Shared<CursorTheme>& theme,
     , current_cursor_image_idx_(0)
     , animation_timer_{}
 {
-    uv_timer_init(GlobalScope::Ref().GetRenderClient()->GetEventLoop(),
-                  &animation_timer_);
+    auto *local_context = PresentThread::LocalContext::GetCurrent();
+    uv_timer_init(local_context->GetEventLoop(), &animation_timer_);
     uv_handle_set_data((uv_handle_t*) &animation_timer_, this);
 }
 

@@ -20,6 +20,7 @@
 #include "include/core/SkStream.h"
 #include "fmt/format.h"
 
+#include "Glamor/PresentThread.h"
 #include "Gallium/binder/CallV8.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/PromiseHelper.h"
@@ -51,84 +52,54 @@ void CriticalPictureWrap::discardOwnership()
 v8::Local<v8::Value> CriticalPictureWrap::sanitize()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-
     if (!picture_)
         g_throw(Error, "Null CriticalPicture object");
-
     gl::MaybeGpuObject<SkPicture> picture(picture_);
+    return PromisifiedRemoteTask::Submit<sk_sp<SkPicture>>(
+        isolate,
+        [picture] {
+            sk_sp<SkData> data = picture->serialize();
+            if (!data)
+            {
+                // This exception could be handled by the remote task
+                // mechanism, then converted to a string to reject the
+                // corresponding promise automatically.
+                throw std::runtime_error("Failed to serialize the picture");
+            }
 
-    // Following code will be executed in the rendering thread
-    // to touch the GPU retained resources safely.
-    gl::RenderHostTaskRunner::Task sanitizer = [picture]() -> std::any {
-        sk_sp<SkData> data = picture->serialize();
-        if (!data)
-        {
-            // This exception could be handled by the remote call
-            // mechanism, then converted to a string to reject the
-            // corresponding promise automatically.
-            // See `PromisifiedRemoteCall::ResultCallback` for more details.
-            throw std::runtime_error("Failed to serialize the picture");
+            // Once a picture is serialized, all the GPU resources (textures)
+            // should be read back and stored in the serialized data.
+
+            // Deserializing the serialized picture makes the new picture completely
+            // isolated with GPU resources (it becomes a standalone picture, except typefaces).
+            return SkPicture::MakeFromData(data.get());
+        }, [](sk_sp<SkPicture> picture) {
+            v8::Isolate *isolate = v8::Isolate::GetCurrent();
+            return binder::NewObject<CkPictureWrap>(isolate, std::move(picture));
         }
-
-        // Once a picture is serialized, all the GPU resources (textures)
-        // should be read back and stored in the serialized data.
-
-        // Deserializing the serialized picture makes the new picture completely
-        // isolated with GPU resources (it becomes a standalone picture, except typefaces).
-        return {SkPicture::MakeFromData(data.get())};
-    };
-
-    // The picture itself may contain critical GPU resources which are owned by
-    // rendering thread only. Sanitizer will download those critical GPU textures
-    // into system memory and serialize them. To avoid touching them unexpectedly,
-    // it is essential to execute the sanitizer function on rendering thread.
-    auto task_runner = gl::GlobalScope::Ref()
-                       .GetRenderHost()->GetRenderHostTaskRunner();
-    CHECK(task_runner);
-
-    using ObjCast = CreateObjCast<sk_sp<SkPicture>, CkPictureWrap>;
-    return PromisifiedRemoteCall::Call(
-            isolate, task_runner, PromisifiedRemoteCall::GenericConvert<ObjCast>,
-            GLOP_TASKRUNNER_RUN, sanitizer);
+    );
 }
 
 v8::Local<v8::Value> CriticalPictureWrap::serialize()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-
     if (!picture_)
         g_throw(Error, "Null CriticalPicture object");
-
-    // See also comments in `sanitize` method.
-
     gl::MaybeGpuObject<SkPicture> picture(picture_);
-    gl::RenderHostTaskRunner::Task serializer = [picture]() -> std::any {
-        sk_sp<SkData> data = picture->serialize();
-        if (!data)
-            throw std::runtime_error("Failed to serialize the picture");
-        return {data};
-    };
-
-    auto runner = gl::GlobalScope::Ref()
-                  .GetRenderHost()->GetRenderHostTaskRunner();
-    CHECK(runner);
-
-    return PromisifiedRemoteCall::Call(
-            isolate, runner,
-            [](v8::Isolate *i, gl::RenderHostCallbackInfo& info) {
-                // Note that `SkData` only allows accessing `writable_data()` when
-                // `SkData` object does not be referenced by other owners.
-                auto data = std::move(info.GetReturnValue<sk_sp<SkData>>());
-                CHECK(data);
-
-                void *writable_data = data->writable_data();
-                auto backing_store = binder::CreateBackingStoreFromSmartPtrMemory(
-                        data, writable_data, data->size());
-
-                return v8::ArrayBuffer::New(i, backing_store);
-            },
-            GLOP_TASKRUNNER_RUN,
-            serializer
+    return PromisifiedRemoteTask::Submit<sk_sp<SkData>>(
+        isolate,
+        [picture] {
+            sk_sp<SkData> data = picture->serialize();
+            if (!data)
+                throw std::runtime_error("Failed to serialize the picture");
+            return data;
+        }, [](sk_sp<SkData> data) {
+            v8::Isolate *isolate = v8::Isolate::GetCurrent();
+            void *writable_data = data->writable_data();
+            auto backing_store = binder::CreateBackingStoreFromSmartPtrMemory(
+                    data, writable_data, data->size());
+            return v8::ArrayBuffer::New(isolate, backing_store);
+        }
     );
 }
 
@@ -190,8 +161,8 @@ uint32_t CkPictureWrap::approximateByteUsed()
 v8::Local<v8::Value> CkPictureWrap::MakeFromData(v8::Local<v8::Value> buffer)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    if (!buffer->IsTypedArray() || !buffer.As<v8::TypedArray>()->HasBuffer())
-        g_throw(TypeError, "Argument `buffer` must be an allocated TypedArray");
+    if (!buffer->IsTypedArray())
+        g_throw(TypeError, "Argument `buffer` must be a TypedArray");
 
     auto memory = binder::GetTypedArrayMemory<v8::TypedArray>(buffer);
     if (!memory)

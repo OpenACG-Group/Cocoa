@@ -20,13 +20,13 @@
 #include "Core/EnumClassBitfield.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/PromiseHelper.h"
-#include "Glamor/RenderClientObject.h"
+#include "Glamor/PresentRemoteHandle.h"
 #include "Glamor/Surface.h"
 #include "Glamor/Blender.h"
 #include "Glamor/Cursor.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-SurfaceWrap::SurfaceWrap(gl::Shared<gl::RenderClientObject> handle,
+SurfaceWrap::SurfaceWrap(gl::Shared<gl::PresentRemoteHandle> handle,
                          v8::Local<v8::Object> display)
     : handle_(std::move(handle))
     , display_wrapped_(v8::Isolate::GetCurrent(), display)
@@ -34,31 +34,31 @@ SurfaceWrap::SurfaceWrap(gl::Shared<gl::RenderClientObject> handle,
     DefineSignalEventsOnEventEmitter(this, handle_, {
         { "closed", GLSI_SURFACE_CLOSED },
         { "resize", GLSI_SURFACE_RESIZE,
-          GenericInfoAcceptor<NoCast<int32_t>, NoCast<int32_t>> },
+          GenericSignalArgsConverter<NoCast<int32_t>, NoCast<int32_t>> },
         { "close", GLSI_SURFACE_CLOSE },
         { "configure", GLSI_SURFACE_CONFIGURE,
-          GenericInfoAcceptor<NoCast<int32_t>,
-                              NoCast<int32_t>,
-                              InfoAcceptorCast<Bitfield<gl::ToplevelStates>, uint32_t>> },
-        { "frame", GLSI_SURFACE_FRAME, GenericInfoAcceptor<NoCast<uint32_t>> },
+          GenericSignalArgsConverter<NoCast<int32_t>,
+                                     NoCast<int32_t>,
+                                     SignalArgsCast<Bitfield<gl::ToplevelStates>, uint32_t>> },
+        { "frame", GLSI_SURFACE_FRAME, GenericSignalArgsConverter<NoCast<uint32_t>> },
         { "pointer-hovering", GLSI_SURFACE_POINTER_HOVERING,
-          GenericInfoAcceptor<NoCast<bool>> },
+          GenericSignalArgsConverter<NoCast<bool>> },
         { "pointer-motion", GLSI_SURFACE_POINTER_MOTION,
-          GenericInfoAcceptor<NoCast<double>, NoCast<double>> },
+          GenericSignalArgsConverter<NoCast<double>, NoCast<double>> },
         { "pointer-button", GLSI_SURFACE_POINTER_BUTTON,
-          GenericInfoAcceptor<AutoEnumCast<gl::PointerButton>, NoCast<bool>> },
+          GenericSignalArgsConverter<AutoEnumCast<gl::PointerButton>, NoCast<bool>> },
         { "pointer-axis", GLSI_SURFACE_POINTER_AXIS,
-          GenericInfoAcceptor<AutoEnumCast<gl::AxisSourceType>, NoCast<double>, NoCast<double>> },
+          GenericSignalArgsConverter<AutoEnumCast<gl::AxisSourceType>, NoCast<double>, NoCast<double>> },
         { "pointer-highres-scroll", GLSI_SURFACE_POINTER_HIGHRES_SCROLL,
-          GenericInfoAcceptor<AutoEnumCast<gl::AxisSourceType>, NoCast<int32_t>, NoCast<int32_t>> },
-        { "keyboard-focus", GLSI_SURFACE_KEYBOARD_FOCUS, GenericInfoAcceptor<NoCast<bool>> },
+          GenericSignalArgsConverter<AutoEnumCast<gl::AxisSourceType>, NoCast<int32_t>, NoCast<int32_t>> },
+        { "keyboard-focus", GLSI_SURFACE_KEYBOARD_FOCUS, GenericSignalArgsConverter<NoCast<bool>> },
         { "keyboard-key", GLSI_SURFACE_KEYBOARD_KEY,
-          GenericInfoAcceptor<AutoEnumCast<gl::KeyboardKey>,
-                              EnumBitfieldCast<gl::KeyboardModifiers>,
-                              NoCast<bool>> }
+          GenericSignalArgsConverter<AutoEnumCast<gl::KeyboardKey>,
+                                     EnumBitfieldCast<gl::KeyboardModifiers>,
+                                     NoCast<bool>> }
     });
 
-    using InfoT = gl::RenderHostSlotCallbackInfo;
+    using InfoT = gl::PresentSignalArgs;
     surface_closed_slot_ = handle_->Connect(
             GLSI_SURFACE_CLOSED, [this](InfoT& info) { display_wrapped_.Reset(); });
 }

@@ -26,6 +26,7 @@
 
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/CkMatrixWrap.h"
+#include "Gallium/bindings/glamor/CkImageWrap.h"
 
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
@@ -98,8 +99,8 @@ v8::Local<v8::Value> CkBitmapWrap::MakeFromBuffer(v8::Local<v8::Value> array,
                                               static_cast<SkColorType>(colorType),
                                               static_cast<SkAlphaType>(alphaType));
 
-    if (!array->IsUint8Array() || !array.As<v8::Uint8Array>()->HasBuffer())
-        g_throw(TypeError, "Argument `buffer` must be an allocated ArrayBuffer");
+    if (!array->IsUint8Array())
+        g_throw(TypeError, "Argument `buffer` must be a ArrayBuffer");
 
     auto u8_array = array.As<v8::Uint8Array>();
     return create_bitmap_from_buffer(u8_array->Buffer()->GetBackingStore(),

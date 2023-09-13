@@ -15,19 +15,8 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {Buffer} from 'synthetic://core';
 import {VideoBuffer} from 'synthetic://utau';
-
-import { EventEmitterBase } from 'private/base';
-
-/**
- * Error class thrown when an asynchronous operation fails.
- * Promise may be rejected with its instance.
- * @property opcode     A unique code of the asynchronous operation.
- */
-export interface RenderClientError extends Error {
-    opcode: number;
-}
+import {EventEmitterBase} from 'private/base';
 
 export interface CkLTRBRect {
     left: number;
@@ -35,47 +24,49 @@ export interface CkLTRBRect {
     bottom: number;
     right: number;
 }
+
 export interface CkXYWHRect {
     x: number;
     y: number;
     width: number;
     height: number;
 }
+
 export type CkArrayXYWHRect = [number, number, number, number];
 export type CkRect = CkLTRBRect | CkXYWHRect | CkArrayXYWHRect | Float32Array;
 
 export interface CkRRect {
-   rect: CkRect;
+    rect: CkRect;
 
     /**
      * Decide whether apply the same radii in X and Y directions.
      * If true, all the corners are arcs of a circle, otherwise, they are arcs of
      * the specified ellipse.
      */
-   uniformRadii: boolean;
+    uniformRadii: boolean;
 
-   /**
-    * Symbols:
-    *   TL: top-left, BL: bottom-left, TR: top-right, BR: bottom-right
-    *
-    * XY uniform radii:
-    *   1 value:  [TL|BL|TR|BR]
-    *   2 values: [TL|BR, TR|BL]
-    *   3 values: [TL, TR|BL, BR]
-    *   4 values: [TL, TR, BR, BL]
-    *
-    * XY discrete radii:
-    *   1 value pair:  [TL<xy>|BL<xy>|TR<xy>|BR<xy>]
-    *   2 value pairs: [TL<xy>|BR<xy>, TR<xy>|BL<xy>]
-    *   3 value pairs: [TL<xy>, TR<xy>|BL<xy>, BR<xy>]
-    *   4 value pairs: [TL<xy>, TR<xy>, BR<xy>, BL<xy>]
-    */
-   borderRadii: Float32Array | Array<number>;
+    /**
+     * Symbols:
+     *   TL: top-left, BL: bottom-left, TR: top-right, BR: bottom-right
+     *
+     * XY uniform radii:
+     *   1 value:  [TL|BL|TR|BR]
+     *   2 values: [TL|BR, TR|BL]
+     *   3 values: [TL, TR|BL, BR]
+     *   4 values: [TL, TR, BR, BL]
+     *
+     * XY discrete radii:
+     *   1 value pair:  [TL<xy>|BL<xy>|TR<xy>|BR<xy>]
+     *   2 value pairs: [TL<xy>|BR<xy>, TR<xy>|BL<xy>]
+     *   3 value pairs: [TL<xy>, TR<xy>|BL<xy>, BR<xy>]
+     *   4 value pairs: [TL<xy>, TR<xy>, BR<xy>, BL<xy>]
+     */
+    borderRadii: Float32Array | Array<number>;
 }
 
 type TypedArray = Uint8Array | Int8Array | Uint8ClampedArray | Uint16Array | Int16Array
-                | Uint32Array | Int32Array | Float64Array | Float32Array | BigInt64Array
-                | BigUint64Array;
+    | Uint32Array | Int32Array | Float64Array | Float32Array | BigInt64Array
+    | BigUint64Array;
 
 // [x, y]
 export type CkPoint = [number, number];
@@ -86,33 +77,19 @@ export type CkPoint3 = [number, number, number];
 // [R, G, B, A] where R,G,B,A∈[0,1]
 export type CkColor4f = [number, number, number, number];
 
-export interface CkImageInfo {
-    alphaType: AlphaType;
-    colorType: ColorType;
-    colorSpace: ColorSpace;
-    width: number;
-    height: number;
-}
+/**
+ * Overwrite the default application name and version.
+ * The application info will not be parsed, and only be used for identify
+ * the application itself.
+ */
+export function setApplicationInfo(name: string, major: number,
+                                   minor: number, patch: number): void;
 
 /**
- * Basic information of the application that should be provided for
- * the `RenderHost.Initialize` method.
- * Provided information like the name of the application will not be parsed.
- * The only use of them is to identify user's application.
+ * Dump memory statistics of Skia cache. Returned value is a string
+ * in JSON format. `JSON.parse()` could be used for further analysis.
  */
-export interface ApplicationInfo {
-    // Name of the application
-    name: string;
-
-    // Major version number
-    major: number;
-    
-    // Minor version number
-    minor: number;
-
-    // Patch version number
-    patch: number;
-}
+export function traceSkiaMemoryJSON(): string;
 
 /**
  * Query a certain capability of current Glamor context.
@@ -121,94 +98,33 @@ export interface ApplicationInfo {
  */
 export function queryCapabilities(cap: Capability): boolean | number | string;
 
-/**
- * RenderHost, aka local thread, is an interface to communicate with
- * rendering thread in Glamor's multithreading architecture.
- * RenderHost can initialize and deinitialize the global Glamor context,
- * and create a Display instance.
- */
-export class RenderHost {
-    /**
-     * Initialize the global Glamor context.
-     * As long as the context is still alive, the rendering thread keeps running
-     * and the event loop will not exit.
-     * 
-     * @param info Basic information of the application.
-     */
-    public static Initialize(info: ApplicationInfo): void;
+export class PresentThread {
+    private constructor();
 
-    /**
-     * Deinitialize the global Glamor context.
-     * Rendering thread will be stopped, pending requests will be rejected,
-     * and pending tasks will be canceled.
-     * All the objects and resources that you get or create from Glamor will
-     * be invalid when the `Dispose` function returns. It is undefined behavior
-     * if the caller still use them.
-     */
-    public static Dispose(): void;
+    static Start(): Promise<PresentThread>;
 
-    /**
-     * Connect to the platform's display server and return an abstracted interface
-     * that can interact with the display server.
-     *
-     * @param name Optional display name.
-     */
-    public static Connect(name?: string): Promise<Display>;
+    dispose(): void;
 
-    /**
-     * Send a "sync" request to the rendering thread then block the JavaScript thread
-     * until the rendering thread has responded the request.
-     * The returning of this method means the message queue of rendering thread is empty
-     * and all the previous requests have been processed and responded.
-     * If any signals are emitted during the blocking period, they will be received
-     * after the JavaScript thread resumes and enters the event loop again.
-     * 
-     * @param timeoutInMs   Time in milliseconds that it will wait for.
-     *                      -1 or other negative values indicate to wait for infinite time.
-     */
-    public static WaitForSyncBarrier(timeoutInMs: number): void;
+    createDisplay(): Promise<Display>;
 
-    // Internal testing API
-    public static SleepRendererFor(timeoutInMs: number): Promise<void>;
+    collect(): void;
 
-    /**
-     * Get tracing information of graphics resources in JSON string format.
-     * The JSON string returned can be written into a file, or be parsed
-     * by `JSON.parse` for analysis purpose.
-     */
-    public static TraceGraphicsResources(): Promise<string>;
+    startMessageProfiling(): void;
 
-    /**
-     * Free all the critical graphics resources (e.g. `CriticalPicture` objects).
-     * Critical resources is a special type of graphics resources whose ownerships
-     * belong to JavaScript thread instead of rendering thread (GPU thread).
-     * They usually refer to sensitive GPU resources (like textures in video memory),
-     * which only can be accessed and destroyed in GPU thread, but for some reasons they
-     * need to be used in JavaScript thread directly. Consequently, JavaScript thread
-     * only retains weak references to actual resources, and user will be notified
-     * when they are destroyed (see `CriticalPicture.setCollectionCallback` for example).
-     *
-     * In most cases, those critical resources will be released automatically,
-     * depending on JavaScript GC, but user is also allowed to collect them explicitly and
-     * manually by calling this function.
-     *
-     * @note This is NOT an asynchronous API and the rendering thread will be blocked
-     *       when it attempts to manipulate the critical resources list.
-     */
-    public static CollectCriticalSharedResources(): void;
+    finishMessageProfilingJSON(): Promise<string>;
 }
 
 /**
  * An abstracted interface for system's display server (like Wayland, X11, etc.).
- * 
+ *
  * @event [closed] Emitted when the display is closed.
  *        Prototype: () -> void
- * 
+ *
  * @event [monitor-added] Emitted when a new monitor was plugged into the system.
  *                        Note that the monitors that have existed in the system when the
  *                        display object is created will not cause this signal to be emitted.
  *        Prototype: (monitor: Monitor) -> void
- * 
+ *
  * @event [monitor-removed] Emitted when an existing monitor was removed.
  *                          The corresponding `Monitor` object will also be notified by `detached` signal.
  *        Prototype: (monitor: Monitor) -> void
@@ -219,58 +135,62 @@ export class Display extends EventEmitterBase {
      * Signal `closed` will be emitted when the display is actually closed.
      * Promise will be resolved when the close request is processed.
      */
-    public close(): Promise<void>;
+    close(): Promise<void>;
 
     /**
      * Create a toplevel window (aka surface). All the rendering operations
      * performed on the created window will use an internal CPU rasterizer.
-     * 
+     *
      * @param w Width of the new created window.
      * @param h Height of the new created window.
      */
-    public createRasterSurface(w: number, h: number): Promise<Surface>;
+    createRasterSurface(w: number, h: number): Promise<Surface>;
 
     /**
      * Create a toplevel window (aka surface). All the rendering operations
      * performed on the created window will use the hardware-accelerated
      * GPU rasterizer, which is called HWCompose.
-     * 
+     *
      * All the HWCompose surfaces share the same physical GPU and GPU context.
      * If there are multiple GPUs in the system configuration, Cocoa will choose a
      * suitable one to use, which is opaque to the caller.
      * If it is the first HWCompose surface that the caller creates, it will lead to
      * the initialization of GPU context, which may be very slow. In the worst case,
      * it will take several seconds to complete.
-     * 
+     *
      * @param w Width of the new created window.
      * @param h Height of the new created window.
      */
-    public createHWComposeSurface(w: number, h: number): Promise<Surface>;
+    createHWComposeSurface(w: number, h: number): Promise<Surface>;
 
     /**
      * Get a list of monitors connected to the system.
      */
-    public requestMonitorList(): Promise<Array<Monitor>>;
+    requestMonitorList(): Promise<Array<Monitor>>;
 
     readonly defaultCursorTheme: CursorTheme;
 
-    public loadCursorTheme(name: string, size: number): Promise<CursorTheme>;
-    public createCursor(bitmap: CkBitmap, hotspotX: number, hotspotY: number): Promise<Cursor>;
+    loadCursorTheme(name: string, size: number): Promise<CursorTheme>;
+
+    createCursor(bitmap: CkBitmap, hotspotX: number, hotspotY: number): Promise<Cursor>;
 }
 
 export class CursorTheme {
-    public dispose(): Promise<void>;
-    public loadCursorFromName(name: string): Promise<Cursor>;
+    dispose(): Promise<void>;
+
+    loadCursorFromName(name: string): Promise<Cursor>;
 }
 
 export class Cursor {
-    public dispose(): Promise<void>;
-    public getHotspotVector(): Promise<{x: number, y: number}>;
+    dispose(): Promise<void>;
+
+    getHotspotVector(): Promise<{ x: number, y: number }>;
 }
 
 type MonitorSubpixel = number;
 type MonitorTransform = number;
 type MonitorMode = number;
+
 export interface MonitorPropertySet {
     logicalX: number;
     logicalY: number;
@@ -289,12 +209,12 @@ export interface MonitorPropertySet {
 
 /**
  * Monitor connected to the system.
- * 
+ *
  * @event [properties-changed] Notify that the properties of the Monitor has changed.
  *                             New properties are provided as an argument of the signal.
  *                             It also can be triggered by call `requestPropertySet` manually.
  *        Prototype: (properties: MonitorPropertySet) -> void
- * 
+ *
  * @event [detached] Monitor has been detached from the `Display` object,
  *                   which means the corresponding physical monitor has been removed from
  *                   the system or disabled.
@@ -307,7 +227,7 @@ export class Monitor extends EventEmitterBase {
      * accepts the request. Monitor properties will be sent with signal `properties-changed`
      * later.
      */
-    public requestPropertySet(): Promise<void>;
+    requestPropertySet(): Promise<void>;
 }
 
 /**
@@ -315,30 +235,30 @@ export class Monitor extends EventEmitterBase {
  * As `Surface` object itself only provides methods to operate the window,
  * a `Blender` object, which provides methods for rendering and frame scheduling,
  * should be associated with the `Surface` object.
- * 
+ *
  * @event [closed] Emitted when the window has been closed.
  *                 Prototype: () -> void
- * 
+ *
  * @event [resize] Emitted when the window has been resized.
  *                 Prototype: (width: number, height: number) -> void
- * 
+ *
  * @event [configure] Emitted when the Window Manager notified us that the window
  *                    should be reconfigured (resize, move, etc.)
  *                    Prototype: (width: number, height: number, state: ToplevelStates) -> void
- * 
+ *
  * @event [frame] Emitted when it is a good time to start submitting a new frame.
  *                This signal is related to the VSync mechanism where the system will
  *                notify us when the monitor will refresh for next frame.
  *                There are two ways to schedule this signal: call `Surface.requestNextFrame`
  *                explicitly or call `Blender.update`, which also calls `requestNextFrame` implicitly.
  *                Prototype: () -> void
- * 
+ *
  * @event [pointer-hovering] Emitted when the pointer device enters or leaves the window area.
  *                           Prototype: (enter: boolean) -> void
- * 
+ *
  * @event [pointer-motion] Emitted when a pointer moves on the window.
  *                         Prototype: (double x, double y) -> void
- * 
+ *
  * @event [pointer-button] Emitted when a button of pointer device is pressed or released.
  *                         Prototype: (button: PointerButton, pressed: boolean) -> void
  *
@@ -357,38 +277,38 @@ export class Monitor extends EventEmitterBase {
  */
 export class Surface extends EventEmitterBase {
     /* Window width in pixels. */
-    public readonly width: number;
+    readonly width: number;
     /* Window height in pixels. */
-    public readonly height: number;
+    readonly height: number;
 
     /**
      * Create a `Blender` object and make it associated with the surface.
      * If the surface has an associated `Blender` object, `Blender.dispose`
      * must be called before disposing the surface.
-     * 
+     *
      * Note that the surface only can associate a single `Blender` object,
      * and the `Blender` object also only can be associated with a unique `Surface`.
      * If the surface already has a `Blender`, this operation will fail and the
      * promise will be rejected.
      */
-    public createBlender(): Promise<Blender>;
+    createBlender(): Promise<Blender>;
 
     /**
      * Close the window immediately.
      * `close` signal does not indicate that a window is closed, which just means user
      * has clicked the "close" button on the window decoration.
      * Only by calling `close` method can we actually close a window.
-     * 
+     *
      * `closed` single will be emitted when the window is actually closed.
      */
-    public close(): Promise<void>;
+    close(): Promise<void>;
 
     /**
      * Get a string representation about available framebuffers.
      * There is no any guarantee that the returned string has a specific format.
      * The format is highly implementation-defined.
      */
-    public getBufferDescriptor(): Promise<string>;
+    getBufferDescriptor(): Promise<string>;
 
     /**
      * Schedule next frame to keep VSync.
@@ -396,41 +316,41 @@ export class Surface extends EventEmitterBase {
      * the request. A `frame` signal will be emitted when it is a good time to display
      * next frame.
      */
-    public requestNextFrame(): Promise<void>;
+    requestNextFrame(): Promise<void>;
 
     /**
      * Set a title for the window.
      */
-    public setTitle(title: string): Promise<void>;
+    setTitle(title: string): Promise<void>;
 
     /**
      * Resize the window.
      * The resolution of Promise only means the rendering thread has accepted
      * the request. A `resize` signal will be emitted when the resizing is finished.
      */
-    public resize(width: number, height: number): Promise<void>;
+    resize(width: number, height: number): Promise<void>;
 
     /**
      * Set a maximum geometry size of the window in pixels.
      */
-    public setMinSize(width: number, height: number): Promise<void>;
+    setMinSize(width: number, height: number): Promise<void>;
 
     /**
      * Set a minimum geometry size of the window in pixels.
      */
-    public setMaxSize(width: number, height: number): Promise<void>;
+    setMaxSize(width: number, height: number): Promise<void>;
 
     /**
      * Maximize or unmaximize the window if the system Window Manager supports
      * the operation.
      */
-    public setMaximized(value: boolean): Promise<void>;
+    setMaximized(value: boolean): Promise<void>;
 
     /**
      * Minimize or unminimize the window if the system Window Manager supports
      * the operation.
      */
-    public setMinimized(value: boolean): Promise<void>;
+    setMinimized(value: boolean): Promise<void>;
 
     /**
      * Make the window enter or leave fullscreen state.
@@ -438,7 +358,7 @@ export class Surface extends EventEmitterBase {
      * @param value     true to enter the fullscreen state; otherwise, leave the fullscreen state.
      * @param monitor   A monitor where the fullscreen window should be displayed.
      */
-    public setFullscreen(value: boolean, monitor: Monitor): Promise<void>;
+    setFullscreen(value: boolean, monitor: Monitor): Promise<void>;
 }
 
 /**
@@ -491,7 +411,7 @@ export class GProfiler {
      * @note It is NOT an asynchronous API and will lock the rendering thread
      *       if the rendering thread attempts to insert a new sample.
      */
-    public generateCurrentReport(): GProfilerReport;
+    generateCurrentReport(): GProfilerReport;
 
     /**
      * Purge all the history samples stored in the ring buffer
@@ -505,13 +425,13 @@ export class GProfiler {
      * @note It is NOT an asynchronous API and will block the rendering thread
      *       if the rendering thread attempts to insert a new sample.
      */
-    public purgeRecentHistorySamples(freeMemory: boolean): void;
+    purgeRecentHistorySamples(freeMemory: boolean): void;
 }
 
 type TextureId = number;
 
 /**
- * Blender, a content aggregator in Glamor rendering framework, mainly manages
+ * Blender, a content aggregator in the Glamor rendering framework, mainly manages
  * the textures and performs the rasterization work of layer trees.
  * It controls the presentation process of contents on a window, providing a higher
  * abstraction of `Surface`. While `Surface` itself provides an interface by which
@@ -527,110 +447,108 @@ type TextureId = number;
  *                           number returned by `captureNextFrameAsPicture`.
  *                           Prototype: (pict: CriticalPicture, serial: number) -> void
  *
- * @event [<dynamic: texture deletion>] A texture has been deleted. Name of the signal
+ * @event [<dynamic: texture deletion>] A texture has been deleted. The name of the signal
  *                                      is specified by user.
  *                                      Prototype: () -> void
  */
 export class Blender extends EventEmitterBase {
-    public readonly profiler: GProfiler | null;
+    readonly profiler: GProfiler | null;
 
-    public dispose(): Promise<void>;
-    public update(scene: Scene): Promise<void>;
+    dispose(): Promise<void>;
 
-    public createTextureFromImage(image: CkImage,
-                                  annotation: string): Promise<TextureId>;
+    update(scene: Scene): Promise<void>;
 
-    public createTextureFromEncodedData(data: Uint8Array,
-                                        alphaType: AlphaType,
-                                        annotation: string): Promise<TextureId>;
-
-    public createTextureFromPixmap(pixels: Uint8Array,
-                                   width: number,
-                                   height: number,
-                                   colorType: ColorType,
-                                   alphaType: AlphaType,
-                                   annotation: string): Promise<TextureId>;
-
-    public deleteTexture(textureId: TextureId): Promise<void>;
-
-    public newTextureDeletionSubscriptionSignal(textureId: TextureId,
-                                                sigName: string): Promise<void>;
-
-    public purgeRasterCacheResources(): Promise<void>;
+    purgeRasterCacheResources(): Promise<void>;
 
     /**
      * Record the rasterization process of current frame (current layer tree)
-     * as a Picture. Caller will be notified by `picture-captured` signal when
-     * the Picture is generated. All the required drawing resources are interned
+     * as a Picture.
+     * The caller will be notified by `picture-captured` signal when
+     * the Picture is generated.
+     * All the required drawing resources are interned
      * in the captured Picture (including textures, images, typefaces, etc.).
      *
      * @return A serial number of capture increasing with frame counter.
      *         If the function is called for multiple times before calling `update`,
      *         it will return the same serial number.
      */
-    public captureNextFrameAsPicture(): Promise<number>;
+    captureNextFrameAsPicture(): Promise<number>;
+
+    /**
+     * If HWCompose backend is used, import a semaphore object that was exported
+     * from other `GpuDirectContext`, and return a number presenting the ID of
+     * the imported semaphore.
+     * If raster backend is used, this operation will fail.
+     */
+    importGpuSemaphoreFd(fd: GpuExportedFd): Promise<bigint>;
+
+    /**
+     * If HWCompose backend is used, delete an imported semaphore object.
+     * If raster backend is used, this operation will fail.
+     */
+    deleteImportedGpuSemaphore(id: bigint): Promise<void>;
 }
 
 export class Scene {
     /**
      * A `Scene` instance MUST be disposed as quickly as possible
-     * if it will not be used anymore.
+     * if it is not used anymore.
      */
-    public dispose(): void;
+    dispose(): void;
 
     // ~Experimental API~
-    public toImage(width: number, height: number): Promise<CkImage>;
+    toImage(width: number, height: number): Promise<CkImage>;
 
     /**
      * Get an S-Expression representation of the layer tree.
      * Related tools provided by Cocoa Project can be used to perform
      * further analysis for the returned string.
      */
-    public toString(): string;
+    toString(): string;
 }
 
 export class SceneBuilder {
-    public constructor(viewportWidth: number, viewportHeight: number);
+    constructor(viewportWidth: number, viewportHeight: number);
 
-    public build(): Scene;
+    build(): Scene;
 
-    public pop(): SceneBuilder;
+    pop(): SceneBuilder;
 
-    public addPicture(picture: CkPicture,
-                      autoFastClipping: boolean,
-                      dx: number, dy: number): SceneBuilder;
+    addPicture(picture: CkPicture,
+               autoFastClipping: boolean,
+               dx: number, dy: number): SceneBuilder;
 
-    public addTexture(textureId: TextureId,
-                      offsetX: number,
-                      offsetY: number,
-                      width: number,
-                      height: number,
-                      sampling: number): SceneBuilder;
+    addTexture(textureId: TextureId,
+               offsetX: number,
+               offsetY: number,
+               width: number,
+               height: number,
+               sampling: number): SceneBuilder;
 
-    public addVideoBuffer(vbo: VideoBuffer,
-                          offsetX: number,
-                          offsetY: number,
-                          width: number,
-                          height: number,
-                          sampling: number): SceneBuilder;
+    addVideoBuffer(vbo: VideoBuffer,
+                   offsetX: number,
+                   offsetY: number,
+                   width: number,
+                   height: number,
+                   sampling: number): SceneBuilder;
 
-    public pushOffset(offsetX: number, offsetY: number): SceneBuilder;
+    pushOffset(offsetX: number, offsetY: number): SceneBuilder;
 
-    public pushOpacity(alpha: number): SceneBuilder;
+    pushOpacity(alpha: number): SceneBuilder;
 
-    public pushRotate(rad: number, pivotX: number, pivotY: number): SceneBuilder;
+    pushRotate(rad: number, pivotX: number, pivotY: number): SceneBuilder;
 
-    public pushImageFilter(filter: CkImageFilter): SceneBuilder;
+    pushImageFilter(filter: CkImageFilter): SceneBuilder;
 
-    public pushRectClip(shape: CkRect, AA: boolean): SceneBuilder;
+    pushRectClip(shape: CkRect, AA: boolean): SceneBuilder;
 
-    public pushRRectClip(shape: CkRRect, AA: boolean): SceneBuilder;
+    pushRRectClip(shape: CkRRect, AA: boolean): SceneBuilder;
 
-    public pushPathClip(shape: CkPath, op: ClipOp, AA: boolean): SceneBuilder;
+    pushPathClip(shape: CkPath, op: ClipOp, AA: boolean): SceneBuilder;
 
-    public pushBackdropFilter(filter: CkImageFilter,
-                              blendMode: BlendMode,
-                              autoChildClipping: boolean): SceneBuilder;
+    pushBackdropFilter(filter: CkImageFilter,
+                       blendMode: BlendMode,
+                       autoChildClipping: boolean): SceneBuilder;
 }
 
 export type Capability = number;
@@ -673,12 +591,18 @@ export type RuntimeEffectChildType = number;
 export type VerticesVertexMode = number;
 export type CkSurfaceContentChangeMode = number;
 export type ToplevelStates = number;
+export type ImageBitDepth = number;
+export type TextureCompressionType = number;
+export type GpuSemaphoreSubmitted = number;
 
 interface Constants {
     readonly CAPABILITY_HWCOMPOSE_ENABLED: Capability;
     readonly CAPABILITY_PROFILER_ENABLED: Capability;
     readonly CAPABILITY_PROFILER_MAX_SAMPLES: Capability;
     readonly CAPABILITY_MESSAGE_QUEUE_PROFILING_ENABLED: Capability;
+
+    readonly GPU_SEMAPHORE_SUBMITTED_YES: GpuSemaphoreSubmitted;
+    readonly GPU_SEMAPHORE_SUBMITTED_NO: GpuSemaphoreSubmitted;
 
     readonly COLOR_TYPE_ALPHA8: ColorType;
     readonly COLOR_TYPE_RGB565: ColorType;
@@ -706,6 +630,13 @@ interface Constants {
     readonly ALPHA_TYPE_OPAQUE: AlphaType;
 
     readonly COLOR_SPACE_SRGB: ColorSpace;
+
+    readonly IMAGE_BIT_DEPTH_U8: ImageBitDepth;
+    readonly IMAGE_BIT_DEPTH_F16: ImageBitDepth;
+
+    readonly TEXTURE_COMPRESSION_TYPE_ETC2_RGB8_UNORM: TextureCompressionType;
+    readonly TEXTURE_COMPRESSION_TYPE_BC1_RGB8_UNORM: TextureCompressionType;
+    readonly TEXTURE_COMPRESSION_TYPE_BC1_RGBA8_UNORM: TextureCompressionType;
 
     readonly PAINT_STYLE_FILL: PaintStyle;
     readonly PAINT_STYLE_STROKE: PaintStyle;
@@ -1041,171 +972,413 @@ interface Constants {
 
 export declare let Constants: Constants;
 
+export interface GpuFlushInfo {
+    signalSemaphores?: Array<GpuBinarySemaphore>;
+    onFinished?: () => void;
+    onSubmitted?: (success: boolean) => void;
+}
+
+export class GpuDirectContext {
+    static Make(): GpuDirectContext;
+
+    dispose(): void;
+
+    isDisposed(): boolean;
+
+    makeSurface(imageInfo: CkImageInfo, budgeted: boolean, aaSamplesPerPixel: number): CkSurface;
+
+    makeBinarySemaphore(): GpuBinarySemaphore;
+
+    exportSemaphoreFd(semaphore: GpuBinarySemaphore): GpuExportedFd;
+
+    importSemaphoreFd(fd: GpuExportedFd): GpuBinarySemaphore;
+
+    flush(info: GpuFlushInfo): GpuSemaphoreSubmitted;
+
+    submit(waitForSubmit: boolean): boolean;
+}
+
+export class GpuExportedFd {
+    private constructor();
+
+    close(): void;
+
+    isImportedOrClosed(): boolean;
+}
+
+export class GpuBinarySemaphore {
+    dispose(): void;
+
+    detach(): void;
+
+    isDetachedOrDisposed(): boolean;
+}
+
+export class CkImageInfo {
+    static MakeSRGB(w: number, h: number, colorType: ColorType, alphaType: AlphaType): CkImageInfo;
+
+    static MakeN32(w: number, h: number, alphaType: AlphaType): CkImageInfo;
+
+    static MakeS32(w: number, h: number, alphaType: AlphaType): CkImageInfo;
+
+    static MakeN32Premul(w: number, h: number): CkImageInfo;
+
+    static MakeA8(w: number, h: number): CkImageInfo;
+
+    static MakeUnknown(w: number, h: number): CkImageInfo;
+
+    readonly alphaType: AlphaType;
+    readonly colorType: ColorType;
+    readonly width: number;
+    readonly height: number;
+    readonly isEmpty: boolean;
+    readonly isOpaque: boolean;
+    readonly bytesPerPixel: number;
+    readonly shiftPerPixel: number;
+    readonly minRowBytes: number;
+
+    makeWH(w: number, h: number): CkImageInfo;
+
+    makeAlphaType(alphaType: AlphaType): CkImageInfo;
+
+    makeColorType(colorType: ColorType): CkImageInfo;
+
+    computeOffset(x: number, y: number, rowBytes: number): number;
+
+    equalsTo(other: CkImageInfo): boolean;
+
+    computeByteSize(rowBytes: number): number;
+
+    computeMinByteSize(): number;
+
+    validRowBytes(rowBytes: number): boolean;
+}
+
 export class CkSurface {
     private constructor();
 
-    public static MakeRaster(imageInfo: CkImageInfo): CkSurface;
+    static MakeRaster(imageInfo: CkImageInfo): CkSurface;
+    static MakeNull(width: number, height: number): CkSurface;
+    static WrapPixels(imageInfo: CkImageInfo, rowBytes: number, pixels: TypedArray): CkSurface;
 
-    public static MakeNull(width: number, height: number): CkSurface;
+    dispose(): void;
 
-    public static MakeSharedPixels(imageInfo: CkImageInfo,
-                                   byteOffset: number,
-                                   rowBytes: number,
-                                   pixels: ArrayBuffer): CkSurface;
+    isDisposed(): boolean;
 
     readonly width: number;
     readonly height: number;
     readonly generationID: number;
     readonly imageInfo: CkImageInfo;
-    readonly sharedPixels: ArrayBuffer | null;
 
-    public getCanvas(): CkCanvas;
-    public makeSurface(width: number, height: number): CkSurface;
-    public makeImageSnapshot(bounds: CkRect | null): CkImage;
-    public draw(canvas: CkCanvas, x: number, y: number, sampling: SamplingOption, paint: CkPaint | null): void;
-    public readPixels(dstInfo: CkImageInfo, dstPixels: Uint8Array, dstRowBytes: number, srcX: number, srcY: number): void;
-    public notifyContentWillChange(mode: CkSurfaceContentChangeMode): void;
+    getCanvas(): CkCanvas;
+
+    getGpuDirectContext(): GpuDirectContext | null;
+
+    makeSurface(width: number, height: number): CkSurface;
+
+    makeImageSnapshot(bounds: CkRect | null): CkImage;
+
+    draw(canvas: CkCanvas, x: number, y: number,
+         sampling: SamplingOption, paint: CkPaint | null): void;
+
+    peekPixels<T>(scopeCallback: (pixmap: CkPixmap) => T): T;
+
+    readPixels(dstInfo: CkImageInfo, dstPixels: Uint8Array,
+               dstRowBytes: number, srcX: number, srcY: number): void;
+
+    readPixelsToPixmap(pixmap: CkPixmap, srcX: number, srcY: number): void;
+
+    writePixels(pixmap: CkPixmap, dstX: number, dstY: number): void;
+
+    notifyContentWillChange(mode: CkSurfaceContentChangeMode): void;
+
+    waitOnGpu(waitSemaphores: Array<GpuBinarySemaphore>,
+              takeSemaphoresOwnership: boolean): boolean;
+
+    flush(info: GpuFlushInfo): GpuSemaphoreSubmitted;
 }
 
 export class CkMatrix {
     private constructor();
-    public static Identity(): CkMatrix;
-    public static Scale(sx: number, sy: number): CkMatrix;
-    public static Translate(dx: number, dy: number): CkMatrix;
-    public static RotateRad(rad: number, pt: CkPoint): CkMatrix;
-    public static Skew(kx: number, ky: number): CkMatrix;
-    public static RectToRect(src: CkRect, dst: CkRect, mode: MatrixScaleToFit): CkMatrix;
-    public static All(scaleX: number, skewX: number, transX: number,
-                      skewY: number, scaleY: number, transY: number,
-                      pers0: number, pers1: number, pers2: number): CkMatrix;
-    public static Concat(a: CkMatrix, b: CkMatrix): CkMatrix;
 
-    public readonly scaleX: number;
-    public readonly scaleY: number;
-    public readonly skewX: number;
-    public readonly skewY: number;
-    public readonly translateX: number;
-    public readonly translateY: number;
-    public readonly perspectiveX: number;
-    public readonly perspectiveY: number;
+    static Identity(): CkMatrix;
 
-    public clone(): CkMatrix;
-    public rectStaysRect(): boolean;
-    public hasPerspective(): boolean;
-    public isSimilarity(): boolean;
-    public preservesRightAngles(): boolean;
-    public preTranslate(dx: number, dy: number): void;
-    public preScale(sx: number, sy: number): void;
-    public preRotate(rad: number, px: number, py: number): void;
-    public preSkew(kx: number, ky: number, px: number, py: number): void;
-    public preConcat(other: CkMatrix): CkMatrix;
-    public postTranslate(dx: number, dy: number): void;
-    public postScale(sx: number, sy: number): void;
-    public postRotate(rad: number, px: number, py: number): void;
-    public postSkew(kx: number, ky: number, px: number, py: number): void;
-    public postConcat(other: CkMatrix): CkMatrix;
-    public invert(): null | CkMatrix;
-    public normalizePerspective(): CkMatrix;
-    public mapPoints(points: Array<CkPoint>): Array<CkPoint>;
-    public mapPoint(point: CkPoint): CkPoint;
-    public mapHomogeneousPoints(points: Array<CkPoint3>): Array<CkPoint3>;
-    public mapRect(src: CkRect, pc: ApplyPerspectiveClip): CkArrayXYWHRect;
-    public mapRadius(): number;
-    public isFinite(): boolean;
+    static Scale(sx: number, sy: number): CkMatrix;
+
+    static Translate(dx: number, dy: number): CkMatrix;
+
+    static RotateRad(rad: number, pt: CkPoint): CkMatrix;
+
+    static Skew(kx: number, ky: number): CkMatrix;
+
+    static RectToRect(src: CkRect, dst: CkRect, mode: MatrixScaleToFit): CkMatrix;
+
+    static All(scaleX: number, skewX: number, transX: number,
+               skewY: number, scaleY: number, transY: number,
+               pers0: number, pers1: number, pers2: number): CkMatrix;
+
+    static Concat(a: CkMatrix, b: CkMatrix): CkMatrix;
+
+    readonly scaleX: number;
+    readonly scaleY: number;
+    readonly skewX: number;
+    readonly skewY: number;
+    readonly translateX: number;
+    readonly translateY: number;
+    readonly perspectiveX: number;
+    readonly perspectiveY: number;
+
+    clone(): CkMatrix;
+
+    rectStaysRect(): boolean;
+
+    hasPerspective(): boolean;
+
+    isSimilarity(): boolean;
+
+    preservesRightAngles(): boolean;
+
+    preTranslate(dx: number, dy: number): void;
+
+    preScale(sx: number, sy: number): void;
+
+    preRotate(rad: number, px: number, py: number): void;
+
+    preSkew(kx: number, ky: number, px: number, py: number): void;
+
+    preConcat(other: CkMatrix): CkMatrix;
+
+    postTranslate(dx: number, dy: number): void;
+
+    postScale(sx: number, sy: number): void;
+
+    postRotate(rad: number, px: number, py: number): void;
+
+    postSkew(kx: number, ky: number, px: number, py: number): void;
+
+    postConcat(other: CkMatrix): CkMatrix;
+
+    invert(): null | CkMatrix;
+
+    normalizePerspective(): CkMatrix;
+
+    mapPoints(points: Array<CkPoint>): Array<CkPoint>;
+
+    mapPoint(point: CkPoint): CkPoint;
+
+    mapHomogeneousPoints(points: Array<CkPoint3>): Array<CkPoint3>;
+
+    mapRect(src: CkRect, pc: ApplyPerspectiveClip): CkArrayXYWHRect;
+
+    mapRadius(): number;
+
+    isFinite(): boolean;
+}
+
+export class CkPixmap {
+    constructor(imageInfo: CkImageInfo, rowBytes: number, buffer: TypedArray);
+    constructor();
+
+    resetEmpty(): void;
+
+    reset(imageInfo: CkImageInfo, rowBytes: number, buffer: TypedArray): void;
+
+    extractSubset(area: CkRect): CkPixmap | null;
+
+    readonly info: CkImageInfo;
+    readonly rowBytes: number;
+    readonly width: number;
+    readonly height: number;
+    readonly colorType: ColorType;
+    readonly alphaType: AlphaType;
+    readonly isOpaque: boolean;
+    readonly bounds: CkRect;
+    readonly rowBytesAsPixels: number;
+    readonly shiftPerPixel: number;
+
+    computeByteSize(): number;
+
+    computeIsOpaque(): boolean;
+
+    getColor4f(x: number, y: number): CkColor4f;
+
+    getAlphaf(x: number, y: number): number;
+
+    readPixels(dstInfo: CkImageInfo, dstBuffer: TypedArray, dstRowBytes: number, srcX: number, srcY: number): void;
+
+    copy(dst: CkPixmap, srcX: number, srcY: number): void;
+
+    scale(dst: CkPixmap, sampling: SamplingOption): void;
+
+    erase(color: CkColor4f, subset: CkRect | null): void;
 }
 
 export class CkPaint {
-    public constructor();
-    public reset(): void;
-    public setAntiAlias(AA: boolean): void;
-    public setDither(dither: boolean): void;
-    public setStyle(style: PaintStyle): void;
-    public setColor(color: number): void;
-    public setColor4f(color: CkColor4f): void;
-    public setAlpha(alpha: number): void;
-    public setAlphaf(alpha: number): void;
-    public setStrokeWidth(width: number): void;
-    public setStrokeMiter(miter: number): void;
-    public setStrokeCap(cap: PaintCap): void;
-    public setStrokeJoin(join: PaintJoin): void;
-    public setShader(shader: CkShader): void;
-    public setColorFilter(filter: CkColorFilter): void;
-    public setBlendMode(mode: BlendMode): void;
-    public setBlender(blender: CkBlender): void;
-    public setPathEffect(effect: CkPathEffect): void;
-    public setImageFilter(filter: CkImageFilter): void;
+    constructor();
+
+    reset(): void;
+
+    setAntiAlias(AA: boolean): void;
+
+    setDither(dither: boolean): void;
+
+    setStyle(style: PaintStyle): void;
+
+    setColor(color: number): void;
+
+    setColor4f(color: CkColor4f): void;
+
+    setAlpha(alpha: number): void;
+
+    setAlphaf(alpha: number): void;
+
+    setStrokeWidth(width: number): void;
+
+    setStrokeMiter(miter: number): void;
+
+    setStrokeCap(cap: PaintCap): void;
+
+    setStrokeJoin(join: PaintJoin): void;
+
+    setShader(shader: CkShader): void;
+
+    setColorFilter(filter: CkColorFilter): void;
+
+    setBlendMode(mode: BlendMode): void;
+
+    setBlender(blender: CkBlender): void;
+
+    setPathEffect(effect: CkPathEffect): void;
+
+    setImageFilter(filter: CkImageFilter): void;
 }
 
 export class CkPath {
-    public static IsLineDegenerate(p1: CkPoint, p2: CkPoint, exact: boolean): boolean;
-    public static IsQuadDegenerate(p1: CkPoint, p2: CkPoint, p3: CkPoint, exact: boolean): boolean;
-    public static IsCubicDegenerate(p1: CkPoint, p2: CkPoint, p3: CkPoint, p4: CkPoint, exact: boolean): boolean;
-    public constructor();
-    public clone(): CkPath;
-    public isInterpolatable(compare: CkPath): boolean;
-    public interpolate(ending: CkPath, weight: number): CkPath;
-    public setFillType(ft: PathFillType): void;
-    public toggleInverseFillType(): void;
-    public isConvex(): boolean;
-    public reset(): void;
-    public rewind(): void;
-    public isEmpty(): boolean;
-    public isLastContourClosed(): boolean;
-    public isFinite(): boolean;
-    public isVolatile(): boolean;
-    public setIsVolatile(volatile: boolean): void;
-    public countPoints(): number;
-    public getPoint(): CkPoint;
-    public getBounds(): CkRect;
-    public computeTightBounds(): CkRect;
-    public conservativelyContainsRect(rect: CkRect): boolean;
-    public moveTo(x: number, y: number): void;
-    public rMoveTo(dx: number, y: number): void;
-    public lineTo(x: number, y: number): void;
-    public rLineTo(x: number, y: number): void;
-    public quadTo(x1: number, y1: number, x2: number, y2: number): void;
-    public rQuadTo(dx1: number, dy1: number, dx2: number, dy2: number): void;
-    public conicTo(x1: number, y1: number, x2: number, y2: number): void;
-    public rConicTo(dx1: number, dy1: number, dx2: number, dy2: number): void;
-    public cubicTo(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): void;
-    public rCubicTo(dx1: number, dy1: number, dx2: number, dy2: number, dx3: number, dy3: number): void;
-    public ooaArcTo(oval: CkRect, startAngleDeg: number, sweepAngleDeg: number, forceMoveTo: boolean): void;
-    public pprArcTo(p1: CkPoint, p2: CkPoint, radius: number): void;
-    public pspArcTo(r: CkPoint, xAxisRotate: number, arc: PathArcSize, sweep: PathDirection, xy: CkPoint): void;
-    public rPspArcTo(rx: number, ry: number, xAxisRotate: number, arc: PathArcSize, sweep: PathDirection,
-                     dx: number, dy: number): void;
-    public close(): void;
-    public addRect(rect: CkRect, dir: PathDirection, start: number): void;
-    public addOval(oval: CkRect, dir: PathDirection, start: number): void;
-    public addCircle(x: number, y: number, r: number, dir: PathDirection): void;
-    public addArc(oval: CkRect, startAngleDeg: number, sweepAngleDeg: number): void;
-    public addRRect(rrect: CkRRect, dir: PathDirection, start: number): void;
-    public addPoly(pts: Array<CkPoint>, close: boolean): void;
-    public addPath(src: CkPath, dx: number, dy: number, mode: PathAddPathMode): void;
-    public addPathMatrix(src: CkPath, matrix: CkMatrix, mode: PathAddPathMode): void;
-    public reverseAddPath(src: CkPath): void;
-    public offset(dx: number, dy: number): void;
-    public transform(matrix: CkMatrix, pc: ApplyPerspectiveClip): void;
-    public toString(hex: boolean): string;
+    static IsLineDegenerate(p1: CkPoint, p2: CkPoint, exact: boolean): boolean;
+
+    static IsQuadDegenerate(p1: CkPoint, p2: CkPoint, p3: CkPoint, exact: boolean): boolean;
+
+    static IsCubicDegenerate(p1: CkPoint, p2: CkPoint, p3: CkPoint, p4: CkPoint, exact: boolean): boolean;
+
+    constructor();
+
+    clone(): CkPath;
+
+    isInterpolatable(compare: CkPath): boolean;
+
+    interpolate(ending: CkPath, weight: number): CkPath;
+
+    setFillType(ft: PathFillType): void;
+
+    toggleInverseFillType(): void;
+
+    isConvex(): boolean;
+
+    reset(): void;
+
+    rewind(): void;
+
+    isEmpty(): boolean;
+
+    isLastContourClosed(): boolean;
+
+    isFinite(): boolean;
+
+    isVolatile(): boolean;
+
+    setIsVolatile(volatile: boolean): void;
+
+    countPoints(): number;
+
+    getPoint(): CkPoint;
+
+    getBounds(): CkRect;
+
+    computeTightBounds(): CkRect;
+
+    conservativelyContainsRect(rect: CkRect): boolean;
+
+    moveTo(x: number, y: number): void;
+
+    rMoveTo(dx: number, y: number): void;
+
+    lineTo(x: number, y: number): void;
+
+    rLineTo(x: number, y: number): void;
+
+    quadTo(x1: number, y1: number, x2: number, y2: number): void;
+
+    rQuadTo(dx1: number, dy1: number, dx2: number, dy2: number): void;
+
+    conicTo(x1: number, y1: number, x2: number, y2: number): void;
+
+    rConicTo(dx1: number, dy1: number, dx2: number, dy2: number): void;
+
+    cubicTo(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): void;
+
+    rCubicTo(dx1: number, dy1: number, dx2: number, dy2: number, dx3: number, dy3: number): void;
+
+    ooaArcTo(oval: CkRect, startAngleDeg: number, sweepAngleDeg: number, forceMoveTo: boolean): void;
+
+    pprArcTo(p1: CkPoint, p2: CkPoint, radius: number): void;
+
+    pspArcTo(r: CkPoint, xAxisRotate: number, arc: PathArcSize, sweep: PathDirection, xy: CkPoint): void;
+
+    rPspArcTo(rx: number, ry: number, xAxisRotate: number, arc: PathArcSize, sweep: PathDirection,
+              dx: number, dy: number): void;
+
+    close(): void;
+
+    addRect(rect: CkRect, dir: PathDirection, start: number): void;
+
+    addOval(oval: CkRect, dir: PathDirection, start: number): void;
+
+    addCircle(x: number, y: number, r: number, dir: PathDirection): void;
+
+    addArc(oval: CkRect, startAngleDeg: number, sweepAngleDeg: number): void;
+
+    addRRect(rrect: CkRRect, dir: PathDirection, start: number): void;
+
+    addPoly(pts: Array<CkPoint>, close: boolean): void;
+
+    addPath(src: CkPath, dx: number, dy: number, mode: PathAddPathMode): void;
+
+    addPathMatrix(src: CkPath, matrix: CkMatrix, mode: PathAddPathMode): void;
+
+    reverseAddPath(src: CkPath): void;
+
+    offset(dx: number, dy: number): void;
+
+    transform(matrix: CkMatrix, pc: ApplyPerspectiveClip): void;
+
+    toString(hex: boolean): string;
 }
 
 export class CkFontStyle {
-    public constructor(weight: number, width: number, slant: FontStyleSlant);
-    public static MakeNormal(): CkFontStyle;
-    public static MakeBold(): CkFontStyle;
-    public static MakeItalic(): CkFontStyle;
-    public static MakeBoldItalic(): CkFontStyle;
+    constructor(weight: number, width: number, slant: FontStyleSlant);
+
+    static MakeNormal(): CkFontStyle;
+
+    static MakeBold(): CkFontStyle;
+
+    static MakeItalic(): CkFontStyle;
+
+    static MakeBoldItalic(): CkFontStyle;
+
     readonly weight: number;
     readonly width: number;
     readonly slant: FontStyleSlant;
 }
 
 export class CkTypeface {
-    public static MakeDefault(): CkTypeface;
-    public static MakeFromName(name: string, style: CkFontStyle): CkTypeface;
-    public static MakeFromFile(file: string, index: number): CkTypeface;
-    public static MakeFromData(buffer: Buffer, index: number): CkTypeface;
-    
+    static MakeDefault(): CkTypeface;
+
+    static MakeFromName(name: string, style: CkFontStyle): CkTypeface;
+
+    static MakeFromFile(file: string, index: number): CkTypeface;
+
+    static MakeFromData(buffer: TypedArray, index: number): CkTypeface;
+
     readonly fontStyle: CkFontStyle;
     readonly bold: boolean;
     readonly fixedPitch: boolean;
@@ -1215,63 +1388,87 @@ export class CkTypeface {
     readonly postScriptName: string | null;
     readonly bounds: CkRect;
 
-    public getKerningPairAdjustments(glyphs: Uint16Array): Array<number> | null;
-    public unicharsToGlyphs(unichars: Uint32Array): Uint16Array;
-    public textToGlyphs(text: Uint8Array, encoding: TextEncoding): Uint16Array | null;
-    public unicharToGlyph(unichar: number): number;
-    public countGlyphs(): number;
-    public countTables(): number;
-    public getTableTags(): Uint32Array;
-    public getTableSize(tag: number): number;
-    public copyTableData(tag: number): Uint8Array;
+    getKerningPairAdjustments(glyphs: Uint16Array): Array<number> | null;
+
+    unicharsToGlyphs(unichars: Uint32Array): Uint16Array;
+
+    textToGlyphs(text: Uint8Array, encoding: TextEncoding): Uint16Array | null;
+
+    unicharToGlyph(unichar: number): number;
+
+    countGlyphs(): number;
+
+    countTables(): number;
+
+    getTableTags(): Uint32Array;
+
+    getTableSize(tag: number): number;
+
+    copyTableData(tag: number): Uint8Array;
 }
 
 export class CkFont {
     private constructor();
-    public static Make(typeface: CkTypeface): CkFont;
-    public static MakeFromSize(typeface: CkTypeface, size: number): CkFont;
-    public static MakeTransformed(typeface: CkTypeface, size: number, scaleX: number, skewX: number): CkFont;
 
-    public forceAutoHinting: boolean;
-    public embeddedBitmaps: boolean;
-    public subpixel: boolean;
-    public linearMetrics: boolean;
-    public embolden: boolean;
-    public baselineSnap: boolean;
-    public edging: FontEdging;
-    public hinting: FontHinting;
-    public size: number;
-    public scaleX: number;
-    public skewX: number;
-    public readonly spacing: number;
+    static Make(typeface: CkTypeface): CkFont;
 
-    public countText(text: Uint8Array, encoding: TextEncoding): number;
-    public measureText(text: Uint8Array, encoding: TextEncoding, paint: null | CkPaint): number;
-    public measureTextBounds(text: Uint8Array, encoding: TextEncoding, paint: null | CkPaint): CkArrayXYWHRect;
-    public getBounds(glyphs: Uint16Array, paint: null | CkPaint): Array<CkArrayXYWHRect>;
-    public getPos(glyphs: Uint16Array, origin: CkPoint): Array<CkPoint>;
-    public getIntercepts(glyphs: Uint16Array, pos: Array<CkPoint>, top: number,
-                         bottom: number, paint: null | CkPaint): Float32Array;
-    public getPath(glyph: number): null | CkPath;
+    static MakeFromSize(typeface: CkTypeface, size: number): CkFont;
+
+    static MakeTransformed(typeface: CkTypeface, size: number, scaleX: number, skewX: number): CkFont;
+
+    forceAutoHinting: boolean;
+    embeddedBitmaps: boolean;
+    subpixel: boolean;
+    linearMetrics: boolean;
+    embolden: boolean;
+    baselineSnap: boolean;
+    edging: FontEdging;
+    hinting: FontHinting;
+    size: number;
+    scaleX: number;
+    skewX: number;
+    readonly spacing: number;
+
+    countText(text: Uint8Array, encoding: TextEncoding): number;
+
+    measureText(text: Uint8Array, encoding: TextEncoding, paint: null | CkPaint): number;
+
+    measureTextBounds(text: Uint8Array, encoding: TextEncoding, paint: null | CkPaint): CkArrayXYWHRect;
+
+    getBounds(glyphs: Uint16Array, paint: null | CkPaint): Array<CkArrayXYWHRect>;
+
+    getPos(glyphs: Uint16Array, origin: CkPoint): Array<CkPoint>;
+
+    getIntercepts(glyphs: Uint16Array, pos: Array<CkPoint>, top: number,
+                  bottom: number, paint: null | CkPaint): Float32Array;
+
+    getPath(glyph: number): null | CkPath;
 }
 
 export class CkFontStyleSet {
     private constructor();
 
-    public count(): number;
-    public getStyle(index: number): CkFontStyle;
-    public getStyleName(index: number): CkFontStyle;
-    public createTypeface(index: number): CkTypeface | null;
-    public matchStyle(pattern: CkFontStyle): CkTypeface | null;
+    count(): number;
+
+    getStyle(index: number): CkFontStyle;
+
+    getStyleName(index: number): CkFontStyle;
+
+    createTypeface(index: number): CkTypeface | null;
+
+    matchStyle(pattern: CkFontStyle): CkTypeface | null;
 }
 
 export class CkFontMgr {
     private constructor();
 
-    public countFamilies(): number;
-    public getFamilyName(index: number): string;
-    public createStyleSet(index: number): CkFontStyleSet;
-    public matchFamilyStyle(familyName: string | null, style: CkFontStyle): CkTypeface | null;
+    countFamilies(): number;
+
+    getFamilyName(index: number): string;
+
+    createStyleSet(index: number): CkFontStyleSet;
+
+    matchFamilyStyle(familyName: string | null, style: CkFontStyle): CkTypeface | null;
 }
 
 export const defaultFontMgr: CkFontMgr;
@@ -1286,30 +1483,30 @@ export interface CkRSXform {
 export class CkTextBlob {
     private constructor();
 
-    public static MakeFromText(text: Uint8Array,
+    static MakeFromText(text: Uint8Array,
+                        font: CkFont,
+                        encoding: TextEncoding): CkTextBlob;
+
+    static MakeFromPosTextH(text: Uint8Array,
+                            xpos: Float32Array,
+                            constY: number,
+                            font: CkFont,
+                            encoding: TextEncoding): CkTextBlob;
+
+    static MakeFromPosText(text: Uint8Array,
+                           pos: Array<CkPoint>,
+                           font: CkFont,
+                           encoding: TextEncoding): CkTextBlob;
+
+    static MakeFromRSXformText(text: Uint8Array,
+                               forms: Array<CkRSXform>,
                                font: CkFont,
                                encoding: TextEncoding): CkTextBlob;
-
-    public static MakeFromPosTextH(text: Uint8Array,
-                                   xpos: Float32Array,
-                                   constY: number,
-                                   font: CkFont,
-                                   encoding: TextEncoding): CkTextBlob;
-
-    public static MakeFromPosText(text: Uint8Array,
-                                  pos: Array<CkPoint>,
-                                  font: CkFont,
-                                  encoding: TextEncoding): CkTextBlob;
-
-    public static MakeFromRSXformText(text: Uint8Array,
-                                      forms: Array<CkRSXform>,
-                                      font: CkFont,
-                                      encoding: TextEncoding): CkTextBlob;
 
     readonly bounds: CkRect;
     readonly uniqueID: number;
 
-    public getIntercepts(upperBound: number, lowerBound: number, paint: null | CkPaint): Float32Array;
+    getIntercepts(upperBound: number, lowerBound: number, paint: null | CkPaint): Float32Array;
 }
 
 export interface CanvasSaveLayerRec {
@@ -1322,113 +1519,164 @@ export interface CanvasSaveLayerRec {
 export class CkCanvas {
     protected constructor();
 
-    public save(): number;
-    public saveLayer(bounds: null | CkRect, paint: null | CkPaint): number;
-    public saveLayerAlpha(bounds: null | CkRect, alpha: number): number;
-    public saveLayerRec(rec: CanvasSaveLayerRec): number;
-    public restore(): void;
-    public restoreToCount(saveCount: number): void;
-    public translate(dx: number, dy: number): void;
-    public scale(sx: number, sy: number): void;
-    public rotate(rad: number, px: number, py: number): void;
-    public skew(sx: number, sy: number): void;
-    public concat(matrix: CkMatrix): void;
-    public setMatrix(matrix: CkMatrix): void;
-    public resetMatrix(): void;
-    public clipRect(rect: CkRect, op: ClipOp, AA: boolean): void;
-    public clipRRect(rrect: CkRRect, op: ClipOp, AA: boolean): void;
-    public clipPath(path: CkPath, op: ClipOp, AA: boolean): void;
-    public clipShader(shader: CkShader, op: ClipOp): void;
-    public quickRejectRect(rect: CkRect): boolean;
-    public quickRejectPath(path: CkPath): boolean;
-    public getLocalClipBounds(): CkRect
-    public getDeviceClipBounds(): CkRect
-    public drawColor(color: CkColor4f, mode: BlendMode): void;
-    public clear(color: CkColor4f): void;
-    public drawPaint(paint: CkPaint): void;
-    public drawPoints(mode: CanvasPointMode, points: Array<CkPoint>, paint: CkPaint): void;
-    public drawPoint(x: number, y: number, paint: CkPaint): void;
-    public drawLine(p1: CkPoint, p2: CkPoint, paint: CkPaint): void;
-    public drawRect(rect: CkRect, paint: CkPaint): void;
-    public drawOval(oval: CkRect, paint: CkPaint): void;
-    public drawRRect(rrect: CkRRect, paint: CkPaint): void;
-    public drawDRRect(outer: CkRRect, inner: CkRRect, paint: CkPaint): void;
-    public drawCircle(cx: number, cy: number, r: number, paint: CkPaint): void;
-    public drawArc(oval: CkRect, startAngle: number, sweepAngle: number, useCenter: boolean, paint: CkPaint): void;
-    public drawRoundRect(rect: CkRect, rx: number, ry: number, paint: CkPaint): void;
-    public drawPath(path: CkPath, paint: CkPaint): void;
-    public drawImage(image: CkImage, left: number, top: number, sampling: SamplingOption, paint: null | CkPaint): void;
-    public drawImageRect(image: CkImage, src: CkRect, dst: CkRect, sampling: SamplingOption, paint: null | CkPaint,
-                         constraint: CanvasSrcRectConstraint): void;
-    public drawString(str: string, x: number, y: number, font: CkFont, paint: CkPaint): void;
-    public drawGlyphs(glyphs: Uint16Array, positions: Array<CkPoint>, origin: CkPoint, font: CkFont, paint: CkPaint): void;
-    public drawTextBlob(blob: CkTextBlob, x: number, y: number, paint: CkPaint): void;
-    public drawPicture(picture: CkPicture, matrix: null | CkMatrix, paint: null | CkPaint): void;
-    public drawVertices(vertices: CkVertices, mode: BlendMode, paint: CkPaint): void;
-    public drawPatch(cubics: Array<CkPoint>,
-                     colors: Array<CkColor4f> | null,
-                     texCoords: Array<CkPoint> | null,
-                     mode: BlendMode, paint: CkPaint): void;
+    save(): number;
+
+    saveLayer(bounds: null | CkRect, paint: null | CkPaint): number;
+
+    saveLayerAlpha(bounds: null | CkRect, alpha: number): number;
+
+    saveLayerRec(rec: CanvasSaveLayerRec): number;
+
+    restore(): void;
+
+    restoreToCount(saveCount: number): void;
+
+    translate(dx: number, dy: number): void;
+
+    scale(sx: number, sy: number): void;
+
+    rotate(rad: number, px: number, py: number): void;
+
+    skew(sx: number, sy: number): void;
+
+    concat(matrix: CkMatrix): void;
+
+    setMatrix(matrix: CkMatrix): void;
+
+    resetMatrix(): void;
+
+    clipRect(rect: CkRect, op: ClipOp, AA: boolean): void;
+
+    clipRRect(rrect: CkRRect, op: ClipOp, AA: boolean): void;
+
+    clipPath(path: CkPath, op: ClipOp, AA: boolean): void;
+
+    clipShader(shader: CkShader, op: ClipOp): void;
+
+    quickRejectRect(rect: CkRect): boolean;
+
+    quickRejectPath(path: CkPath): boolean;
+
+    getLocalClipBounds(): CkRect
+
+    getDeviceClipBounds(): CkRect
+
+    drawColor(color: CkColor4f, mode: BlendMode): void;
+
+    clear(color: CkColor4f): void;
+
+    drawPaint(paint: CkPaint): void;
+
+    drawPoints(mode: CanvasPointMode, points: Array<CkPoint>, paint: CkPaint): void;
+
+    drawPoint(x: number, y: number, paint: CkPaint): void;
+
+    drawLine(p1: CkPoint, p2: CkPoint, paint: CkPaint): void;
+
+    drawRect(rect: CkRect, paint: CkPaint): void;
+
+    drawOval(oval: CkRect, paint: CkPaint): void;
+
+    drawRRect(rrect: CkRRect, paint: CkPaint): void;
+
+    drawDRRect(outer: CkRRect, inner: CkRRect, paint: CkPaint): void;
+
+    drawCircle(cx: number, cy: number, r: number, paint: CkPaint): void;
+
+    drawArc(oval: CkRect, startAngle: number, sweepAngle: number, useCenter: boolean, paint: CkPaint): void;
+
+    drawRoundRect(rect: CkRect, rx: number, ry: number, paint: CkPaint): void;
+
+    drawPath(path: CkPath, paint: CkPaint): void;
+
+    drawImage(image: CkImage, left: number, top: number, sampling: SamplingOption, paint: null | CkPaint): void;
+
+    drawImageRect(image: CkImage, src: CkRect, dst: CkRect, sampling: SamplingOption, paint: null | CkPaint,
+                  constraint: CanvasSrcRectConstraint): void;
+
+    drawString(str: string, x: number, y: number, font: CkFont, paint: CkPaint): void;
+
+    drawGlyphs(glyphs: Uint16Array, positions: Array<CkPoint>, origin: CkPoint, font: CkFont, paint: CkPaint): void;
+
+    drawTextBlob(blob: CkTextBlob, x: number, y: number, paint: CkPaint): void;
+
+    drawPicture(picture: CkPicture, matrix: null | CkMatrix, paint: null | CkPaint): void;
+
+    drawVertices(vertices: CkVertices, mode: BlendMode, paint: CkPaint): void;
+
+    drawPatch(cubics: Array<CkPoint>,
+              colors: Array<CkColor4f> | null,
+              texCoords: Array<CkPoint> | null,
+              mode: BlendMode, paint: CkPaint): void;
 }
 
 export class CkPathMeasure {
     private constructor();
 
-    public static Make(path: CkPath, forceClosed: boolean, resScale: number): CkPathMeasure;
+    static Make(path: CkPath, forceClosed: boolean, resScale: number): CkPathMeasure;
 
-    public getLength(): number;
-    public isClosed(): boolean;
-    public nextContour(): boolean;
-    public getPositionTangent(distance: number): {position: CkPoint, tangent: CkPoint} | null;
-    public getMatrix(distance: number, flags: PathMeasureMatrixFlags): CkMatrix | null;
-    public getSegment(startD: number, stopD: number, startWithMoveTo: boolean): CkPath | null;
+    getLength(): number;
+
+    isClosed(): boolean;
+
+    nextContour(): boolean;
+
+    getPositionTangent(distance: number): { position: CkPoint, tangent: CkPoint } | null;
+
+    getMatrix(distance: number, flags: PathMeasureMatrixFlags): CkMatrix | null;
+
+    getSegment(startD: number, stopD: number, startWithMoveTo: boolean): CkPath | null;
 }
 
 export class CkVertices {
     private constructor();
 
-    public static MakeCopy(mode: VerticesVertexMode,
-                           positions: Float32Array,
-                           texCoords: Float32Array | null,
-                           colors: Uint32Array | null,
-                           indices: Uint16Array | null): CkVertices;
+    static MakeCopy(mode: VerticesVertexMode,
+                    positions: Float32Array,
+                    texCoords: Float32Array | null,
+                    colors: Uint32Array | null,
+                    indices: Uint16Array | null): CkVertices;
 
-    public static MakeTransform(mode: VerticesVertexMode,
-                                positions: Float32Array,
-                                positionsMatrix: CkMatrix,
-                                texCoords: Float32Array | null,
-                                texCoordsMatrix: CkMatrix | null,
-                                colors: Uint32Array | null,
-                                indices: Uint16Array | null): Promise<CkVertices>;
+    static MakeTransform(mode: VerticesVertexMode,
+                         positions: Float32Array,
+                         positionsMatrix: CkMatrix,
+                         texCoords: Float32Array | null,
+                         texCoordsMatrix: CkMatrix | null,
+                         colors: Uint32Array | null,
+                         indices: Uint16Array | null): Promise<CkVertices>;
 
-    public readonly uniqueID: number;
-    public readonly bounds: CkArrayXYWHRect;
+    readonly uniqueID: number;
+    readonly bounds: CkArrayXYWHRect;
 }
 
 export class CkImageFilter {
-    public static MakeFromDSL(dsl: string, kwargs: object): CkImageFilter;
-    public static Deserialize(buffer: Buffer): CkImageFilter;
+    static MakeFromDSL(dsl: string, kwargs: object): CkImageFilter;
 
-    public serialize(): Buffer;
+    static Deserialize(buffer: TypedArray): CkImageFilter;
+
+    serialize(): ArrayBuffer;
 }
 
 export class CkColorFilter {
-    public static MakeFromDSL(dsl: string, kwargs: object): CkColorFilter;
-    public static Deserialize(buffer: Buffer): CkColorFilter;
+    static MakeFromDSL(dsl: string, kwargs: object): CkColorFilter;
 
-    public serialize(): Buffer;
+    static Deserialize(buffer: TypedArray): CkColorFilter;
+
+    serialize(): ArrayBuffer;
 }
 
 export class CkShader {
-    public static MakeFromDSL(dsl: string, kwargs: object): CkShader;
-    
-    public makeWithLocalMatrix(matrix: CkMatrix): CkShader;
-    public makeWithColorFilter(filter: CkColorFilter): CkShader;
+    static MakeFromDSL(dsl: string, kwargs: object): CkShader;
+
+    makeWithLocalMatrix(matrix: CkMatrix): CkShader;
+
+    makeWithColorFilter(filter: CkColorFilter): CkShader;
 }
 
 export class CkBlender {
-    public static Mode(mode: BlendMode): CkBlender;
-    public static Arithmetic(k1: number, k2: number, k3: number, k4: number, enforcePM: boolean): CkBlender;
+    static Mode(mode: BlendMode): CkBlender;
+
+    static Arithmetic(k1: number, k2: number, k3: number, k4: number, enforcePM: boolean): CkBlender;
 }
 
 export interface RTEffectUniform {
@@ -1455,40 +1703,48 @@ export interface RTEffectChildSpecifier {
 export class CkRuntimeEffect {
     private constructor();
 
-    public static MakeForColorFilter(source: string, forceUnoptimized: boolean,
-                                     callback: (error: string) => void): CkRuntimeEffect | null;
-    public static MakeForShader(source: string, forceUnoptimized: boolean,
-                                callback: (error: string) => void): CkRuntimeEffect | null;
-    public static MakeForBlender(source: string, forceUnoptimized: boolean,
-                                 callback: (error: string) => void): CkRuntimeEffect | null;
+    static MakeForColorFilter(source: string, forceUnoptimized: boolean,
+                              callback: (error: string) => void): CkRuntimeEffect | null;
 
-    public uniforms(): Array<RTEffectUniform>;
-    public children(): Array<RTEffectChild>;
-    public findUniform(name: string): RTEffectUniform;
-    public findChild(name: string): RTEffectChild;
+    static MakeForShader(source: string, forceUnoptimized: boolean,
+                         callback: (error: string) => void): CkRuntimeEffect | null;
 
-    public makeShader(uniforms: Array<number>, children: Array<RTEffectChildSpecifier>,
-                      localMatrix: CkMatrix | null): CkShader | null;
-    public makeBlender(uniforms: Array<number>, children: Array<RTEffectChildSpecifier>): CkBlender | null;
-    public makeColorFilter(uniforms: Array<number>, children: Array<RTEffectChildSpecifier>): CkColorFilter | null;
+    static MakeForBlender(source: string, forceUnoptimized: boolean,
+                          callback: (error: string) => void): CkRuntimeEffect | null;
+
+    uniforms(): Array<RTEffectUniform>;
+
+    children(): Array<RTEffectChild>;
+
+    findUniform(name: string): RTEffectUniform;
+
+    findChild(name: string): RTEffectChild;
+
+    makeShader(uniforms: Array<number>, children: Array<RTEffectChildSpecifier>,
+               localMatrix: CkMatrix | null): CkShader | null;
+
+    makeBlender(uniforms: Array<number>, children: Array<RTEffectChildSpecifier>): CkBlender | null;
+
+    makeColorFilter(uniforms: Array<number>, children: Array<RTEffectChildSpecifier>): CkColorFilter | null;
 }
 
 export class CkPathEffect {
     private constructor();
-    public static MakeFromDSL(dsl: string, kwargs: object): CkPathEffect;
+
+    static MakeFromDSL(dsl: string, kwargs: object): CkPathEffect;
 }
 
 export class CkBitmap {
     private constructor();
 
-    public static MakeFromBuffer(buffer: Uint8Array,
-                                 width: number,
-                                 height: number,
-                                 stride: number,
-                                 colorType: ColorType,
-                                 alphaType: AlphaType): CkBitmap;
-    
-    public static MakeFromEncodedFile(path: string): CkBitmap;
+    static MakeFromBuffer(buffer: Uint8Array,
+                          width: number,
+                          height: number,
+                          stride: number,
+                          colorType: ColorType,
+                          alphaType: AlphaType): CkBitmap;
+
+    static MakeFromEncodedFile(path: string): CkBitmap;
 
     readonly width: number;
     readonly height: number;
@@ -1500,63 +1756,140 @@ export class CkBitmap {
     readonly rowBytes: number;
     readonly immutable: boolean;
 
-    public setImmutable(): void;
-    public computeByteSize(): number;
-    public asImage(): CkImage;
-    public makeShader(tmx: TileMode, tmy: TileMode, sampling: SamplingOption,
-                      localMatrix: CkMatrix | null): CkShader;
-    public asTypedArray(): Uint8Array;
+    setImmutable(): void;
+
+    computeByteSize(): number;
+
+    asImage(): CkImage;
+
+    makeShader(tmx: TileMode, tmy: TileMode, sampling: SamplingOption,
+               localMatrix: CkMatrix | null): CkShader;
+
+    asTypedArray(): Uint8Array;
 }
 
-export interface ImageExportedPixelsBuffer {
-    buffer: ArrayBuffer;
-    width: number;
-    height: number;
-    colorType: ColorType;
-    alphaType: AlphaType;
-    rowBytes: number;
+export interface FilteredImage {
+    image: CkImage;
+    offset: CkPoint;
+    subset: CkArrayXYWHRect;
 }
 
 export class CkImage {
-    public static MakeFromEncodedData(buffer: Uint8Array): Promise<CkImage>;
-    public static MakeFromEncodedFile(path: string): Promise<CkImage>;
-    public static MakeFromVideoBuffer(vbo: VideoBuffer): CkImage;
+    static MakeFromEncodedData(buffer: Uint8Array): Promise<CkImage>;
 
+    static MakeFromEncodedFile(path: string): Promise<CkImage>;
+
+    static MakeFromVideoBuffer(vbo: VideoBuffer): CkImage;
+
+    static MakeDeferredFromPicture(picture: CkPicture,
+                                   width: number,
+                                    height: number,
+                                    matrix: CkMatrix | null,
+                                    paint: CkPaint | null,
+                                    bitDepth: ImageBitDepth,
+                                    colorSpace: ColorSpace): CkImage;
+
+    static MakeFromMemory(buffer: TypedArray,
+                         info: CkImageInfo,
+                         rowBytes: number,
+                         sharedPixelMemory: boolean): CkImage;
+
+    static MakeFromCompressedTextureData(data: TypedArray,
+                                         width: number,
+                                         height: number,
+                                         type: TextureCompressionType): CkImage;
     readonly width: number;
     readonly height: number;
-    readonly alphaType: AlphaType;
-    readonly colorType: ColorType;
+    readonly alphaType: number;
+    readonly colorType: number;
 
-    public uniqueId(): number;
-    public makeSharedPixelsBuffer(): ImageExportedPixelsBuffer;
-    public makeShader(tmx: TileMode, tmy: TileMode, sampling: SamplingOption, localMatrix: CkMatrix | null): CkShader | null;
-    public makeRawShader(tmx: TileMode, tmy: TileMode, sampling: SamplingOption, localMatrix: CkMatrix | null): CkShader | null;
+    uniqueId(): number;
+
+    dispose(): void;
+
+    isDisposed(): boolean;
+
+    hasMipmaps(): boolean;
+
+    withDefaultMipmaps(): CkImage;
+
+    isTextureBacked(): boolean;
+
+    approximateTextureSize(): number;
+
+    isValid(context: GpuDirectContext | null): boolean;
+
+    makeNonTextureImage(context: GpuDirectContext | null): CkImage;
+
+    makeRasterImage(context: GpuDirectContext | null): CkImage;
+
+    makeWithFilter(context: GpuDirectContext | null,
+                   filter: CkImageFilter,
+                   subset: CkRect,
+                   clipBounds: CkRect): FilteredImage;
+
+    peekPixels<T>(scopeCallback: (pixmap: CkPixmap) => T): T;
+
+    readPixels(dstInfo: CkImageInfo,
+               dstBuffer: TypedArray,
+               dstRowBytes: number,
+               srcX: number,
+               srcY: number): void;
+
+    scalePixels(dstInfo: CkImageInfo,
+                dstBuffer: TypedArray,
+                dstRowBytes: number,
+                sampling: SamplingOption): void;
+
+    makeSubset(context: GpuDirectContext | null, subset: CkRect): CkImage;
+
+    makeShader(tmx: TileMode,
+               tmy: TileMode,
+               sampling: SamplingOption,
+               local_matrix: CkMatrix | null): CkShader | null;
+
+    makeRawShader(tmx: TileMode,
+                  tmy: TileMode,
+                  sampling: SamplingOption,
+                  local_matrix: CkMatrix | null): CkShader | null;
 }
 
 export class CkPicture {
-    public static MakeFromData(buffer: TypedArray): CkPicture;
-    public static MakeFromFile(path: string): CkPicture;
+    static MakeFromData(buffer: TypedArray): CkPicture;
 
-    public serialize(): ArrayBuffer;
-    public approximateOpCount(nested: boolean): number;
-    public approximateByteUsed(): number;
-    public uniqueId(): number;
+    static MakeFromFile(path: string): CkPicture;
+
+    serialize(): ArrayBuffer;
+
+    approximateOpCount(nested: boolean): number;
+
+    approximateByteUsed(): number;
+
+    uniqueId(): number;
 }
 
 export class CkPictureRecorder {
-    public constructor();
-    public beginRecording(bounds: CkRect): CkCanvas;
-    public getRecordingCanvas(): CkCanvas | null;
-    public finishRecordingAsPicture(): CkPicture | null;
-    public finishRecordingAsPictureWithCull(cull: CkRect): CkPicture | null;
+    constructor();
+
+    beginRecording(bounds: CkRect): CkCanvas;
+
+    getRecordingCanvas(): CkCanvas | null;
+
+    finishRecordingAsPicture(): CkPicture | null;
+
+    finishRecordingAsPictureWithCull(cull: CkRect): CkPicture | null;
 }
 
 export class CriticalPicture {
     private constructor();
-    public sanitize(): Promise<CkPicture>;
-    public serialize(): Promise<ArrayBuffer>;
-    public discardOwnership(): void;
-    public setCollectionCallback(F: () => void): void;
+
+    sanitize(): Promise<CkPicture>;
+
+    serialize(): Promise<ArrayBuffer>;
+
+    discardOwnership(): void;
+
+    setCollectionCallback(F: () => void): void;
 }
 
 export class VertexBatch {
@@ -1566,12 +1899,17 @@ export class VertexBatch {
 export class VertexBatchBuilder {
     constructor();
 
-    public pushPositionMatrix(matrix: CkMatrix): VertexBatchBuilder;
-    public pushTexCoordMatrix(matrix: CkMatrix): VertexBatchBuilder;
-    public popPositionMatrix(): VertexBatchBuilder;
-    public popTexCoordMatrix(): VertexBatchBuilder;
-    public addVertexGroup(positions: Float32Array, texCoords: Float32Array | null): VertexBatchBuilder;
-    public build(): VertexBatch;
+    pushPositionMatrix(matrix: CkMatrix): VertexBatchBuilder;
+
+    pushTexCoordMatrix(matrix: CkMatrix): VertexBatchBuilder;
+
+    popPositionMatrix(): VertexBatchBuilder;
+
+    popTexCoordMatrix(): VertexBatchBuilder;
+
+    addVertexGroup(positions: Float32Array, texCoords: Float32Array | null): VertexBatchBuilder;
+
+    build(): VertexBatch;
 }
 
 export interface VertexTransformResult {
@@ -1582,5 +1920,5 @@ export interface VertexTransformResult {
 export class ConcurrentVertexProcessor {
     constructor(vertexCountHint: number, uvCountHint: number);
 
-    public transform(batch: VertexBatch): Promise<Array<VertexTransformResult>>;
+    transform(batch: VertexBatch): Promise<Array<VertexTransformResult>>;
 }

@@ -21,7 +21,7 @@
 #include "include/core/SkPoint.h"
 
 #include "Glamor/Glamor.h"
-#include "Glamor/RenderClientObject.h"
+#include "Glamor/PresentRemoteHandle.h"
 GLAMOR_NAMESPACE_BEGIN
 
 #define GLOP_CURSOR_DISPOSE                 1
@@ -32,7 +32,7 @@ class CursorTheme;
 /**
  * Basically `Cursor` is a highly platform-specific class.
  */
-class Cursor : public RenderClientObject
+class Cursor : public PresentRemoteHandle
 {
 public:
     explicit Cursor(Weak<CursorTheme> theme = {});

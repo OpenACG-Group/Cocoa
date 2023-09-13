@@ -78,7 +78,7 @@ void toplevel_configure_callback(void *data, g_maybe_unused xdg_toplevel *toplev
         }
     }
 
-    RenderClientEmitterInfo info;
+    PresentSignal info;
     info.PushBack(width)
         .PushBack(height)
         .PushBack(st);
@@ -88,7 +88,7 @@ void toplevel_configure_callback(void *data, g_maybe_unused xdg_toplevel *toplev
 void toplevel_close_callback(void *data, g_maybe_unused xdg_toplevel *toplevel)
 {
     auto *w = reinterpret_cast<WaylandSurface *>(data);
-    w->Emit(GLSI_SURFACE_CLOSE, RenderClientEmitterInfo());
+    w->Emit(GLSI_SURFACE_CLOSE, PresentSignal());
 }
 
 void toplevel_configure_bounds_callback(void *data, xdg_toplevel *toplevel,

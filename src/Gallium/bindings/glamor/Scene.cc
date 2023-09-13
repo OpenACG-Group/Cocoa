@@ -18,9 +18,9 @@
 #include "include/core/SkPicture.h"
 
 #include "Core/EventLoop.h"
-#include "Core/Errors.h"
 #include "Core/Journal.h"
 #include "Gallium/bindings/glamor/Scene.h"
+#include "Gallium/bindings/glamor/CkImageWrap.h"
 #include "Glamor/Layers/LayerTree.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 

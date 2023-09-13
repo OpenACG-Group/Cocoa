@@ -25,21 +25,21 @@
 
 #include "Core/Errors.h"
 #include "Glamor/Glamor.h"
-#include "Glamor/RenderHostTaskRunner.h"
-#include "Glamor/RenderHost.h"
+#include "Glamor/PresentThreadTaskRunner.h"
 #include "Glamor/GraphicsResourcesTrackable.h"
 GLAMOR_NAMESPACE_BEGIN
 
+class PresentThread;
 class MaybeGpuObjectBase;
 
 /**
  * All the methods are thread-safe.
  */
-class GpuThreadSharedObjectsCollector : public GraphicsResourcesTrackable
+class RemoteDestroyablesCollector : public GraphicsResourcesTrackable
 {
 public:
-    GpuThreadSharedObjectsCollector() = default;
-    ~GpuThreadSharedObjectsCollector() override;
+    RemoteDestroyablesCollector() = default;
+    ~RemoteDestroyablesCollector() override;
 
     void AddAliveObject(MaybeGpuObjectBase *ptr);
     void DeleteDeadObject(MaybeGpuObjectBase *ptr);
@@ -55,12 +55,12 @@ private:
 class MaybeGpuObjectBase
 {
     // Allow calling `ForceCollect`
-    friend class GpuThreadSharedObjectsCollector;
+    friend class RemoteDestroyablesCollector;
 
 public:
     using CollectedCallback = std::function<void()>;
 
-    MaybeGpuObjectBase(bool isRetained, SkRefCnt *ptr, RenderHost *renderHost);
+    MaybeGpuObjectBase(bool isRetained, SkRefCnt *ptr, PresentThread *thread);
     MaybeGpuObjectBase(const MaybeGpuObjectBase& other);
     MaybeGpuObjectBase(MaybeGpuObjectBase&& rhs) noexcept;
     ~MaybeGpuObjectBase();
@@ -74,14 +74,14 @@ public:
     }
 
 protected:
-    void InternalReset(bool isRetained, SkRefCnt *ptr, RenderHost *renderHost,
+    void InternalReset(bool isRetained, SkRefCnt *ptr, PresentThread *thread,
                        bool should_remove_entry = true);
     void ForceCollect();
 
 private:
     bool                 is_retained_;
     SkRefCnt            *object_;
-    RenderHost          *render_host_;
+    PresentThread       *present_thread_;
     CollectedCallback    collected_callback_;
 };
 
@@ -92,7 +92,7 @@ private:
  * Objects which hold GPU resources are always reference-counted (derived from SkRefCnt),
  * and there are possibilities that they may be destructed by `unref()` method.
  * Wrapping those objects into a `MaybeGpuObject<T>` is an efficient way
- * to solve that problem. Wrapped objects will be destructed by `RenderHostTaskRunner`
+ * to solve that problem. Wrapped objects will be destructed by `PresentThreadTaskRunner`
  * which runs in GPU thread if necessary.
  * Note that even though a `MaybeGpuObject<T>` object, it still may be destructed
  * on current thread locally if it was constructed with `isRetained` being false.
@@ -113,11 +113,11 @@ public:
     MaybeGpuObject(std::nullptr_t)
         : MaybeGpuObjectBase(false, nullptr, nullptr), ptr_(nullptr) {}
 
-    MaybeGpuObject(bool isRetained, const sk_sp<element_type>& sp, RenderHost *host = nullptr)
-        : MaybeGpuObjectBase(isRetained, sp.get(), host), ptr_(sp.get()) {}
+    MaybeGpuObject(bool isRetained, const sk_sp<element_type>& sp, PresentThread *th = nullptr)
+        : MaybeGpuObjectBase(isRetained, sp.get(), th), ptr_(sp.get()) {}
 
-    MaybeGpuObject(bool isRetained, element_type *barePtr, RenderHost *host = nullptr)
-        : MaybeGpuObjectBase(isRetained, barePtr, host), ptr_(barePtr) {}
+    MaybeGpuObject(bool isRetained, element_type *barePtr, PresentThread *th = nullptr)
+        : MaybeGpuObjectBase(isRetained, barePtr, th), ptr_(barePtr) {}
 
     template<typename R, typename std::enable_if_t<std::is_convertible_v<T*, R*>>>
     explicit MaybeGpuObject(const MaybeGpuObject<R>& other)
@@ -125,8 +125,8 @@ public:
 
     ~MaybeGpuObject() = default;
 
-    void reset(bool isRetained = false, element_type *ptr = nullptr, RenderHost *host = nullptr) {
-        InternalReset(isRetained, ptr, host);
+    void reset(bool isRetained = false, element_type *ptr = nullptr, PresentThread *th = nullptr) {
+        InternalReset(isRetained, ptr, th);
         ptr_ = ptr;
     }
 

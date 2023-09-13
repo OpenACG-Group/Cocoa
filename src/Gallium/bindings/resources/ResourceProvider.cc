@@ -25,6 +25,7 @@
 #include "Gallium/bindings/glamor/CkMatrixWrap.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/CkTypefaceWrap.h"
+#include "Gallium/bindings/glamor/CkImageWrap.h"
 GALLIUM_BINDINGS_RESOURCES_NS_BEGIN
 
 namespace {
@@ -220,9 +221,6 @@ public:
             g_throw(TypeError, "ResourceProvider: Invalid return value from 'load' method");
 
         v8::Local<v8::Uint8Array> array = v8::Local<v8::Uint8Array>::Cast(ret);
-        if (!array->HasBuffer())
-            g_throw(TypeError, "ResourceProvider: Unallocated buffer returned by 'load' method");
-
         auto *closure = new U8ArrayData{
             array->Buffer()->GetBackingStore(),
             array->ByteLength(),

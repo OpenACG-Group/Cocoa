@@ -18,6 +18,8 @@
 #ifndef COCOA_GALLIUM_BINDINGS_GLAMOR_TRIVIALSKIAEXPORTEDTYPES_H
 #define COCOA_GALLIUM_BINDINGS_GLAMOR_TRIVIALSKIAEXPORTEDTYPES_H
 
+#include <utility>
+
 #include "include/core/SkRefCnt.h"
 #include "include/core/SkRect.h"
 #include "include/core/SkRRect.h"
@@ -26,9 +28,13 @@
 #include "include/core/SkColor.h"
 #include "include/core/SkPoint3.h"
 #include "include/core/SkRSXform.h"
+#include "include/core/SkData.h"
 
 #include "Core/Project.h"
+#include "Core/Errors.h"
+#include "Gallium/bindings/ExportableObjectBase.h"
 #include "Gallium/bindings/glamor/Types.h"
+#include "Gallium/binder/TypeTraits.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 enum class Sampling : uint32_t
@@ -77,14 +83,123 @@ v8::Local<v8::Value> NewCkPoint3(v8::Isolate *isolate, const SkPoint3& point3);
 SkColorType ExtractCkColorType(int32_t v);
 SkAlphaType ExtractCkAlphaType(int32_t v);
 
-//! TSDecl:
-//! interface CkImageInfo {
-//!   alphaType: number;
-//!   colorType: number;
-//!   colorSpace: number;
-//!   width: number;
-//!   height: number;
-//! }
+
+//! TSDecl: class CkImageInfo
+class CkImageInfo : public ExportableObjectBase
+{
+public:
+    explicit CkImageInfo(SkImageInfo info) : info_(std::move(info)) {}
+    ~CkImageInfo() = default;
+
+    // TODO(sora): support SkColorSpace
+
+    //! TSDecl: function MakeSRGB(w: number, h: number, colorType: Enum<ColorType>,
+    //!                           alphaType: Enum<AlphaType>): CkImageInfo
+    static v8::Local<v8::Value> MakeSRGB(int32_t w, int32_t h, int32_t color_type,
+                                         int32_t alpha_type);
+
+    //! TSDecl: function MakeN32(w: number, h: number,
+    //!                          alphaType: Enum<AlphaType>): CkImageInfo
+    static v8::Local<v8::Value> MakeN32(int32_t w, int32_t h, int32_t alpha_type);
+
+    //! TSDecl: function MakeS32(w: number, h: number,
+    //!                          alphaType: Enum<AlphaType>): CkImageInfo
+    static v8::Local<v8::Value> MakeS32(int32_t w, int32_t h, int32_t alpha_type);
+
+    //! TSDecl: function MakeN32Premul(w: number, h: number): CkImageInfo
+    static v8::Local<v8::Value> MakeN32Premul(int32_t w, int32_t h);
+
+    //! TSDecl: function MakeA8(w: number, h: number): CkImageInfo
+    static v8::Local<v8::Value> MakeA8(int32_t w, int32_t h);
+
+    //! TSDecl: function MakeUnknown(w: number, h: number): CkImageInfo
+    static v8::Local<v8::Value> MakeUnknown(int32_t w, int32_t h);
+
+    SkImageInfo& GetWrapped() {
+        return info_;
+    }
+
+    //! TSDecl: readonly alphaType: Enum<AlphaType>
+    g_nodiscard int32_t getAlphaType() const {
+        return info_.alphaType();
+    }
+
+    //! TSDecl: readonly colorType: Enum<ColorType>
+    g_nodiscard int32_t getColorType() const {
+        return info_.colorType();
+    }
+
+    //! TSDecl: readonly width: number
+    g_nodiscard int32_t getWidth() const {
+        return info_.width();
+    }
+
+    //! TSDecl: readonly height: number
+    g_nodiscard int32_t getHeight() const {
+        return info_.height();
+    }
+
+    //! TSDecl: readonly isEmpty: boolean
+    g_nodiscard bool getIsEmpty() const {
+        return info_.isEmpty();
+    }
+
+    //! TSDecl: readonly isOpaque: boolean
+    g_nodiscard bool getIsOpaque() const {
+        return info_.isOpaque();
+    }
+
+    //! TSDecl: function makeWH(w: number, h: number): CkImagInfo
+    v8::Local<v8::Value> makeWH(int32_t w, int32_t h);
+
+    //! TSDecl: function makeAlphaType(alphaType: Enum<AlphaType>): CkImageInfo
+    v8::Local<v8::Value> makeAlphaType(int32_t type);
+
+    //! TSDecl: function makeColorType(colorType: Enum<ColorType>): CkImageInfo
+    v8::Local<v8::Value> makeColorType(int32_t type);
+
+    //! TSDecl: readonly bytesPerPixel: number
+    g_nodiscard int32_t getBytesPerPixel() const {
+        return info_.bytesPerPixel();
+    }
+
+    //! TSDecl: readonly shiftPerPixel: number
+    g_nodiscard int32_t getShiftPerPixel() const {
+        return info_.shiftPerPixel();
+    }
+
+    //! TSDecl: readonly minRowBytes: number
+    g_nodiscard size_t getMinRowBytes() const {
+        return info_.minRowBytes();
+    }
+
+    //! TSDecl: function computeOffset(x: number, y: number, rowBytes: number): number
+    g_nodiscard size_t computeOffset(int32_t x, int32_t y, size_t  row_bytes) const {
+        return info_.computeOffset(x, y, row_bytes);
+    }
+
+    //! TSDecl: function equalsTo(other: CkImageInfo): boolean
+    bool equalsTo(v8::Local<v8::Value> other);
+
+    //! TSDecl: function computeByteSize(rowBytes: number): number
+    g_nodiscard size_t computeByteSize(size_t row_bytes) const {
+        return info_.computeByteSize(row_bytes);
+    }
+
+    //! TSDecl: function computeMinByteSize(): number
+    g_nodiscard size_t computeMinByteSize() const {
+        return info_.computeMinByteSize();
+    }
+
+    //! TSDecl: function validRowBytes(rowBytes: number): boolean
+    g_nodiscard bool validRowBytes(size_t rowBytes) const {
+        return info_.validRowBytes(rowBytes);
+    }
+
+private:
+    SkImageInfo info_;
+};
+
 SkImageInfo ExtractCkImageInfo(v8::Isolate *isolate, v8::Local<v8::Value> object);
 v8::Local<v8::Value> NewCkImageInfo(v8::Isolate *isolate, const SkImageInfo& info);
 
@@ -97,6 +212,23 @@ v8::Local<v8::Value> NewCkImageInfo(v8::Isolate *isolate, const SkImageInfo& inf
 //! }
 SkRSXform ExtractCkRSXform(v8::Isolate *isolate, v8::Local<v8::Value> object);
 v8::Local<v8::Object> NewCkRSXform(v8::Isolate *isolate, const SkRSXform& from);
+
+struct TAMemoryForSkData
+{
+    CO_NONASSIGNABLE(TAMemoryForSkData)
+    CO_NONCOPYABLE(TAMemoryForSkData)
+    std::shared_ptr<v8::BackingStore> store;
+};
+
+template<typename T>
+sk_sp<SkData> MakeSkDataFromTypedArrayMem(const binder::TypedArrayMemory<T>& mem)
+{
+    auto *ctx = new TAMemoryForSkData{ mem.memory };
+    return SkData::MakeWithProc(mem.ptr, mem.byte_size, [](const void*, void *ctx) {
+        CHECK(ctx);
+        delete static_cast<TAMemoryForSkData*>(ctx);
+    }, ctx);
+}
 
 template<typename T>
 class SkiaObjectWrapper

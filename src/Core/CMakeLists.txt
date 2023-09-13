@@ -32,6 +32,7 @@ add_library(
         ApplicationInfo.h
         ApplicationInfo.cc
         TraceEvent.h
+        AsyncMessageQueue.h
 )
 
 target_link_libraries(Core

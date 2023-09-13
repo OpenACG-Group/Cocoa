@@ -208,6 +208,13 @@ const Template g_templates[] = {
                     "the internal graphics profiler (32 by default)."
         },
         {
+            .long_name = "gl-hwcompose-disable-presentation",
+            .has_value = Template::RequireValue::kEmpty,
+            .desc = "Disable the presentation capability (onscreen rendering)\n"
+                    "of HWCompose. That prevents the HWCompose requiring related\n"
+                    "graphics API extensions (e.g. VK_KHR_wayland_surface)."
+        },
+        {
             .long_name = "utau-hwdevice-drm-devicepath",
             .has_value = Template::RequireValue::kNecessary,
             .value_type = ValueType::kString,

@@ -255,8 +255,8 @@ v8::Local<v8::Value> read_component_impl(const std::shared_ptr<utau::VideoBuffer
 
     const AVComponentDescriptor& comp = fmtdesc->comp[comp_idx];
 
-    if (!dst->IsTypedArray() || !dst.As<v8::TypedArray>()->HasBuffer())
-        g_throw(TypeError, "Argument `dst` must be an allocated TypedArray");
+    if (!dst->IsTypedArray())
+        g_throw(TypeError, "Argument `dst` must be a TypedArray");
     auto dst_typed_arr = dst.As<v8::TypedArray>();
 
     if (dst_typed_arr->Length() < dst_stride_in_elements * slice_h)

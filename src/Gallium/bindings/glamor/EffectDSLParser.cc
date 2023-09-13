@@ -23,6 +23,7 @@
 #include "Gallium/bindings/glamor/CkPathWrap.h"
 #include "Gallium/bindings/glamor/CkPathEffectWrap.h"
 #include "Gallium/bindings/glamor/CkMatrixWrap.h"
+#include "Gallium/bindings/glamor/CkImageWrap.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 namespace {

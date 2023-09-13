@@ -59,15 +59,15 @@ export async function DrawToWebp(width: number, height: number,
     cairo.delete();
     surface.delete();
 
+    const imageInfo = gl.CkImageInfo.MakeSRGB(
+        width, height,
+        gl.Constants.COLOR_TYPE_BGRA8888,
+        gl.Constants.ALPHA_TYPE_UNPREMULTIPLIED
+    );
+
     // Encode pixels
     const encoded = pixenc.WebpEncoder.EncodeMemory(
-        {
-            colorType: gl.Constants.COLOR_TYPE_BGRA8888,
-            alphaType: gl.Constants.ALPHA_TYPE_UNPREMULTIPLIED,
-            colorSpace: gl.Constants.COLOR_SPACE_SRGB,
-            width: width,
-            height: height
-        },
+        imageInfo,
         surfaceMemory.toTypedArray() as Uint8Array,
         width * BYTES_PER_PIXEL,
         {

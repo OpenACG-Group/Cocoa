@@ -23,7 +23,7 @@
 #include "uv.h"
 #include "Glamor/Glamor.h"
 #include "Glamor/RenderTarget.h"
-#include "Glamor/RenderClientObject.h"
+#include "Glamor/PresentRemoteHandle.h"
 #include "Glamor/GraphicsResourcesTrackable.h"
 
 #include "include/core/SkColor.h"
@@ -46,7 +46,7 @@ class Monitor;
 class CursorTheme;
 class Cursor;
 
-class Display : public RenderClientObject,
+class Display : public PresentRemoteHandle,
                 public GraphicsResourcesTrackable
 {
 public:

@@ -18,9 +18,12 @@
 #ifndef COCOA_GLAMOR_RENDERTARGET_H
 #define COCOA_GLAMOR_RENDERTARGET_H
 
+#include <optional>
+
 #include "include/core/SkColor.h"
 #include "include/core/SkSurface.h"
 #include "include/core/SkRegion.h"
+#include "include/gpu/GrBackendSemaphore.h"
 
 #include "Core/Errors.h"
 #include "Glamor/Glamor.h"
@@ -30,6 +33,12 @@ GLAMOR_NAMESPACE_BEGIN
 
 class Display;
 class HWComposeSwapchain;
+
+struct FrameSubmitInfo
+{
+    SkRegion damage_region;
+    std::vector<GrBackendSemaphore> hw_signal_semaphores;
+};
 
 /**
  * @p RenderTarget is the underlying class of @p Surface.
@@ -51,42 +60,9 @@ public:
         kRaster
     };
 
-    class ScopedFrame
-    {
-    public:
-        explicit ScopedFrame(Shared<RenderTarget> rt)
-            : render_target_(std::move(rt)), surface_(nullptr)
-        {
-            surface_ = render_target_->BeginFrame();
-            CHECK(surface_ && "Failed to acquire a new graphics frame");
-        }
-
-        ~ScopedFrame() {
-            render_target_->Submit(dirty_region_);
-        }
-
-        void MarkWholeFrameDirty() {
-            SkISize size = surface_->imageInfo().dimensions();
-            dirty_region_ = SkRegion(SkIRect::MakeSize(size));
-        }
-
-        void MarkDirtyRegion(const SkRegion& region) {
-            dirty_region_ = region;
-        }
-
-        SkSurface *GetSurface() {
-            return surface_;
-        }
-
-    private:
-        Shared<RenderTarget>    render_target_;
-        SkSurface              *surface_;
-        SkRegion                dirty_region_;
-    };
-
     RenderTarget(const Shared<Display>& display, RenderDevice device,
                  int32_t width, int32_t height, SkColorType format);
-    virtual ~RenderTarget() = default;
+    ~RenderTarget() override = default;
 
     g_nodiscard g_inline Shared<Display> GetDisplay() const {
         return display_weak_.lock();
@@ -122,7 +98,8 @@ public:
 
     SkSurface *BeginFrame();
     SkSurface *GetCurrentFrameSurface();
-    void Submit(const SkRegion& damage);
+    void Submit(const FrameSubmitInfo& submit_info);
+    void Present();
     uint32_t RequestNextFrame();
 
     const Shared<HWComposeSwapchain>& GetHWComposeSwapchain();
@@ -133,20 +110,22 @@ public:
 
 protected:
     virtual SkSurface *OnBeginFrame() = 0;
-    virtual void OnSubmitFrame(SkSurface *surface, const SkRegion& damage) = 0;
+    virtual void OnSubmitFrame(SkSurface *surface, const FrameSubmitInfo& submit_info) = 0;
+    virtual void OnPresentFrame(SkSurface *surface, const FrameSubmitInfo& submit_info) = 0;
     virtual void OnResize(int32_t width, int32_t height) = 0;
     virtual const Shared<HWComposeSwapchain>& OnGetHWComposeSwapchain();
     virtual sk_sp<SkSurface> OnCreateOffscreenBackendSurface(const SkImageInfo& info) = 0;
     virtual uint32_t OnRequestNextFrame() = 0;
 
 private:
-    Weak<Display>       display_weak_;
-    RenderDevice        device_type_;
-    SkColorType         color_format_;
-    int32_t             width_;
-    int32_t             height_;
-    SkSurface          *current_frame_;
-    FrameNotificationRouter *frame_notification_router_;
+    Weak<Display>                   display_weak_;
+    RenderDevice                    device_type_;
+    SkColorType                     color_format_;
+    int32_t                         width_;
+    int32_t                         height_;
+    SkSurface                      *current_frame_;
+    std::optional<FrameSubmitInfo>  last_submit_info_;
+    FrameNotificationRouter        *frame_notification_router_;
 };
 
 GLAMOR_NAMESPACE_END

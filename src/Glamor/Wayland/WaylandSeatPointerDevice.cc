@@ -139,7 +139,7 @@ void WaylandSeatPointerDevice::on_enter(void *data,
 
     // At last, notify the corresponding surface the event.
     // This invocation emits a `GLSI_SURFACE_HOVERED` signal to user.
-    RenderClientEmitterInfo info;
+    PresentSignal info;
     info.EmplaceBack<bool>(true);
     surface_object->Emit(GLSI_SURFACE_POINTER_HOVERING, std::move(info));
 }
@@ -173,7 +173,7 @@ void WaylandSeatPointerDevice::on_leave(void *data,
         QLOG(LOG_WARNING, "No cursor was associated with the surface");
     }
 
-    RenderClientEmitterInfo info;
+    PresentSignal info;
     info.EmplaceBack<bool>(false);
     surface_object->Emit(GLSI_SURFACE_POINTER_HOVERING, std::move(info));
 }
@@ -194,7 +194,7 @@ void WaylandSeatPointerDevice::on_motion(void *data,
         return;
     }
 
-    RenderClientEmitterInfo info;
+    PresentSignal info;
     info.EmplaceBack<double>(wl_fixed_to_double(surface_x));
     info.EmplaceBack<double>(wl_fixed_to_double(surface_y));
     surface->Emit(GLSI_SURFACE_POINTER_MOTION, std::move(info));
@@ -236,7 +236,7 @@ void WaylandSeatPointerDevice::on_button(void *data,
 
     bool pressed = WL_POINTER_BUTTON_STATE_PRESSED == state;
 
-    RenderClientEmitterInfo info;
+    PresentSignal info;
     info.EmplaceBack<PointerButton>(button_map[button]);
     info.EmplaceBack<bool>(pressed);
     surface->Emit(GLSI_SURFACE_POINTER_BUTTON, std::move(info));
@@ -355,7 +355,7 @@ void WaylandSeatPointerDevice::on_frame(void *data, wl_pointer *pointer)
         //              If so, we must handle it properly.
         if (listener->axis_scroll_type_ == kNormal_ScrollType)
         {
-            RenderClientEmitterInfo info;
+            PresentSignal info;
             info.EmplaceBack<AxisSourceType>(listener->axis_source_type_);
             info.EmplaceBack<double>(listener->axis_values_[kX]);
             info.EmplaceBack<double>(listener->axis_values_[kY]);
@@ -363,7 +363,7 @@ void WaylandSeatPointerDevice::on_frame(void *data, wl_pointer *pointer)
         }
         else if (listener->axis_scroll_type_ == kHighres_ScrollType)
         {
-            RenderClientEmitterInfo info;
+            PresentSignal info;
             info.EmplaceBack<AxisSourceType>(listener->axis_source_type_);
             info.EmplaceBack<int32_t>(listener->axis_highres_scroll_[kX]);
             info.EmplaceBack<int32_t>(listener->axis_highres_scroll_[kY]);

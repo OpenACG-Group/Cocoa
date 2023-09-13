@@ -26,12 +26,13 @@
 #include "include/core/SkSurface.h"
 #include "Glamor/Glamor.h"
 #include "Glamor/GraphicsResourcesTrackable.h"
+#include "Glamor/SkiaGpuContextOwner.h"
 GLAMOR_NAMESPACE_BEGIN
 
 class HWComposeContext;
+class HWComposeDevice;
 
-class HWComposeSwapchain : public std::enable_shared_from_this<HWComposeSwapchain>,
-                           public GraphicsResourcesTrackable
+class HWComposeSwapchain : public SkiaGpuContextOwner
 {
 public:
     struct GpuBufferInfo
@@ -52,23 +53,24 @@ public:
         std::vector<VkPresentModeKHR>       present_modes;
     };
 
-    static Shared<HWComposeSwapchain> Make(const Shared<HWComposeContext>& context,
-                                           VkSurfaceKHR surface, int32_t width, int32_t height);
+    class VkSurfaceFactory
+    {
+    public:
+        virtual VkSurfaceKHR Create(const Shared<HWComposeContext>& context) = 0;
+    };
 
-    HWComposeSwapchain(Shared<HWComposeContext> ctx, VkSurfaceKHR surface);
+    static Unique<HWComposeSwapchain> Make(const Shared<HWComposeContext>& context,
+                                           VkSurfaceFactory& factory,
+                                           int32_t width, int32_t height,
+                                           SkPixelGeometry pixel_geometry);
+
+    HWComposeSwapchain();
     ~HWComposeSwapchain() override;
 
     bool Resize(int32_t width, int32_t height);
     SkSurface *NextFrame();
-    void SubmitFrame();
-
-    g_nodiscard g_inline const sk_sp<GrDirectContext>& GetSkiaDirectContext() const {
-        return skia_direct_context_;
-    }
-
-    g_nodiscard g_inline VkDevice GetVkDevice() const {
-        return vk_device_;
-    }
+    GrSemaphoresSubmitted SubmitFrame(const std::vector<GrBackendSemaphore>& signal_semaphores);
+    void PresentFrame();
 
     g_nodiscard SkColorType GetImageFormat() const;
     g_nodiscard SkAlphaType GetImageAlphaFormat() const;
@@ -78,26 +80,26 @@ public:
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 
 private:
+    HWComposeDevice *OnGetHWComposeDevice() override;
     bool CreateOrRecreateSwapchain(int32_t width, int32_t height);
     bool CreateGpuBuffers();
     void ReleaseEntireSwapchain();
 
-    Shared<HWComposeContext>         context_;
+    Shared<HWComposeContext>        context_;
+    Unique<HWComposeDevice>         device_;
+    SkPixelGeometry                 pixel_geometry_;
+    uint32_t                        device_graphics_queue_family_;
+    uint32_t                        device_present_queue_family_;
+    VkQueue                         device_present_queue_;
     VkSurfaceKHR                    vk_surface_;
     SwapchainDetails                details_;
     VkPresentModeKHR                vk_present_mode_;
-    VkDevice                        vk_device_;
-    VkQueue                         vk_graphics_queue_;
-    VkQueue                         vk_present_queue_;
-    int32_t                         graphics_queue_index_;
-    int32_t                         present_queue_index_;
     VkSwapchainKHR                  vk_swapchain_;
     uint32_t                        vk_images_count_;
     VkFormat                        vk_image_format_;
     VkExtent2D                      vk_swapchain_extent_;
     VkSharingMode                   vk_images_sharing_mode_;
 
-    sk_sp<GrDirectContext>          skia_direct_context_;
     std::vector<GpuBufferInfo>      gpu_buffers_;
     std::vector<sk_sp<SkSurface>>   skia_surfaces_;
     uint32_t                        current_buffer_idx_;

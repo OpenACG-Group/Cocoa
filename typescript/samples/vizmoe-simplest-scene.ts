@@ -97,8 +97,8 @@ function onSubmittedEvent(event: SubmittedEvent): void {
 }
 
 async function main(): Promise<void> {
-    GL.RenderHost.Initialize({ name: 'Vizmoe',  major: 1,  minor: 0,  patch: 0 });
-    const display = await GL.RenderHost.Connect();
+    const presentThread = await GL.PresentThread.Start();
+    let display = await presentThread.createDisplay();
 
     const surface = await display.createHWComposeSurface(WIN_W, WIN_H);
     await surface.setTitle('Vizmoe Sample');

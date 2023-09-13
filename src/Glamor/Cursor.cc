@@ -26,19 +26,19 @@ GLAMOR_TRAMPOLINE_IMPL(Cursor, Dispose)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(0);
     info.GetThis()->As<Cursor>()->Dispose();
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Cursor, GetHotspotVector)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(0);
     auto v = info.GetThis()->As<Cursor>()->GetHotspotVector();
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
     info.SetReturnValue(v);
 }
 
 Cursor::Cursor(Weak<CursorTheme> theme)
-    : RenderClientObject(RealType::kCursor)
+    : PresentRemoteHandle(RealType::kCursor)
     , disposed_(false)
     , theme_(std::move(theme))
 {

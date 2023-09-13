@@ -40,7 +40,7 @@ interface PerEvent {
     nativeForward: null | {
         emitter: NativeEmitter;
         event: string;
-        forward: (...args: any[]) => any;
+        adaptor: (...args: any[]) => any;
     };
 }
 
@@ -61,10 +61,31 @@ export class EventEmitter {
         });
     }
 
+    /**
+     * Register an event forwarding an event emitted by native emitter.
+     * Native emitters are native objects who inherit (extend) the native
+     * `EventEmitterBase` (defined in `//typescript/synthetics/private/base.d.ts`).
+     *
+     * Adding or removing listeners for events registered by `forwardNative()`
+     * is equivalent to do the same operation on the native emitter. That is,
+     * if a listener `F` is added to the event by `addEventListener()`, then
+     * a listener `G` is also added to the native emitter simultaneously.
+     * But note that `G` is a different callback function from `F`. `G` is a
+     * wrapper function of `F`, and `F` is called by calling `G`, so the real
+     * listener `F` will be called when native emitter calls `G`.
+     *
+     * @param nativeEmitter   The native emitter.
+     * @param event           Event name defined by native emitter.
+     * @param ctor            Constructor of event object (same to `registerEvent()`).
+     * @param adaptor         A callback that will be called when the native
+     *                        emitter emits the event. It converts arguments
+     *                        given by the native emitter to an event object,
+     *                        which will be emitted immediately.
+     */
     protected forwardNative<T extends Event>(nativeEmitter: NativeEmitter,
                                              event: string,
                                              ctor: EventConstructor<T>,
-                                             forward: (...args: any[]) => T): void
+                                             adaptor: (...args: any[]) => T): void
     {
         if (this.fEventRegistry.has(ctor)) {
             throw Error(`Event ${ctor.name} has been registered`);
@@ -75,7 +96,7 @@ export class EventEmitter {
             nativeForward: {
                 emitter: nativeEmitter,
                 event: event,
-                forward: forward
+                adaptor: adaptor
             }
         });
     }
@@ -104,21 +125,24 @@ export class EventEmitter {
         const perEvent = this.fEventRegistry.get(ctor);
         if (perEvent.nativeForward) {
             const native = perEvent.nativeForward;
-            const handler = (...args: any[]) => {
-                const forwarded = native.forward(...args);
-                if (forwarded != undefined) {
-                    callback(forwarded);
+
+            // `__native_event_trampoline` is a recognizable name for
+            // stack backtrace.
+            const __native_event_trampoline = (...args: any[]) => {
+                const event = native.adaptor(...args) as T;
+                if (event != undefined) {
+                    callback(event);
                 }
             };
 
             // Add `handler` as a listener to the native EventEmitter.
             // `handler` will be called when the event is emitted by native emitter,
             // then `handler` calls the real listener `callback()`.
-            native.emitter.addListener(native.event, handler);
+            native.emitter.addListener(native.event, __native_event_trampoline);
 
             perEvent.listeners.push({
                 listener: callback,
-                nativeListener: handler
+                nativeListener: __native_event_trampoline
             });
         } else {
             // Normal listeners
@@ -166,5 +190,13 @@ export class EventEmitter {
             }
             return true;
         });
+    }
+
+    public isRegisteredEvent<T extends Event>(ctor: EventConstructor<T>): boolean {
+        return this.fEventRegistry.has(ctor);
+    }
+
+    public eventConstructorNames(): Array<string> {
+        return [...this.fEventRegistry.keys()].map(ctor => ctor.name);
     }
 }

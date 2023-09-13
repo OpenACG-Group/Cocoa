@@ -554,7 +554,12 @@ T *UnwrapObject(v8::Isolate *isolate, v8::Local<v8::Value> value)
     return Class<T, Traits>::unwrap_object(isolate, value);
 }
 
-g_inline bindings::ExportableObjectBase::Descriptor*
+/**
+ * Get the C++ descriptor object from the given JavaScript object
+ * without knowing the underlying C++ type of it. Returns nullptr
+ * if `value` is not a C++ wrapped object.
+ */
+inline bindings::ExportableObjectBase::Descriptor*
 UnwrapObjectDescriptor(v8::Isolate *isolate, v8::Local<v8::Value> value)
 {
     if (!value->IsObject())
@@ -566,6 +571,22 @@ UnwrapObjectDescriptor(v8::Isolate *isolate, v8::Local<v8::Value> value)
 
     return reinterpret_cast<bindings::ExportableObjectBase::Descriptor*>(
             obj->GetAlignedPointerFromInternalField(kObjectDescriptorPtr_InternalFields));
+}
+
+/**
+ * Unwrap a C++ object from a JavaScript `value`, without checking the
+ * real C++ type of the object. This function should be used only when
+ * `value` is definitely a wrapped JavaScript value of class `T`.
+ */
+template<typename T>
+T *UnwrapObjectFast(v8::Isolate *isolate, v8::Local<v8::Value> value)
+{
+    static_assert(std::is_base_of_v<bindings::ExportableObjectBase, T>);
+    using Descriptor = bindings::ExportableObjectBase::Descriptor;
+    Descriptor *descriptor = UnwrapObjectDescriptor(isolate, value);
+    if (!descriptor)
+        return nullptr;
+    return static_cast<T*>(descriptor->GetBase());
 }
 
 template<typename T>

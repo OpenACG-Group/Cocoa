@@ -20,9 +20,10 @@
 #include "Core/Errors.h"
 #include "Glamor/Glamor.h"
 #include "Glamor/MaybeGpuObject.h"
+#include "Glamor/PresentThread.h"
 GLAMOR_NAMESPACE_BEGIN
 
-void GpuThreadSharedObjectsCollector::AddAliveObject(MaybeGpuObjectBase *ptr)
+void RemoteDestroyablesCollector::AddAliveObject(MaybeGpuObjectBase *ptr)
 {
     std::scoped_lock<std::mutex> lock(list_lock_);
     auto itr = std::find(alive_objects_.begin(), alive_objects_.end(), ptr);
@@ -31,7 +32,7 @@ void GpuThreadSharedObjectsCollector::AddAliveObject(MaybeGpuObjectBase *ptr)
     alive_objects_.push_back(ptr);
 }
 
-void GpuThreadSharedObjectsCollector::DeleteDeadObject(MaybeGpuObjectBase *ptr)
+void RemoteDestroyablesCollector::DeleteDeadObject(MaybeGpuObjectBase *ptr)
 {
     std::scoped_lock<std::mutex> lock(list_lock_);
     auto itr = std::find(alive_objects_.begin(), alive_objects_.end(), ptr);
@@ -40,7 +41,7 @@ void GpuThreadSharedObjectsCollector::DeleteDeadObject(MaybeGpuObjectBase *ptr)
     alive_objects_.erase(itr);
 }
 
-void GpuThreadSharedObjectsCollector::Collect()
+void RemoteDestroyablesCollector::Collect()
 {
     std::scoped_lock<std::mutex> lock(list_lock_);
     if (alive_objects_.empty())
@@ -57,14 +58,14 @@ void GpuThreadSharedObjectsCollector::Collect()
     alive_objects_.clear();
 }
 
-GpuThreadSharedObjectsCollector::~GpuThreadSharedObjectsCollector()
+RemoteDestroyablesCollector::~RemoteDestroyablesCollector()
 {
     // `Collect` must be invoked explicitly before destructing.
     // This is guaranteed by `GlobalContext::Dispose`.
     CHECK(alive_objects_.empty());
 }
 
-void GpuThreadSharedObjectsCollector::Trace(Tracer *tracer) noexcept
+void RemoteDestroyablesCollector::Trace(Tracer *tracer) noexcept
 {
     std::scoped_lock<std::mutex> lock(list_lock_);
 
@@ -79,16 +80,16 @@ void GpuThreadSharedObjectsCollector::Trace(Tracer *tracer) noexcept
     }
 }
 
-MaybeGpuObjectBase::MaybeGpuObjectBase(bool isRetained, SkRefCnt *ptr, RenderHost *renderHost)
+MaybeGpuObjectBase::MaybeGpuObjectBase(bool isRetained, SkRefCnt *ptr, PresentThread *thread)
     : is_retained_(isRetained)
     , object_(ptr)
-    , render_host_(renderHost)
+    , present_thread_(thread)
 {
     if (ptr == nullptr)
     {
         // nullptr is not retained by anyone
         is_retained_  = false;
-        render_host_ = nullptr;
+        present_thread_ = nullptr;
         return;
     }
     else
@@ -96,18 +97,17 @@ MaybeGpuObjectBase::MaybeGpuObjectBase(bool isRetained, SkRefCnt *ptr, RenderHos
         ptr->ref();
     }
 
-    // If the object is not retained by GPU thread, there is no need to
-    // get the `RenderHost` object.
-    if (render_host_ == nullptr && is_retained_)
+    if (!present_thread_ && is_retained_)
     {
-        render_host_ = GlobalScope::Ref().GetRenderHost();
-        CHECK(render_host_ && "invalid RenderHost");
+        present_thread_ = GlobalScope::Ref().GetPresentThread();
+        CHECK(present_thread_ && "invalid PresentThread");
     }
 
     if (is_retained_)
     {
         // Construction: to create a new alive object
-        auto *collector = GlobalScope::Ref().GetGpuThreadSharedObjectsCollector();
+        auto *collector = GlobalScope::Ref()
+                .GetPresentThread()->GetRemoteDestroyablesCollector();
         collector->AddAliveObject(this);
     }
 }
@@ -115,7 +115,7 @@ MaybeGpuObjectBase::MaybeGpuObjectBase(bool isRetained, SkRefCnt *ptr, RenderHos
 MaybeGpuObjectBase::MaybeGpuObjectBase(const MaybeGpuObjectBase& other)
     : is_retained_(other.is_retained_)
     , object_(other.object_)
-    , render_host_(other.render_host_)
+    , present_thread_(other.present_thread_)
 {
     if (object_ != nullptr)
     {
@@ -126,7 +126,8 @@ MaybeGpuObjectBase::MaybeGpuObjectBase(const MaybeGpuObjectBase& other)
     {
         // Copy-semantic: to leave source object untouched,
         //                and create a new alive object
-        auto *collector = GlobalScope::Ref().GetGpuThreadSharedObjectsCollector();
+        auto *collector = GlobalScope::Ref()
+                .GetPresentThread()->GetRemoteDestroyablesCollector();
         CHECK(collector);
         collector->AddAliveObject(this);
     }
@@ -135,13 +136,14 @@ MaybeGpuObjectBase::MaybeGpuObjectBase(const MaybeGpuObjectBase& other)
 MaybeGpuObjectBase::MaybeGpuObjectBase(MaybeGpuObjectBase&& rhs) noexcept
     : is_retained_(rhs.is_retained_)
     , object_(rhs.object_)
-    , render_host_(rhs.render_host_)
+    , present_thread_(rhs.present_thread_)
 {
 
     // Move-semantic: to delete the previous object and create a
     //                new alive object who takes over the ownership
 
-    auto *collector = GlobalScope::Ref().GetGpuThreadSharedObjectsCollector();
+    auto *collector = GlobalScope::Ref()
+            .GetPresentThread()->GetRemoteDestroyablesCollector();
     CHECK(collector);
 
     if (object_ != nullptr)
@@ -159,19 +161,12 @@ MaybeGpuObjectBase::~MaybeGpuObjectBase()
     InternalReset(false, nullptr, nullptr);
 }
 
-namespace {
-
-void taskrunner_release_callback(RenderHostCallbackInfo& info)
-{
-    // Do nothing.
-}
-
-} // namespace anonymous
-
-void MaybeGpuObjectBase::InternalReset(bool isRetained, SkRefCnt *ptr, RenderHost *renderHost,
+void MaybeGpuObjectBase::InternalReset(bool isRetained, SkRefCnt *ptr,
+                                       PresentThread *thread,
                                        bool should_remove_entry)
 {
-    auto *collector = GlobalScope::Ref().GetGpuThreadSharedObjectsCollector();
+    auto *collector = GlobalScope::Ref()
+            .GetPresentThread()->GetRemoteDestroyablesCollector();
 
     if (is_retained_)
     {
@@ -182,14 +177,8 @@ void MaybeGpuObjectBase::InternalReset(bool isRetained, SkRefCnt *ptr, RenderHos
 
         // `object_` is retained by GPU thread then it must be released in GPU thread.
         // Task runner of GPU thread can help us to do that.
-        CHECK(render_host_ && "invalid RenderHost");
-        const auto& taskRunner = render_host_->GetRenderHostTaskRunner();
-        RenderClientCallInfo callInfo(GLOP_TASKRUNNER_RUN);
-        callInfo.EmplaceBack<RenderHostTaskRunner::Task>([inner_ptr = object_]() -> std::any {
-            inner_ptr->unref();
-            return {};
-        });
-        taskRunner->Invoke(std::move(callInfo), taskrunner_release_callback);
+        CHECK(thread && "Invalid PresentThread");
+        thread->SubmitTaskNoRet([inner_ptr = object_] { inner_ptr->unref(); }, {}, {});
     }
     else if (object_)
     {
@@ -202,16 +191,16 @@ void MaybeGpuObjectBase::InternalReset(bool isRetained, SkRefCnt *ptr, RenderHos
     {
         // nullptr is not retained by anyone
         is_retained_ = false;
-        render_host_ = nullptr;
+        present_thread_ = nullptr;
         return;
     }
 
     is_retained_ = isRetained;
-    render_host_ = renderHost;
-    if (render_host_ == nullptr && is_retained_)
+    present_thread_ = thread;
+    if (!present_thread_ && is_retained_)
     {
-        render_host_ = GlobalScope::Ref().GetRenderHost();
-        CHECK(render_host_ && "invalid RenderHost");
+        present_thread_ = GlobalScope::Ref().GetPresentThread();
+        CHECK(present_thread_ && "invalid PresentThread");
     }
 
     if (is_retained_)

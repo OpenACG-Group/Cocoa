@@ -22,7 +22,7 @@
 
 #include "Core/EnumClassBitfield.h"
 #include "Glamor/Glamor.h"
-#include "Glamor/RenderClientObject.h"
+#include "Glamor/PresentRemoteHandle.h"
 GLAMOR_NAMESPACE_BEGIN
 
 class Display;
@@ -65,7 +65,7 @@ enum class MonitorMode : uint32_t
     kPreferred  = 0x02   // indicates this is the preferred mode
 };
 
-class Monitor : public RenderClientObject
+class Monitor : public PresentRemoteHandle
 {
 public:
     struct PropertySet
@@ -96,6 +96,8 @@ public:
     }
 
     g_async_api void RequestProperties();
+
+    g_private_api PropertySet GetCurrentProperties() const;
 
 private:
     Weak<Display>           display_;

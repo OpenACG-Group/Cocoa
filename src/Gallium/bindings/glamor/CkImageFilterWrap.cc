@@ -20,10 +20,10 @@
 #include "include/effects/SkImageFilters.h"
 #include "fmt/format.h"
 
-#include "Gallium/bindings/core/Exports.h"
 #include "Gallium/bindings/glamor/Exports.h"
 #include "Gallium/bindings/glamor/EffectDSLParser.h"
 #include "Gallium/bindings/glamor/EffectDSLBuilderHelperMacros.h"
+#include "Gallium/binder/TypeTraits.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 namespace {
@@ -419,18 +419,22 @@ v8::Local<v8::Value> CkImageFilterWrap::serialize()
     if (!data)
         g_throw(Error, "Failed to serialize the image filter");
 
-    return Buffer::MakeFromExternal(data->writable_data(), data->size(),
-                                    [data]() { CHECK(data->unique()); });
+    void *writable_data = data->writable_data();
+    auto backing_store = binder::CreateBackingStoreFromSmartPtrMemory(
+            data, writable_data, data->size());
+
+    return v8::ArrayBuffer::New(v8::Isolate::GetCurrent(), backing_store);
 }
 
 v8::Local<v8::Value> CkImageFilterWrap::Deserialize(v8::Local<v8::Value> buffer)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    Buffer *wrapper = binder::UnwrapObject<Buffer>(isolate, buffer);
-    if (!wrapper)
-        g_throw(TypeError, "Argument `buffer` must be an instance of core:Buffer");
 
-    auto filter = SkImageFilter::Deserialize(wrapper->addressU8(), wrapper->length());
+    auto memory = binder::GetTypedArrayMemory<v8::TypedArray>(buffer);
+    if (!memory)
+        g_throw(Error, "Argument `buffer` must be an allocated TypedArray");
+
+    auto filter = SkImageFilter::Deserialize(memory->ptr, memory->byte_size);
     if (!filter)
         g_throw(Error, "Failed to deserialize the given buffer as an image filter");
 

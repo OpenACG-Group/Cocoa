@@ -186,6 +186,8 @@ public:
      *
      * Only after `on_object_weak_ref_valid` callback given from constructor is
      * called, could you call this method. Otherwise, it crashes the program.
+     * For convenience, user can assume that the weak-reference becomes available
+     * immediately after the construction is finished (not available in the constructor).
      */
     g_nodiscard g_inline const v8::Global<v8::Object>& GetObjectWeakReference() const {
         CHECK(!self_weak_.IsEmpty());

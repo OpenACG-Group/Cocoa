@@ -124,9 +124,9 @@ class RenderContext {
     }
 }
 
-gl.RenderHost.Initialize({name: 'Paragraph', major: 1, minor: 0, patch: 0});
+const presentThread = await gl.PresentThread.Start();
 
-gl.RenderHost.Connect().then((display) => {
+presentThread.createDisplay().then((display) => {
     return ToplevelWindow.Create(display, 500, 600, true)
 }).then((window) => {
     const ctx = new RenderContext(window.width, window.height);
@@ -135,7 +135,7 @@ gl.RenderHost.Connect().then((display) => {
         const display = window.display;
         await window.close();
         await display.close();
-        gl.RenderHost.Dispose();
+        presentThread.dispose();
     });
 
     window.addEventListener(KeyboardKeyEvent, event => {

@@ -40,7 +40,8 @@ public:
 
     void OnClearFrameBuffers() override;
     SkSurface *OnBeginFrame() override;
-    void OnSubmitFrame(SkSurface *surface, const SkRegion& damage) override;
+    void OnSubmitFrame(SkSurface *surface, const FrameSubmitInfo& submit_info) override;
+    void OnPresentFrame(SkSurface *surface, const FrameSubmitInfo& submit_info) override;
     void OnResize(int32_t width, int32_t height) override;
     const Shared<HWComposeSwapchain>& OnGetHWComposeSwapchain() override;
     sk_sp<SkSurface> OnCreateOffscreenBackendSurface(const SkImageInfo& info) override;

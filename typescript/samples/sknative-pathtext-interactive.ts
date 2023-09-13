@@ -94,17 +94,13 @@ interface WindowContext {
 }
 
 async function setupWindowContext(): Promise<WindowContext> {
-    GL.RenderHost.Initialize({
-        name: 'PathText Interactive',
-        major: 1,
-        minor: 0,
-        patch: 0
+    const presentThread = await GL.PresentThread.Start();
+    let display = await presentThread.createDisplay();
+    display.addOnceListener('closed', () => {
+        presentThread.dispose();
     });
 
-    const display = await GL.RenderHost.Connect();
-    display.addOnceListener('closed', GL.RenderHost.Dispose);
-
-    const surface = await display.createRasterSurface(WINDOW_WIDTH, WINDOW_HEIGHT);
+    const surface = await display.createHWComposeSurface(WINDOW_WIDTH, WINDOW_HEIGHT);
     const blender = await surface.createBlender();
 
     await surface.setTitle('PathText Interactive');

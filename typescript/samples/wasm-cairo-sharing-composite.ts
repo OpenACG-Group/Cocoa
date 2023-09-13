@@ -69,19 +69,12 @@ function drawCairo(memory: Cairo.MallocMemory): void {
     surface.delete();
 }
 
-function drawSkNative(memory: Cairo.MallocMemory): void {
+function drawSkNative(memory: Cairo.MallocMemory, imageInfo: gl.CkImageInfo): void {
     const memoryU8Array = memory.toTypedArray() as Uint8Array;
-    const surface = gl.CkSurface.MakeSharedPixels(
-        {
-            colorType: gl.Constants.COLOR_TYPE_BGRA8888,
-            alphaType: gl.Constants.ALPHA_TYPE_UNPREMULTIPLIED,
-            colorSpace: gl.Constants.COLOR_SPACE_SRGB,
-            width: WIDTH,
-            height: HEIGHT
-        },
-        memoryU8Array.byteOffset,
-        WIDTH * BYTES_PER_PIXEL,
-        memoryU8Array.buffer
+    const surface = gl.CkSurface.WrapPixels(
+        imageInfo,
+        imageInfo.minRowBytes,
+        memoryU8Array
     );
     const canvas = surface.getCanvas();
 
@@ -133,17 +126,17 @@ const surfaceMemory = lib.malloc(Uint8Array, WIDTH * HEIGHT * BYTES_PER_PIXEL);
 //   3. Each time after drawing with SkNative, call Cairo
 //      `Surface.mark_dirty()`
 
-drawSkNative(surfaceMemory);
+const imageInfo = gl.CkImageInfo.MakeSRGB(
+    WIDTH, HEIGHT,
+    gl.Constants.COLOR_TYPE_BGRA8888,
+    gl.Constants.ALPHA_TYPE_UNPREMULTIPLIED
+);
+
+drawSkNative(surfaceMemory, imageInfo);
 drawCairo(surfaceMemory);
 
 const encoded = pixenc.WebpEncoder.EncodeMemory(
-    {
-        colorType: gl.Constants.COLOR_TYPE_BGRA8888,
-        alphaType: gl.Constants.ALPHA_TYPE_UNPREMULTIPLIED,
-        colorSpace: gl.Constants.COLOR_SPACE_SRGB,
-        width: WIDTH,
-        height: HEIGHT
-    },
+    imageInfo,
     surfaceMemory.toTypedArray() as Uint8Array,
     WIDTH * BYTES_PER_PIXEL,
     {

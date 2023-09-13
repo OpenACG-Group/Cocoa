@@ -23,6 +23,7 @@
 #include <sstream>
 
 #include "include/gpu/GrDirectContext.h"
+#include "include/gpu/GrBackendSemaphore.h"
 #include "include/core/SkCanvas.h"
 #include "include/core/SkRect.h"
 #include "include/core/SkMatrix.h"
@@ -35,7 +36,6 @@ GLAMOR_NAMESPACE_BEGIN
 // For example, an infinite clipping approximately means no clipping is applied on the canvas.
 static constexpr SkRect kGiantRect = SkRect::MakeLTRB(-1E9F, -1E9F, 1E9F, 1E9F);
 
-class TextureManager;
 class RasterCache;
 class HWComposeSwapchain;
 
@@ -78,8 +78,6 @@ public:
         // An exact copy of `PrerollContext::cull_rect`
         SkRect cull_rect;
 
-        Unique<TextureManager>& texture_manager;
-
         std::stack<SkPaint> paints_stack;
 
         // Layers should set this if any GPU retained resources was drawn into
@@ -87,6 +85,13 @@ public:
         bool has_gpu_retained_resource;
 
         RasterCache *raster_cache;
+
+        // Layers can set this to let Skia signal the specified semaphores
+        // when all the commands in this frame submitted to GPU are finished.
+        // Semaphores must be created by, or be imported from other contexts to,
+        // the PresentThread's GPU context.
+        // When raster backend is used, this is ignored.
+        std::vector<GrBackendSemaphore> gpu_finished_semaphores;
 
         g_nodiscard g_inline bool HasCurrentPaint() const {
             return !paints_stack.empty();

@@ -317,6 +317,10 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
             size_t v = arg.value->v_int;
             glamor_options.SetProfilerRingBufferThreshold(v);
         }
+        else if arg_longopt_match("gl-hwcompose-disable-presentation")
+        {
+            glamor_options.SetDisableHWComposePresent(arg.value->v_int);
+        }
         else if arg_longopt_match("utau-hwdevice-drm-devicepath")
         {
             utau_options.hwdevice_drm_device_path = arg.value->v_str;

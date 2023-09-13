@@ -32,8 +32,6 @@
 #include "Glamor/Surface.h"
 #include "Glamor/HWComposeSwapchain.h"
 #include "Glamor/RasterFrameGenerator.h"
-#include "Glamor/TextureManager.h"
-#include "Glamor/TextureFactory.h"
 #include "Glamor/GProfiler.h"
 
 #include "Glamor/Layers/LayerTree.h"
@@ -45,71 +43,14 @@ GLAMOR_NAMESPACE_BEGIN
 GLAMOR_TRAMPOLINE_IMPL(Blender, Dispose)
 {
     info.GetThis()->As<Blender>()->Dispose();
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Blender, Update)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
     info.GetThis()->As<Blender>()->Update(info.Get<Shared<LayerTree>>(0));
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
-}
-
-GLAMOR_TRAMPOLINE_IMPL(Blender, DeleteTexture)
-{
-    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
-    bool stat = info.GetThis()->As<Blender>()->DeleteTexture(
-            info.Get<Texture::TextureId>(0));
-    info.SetReturnStatus(stat ? RenderClientCallInfo::Status::kOpSuccess
-                              : RenderClientCallInfo::Status::kOpFailed);
-}
-
-GLAMOR_TRAMPOLINE_IMPL(Blender, NewTextureDeletionSubscriptionSignal)
-{
-    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
-    auto bl = info.GetThis()->As<Blender>();
-    int32_t sig = bl->NewTextureDeletionSubscriptionSignal(
-            info.Get<Texture::TextureId>(0));
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
-    info.SetReturnValue(sig);
-}
-
-GLAMOR_TRAMPOLINE_IMPL(Blender, CreateTextureFromEncodedData)
-{
-    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(3);
-    auto bl = info.GetThis()->As<Blender>();
-    auto a1 = info.Get<Shared<Data>>(0);
-    auto a2 = info.Get<std::optional<SkAlphaType>>(1);
-    auto a3 = info.Get<std::string>(2);
-    Blender::MaybeTextureId id = bl->CreateTextureFromEncodedData(a1, a2, a3);
-    info.SetReturnStatus(id ? RenderClientCallInfo::Status::kOpSuccess
-                            : RenderClientCallInfo::Status::kOpFailed);
-    info.SetReturnValue(*id);
-}
-
-GLAMOR_TRAMPOLINE_IMPL(Blender, CreateTextureFromImage)
-{
-    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(2);
-    auto bl = info.GetThis()->As<Blender>();
-    auto a1 = info.Get<sk_sp<SkImage>>(0);
-    auto a2 = info.Get<std::string>(1);
-    Blender::MaybeTextureId id = bl->CreateTextureFromImage(a1, a2);
-    info.SetReturnStatus(id ? RenderClientCallInfo::Status::kOpSuccess
-                            : RenderClientCallInfo::Status::kOpFailed);
-    info.SetReturnValue(*id);
-}
-
-GLAMOR_TRAMPOLINE_IMPL(Blender, CreateTextureFromPixmap)
-{
-    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(3);
-    auto bl = info.GetThis()->As<Blender>();
-    auto a1 = info.Get<const void*>(0);
-    auto a2 = info.Get<SkImageInfo>(1);
-    auto a3 = info.Get<std::string>(2);
-    Blender::MaybeTextureId id = bl->CreateTextureFromPixmap(a1, a2, a3);
-    info.SetReturnStatus(id ? RenderClientCallInfo::Status::kOpSuccess
-                            : RenderClientCallInfo::Status::kOpFailed);
-    info.SetReturnValue(*id);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Blender, CaptureNextFrameAsPicture)
@@ -117,7 +58,7 @@ GLAMOR_TRAMPOLINE_IMPL(Blender, CaptureNextFrameAsPicture)
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(0);
     auto bl = info.GetThis()->As<Blender>();
     info.SetReturnValue(bl->CaptureNextFrameAsPicture());
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Blender, PurgeRasterCacheResources)
@@ -125,42 +66,36 @@ GLAMOR_TRAMPOLINE_IMPL(Blender, PurgeRasterCacheResources)
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(0);
     auto bl = info.GetThis()->As<Blender>();
     bl->PurgeRasterCacheResources();
-    info.SetReturnStatus(RenderClientCallInfo::Status::kOpSuccess);
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
+}
+
+GLAMOR_TRAMPOLINE_IMPL(Blender, ImportGpuSemaphoreFromFd)
+{
+    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(2);
+    auto bl = info.GetThis()->As<Blender>();
+    Blender::ImportedSemaphoreId id = bl->ImportGpuSemaphoreFromFd(
+            info.Get<int32_t>(0), info.Get<bool>(1));
+    info.SetReturnStatus(id >= 0 ? PresentRemoteCall::Status::kOpSuccess
+                                 : PresentRemoteCall::Status::kOpFailed);
+    info.SetReturnValue(id);
+}
+
+GLAMOR_TRAMPOLINE_IMPL(Blender, DeleteImportedGpuSemaphore)
+{
+    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
+    auto bl = info.GetThis()->As<Blender>();
+    bl->DeleteImportedGpuSemaphore(info.Get<Blender::ImportedSemaphoreId>(0));
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
 Shared<Blender> Blender::Make(const Shared<Surface>& surface)
 {
     CHECK(surface);
-
-    auto render_target = surface->GetRenderTarget();
-    CHECK(render_target);
-
-    // Create a TextureFactory to prepare for creating `TextureManager`
-    auto render_device = render_target->GetRenderDeviceType();
-    Unique<TextureFactory> texture_factory;
-    if (render_device == RenderTarget::RenderDevice::kHWComposer)
-    {
-        auto swapchain = render_target->GetHWComposeSwapchain();
-        texture_factory = std::make_unique<HWComposeTextureFactory>(swapchain);
-    }
-    else
-    {
-        SkColorInfo info{surface->GetColorType(),
-                         SkAlphaType::kPremul_SkAlphaType,
-                         nullptr};
-        texture_factory = std::make_unique<RasterTextureFactory>(info);
-    }
-
-    // `TextureManager` is only owned by `Blender` and will be released when the
-    // blender is disposed.
-    auto texture_manager = std::make_unique<TextureManager>(std::move(texture_factory));
-
-    return std::make_shared<Blender>(surface, std::move(texture_manager));
+    return std::make_shared<Blender>(surface);
 }
 
-Blender::Blender(const Shared<Surface>& surface,
-                 Unique<TextureManager> texture_manager)
-    : RenderClientObject(RealType::kBlender)
+Blender::Blender(const Shared<Surface>& surface)
+    : PresentRemoteHandle(RealType::kBlender)
     , disposed_(false)
     , surface_resize_slot_id_(0)
     , surface_frame_slot_id_(0)
@@ -168,10 +103,10 @@ Blender::Blender(const Shared<Surface>& surface,
     , layer_tree_(std::make_unique<LayerTree>(SkISize::Make(surface->GetWidth(), surface->GetWidth())))
     , current_dirty_rect_(SkIRect::MakeEmpty())
     , frame_schedule_state_(FrameScheduleState::kIdle)
-    , texture_manager_(std::move(texture_manager))
     , raster_cache_()
     , should_capture_next_frame_(false)
     , capture_next_frame_serial_(0)
+    , imported_semaphore_ids_cnt_(0)
 {
     CHECK(surface);
 
@@ -185,33 +120,27 @@ Blender::Blender(const Shared<Surface>& surface,
     auto device = surface->GetRenderTarget()->GetRenderDeviceType();
     GrDirectContext *direct_context = nullptr;
     if (device == RenderTarget::RenderDevice::kHWComposer)
-        direct_context = surface->GetRenderTarget()->GetHWComposeSwapchain()->GetSkiaDirectContext().get();
+        direct_context = surface->GetRenderTarget()->GetHWComposeSwapchain()->GetSkiaGpuContext();
     raster_cache_ = std::make_unique<RasterCache>(direct_context);
 
     SetMethodTrampoline(GLOP_BLENDER_DISPOSE, Blender_Dispose_Trampoline);
     SetMethodTrampoline(GLOP_BLENDER_UPDATE, Blender_Update_Trampoline);
-    SetMethodTrampoline(GLOP_BLENDER_CREATE_TEXTURE_FROM_PIXMAP,
-                        Blender_CreateTextureFromPixmap_Trampoline);
-    SetMethodTrampoline(GLOP_BLENDER_CREATE_TEXTURE_FROM_ENCODED_DATA,
-                        Blender_CreateTextureFromEncodedData_Trampoline);
-    SetMethodTrampoline(GLOP_BLENDER_CREATE_TEXTURE_FROM_IMAGE,
-                        Blender_CreateTextureFromImage_Trampoline);
-    SetMethodTrampoline(GLOP_BLENDER_DELETE_TEXTURE,
-                        Blender_DeleteTexture_Trampoline);
-    SetMethodTrampoline(GLOP_BLENDER_NEW_TEXTURE_DELETION_SUBSCRIPTION_SIGNAL,
-                        Blender_NewTextureDeletionSubscriptionSignal_Trampoline);
     SetMethodTrampoline(GLOP_BLENDER_CAPTURE_NEXT_FRAME_AS_PICTURE,
                         Blender_CaptureNextFrameAsPicture_Trampoline);
     SetMethodTrampoline(GLOP_BLENDER_PURGE_RASTER_CACHE_RESOURCES,
                         Blender_PurgeRasterCacheResources_Trampoline);
+    SetMethodTrampoline(GLOP_BLENDER_IMPORT_GPU_SEMAPHORE_FROM_FD,
+                        Blender_ImportGpuSemaphoreFromFd_Trampoline);
+    SetMethodTrampoline(GLOP_BLENDER_DELETE_IMPORTED_GPU_SEMAPHORE,
+                        Blender_DeleteImportedGpuSemaphore_Trampoline);
 
     surface_resize_slot_id_ = surface->Connect(GLSI_SURFACE_RESIZE,
-                                               [this](RenderHostSlotCallbackInfo& info) {
+                                               [this](PresentSignalArgs& info) {
         this->SurfaceResizeSlot(info.Get<int32_t>(0), info.Get<int32_t>(1));
     }, true);
 
     surface_frame_slot_id_ = surface->Connect(GLSI_SURFACE_FRAME,
-                                              [this](RenderHostSlotCallbackInfo& info) {
+                                              [this](PresentSignalArgs& info) {
         this->SurfaceFrameSlot();
     }, true);
 }
@@ -271,10 +200,8 @@ void Blender::SurfaceFrameSlot()
         return;
     }
 
-    // Finally, submitting the rasterized surface to the screen notifies `RenderTarget`
-    // to swap framebuffer.
     Shared<RenderTarget> rt = output_surface_->GetRenderTarget();
-    rt->Submit(SkRegion(current_dirty_rect_));
+    rt->Present();
 
     for (const Shared<RasterDrawOpObserver>& observer : layer_tree_->GetObservers())
         observer->EndFrame();
@@ -320,7 +247,7 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
     GrDirectContext *gr_context = nullptr;
     if (rt->GetHWComposeSwapchain())
     {
-        gr_context = rt->GetHWComposeSwapchain()->GetSkiaDirectContext().get();
+        gr_context = rt->GetHWComposeSwapchain()->GetSkiaGpuContext();
         CHECK(gr_context && "Failed to get Skia GPU direct context");
     }
 
@@ -380,7 +307,6 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
         .frame_canvas = frame_surface->getCanvas(),
         .multiplexer_canvas = &multiplexer_canvas,
         .cull_rect = context.cull_rect,
-        .texture_manager = texture_manager_,
         .has_gpu_retained_resource = false,
         .raster_cache = raster_cache_.get()
     };
@@ -396,7 +322,7 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
                 paint_context.has_gpu_retained_resource,
                 picture_recorder.finishRecordingAsPicture());
 
-        RenderClientEmitterInfo info;
+        PresentSignal info;
         info.EmplaceBack<MaybeGpuObject<SkPicture>>(std::move(picture));
         info.EmplaceBack<int32_t>(capture_next_frame_serial_);
         Emit(GLSI_BLENDER_PICTURE_CAPTURED, std::move(info));
@@ -411,6 +337,11 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
                                             static_cast<int32_t>(context.cull_rect.height()));
     output_surface_->RequestNextFrame();
 
+    output_surface_->GetRenderTarget()->Submit({
+        .damage_region = SkRegion(current_dirty_rect_),
+        .hw_signal_semaphores = std::move(paint_context.gpu_finished_semaphores)
+    });
+
     GPROFILER_TRY_MARK(Requested)
 
     frame_schedule_state_ = FrameScheduleState::kPendingFrame;
@@ -420,64 +351,6 @@ void Blender::SurfaceResizeSlot(int32_t width, int32_t height)
 {
     TRACE_EVENT("rendering", "Blender::SurfaceResizeSlot");
     layer_tree_->SetFrameSize(SkISize::Make(width, height));
-}
-
-bool Blender::DeleteTexture(Texture::TextureId id)
-{
-    TRACE_EVENT("rendering", "Blender::DeleteTexture");
-    return texture_manager_->Delete(id);
-}
-
-int32_t Blender::NewTextureDeletionSubscriptionSignal(Texture::TextureId id)
-{
-    TRACE_EVENT("rendering", "Blender::NewTextureDeletionSubscriptionSignal");
-
-    // Dynamic signal number starts from 16 because it is a number which
-    // is big enough to avoid overriding the existing static signal numbers.
-    static int32_t signal_counter = 16;
-
-    int32_t sig_number = signal_counter++;
-    texture_manager_->SubscribeTextureDeletion(id, [sig_number, this]() {
-        this->Emit(sig_number, RenderClientEmitterInfo());
-    });
-
-    return sig_number;
-}
-
-Blender::MaybeTextureId Blender::CreateTextureFromEncodedData(const Shared<Data>& data,
-                                                              std::optional<SkAlphaType> alpha_type,
-                                                              const std::string& annotation)
-{
-    TRACE_EVENT("rendering", "Blender::CreateTextureFromEncodedData");
-
-    CHECK(data);
-    return texture_manager_->Create([data, alpha_type](const Unique<TextureFactory>& factory) {
-        return factory->MakeFromEncodedData(data, alpha_type);
-    }, annotation);
-}
-
-Blender::MaybeTextureId Blender::CreateTextureFromImage(const sk_sp<SkImage>& image,
-                                                        const std::string& annotation)
-{
-    TRACE_EVENT("rendering", "Blender::CreateTextureFromImage");
-
-    CHECK(image);
-    return texture_manager_->Create([image](const Unique<TextureFactory>& factory) {
-        return factory->MakeFromImage(image);
-    }, annotation);
-}
-
-Blender::MaybeTextureId Blender::CreateTextureFromPixmap(const void *pixels,
-                                                         const SkImageInfo& image_info,
-                                                         const std::string& annotation)
-{
-    TRACE_EVENT("rendering", "Blender::CreateTextureFromPixmap");
-
-    CHECK(pixels);
-    return texture_manager_->Create([pixels, image_info](const Unique<TextureFactory>& factory) {
-        SkPixmap pixmap(image_info, pixels, image_info.minRowBytes());
-        return factory->MakeFromPixmap(pixmap);
-    }, annotation);
 }
 
 void Blender::Dispose()
@@ -497,8 +370,16 @@ void Blender::Dispose()
     if (frame_schedule_state_ == FrameScheduleState::kPendingFrame)
         SurfaceFrameSlot();
 
+    // Delete all the imported semaphores
+    if (!imported_semaphore_ids_.empty())
+    {
+        VkDevice device = output_surface_->GetRenderTarget()
+                ->GetHWComposeSwapchain()->GetVkDevice();
+        for (const auto& pair : imported_semaphore_ids_)
+            vkDestroySemaphore(device, pair.second, nullptr);
+    }
+
     raster_cache_.reset();
-    texture_manager_.reset();
     output_surface_.reset();
 
     frame_schedule_state_ = FrameScheduleState::kDisposed;
@@ -510,10 +391,8 @@ void Blender::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept
     CHECK(!disposed_);
 
     // `LayerTree` only contains raw data and texture references which are from
-    // user defined data (generally from the CanvasKit module in JavaScript land),
+    // user-defined data (generally from the CanvasKit module in JavaScript land),
     // and there is no need to trace them.
-
-    tracer->TraceMember("TextureManager", texture_manager_.get());
     tracer->TraceMember("RasterCache", raster_cache_.get());
 }
 
@@ -521,6 +400,55 @@ void Blender::PurgeRasterCacheResources()
 {
     TRACE_EVENT("rendering", "Blender::PurgeRasterCacheResources");
     raster_cache_->PurgeAllCaches();
+}
+
+Blender::ImportedSemaphoreId Blender::ImportGpuSemaphoreFromFd(int32_t fd, bool auto_close)
+{
+    CHECK(!disposed_);
+
+    ScopeExitAutoInvoker auto_closer([auto_close, fd] {
+        if (auto_close)
+            close(fd);
+    });
+
+    std::shared_ptr<RenderTarget> render_target =
+            output_surface_->GetRenderTarget();
+    if (render_target->GetRenderDeviceType() != RenderTarget::RenderDevice::kHWComposer)
+        return -1;
+    std::shared_ptr<HWComposeSwapchain> swapchain =
+            render_target->GetHWComposeSwapchain();
+    if (!swapchain)
+        return -1;
+
+    auto_closer.cancel();
+    ImportedSemaphoreId id = imported_semaphore_ids_cnt_++;
+    imported_semaphore_ids_[id] = swapchain->ImportSemaphoreFromFd(fd);
+    return id;
+}
+
+void Blender::DeleteImportedGpuSemaphore(ImportedSemaphoreId id)
+{
+    CHECK(!disposed_);
+    if (imported_semaphore_ids_.count(id) == 0)
+        return;
+
+    std::shared_ptr<RenderTarget> render_target =
+            output_surface_->GetRenderTarget();
+    CHECK(render_target->GetRenderDeviceType() == RenderTarget::RenderDevice::kHWComposer);
+    std::shared_ptr<HWComposeSwapchain> swapchain =
+            render_target->GetHWComposeSwapchain();
+    CHECK(swapchain);
+
+    VkSemaphore semaphore = imported_semaphore_ids_[id];
+    vkDestroySemaphore(swapchain->GetVkDevice(), semaphore, nullptr);
+    imported_semaphore_ids_.erase(id);
+}
+
+VkSemaphore Blender::GetImportedGpuSemaphore(ImportedSemaphoreId id)
+{
+    if (imported_semaphore_ids_.count(id) == 0)
+        return VK_NULL_HANDLE;
+    return imported_semaphore_ids_[id];
 }
 
 GLAMOR_NAMESPACE_END

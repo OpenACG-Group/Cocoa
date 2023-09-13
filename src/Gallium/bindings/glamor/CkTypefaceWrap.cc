@@ -18,8 +18,8 @@
 #include "fmt/format.h"
 #include "include/core/SkData.h"
 
-#include "Gallium/bindings/core/Exports.h"
 #include "Gallium/bindings/glamor/CkTypefaceWrap.h"
+#include "Gallium/binder/TypeTraits.h"
 #include "Gallium/binder/Convert.h"
 #include "Gallium/binder/ThrowExcept.h"
 #include "Gallium/binder/Class.h"
@@ -92,11 +92,11 @@ v8::Local<v8::Value> CkTypeface::MakeFromFile(const std::string& file, int32_t i
 v8::Local<v8::Value> CkTypeface::MakeFromData(v8::Local<v8::Value> buffer, int32_t index)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *w = binder::UnwrapObject<Buffer>(isolate, buffer);
-    if (!w)
-        g_throw(Error, "Argument `buffer` must be an instance of `core.Buffer`");
+    auto memory = binder::GetTypedArrayMemory<v8::TypedArray>(buffer);
+    if (!memory)
+        g_throw(Error, "Argument `buffer` must be an allocated TypedArray");
 
-    sk_sp<SkData> data = SkData::MakeWithCopy(w->addressU8(), w->length());
+    sk_sp<SkData> data = SkData::MakeWithCopy(memory->ptr, memory->byte_size);
     sk_sp<SkTypeface> tf = SkTypeface::MakeFromData(data, index);
     if (!tf)
         g_throw(Error, "Failed to create a typeface from provided data");

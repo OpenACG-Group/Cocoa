@@ -27,16 +27,15 @@ GLAMOR_NAMESPACE_BEGIN
 
 class HWComposeSwapchain;
 
-class HWComposeContext : public std::enable_shared_from_this<HWComposeContext>,
-                         public GraphicsResourcesTrackable
+/**
+ * `HWComposeContext` is a wrapper of a Vulkan instance and a physical
+ * device (GPU or other supported devices). It represents an instance
+ * of HWCompose, and multiple `HWComposeDevice` could be created from
+ * a `HWComposeContext`.
+ */
+class HWComposeContext : public GraphicsResourcesTrackable
 {
 public:
-    class VkSurfaceFactory
-    {
-    public:
-        virtual VkSurfaceKHR Create(const Shared<HWComposeContext>& context) = 0;
-    };
-
     struct Options
     {
         enum VkDBGLevelFilter
@@ -89,9 +88,6 @@ public:
     g_nodiscard g_inline const std::vector<std::string>& GetInstanceEnabledExtensions() const {
         return instance_enabled_extensions_;
     }
-
-    g_nodiscard Shared<HWComposeSwapchain> CreateSwapchain(VkSurfaceFactory& factory,
-                                                           int32_t width, int32_t height);
 
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 

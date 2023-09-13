@@ -27,12 +27,27 @@
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 //! TSDecl: class CkSurface
-class CkSurface : public ExportableObjectBase,
-                  public SkiaObjectWrapper<SkSurface>
+class CkSurface : public ExportableObjectBase
 {
 public:
-    CkSurface(const sk_sp<SkSurface>& surface, ssize_t increase_gc);
-    CkSurface(const sk_sp<SkSurface>& surface, v8::Local<v8::ArrayBuffer> ab);
+    struct WrappedPixels
+    {
+        std::shared_ptr<v8::BackingStore> backing_store = nullptr;
+        int64_t offset = 0;
+        size_t byte_length = 0;
+        uint8_t *ptr = nullptr;
+
+        void Reset() {
+            backing_store = nullptr;
+            offset = 0;
+            byte_length = 0;
+            ptr = nullptr;
+        }
+    };
+
+    CkSurface(sk_sp<SkSurface> surface, ssize_t increase_gc);
+    CkSurface(sk_sp<SkSurface> surface, WrappedPixels wrapped_pixels);
+    CkSurface(sk_sp<SkSurface> surface, v8::Local<v8::Object> gpu_direct_context);
     ~CkSurface();
 
     //! TSDecl: function MakeRaster(imageInfo: CkImageInfo): CkSurface
@@ -41,14 +56,17 @@ public:
     //! TSDecl: function MakeNull(width: number, height: number): CkSurface
     static v8::Local<v8::Value> MakeNull(int32_t width, int32_t height);
 
-    //! TSDecl: function MakeSharedPixels(imageInfo: CkImageInfo,
-    //!                                   byteOffset: number,
-    //!                                   rowBytes: number,
-    //!                                   pixels: ArrayBuffer): CkSurface
-    static v8::Local<v8::Value> MakeSharedPixels(v8::Local<v8::Value> image_info,
-                                                 uint64_t byte_offset,
-                                                 uint64_t row_bytes,
-                                                 v8::Local<v8::Value> pixels);
+    //! TSDecl: function WrapPixels(imageInfo: CkImageInfo, rowBytes: number,
+    //!                             pixels: TypedArray): CkSurface
+    static v8::Local<v8::Value> WrapPixels(v8::Local<v8::Value> image_info,
+                                           uint64_t row_bytes,
+                                           v8::Local<v8::Value> pixels);
+
+    //! TSDecl: function dispose(): void
+    void dispose();
+
+    //! TSDecl: function isDisposed(): boolean
+    bool isDisposed();
 
     //! TSDecl: readonly width: number
     int32_t getWidth();
@@ -62,11 +80,11 @@ public:
     //! TSDecl: readonly imageInfo: CkImageInfo
     v8::Local<v8::Value> getImageInfo();
 
-    //! TSDecl: readonly sharedPixels: ArrayBuffer | null
-    v8::Local<v8::Value> getSharedPixels();
-
     //! TSDecl: function getCanvas(): CkCanvas
     v8::Local<v8::Value> getCanvas();
+
+    //! TSDecl: function getGpuDirectContext(): GpuDirectContext | null
+    v8::Local<v8::Value> getGpuDirectContext();
 
     //! TSDecl: function makeSurface(width: number, height: number): CkSurface
     v8::Local<v8::Value> makeSurface(int32_t width, int32_t height);
@@ -79,18 +97,38 @@ public:
     void draw(v8::Local<v8::Value> canvas, SkScalar x, SkScalar y, int32_t sampling,
               v8::Local<v8::Value> paint);
 
+    //! TSDecl: function peekPixels(scopeCallback: (pixmap: CkPixmap) => T): T
+    v8::Local<v8::Value> peekPixels(v8::Local<v8::Value> scope_callback);
+
     //! TSDecl: function readPixels(dstInfo: CkImageInfo, dstPixels: Uint8Array,
     //!                             dstRowBytes: number, srcX: number, srcY: number): void
     void readPixels(v8::Local<v8::Value> dstInfo, v8::Local<v8::Value> dstPixels,
                     int32_t dstRowBytes, int32_t  srcX, int32_t srcY);
 
+    //! TSDecl: function readPixelsToPixmap(pixmap: CkPixmap, srcX: number, srcY: number): void
+    void readPixelsToPixmap(v8::Local<v8::Value> pixmap, int32_t src_x, int32_t src_y);
+
+    //! TSDecl: function writePixels(pixmap: CkPixmap, dstX: number, dstY: number): void
+    void writePixels(v8::Local<v8::Value> pixmap, int32_t dst_x, int32_t dst_y);
+
     //! TSDecl: function notifyContentWillChange(mode: Enum<CkSurfaceContentChangeMode>): void
     void notifyContentWillChange(int32_t mode);
 
+    //! TSDecl: function waitOnGpu(waitSemaphores: Array<GpuBinarySemaphore>,
+    //!                            takeSemaphoresOwnership: boolean): boolean
+    bool waitOnGpu(v8::Local<v8::Value> wait_semaphores, bool take_semaphores_ownership);
+
+    //! TSDecl: function flush(info: GpuFlushInfo): Enum<GpuSemaphoresSubmitted>
+    int32_t flush(v8::Local<v8::Value> info);
+
 private:
-    ssize_t                     increase_gc_;
-    v8::Global<v8::Object>      canvas_obj_;
-    v8::Global<v8::ArrayBuffer> shared_pixels_;
+    void CheckDisposedOrThrow();
+
+    sk_sp<SkSurface>                    surface_;
+    ssize_t                             increase_gc_;
+    v8::Global<v8::Object>              canvas_obj_;
+    WrappedPixels                       wrapped_pixels_;
+    v8::Global<v8::Object>              gpu_direct_context_;
 };
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

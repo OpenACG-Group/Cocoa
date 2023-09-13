@@ -21,21 +21,17 @@ import * as GL from 'glamor';
 const WINDOW_WIDTH = 1000;
 const WINDOW_HEIGHT = 300;
 
-GL.RenderHost.Initialize({
-    name: 'Path Measure',
-    major: 1,
-    minor: 0,
-    patch: 0
-});
-
-let display = await GL.RenderHost.Connect();
+const presentThread = await GL.PresentThread.Start();
+let display = await presentThread.createDisplay();
 let surface = await display.createHWComposeSurface(WINDOW_WIDTH, WINDOW_HEIGHT);
 
 surface.addOnceListener('closed', () => {
     display.close();
 });
 
-display.addOnceListener('closed', GL.RenderHost.Dispose);
+display.addOnceListener('closed', () => {
+    presentThread.dispose();
+});
 surface.setTitle('PathMeasure');
 
 let blender = await surface.createBlender();

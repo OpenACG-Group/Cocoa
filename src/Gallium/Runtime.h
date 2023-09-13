@@ -31,8 +31,6 @@
 #include "Gallium/ModuleImportURL.h"
 #include "Gallium/GlobalIsolateGuard.h"
 #include "Gallium/VMIntrospect.h"
-#include "Gallium/WorkerRuntime.h"
-#include "Gallium/ParentThreadDelegate.h"
 GALLIUM_NS_BEGIN
 
 class Platform;

@@ -25,6 +25,7 @@
 #include "Gallium/binder/Class.h"
 #include "Gallium/bindings/pixencoder/Exports.h"
 #include "Gallium/bindings/glamor/Exports.h"
+#include "Gallium/bindings/glamor/CkImageWrap.h"
 GALLIUM_BINDINGS_PIXENCODER_NS_BEGIN
 
 namespace {

@@ -23,6 +23,7 @@
 
 #include "include/v8.h"
 #include "Gallium/Gallium.h"
+#include "Gallium/binder/ThrowExcept.h"
 GALLIUM_BINDER_NS_BEGIN
 
 template<typename T>
@@ -105,9 +106,9 @@ std::optional<TypedArrayMemory<T>> GetTypedArrayMemory(v8::Local<v8::Value> v)
     if (!binder::IsSome<T>(v))
         return {};
     v8::Local<T> array = v8::Local<T>::Cast(v);
-    if (!array->HasBuffer())
-        return {};
     v8::Local<v8::ArrayBuffer> ab = array->Buffer();
+    if (ab->WasDetached())
+        return {};
     TypedArrayMemory<T> res;
     res.array = array;
     res.memory = ab->GetBackingStore();
@@ -137,6 +138,27 @@ CreateBackingStoreFromSmartPtrMemory(SmartPtr owned, void *data, size_t size)
 
     auto *closure = new TypedHolder{ owned };
     return v8::ArrayBuffer::NewBackingStore(data, size, deleter, closure);
+}
+
+inline std::optional<uint64_t> BigIntToU64Strict(v8::Local<v8::BigInt> bigint)
+{
+    bool lossless;
+    uint64_t ret = bigint->Uint64Value(&lossless);
+    if (!lossless)
+        return {};
+    return ret;
+}
+
+inline uint64_t BigIntToU64StrictOrThrow(v8::Local<v8::BigInt> bigint)
+{
+    bool lossless;
+    uint64_t ret = bigint->Uint64Value(&lossless);
+    if (!lossless)
+    {
+        g_throw(RangeError, "The bigint value cannot be interpreted"
+                            " as a u64 value lossless");
+    }
+    return ret;
 }
 
 GALLIUM_BINDER_NS_END

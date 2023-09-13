@@ -55,6 +55,9 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
         { "CAPABILITY_MESSAGE_QUEUE_PROFILING_ENABLED",
                                                 EV(Capabilities::kMessageQueueProfilingEnabled) },
 
+        { "GPU_SEMAPHORE_SUBMITTED_YES", EV(GrSemaphoresSubmitted::kYes) },
+        { "GPU_SEMAPHORE_SUBMITTED_NO",  EV(GrSemaphoresSubmitted::kNo) },
+
         { "COLOR_TYPE_ALPHA8",              EV(T::kAlpha_8_SkColorType)             },
         { "COLOR_TYPE_RGB565",              EV(T::kRGB_565_SkColorType)             },
         { "COLOR_TYPE_ARGB4444",            EV(T::kARGB_4444_SkColorType)           },
@@ -81,6 +84,13 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
         { "ALPHA_TYPE_OPAQUE",          EV(A::kOpaque_SkAlphaType)   },
 
         { "COLOR_SPACE_SRGB", EV(ColorSpace::kSRGB) },
+
+        { "IMAGE_BIT_DEPTH_U8", EV(SkImages::BitDepth::kU8) },
+        { "IMAGE_BIT_DEPTH_F16", EV(SkImages::BitDepth::kF16) },
+
+        { "TEXTURE_COMPRESSION_TYPE_ETC2_RGB8_UNORM", EV(SkTextureCompressionType::kETC2_RGB8_UNORM) },
+        { "TEXTURE_COMPRESSION_TYPE_BC1_RGB8_UNORM", EV(SkTextureCompressionType::kBC1_RGB8_UNORM) },
+        { "TEXTURE_COMPRESSION_TYPE_BC1_RGBA8_UNORM", EV(SkTextureCompressionType::kBC1_RGBA8_UNORM) },
 
         { "PAINT_STYLE_FILL", EV(SkPaint::kFill_Style) },
         { "PAINT_STYLE_STROKE", EV(SkPaint::kStroke_Style) },
@@ -448,6 +458,15 @@ SkSamplingOptions SamplingToSamplingOptions(int32_t v)
     }
 
     return sampling_options;
+}
+
+void SetApplicationInfo(const std::string& name, int32_t major,
+                        int32_t minor, int32_t patch)
+{
+    gl::GlobalScope::ApplicationInfo::VersionTriple version_triple =
+            std::make_tuple(major, minor, patch);
+    gl::GlobalScope::Ref().SetApplicationInfo(
+            gl::GlobalScope::ApplicationInfo(name, version_triple));
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

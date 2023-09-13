@@ -55,8 +55,6 @@ v8::Local<v8::Value> CRPKGStorageWrap::read(size_t src_offset, v8::Local<v8::Val
         g_throw(TypeError, "Argument `dst` must be a Uint8Array");
 
     v8::Local<v8::Uint8Array> array = dst.As<v8::Uint8Array>();
-    if (!array->HasBuffer())
-        g_throw(TypeError, "Argument `dst` must be an allocated Uint8Array");
     if (dst_offset > array->ByteLength())
         g_throw(RangeError, "Invalid offset and size for `dst` buffer");
 
@@ -217,9 +215,6 @@ std::shared_ptr<Data> create_data_from_source(v8::Isolate *isolate,
         }
 
         v8::Local<v8::Uint8Array> arr = prop_source_val.As<v8::Uint8Array>();
-        if (!arr->HasBuffer())
-            g_throw(Error, "Unallocated array buffer");
-
         auto *ptr = reinterpret_cast<uint8_t*>(arr->Buffer()->Data()) + arr->ByteOffset();
         return Data::MakeFromExternal(
                 ptr, arr->ByteLength(),

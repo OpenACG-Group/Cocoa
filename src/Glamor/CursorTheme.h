@@ -21,7 +21,7 @@
 #include <unordered_map>
 
 #include "Glamor/Glamor.h"
-#include "Glamor/RenderClientObject.h"
+#include "Glamor/PresentRemoteHandle.h"
 GLAMOR_NAMESPACE_BEGIN
 
 #define GLOP_CURSORTHEME_DISPOSE                    1
@@ -29,7 +29,7 @@ GLAMOR_NAMESPACE_BEGIN
 
 class Cursor;
 
-class CursorTheme : public RenderClientObject
+class CursorTheme : public PresentRemoteHandle
 {
 public:
     ~CursorTheme() override;

@@ -113,9 +113,9 @@ private:
     Shared<CursorTheme> OnLoadCursorTheme(const std::string &name, int size) override;
     void OnDispose() override;
 
-    static void PrepareCallback(uv_prepare_t *prepare);
-    static void CheckCallback(uv_check_t *check);
-    static void PollCallback(uv_poll_t *poll, int status, int events);
+    void PrepareCallback();
+    void CheckCallback();
+    void PollCallback(int status, int events);
 
     wl_display                     *wl_display_;
     wl_registry                    *wl_registry_;
@@ -127,10 +127,10 @@ private:
     std::list<Shared<WaylandSeat>>  seats_list_;
     std::unique_ptr<WaylandInputContext> input_context_;
 
-    uv_prepare_t                   *uv_prepare_handle_;
-    uv_check_t                     *uv_check_handle_;
-    uv_poll_t                      *uv_poll_handle_;
-    bool                            display_is_reading_;
+    std::optional<uv::PrepareHandle> uv_prepare_;
+    std::optional<uv::CheckHandle>   uv_check_;
+    std::optional<uv::PollHandle>    uv_poll_;
+    bool                             display_is_reading_;
 };
 
 class WaylandRoundtripScope
