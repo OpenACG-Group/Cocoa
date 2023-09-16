@@ -37,7 +37,7 @@ GLAMOR_TRAMPOLINE_IMPL(Cursor, GetHotspotVector)
     info.SetReturnValue(v);
 }
 
-Cursor::Cursor(Weak<CursorTheme> theme)
+Cursor::Cursor(std::weak_ptr<CursorTheme> theme)
     : PresentRemoteHandle(RealType::kCursor)
     , disposed_(false)
     , theme_(std::move(theme))

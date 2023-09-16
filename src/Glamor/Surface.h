@@ -38,7 +38,6 @@ GLAMOR_NAMESPACE_BEGIN
 #define GLOP_SURFACE_SET_MAXIMIZED                  8
 #define GLOP_SURFACE_SET_MINIMIZED                  9
 #define GLOP_SURFACE_SET_FULLSCREEN                 10
-#define GLOP_SURFACE_CREATE_BLENDER                 11
 #define GLOP_SURFACE_SET_ATTACHED_CURSOR            12
 
 //! Emitted when the window is actually closed.
@@ -89,7 +88,7 @@ GLAMOR_NAMESPACE_BEGIN
 class RenderTarget;
 class Display;
 class Monitor;
-class Blender;
+class ContentAggregator;
 class Cursor;
 
 enum class ToplevelStates : uint32_t
@@ -109,14 +108,14 @@ class Surface : public PresentRemoteHandle,
                 public GraphicsResourcesTrackable
 {
 public:
-    explicit Surface(Shared<RenderTarget> rt);
+    explicit Surface(std::shared_ptr<RenderTarget> rt);
     ~Surface() override;
 
-    g_nodiscard g_inline Shared<Display> GetDisplay() const {
+    g_nodiscard g_inline std::shared_ptr<Display> GetDisplay() const {
         return display_.lock();
     }
 
-    g_nodiscard g_inline Shared<RenderTarget> GetRenderTarget() const {
+    g_nodiscard g_inline std::shared_ptr<RenderTarget> GetRenderTarget() const {
         return render_target_;
     }
 
@@ -125,8 +124,6 @@ public:
     }
 
     g_async_api void Close();
-
-    g_async_api Shared<Blender> CreateBlender();
 
     g_async_api bool Resize(int32_t width, int32_t height);
     g_async_api void SetMaxSize(int32_t width, int32_t height);
@@ -139,7 +136,7 @@ public:
      * `monitor` is nullable if `value` is `false`, which means caller is attempting to
      * unset the fullscreen state.
      */
-    g_async_api void SetFullscreen(bool value, const Shared<Monitor>& monitor);
+    g_async_api void SetFullscreen(bool value, const std::shared_ptr<Monitor>& monitor);
 
     g_async_api void SetTitle(const std::string_view& title);
 
@@ -153,10 +150,14 @@ public:
 
     g_sync_api const SkMatrix& GetRootTransformation() const;
 
-    g_sync_api void SetAttachedCursor(const Shared<Cursor>& cursor);
+    g_sync_api void SetAttachedCursor(const std::shared_ptr<Cursor>& cursor);
 
-    g_private_api const Shared<Cursor>& GetAttachedCursor() const {
+    g_private_api const std::shared_ptr<Cursor>& GetAttachedCursor() const {
         return attached_cursor_;
+    }
+
+    g_sync_api std::shared_ptr<ContentAggregator> GetContentAggregator() {
+        return content_aggregator_;
     }
 
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
@@ -168,17 +169,25 @@ protected:
     virtual void OnSetMinSize(int32_t width, int32_t height) = 0;
     virtual void OnSetMaximized(bool value) = 0;
     virtual void OnSetMinimized(bool value) = 0;
-    virtual void OnSetFullscreen(bool value, const Shared<Monitor>& monitor) = 0;
+    virtual void OnSetFullscreen(bool value, const std::shared_ptr<Monitor>& monitor) = 0;
     virtual const SkMatrix& OnGetRootTransformation() const;
-    virtual void OnSetCursor(const Shared<Cursor>& cursor) = 0;
+    virtual void OnSetCursor(const std::shared_ptr<Cursor>& cursor) = 0;
     void OnFrameNotification(uint32_t sequence) override;
 
+    /**
+     * Implementor must call this to set a ContentAggregator
+     * after the `Surface` is initialized immediately.
+     */
+    void SetContentAggregator(std::shared_ptr<ContentAggregator> aggregator) {
+        content_aggregator_ = std::move(aggregator);
+    }
+
 private:
-    bool                            has_disposed_;
-    Shared<RenderTarget>            render_target_;
-    Weak<Display>                   display_;
-    Shared<Cursor>                  attached_cursor_;
-    Weak<Blender>                   weak_blender_;
+    bool                                has_disposed_;
+    std::shared_ptr<RenderTarget>       render_target_;
+    std::weak_ptr<Display>              display_;
+    std::shared_ptr<Cursor>             attached_cursor_;
+    std::shared_ptr<ContentAggregator>  content_aggregator_;
 };
 
 GLAMOR_NAMESPACE_END

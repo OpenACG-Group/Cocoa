@@ -28,7 +28,7 @@ GLAMOR_TRAMPOLINE_IMPL(Monitor, RequestProperties)
     info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
-Monitor::Monitor(const Weak<Display>& display)
+Monitor::Monitor(const std::weak_ptr<Display>& display)
     : PresentRemoteHandle(RealType::kMonitor)
     , display_(display)
     , unique_id_(0)
@@ -93,7 +93,7 @@ void Monitor::NotifyPropertiesChanged()
     prop->description = description_;
 
     PresentSignal info;
-    info.EmplaceBack<Shared<PropertySet>>(std::move(prop));
+    info.EmplaceBack<std::shared_ptr<PropertySet>>(std::move(prop));
 
     Emit(GLSI_MONITOR_PROPERTIES_CHANGED, std::move(info));
 }

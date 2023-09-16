@@ -48,7 +48,7 @@ public:
         kTaskRunner,
         kDisplay,
         kSurface,
-        kBlender,
+        kContentAggregator,
         kMonitor,
         kCursorTheme,
         kCursor
@@ -71,16 +71,16 @@ public:
     g_nodiscard static const char *GetTypeName(RealType type);
 
     template<typename T>
-    g_nodiscard g_inline Shared<T> Cast() {
+    g_nodiscard g_inline std::shared_ptr<T> Cast() {
         return std::static_pointer_cast<T>(shared_from_this());
     }
 
-    g_nodiscard g_inline Shared<PresentRemoteHandle> Self() {
+    g_nodiscard g_inline std::shared_ptr<PresentRemoteHandle> Self() {
         return shared_from_this();
     }
 
     template<typename T, typename std::enable_if<std::is_base_of_v<PresentRemoteHandle, T>>::type* = nullptr>
-    g_nodiscard g_inline Shared<T> As() {
+    g_nodiscard g_inline std::shared_ptr<T> As() {
         auto ptr = std::static_pointer_cast<T>(shared_from_this());
         return ptr;
     }

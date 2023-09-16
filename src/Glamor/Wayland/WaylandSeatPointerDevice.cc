@@ -47,7 +47,7 @@ const wl_pointer_listener g_pointer_listener = {
     .axis_value120 = WaylandSeatPointerDevice::on_axis_value120
 };
 
-Shared<WaylandSurface> extract_surface_from_pointer(void *data, wl_pointer *pointer)
+std::shared_ptr<WaylandSurface> extract_surface_from_pointer(void *data, wl_pointer *pointer)
 {
     CHECK(data);
     auto *listener = LISTENER(data);
@@ -77,7 +77,7 @@ WaylandSeatPointerDevice::~WaylandSeatPointerDevice()
     wl_pointer_destroy(pointer_device_);
 }
 
-Unique<WaylandSeatPointerDevice>
+std::unique_ptr<WaylandSeatPointerDevice>
 WaylandSeatPointerDevice::MakeFromPointerDevice(WaylandSeat *seat, wl_pointer *pointer)
 {
     CHECK(seat && pointer);
@@ -186,7 +186,7 @@ void WaylandSeatPointerDevice::on_motion(void *data,
 {
     CHECK(data && pointer);
 
-    Shared<WaylandSurface> surface = extract_surface_from_pointer(data, pointer);
+    std::shared_ptr<WaylandSurface> surface = extract_surface_from_pointer(data, pointer);
     if (!surface)
     {
         QLOG(LOG_ERROR, "Compositor notified us a motion event of a pointer "
@@ -226,7 +226,7 @@ void WaylandSeatPointerDevice::on_button(void *data,
         return;
     }
 
-    Shared<WaylandSurface> surface = extract_surface_from_pointer(data, pointer);
+    std::shared_ptr<WaylandSurface> surface = extract_surface_from_pointer(data, pointer);
     if (!surface)
     {
         QLOG(LOG_ERROR, "Compositor notified us a button event of a pointer "

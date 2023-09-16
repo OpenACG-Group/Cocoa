@@ -21,7 +21,7 @@
 #include "Glamor/RasterFrameGenerator.h"
 GLAMOR_NAMESPACE_BEGIN
 
-RasterFrameGenerator::RasterFrameGenerator(const Shared<Blender>& blender)
+RasterFrameGenerator::RasterFrameGenerator(const std::shared_ptr<ContentAggregator>& blender)
     : FrameGeneratorBase(blender)
 {
 }

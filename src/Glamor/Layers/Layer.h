@@ -148,8 +148,8 @@ public:
         return paint_bounds_;
     }
 
-    // This should be set for each layer when Blender is prerolling the layer tree,
-    // otherwise it will stay empty.
+    // This should be set for each layer when ContentAggregator is
+    // prerolling the layer tree, otherwise it will stay empty.
     g_inline void SetPaintBounds(const SkRect& bounds) {
         paint_bounds_ = bounds;
     }

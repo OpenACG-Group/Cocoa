@@ -36,26 +36,26 @@ GLAMOR_NAMESPACE_BEGIN
 
 class Surface;
 
-class Blender;
+class ContentAggregator;
 class LayerTree;
 class GProfiler;
 
-#define GLOP_BLENDER_DISPOSE                            1
-#define GLOP_BLENDER_UPDATE                             2
-#define GLOP_BLENDER_CAPTURE_NEXT_FRAME_AS_PICTURE      8
-#define GLOP_BLENDER_PURGE_RASTER_CACHE_RESOURCES       9
-#define GLOP_BLENDER_IMPORT_GPU_SEMAPHORE_FROM_FD       10
-#define GLOP_BLENDER_DELETE_IMPORTED_GPU_SEMAPHORE      11
+#define GLOP_CONTENTAGGREGATOR_DISPOSE                            1
+#define GLOP_CONTENTAGGREGATOR_UPDATE                             2
+#define GLOP_CONTENTAGGREGATOR_CAPTURE_NEXT_FRAME_AS_PICTURE      8
+#define GLOP_CONTENTAGGREGATOR_PURGE_RASTER_CACHE_RESOURCES       9
+#define GLOP_CONTENTAGGREGATOR_IMPORT_GPU_SEMAPHORE_FROM_FD       10
+#define GLOP_CONTENTAGGREGATOR_DELETE_IMPORTED_GPU_SEMAPHORE      11
 
-#define GLSI_BLENDER_PICTURE_CAPTURED                   8
+#define GLSI_CONTENTAGGREGATOR_PICTURE_CAPTURED                   8
 
-class Blender : public PresentRemoteHandle,
-                public GraphicsResourcesTrackable
+class ContentAggregator : public PresentRemoteHandle,
+                          public GraphicsResourcesTrackable
 {
 public:
     enum class FrameScheduleState
     {
-        // Blender is completely idle and ready to schedule a new frame.
+        // Completely idle and ready to schedule a new frame.
         kIdle,
 
         // There is a frame which has been begun and waiting to be submitted.
@@ -70,16 +70,17 @@ public:
         kDisposed
     };
 
-    static Shared<Blender> Make(const Shared<Surface>& surface);
+    static std::shared_ptr<ContentAggregator> Make(
+            const std::shared_ptr<Surface>& surface);
 
-    explicit Blender(const Shared<Surface>& surface);
-    ~Blender() override;
+    explicit ContentAggregator(const std::shared_ptr<Surface>& surface);
+    ~ContentAggregator() override;
 
-    g_nodiscard g_inline Shared<Surface> GetOutputSurface() const {
-        return output_surface_;
+    g_nodiscard std::shared_ptr<Surface> GetOutputSurface() const {
+        return GetSurfaceChecked();
     }
 
-    g_nodiscard g_inline const Shared<LayerTree>& GetLayerTree() const {
+    g_nodiscard const std::shared_ptr<LayerTree>& GetLayerTree() const {
         return layer_tree_;
     }
 
@@ -90,7 +91,8 @@ public:
      * It is always safe to use the profiler after the corresponding blender
      * has been destroyed.
      */
-    g_sync_api g_nodiscard g_inline const Shared<GProfiler>& GetAttachedProfiler() const {
+    g_sync_api g_nodiscard const std::shared_ptr<GProfiler>&
+    GetAttachedProfiler() const {
         return gfx_profiler_;
     }
 
@@ -99,7 +101,7 @@ public:
     g_nodiscard int32_t GetHeight() const;
     g_nodiscard SkColorInfo GetOutputColorInfo() const;
 
-    g_async_api void Update(const Shared<LayerTree>& layer_tree);
+    g_async_api void Update(const std::shared_ptr<LayerTree>& layer_tree);
     g_async_api int32_t CaptureNextFrameAsPicture();
     g_async_api void Dispose();
 
@@ -117,15 +119,17 @@ private:
     void SurfaceResizeSlot(int32_t width, int32_t height);
     void SurfaceFrameSlot();
 
+    std::shared_ptr<Surface> GetSurfaceChecked() const;
+
     bool                           disposed_;
     uint32_t                       surface_resize_slot_id_;
     uint32_t                       surface_frame_slot_id_;
-    Shared<Surface>                output_surface_;
-    Shared<LayerTree>              layer_tree_;
+    std::weak_ptr<Surface>         weak_surface_;
+    std::shared_ptr<LayerTree>     layer_tree_;
     SkIRect                        current_dirty_rect_;
     FrameScheduleState             frame_schedule_state_;
-    Unique<RasterCache>            raster_cache_;
-    Shared<GProfiler>              gfx_profiler_;
+    std::unique_ptr<RasterCache>   raster_cache_;
+    std::shared_ptr<GProfiler>     gfx_profiler_;
 
     bool                           should_capture_next_frame_;
     int32_t                        capture_next_frame_serial_;

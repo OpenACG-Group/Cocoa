@@ -31,7 +31,7 @@ PresentRemoteCallReturn::PresentRemoteCallReturn(PresentRemoteCallMessage *pInvo
     }
 }
 
-Shared<PresentRemoteHandle> PresentRemoteCallReturn::GetReceiver() const
+std::shared_ptr<PresentRemoteHandle> PresentRemoteCallReturn::GetReceiver() const
 {
     return invocation_->GetReceiver();
 }

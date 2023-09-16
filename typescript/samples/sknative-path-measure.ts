@@ -34,8 +34,6 @@ display.addOnceListener('closed', () => {
 });
 surface.setTitle('PathMeasure');
 
-let blender = await surface.createBlender();
-
 const path = new GL.CkPath();
 path.moveTo(100, 200);
 path.cubicTo(100, 100, 300, 0, 400, 100);
@@ -91,7 +89,7 @@ function render(): void {
         .addPicture(pict, true, 0, 0)
         .build();
 
-    blender.update(scene).then(() => { scene.dispose(); });
+    surface.contentAggregator.update(scene).then(() => { scene.dispose(); });
 
     t = (t + 0.001) % 1;
 }
@@ -100,7 +98,6 @@ surface.addListener('frame', render);
 
 surface.addOnceListener('close', () => {
     surface.removeListener('frame', render);
-    blender.dispose();
     surface.close();
 });
 

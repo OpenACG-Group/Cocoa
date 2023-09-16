@@ -64,7 +64,7 @@ public:
         std::vector<std::string>    device_extensions;
     };
 
-    static Shared<HWComposeContext> MakeVulkan(const Options& options);
+    static std::shared_ptr<HWComposeContext> MakeVulkan(const Options& options);
 
     HWComposeContext();
     ~HWComposeContext() override;

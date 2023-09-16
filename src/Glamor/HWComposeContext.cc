@@ -323,7 +323,7 @@ VkPhysicalDevice vk_pick_physical_device(VkInstance instance, const HWComposeCon
 
 } // namespace anonymous
 
-Shared<HWComposeContext> HWComposeContext::MakeVulkan(const Options& options)
+std::shared_ptr<HWComposeContext> HWComposeContext::MakeVulkan(const Options& options)
 {
     auto context = std::make_shared<HWComposeContext>();
     CHECK(context);

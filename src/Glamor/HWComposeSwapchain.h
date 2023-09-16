@@ -56,13 +56,14 @@ public:
     class VkSurfaceFactory
     {
     public:
-        virtual VkSurfaceKHR Create(const Shared<HWComposeContext>& context) = 0;
+        virtual VkSurfaceKHR Create(const std::shared_ptr<HWComposeContext>& context) = 0;
     };
 
-    static Unique<HWComposeSwapchain> Make(const Shared<HWComposeContext>& context,
-                                           VkSurfaceFactory& factory,
-                                           int32_t width, int32_t height,
-                                           SkPixelGeometry pixel_geometry);
+    static std::unique_ptr<HWComposeSwapchain> Make(
+            const std::shared_ptr<HWComposeContext>& context,
+            VkSurfaceFactory& factory,
+            int32_t width, int32_t height,
+            SkPixelGeometry pixel_geometry);
 
     HWComposeSwapchain();
     ~HWComposeSwapchain() override;
@@ -85,24 +86,24 @@ private:
     bool CreateGpuBuffers();
     void ReleaseEntireSwapchain();
 
-    Shared<HWComposeContext>        context_;
-    Unique<HWComposeDevice>         device_;
-    SkPixelGeometry                 pixel_geometry_;
-    uint32_t                        device_graphics_queue_family_;
-    uint32_t                        device_present_queue_family_;
-    VkQueue                         device_present_queue_;
-    VkSurfaceKHR                    vk_surface_;
-    SwapchainDetails                details_;
-    VkPresentModeKHR                vk_present_mode_;
-    VkSwapchainKHR                  vk_swapchain_;
-    uint32_t                        vk_images_count_;
-    VkFormat                        vk_image_format_;
-    VkExtent2D                      vk_swapchain_extent_;
-    VkSharingMode                   vk_images_sharing_mode_;
+    std::shared_ptr<HWComposeContext>   context_;
+    std::unique_ptr<HWComposeDevice>    device_;
+    SkPixelGeometry                     pixel_geometry_;
+    uint32_t                            device_graphics_queue_family_;
+    uint32_t                            device_present_queue_family_;
+    VkQueue                             device_present_queue_;
+    VkSurfaceKHR                        vk_surface_;
+    SwapchainDetails                    details_;
+    VkPresentModeKHR                    vk_present_mode_;
+    VkSwapchainKHR                      vk_swapchain_;
+    uint32_t                            vk_images_count_;
+    VkFormat                            vk_image_format_;
+    VkExtent2D                          vk_swapchain_extent_;
+    VkSharingMode                       vk_images_sharing_mode_;
 
-    std::vector<GpuBufferInfo>      gpu_buffers_;
-    std::vector<sk_sp<SkSurface>>   skia_surfaces_;
-    uint32_t                        current_buffer_idx_;
+    std::vector<GpuBufferInfo>          gpu_buffers_;
+    std::vector<sk_sp<SkSurface>>       skia_surfaces_;
+    uint32_t                            current_buffer_idx_;
 };
 
 GLAMOR_NAMESPACE_END

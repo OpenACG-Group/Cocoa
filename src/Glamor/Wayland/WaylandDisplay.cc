@@ -105,7 +105,7 @@ void WaylandDisplay::RegistryHandleGlobalRemove(void *data,
 
         // If `name` is not a seat, it may be a monitor
         auto itr = std::find_if(d->monitors_list_.begin(), d->monitors_list_.end(),
-                                [name](const Shared<Monitor>& mon) {
+                                [name](const std::shared_ptr<Monitor>& mon) {
             auto wl_monitor = mon->Cast<WaylandMonitor>();
             return (wl_monitor->GetOutputRegistryId() == name);
         });
@@ -119,7 +119,7 @@ void WaylandDisplay::RegistryHandleGlobalRemove(void *data,
 
             // Notify display's listeners that a monitor was removed from list
             PresentSignal emitterInfo;
-            emitterInfo.EmplaceBack<Shared<Monitor>>(wl_monitor);
+            emitterInfo.EmplaceBack<std::shared_ptr<Monitor>>(wl_monitor);
             d->Emit(GLSI_DISPLAY_MONITOR_REMOVED, std::move(emitterInfo));
         }
     }
@@ -206,7 +206,8 @@ void WaylandDisplay::RegistryHandleGlobal(void *data, wl_registry *registry, uin
     }
 }
 
-Shared<WaylandDisplay> WaylandDisplay::Connect(uv_loop_t *loop, const std::string& name)
+std::shared_ptr<WaylandDisplay>
+WaylandDisplay::Connect(uv_loop_t *loop, const std::string& name)
 {
     CHECK(loop);
     wl_log_set_handler_client(wayland_log_handler);
@@ -300,7 +301,7 @@ void WaylandDisplay::PollCallback(int status, int events)
     {
         wl_display_read_events(wl_display_);
         wl_display_dispatch_pending(wl_display_);
-        for (const Shared<Surface>& surface : GetSurfacesList())
+        for (const auto& surface : GetSurfacesList())
         {
             auto rt = std::static_pointer_cast<WaylandRenderTarget>(surface->GetRenderTarget());
             wl_display_dispatch_queue_pending(wl_display_, rt->GetWaylandEventQueue());
@@ -324,7 +325,7 @@ void WaylandDisplay::CheckCallback()
     }
 }
 
-WaylandRoundtripScope::WaylandRoundtripScope(Shared<WaylandDisplay> display)
+WaylandRoundtripScope::WaylandRoundtripScope(std::shared_ptr<WaylandDisplay> display)
     : display_(std::move(display))
     , changed_(false)
 {
@@ -410,7 +411,7 @@ void WaylandDisplay::OnDispose()
 bool WaylandDisplay::TryRemoveSeat(uint32_t id)
 {
     auto itr = std::find_if(seats_list_.begin(), seats_list_.end(),
-                            [id](const Shared<WaylandSeat>& ptr) {
+                            [id](const std::shared_ptr<WaylandSeat>& ptr) {
         return (ptr->GetRegistryId() == id);
     });
 
@@ -466,12 +467,13 @@ std::vector<SkColorType> WaylandDisplay::GetRasterColorFormats()
     return result;
 }
 
-Shared<Surface> WaylandDisplay::OnCreateSurface(int32_t width, int32_t height, SkColorType format,
-                                                RenderTarget::RenderDevice device)
+std::shared_ptr<Surface>
+WaylandDisplay::OnCreateSurface(int32_t width, int32_t height, SkColorType format,
+                                RenderTarget::RenderDevice device)
 {
     WaylandRoundtripScope scope(Self()->Cast<WaylandDisplay>());
 
-    Shared<WaylandRenderTarget> rt;
+    std::shared_ptr<WaylandRenderTarget> rt;
     switch (device)
     {
     case RenderTarget::RenderDevice::kRaster:
@@ -515,7 +517,7 @@ bool WaylandDisplay::HasPointerDeviceInSeats()
         return false;
 
     auto itr = std::find_if(seats_list_.begin(), seats_list_.end(),
-                            [](const Shared<WaylandSeat>& seat) -> bool {
+                            [](const std::shared_ptr<WaylandSeat>& seat) -> bool {
         return seat->GetPointerDevice();
     });
     return (itr != seats_list_.end());
@@ -527,14 +529,14 @@ bool WaylandDisplay::HasKeyboardDeviceInSeats()
         return false;
 
     auto itr = std::find_if(seats_list_.begin(), seats_list_.end(),
-                            [](const Shared<WaylandSeat>& seat) -> bool {
+                            [](const std::shared_ptr<WaylandSeat>& seat) -> bool {
         return seat->GetKeyboardDevice();
     });
 
     return (itr != seats_list_.end());
 }
 
-Shared<WaylandSurface> WaylandDisplay::GetPointerEnteredSurface(wl_pointer *pointer)
+std::shared_ptr<WaylandSurface> WaylandDisplay::GetPointerEnteredSurface(wl_pointer *pointer)
 {
     CHECK(pointer);
 
@@ -542,7 +544,7 @@ Shared<WaylandSurface> WaylandDisplay::GetPointerEnteredSurface(wl_pointer *poin
         return nullptr;
 
     auto itr = std::find_if(surfaces_list_.begin(), surfaces_list_.end(),
-                            [pointer](const Shared<Surface>& surface) -> bool {
+                            [pointer](const std::shared_ptr<Surface>& surface) -> bool {
         wl_pointer *hover_pointer = surface->As<WaylandSurface>()->GetEnteredPointerDevice();
         return (hover_pointer == pointer);
     });
@@ -552,7 +554,8 @@ Shared<WaylandSurface> WaylandDisplay::GetPointerEnteredSurface(wl_pointer *poin
     return (*itr)->As<WaylandSurface>();
 }
 
-Shared<WaylandSurface> WaylandDisplay::GetKeyboardEnteredSurface(wl_keyboard *keyboard)
+std::shared_ptr<WaylandSurface>
+WaylandDisplay::GetKeyboardEnteredSurface(wl_keyboard *keyboard)
 {
     CHECK(keyboard);
 
@@ -560,7 +563,7 @@ Shared<WaylandSurface> WaylandDisplay::GetKeyboardEnteredSurface(wl_keyboard *ke
         return nullptr;
 
     auto itr = std::find_if(surfaces_list_.begin(), surfaces_list_.end(),
-                            [keyboard](const Shared<Surface>& surface) -> bool {
+                            [keyboard](const std::shared_ptr<Surface>& surface) -> bool {
         wl_keyboard *focus = surface->As<WaylandSurface>()->GetEnteredKeyboardDevice();
         return (focus == keyboard);
     });
@@ -571,13 +574,15 @@ Shared<WaylandSurface> WaylandDisplay::GetKeyboardEnteredSurface(wl_keyboard *ke
     return (*itr)->As<WaylandSurface>();
 }
 
-Shared<CursorTheme> WaylandDisplay::OnLoadCursorTheme(const std::string& name, int size)
+std::shared_ptr<CursorTheme>
+WaylandDisplay::OnLoadCursorTheme(const std::string& name, int size)
 {
     return WaylandCursorTheme::MakeFromName(Self()->As<WaylandDisplay>(), name, size);
 }
 
-Shared<Cursor> WaylandDisplay::OnCreateCursor(const Shared<SkBitmap>& bitmap,
-                                              int32_t hotspot_x, int32_t hotspot_y)
+std::shared_ptr<Cursor>
+WaylandDisplay::OnCreateCursor(const std::shared_ptr<SkBitmap>& bitmap,
+                               int32_t hotspot_x, int32_t hotspot_y)
 {
     CHECK(bitmap);
     CHECK(hotspot_x >= 0 && hotspot_y >= 0);

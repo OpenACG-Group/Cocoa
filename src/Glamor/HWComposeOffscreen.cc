@@ -71,8 +71,8 @@ struct GrContextDeviceClosure
 
 } // namespace anonymous
 
-Unique<HWComposeOffscreen>
-HWComposeOffscreen::Make(const Shared<HWComposeContext> &context)
+std::unique_ptr<HWComposeOffscreen>
+HWComposeOffscreen::Make(const std::shared_ptr<HWComposeContext> &context)
 {
     HWComposeDevice::DeviceQueueSpecifier device_graphics_queue_spec{
         .selector = HWComposeDevice::DeviceQueueSelector::kGraphics,
@@ -133,7 +133,7 @@ HWComposeOffscreen::Make(const Shared<HWComposeContext> &context)
             std::move(device), std::move(direct_ctx));
 }
 
-HWComposeOffscreen::HWComposeOffscreen(Shared<HWComposeDevice> device,
+HWComposeOffscreen::HWComposeOffscreen(std::shared_ptr<HWComposeDevice> device,
                                        sk_sp<GrDirectContext> direct_context)
     : device_(std::move(device))
 {

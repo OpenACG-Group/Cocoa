@@ -29,10 +29,10 @@ GLAMOR_NAMESPACE_BEGIN
 class WaylandSurface : public Surface
 {
 public:
-    explicit WaylandSurface(const Shared<WaylandRenderTarget>& rt);
+    explicit WaylandSurface(const std::shared_ptr<WaylandRenderTarget>& rt);
     ~WaylandSurface() override;
 
-    static Shared<Surface> Make(const Shared<WaylandRenderTarget>& rt);
+    static std::shared_ptr<Surface> Make(const std::shared_ptr<WaylandRenderTarget>& rt);
 
     g_nodiscard g_inline wl_surface *GetWaylandSurface() const {
         return wl_surface_;
@@ -44,9 +44,9 @@ public:
     void OnSetMaxSize(int32_t width, int32_t height) override;
     void OnSetMinimized(bool value) override;
     void OnSetMaximized(bool value) override;
-    void OnSetFullscreen(bool value, const Shared<Monitor>& monitor) override;
+    void OnSetFullscreen(bool value, const std::shared_ptr<Monitor>& monitor) override;
 
-    void OnSetCursor(const Shared<Cursor> &cursor) override;
+    void OnSetCursor(const std::shared_ptr<Cursor> &cursor) override;
 
     g_private_api g_inline void SetPointerEntered(uint32_t serial, wl_pointer *device) {
         latest_pointer_enter_serial_ = serial;

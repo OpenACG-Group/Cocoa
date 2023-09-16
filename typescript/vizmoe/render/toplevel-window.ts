@@ -322,7 +322,7 @@ export class ToplevelWindow extends EventEmitter {
             throw Error('Window has been closed');
         }
 
-        await this.fDrawContext.dispose();
+        this.fDrawContext.dispose();
 
         this.removeAllListeners(CloseRequestEvent);
         this.removeAllListeners(PointerHoverEvent);

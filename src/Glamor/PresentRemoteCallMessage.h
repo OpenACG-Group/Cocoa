@@ -32,7 +32,7 @@ class PresentRemoteHandle;
 class PresentRemoteCallMessage : public PresentMessage
 {
 public:
-    PresentRemoteCallMessage(Shared<PresentRemoteHandle> receiver, PresentRemoteCall info,
+    PresentRemoteCallMessage(std::shared_ptr<PresentRemoteHandle> receiver, PresentRemoteCall info,
                              PresentRemoteCallResultCallback callback)
         : PresentMessage(PresentMessage::Type::kRemoteCall)
         , receiver_(std::move(receiver))
@@ -44,7 +44,7 @@ public:
 
     PresentRemoteCallMessage& operator=(const PresentRemoteCallMessage&) = delete;
 
-    g_nodiscard g_inline Shared<PresentRemoteHandle> GetReceiver() const {
+    g_nodiscard g_inline std::shared_ptr<PresentRemoteHandle> GetReceiver() const {
         return receiver_;
     }
 
@@ -57,9 +57,9 @@ public:
     }
 
 private:
-    Shared<PresentRemoteHandle>       receiver_;
-    PresentRemoteCall                 client_call_info_;
-    PresentRemoteCallResultCallback   host_callback_;
+    std::shared_ptr<PresentRemoteHandle>    receiver_;
+    PresentRemoteCall                       client_call_info_;
+    PresentRemoteCallResultCallback         host_callback_;
 };
 
 GLAMOR_NAMESPACE_END

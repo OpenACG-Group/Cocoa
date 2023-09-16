@@ -175,7 +175,7 @@ struct {
     E(TaskRunner),
     E(Display),
     E(Surface),
-    E(Blender),
+    E(ContentAggregator),
     E(Monitor),
     E(Cursor),
     E(CursorTheme)

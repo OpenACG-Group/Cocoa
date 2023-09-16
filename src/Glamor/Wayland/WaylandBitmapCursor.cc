@@ -33,7 +33,8 @@ GLAMOR_NAMESPACE_BEGIN
 namespace {
 
 // To make sure that the uploaded bitmap is in `WL_SHM_FORMAT_ARGB8888` format.
-Shared<SkBitmap> convert_to_argb_format_bitmap(const Shared<SkBitmap>& src)
+std::shared_ptr<SkBitmap>
+convert_to_argb_format_bitmap(const std::shared_ptr<SkBitmap>& src)
 {
     SkImageInfo dst_info = SkImageInfo::Make(src->width(),
                                              src->height(),
@@ -52,13 +53,14 @@ Shared<SkBitmap> convert_to_argb_format_bitmap(const Shared<SkBitmap>& src)
 
 } // namespace anonymous
 
-Shared<WaylandCursor> WaylandCursor::MakeFromBitmap(const Shared<WaylandDisplay>& display,
-                                                    const Shared<SkBitmap>& origin_bitmap,
-                                                    const SkIVector& hotspot)
+std::shared_ptr<WaylandCursor>
+WaylandCursor::MakeFromBitmap(const std::shared_ptr<WaylandDisplay>& display,
+                              const std::shared_ptr<SkBitmap>& origin_bitmap,
+                              const SkIVector& hotspot)
 {
     CHECK(display && origin_bitmap);
 
-    Shared<SkBitmap> bitmap = convert_to_argb_format_bitmap(origin_bitmap);
+    std::shared_ptr<SkBitmap> bitmap = convert_to_argb_format_bitmap(origin_bitmap);
     size_t pixels_byte_size = bitmap->computeByteSize();
 
     wl_shm *shm = display->GetGlobalsRef()->wl_shm_;
@@ -101,7 +103,7 @@ Shared<WaylandCursor> WaylandCursor::MakeFromBitmap(const Shared<WaylandDisplay>
     return std::make_shared<WaylandBitmapCursor>(pool_helper, buffer, surface, hotspot);
 }
 
-WaylandBitmapCursor::WaylandBitmapCursor(Shared<WaylandSharedMemoryHelper> helper,
+WaylandBitmapCursor::WaylandBitmapCursor(std::shared_ptr<WaylandSharedMemoryHelper> helper,
                                          wl_buffer *buffer,
                                          wl_surface *surface,
                                          const SkIVector& hotspot)

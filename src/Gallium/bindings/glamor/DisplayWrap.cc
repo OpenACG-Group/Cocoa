@@ -24,7 +24,7 @@
 #include "Glamor/Monitor.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-DisplayWrap::DisplayWrap(gl::Shared<gl::PresentRemoteHandle> handle)
+DisplayWrap::DisplayWrap(std::shared_ptr<gl::PresentRemoteHandle> handle)
     : handle_(std::move(handle))
 {
     DefineSignalEventsOnEventEmitter(this, handle_, {
@@ -34,7 +34,7 @@ DisplayWrap::DisplayWrap(gl::Shared<gl::PresentRemoteHandle> handle)
             GLSI_DISPLAY_MONITOR_ADDED,
             [this](v8::Isolate *i, gl::PresentSignalArgs &info) {
                 v8::HandleScope scope(i);
-                auto monitor = info.Get<gl::Shared<gl::Monitor>>(0);
+                auto monitor = info.Get<std::shared_ptr<gl::Monitor>>(0);
                 v8::Local<v8::Object> result = binder::NewObject<MonitorWrap>(i, monitor);
                 this->monitor_objects_map_[monitor].Reset(i, result);
                 return std::vector<v8::Local<v8::Value>>{result};
@@ -45,7 +45,7 @@ DisplayWrap::DisplayWrap(gl::Shared<gl::PresentRemoteHandle> handle)
             GLSI_DISPLAY_MONITOR_REMOVED,
             [this](v8::Isolate *i, gl::PresentSignalArgs &info) {
                 v8::HandleScope scope(i);
-                auto monitor = info.Get<gl::Shared<gl::Monitor>>(0);
+                auto monitor = info.Get<std::shared_ptr<gl::Monitor>>(0);
                 v8::Local<v8::Object> result;
                 if (LIKELY(this->monitor_objects_map_.count(monitor) > 0)) {
                     result = this->monitor_objects_map_[monitor].Get(i);
@@ -76,10 +76,11 @@ v8::Local<v8::Value> DisplayWrap::close()
 
 namespace {
 
-v8::Local<v8::Value> create_surface_invoke(DisplayWrap *wrap,
-                                           const gl::Shared<gl::PresentRemoteHandle>& display,
-                                           bool hw_compose,
-                                           int32_t width, int32_t height)
+v8::Local<v8::Value>
+create_surface_invoke(DisplayWrap *wrap,
+                      const std::shared_ptr<gl::PresentRemoteHandle>& display,
+                      bool hw_compose,
+                      int32_t width, int32_t height)
 {
     if (width <= 0 || height <= 0)
         g_throw(RangeError, "Surface width and height must be positive integers");
@@ -198,7 +199,7 @@ namespace {
 SignalArgsVector monitor_property_set_transcription(v8::Isolate *isolate,
                                                     gl::PresentSignalArgs& info)
 {
-    auto props = info.Get<gl::Shared<gl::Monitor::PropertySet>>(0);
+    auto props = info.Get<std::shared_ptr<gl::Monitor::PropertySet>>(0);
     std::unordered_map<std::string_view, v8::Local<v8::Value>> fields_map{
         { "logicalX", binder::to_v8(isolate, props->logical_position.x()) },
         { "logicalY", binder::to_v8(isolate, props->logical_position.y()) },
@@ -220,7 +221,7 @@ SignalArgsVector monitor_property_set_transcription(v8::Isolate *isolate,
 
 } // namespace anonymous
 
-MonitorWrap::MonitorWrap(gl::Shared<gl::PresentRemoteHandle> handle)
+MonitorWrap::MonitorWrap(std::shared_ptr<gl::PresentRemoteHandle> handle)
     : handle_(std::move(handle))
 {
     DefineSignalEventsOnEventEmitter(this, handle_, {

@@ -34,21 +34,22 @@ class CursorTheme : public PresentRemoteHandle
 public:
     ~CursorTheme() override;
 
-    Shared<Cursor> LoadCursorFromName(const std::string& name);
+    std::shared_ptr<Cursor> LoadCursorFromName(const std::string& name);
     void Dispose();
 
-    g_private_api void RemoveCursorFromCache(const Shared<Cursor>& cursor);
+    g_private_api void RemoveCursorFromCache(const std::shared_ptr<Cursor>& cursor);
 
 protected:
     CursorTheme();
 
     virtual void OnDispose() = 0;
-    virtual Shared<Cursor> OnLoadCursorFromName(const std::string& name) = 0;
+    virtual std::shared_ptr<Cursor> OnLoadCursorFromName(const std::string& name) = 0;
 
 private:
-    bool                        disposed_;
-    std::unordered_map<std::string, Shared<Cursor>>
-                                cached_cursors_;
+    using CacheMap = std::unordered_map<std::string, std::shared_ptr<Cursor>>;
+
+    bool     disposed_;
+    CacheMap cached_cursors_;
 };
 
 GLAMOR_NAMESPACE_END

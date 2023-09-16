@@ -22,7 +22,7 @@ GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.RenderTarget)
 
-RenderTarget::RenderTarget(const Shared<Display>& display, RenderDevice device,
+RenderTarget::RenderTarget(const std::shared_ptr<Display>& display, RenderDevice device,
                            int32_t width, int32_t height, SkColorType format)
     : display_weak_(display)
     , device_type_(device)
@@ -90,15 +90,15 @@ void RenderTarget::Resize(int32_t width, int32_t height)
     this->OnResize(width, height);
 }
 
-const Shared<HWComposeSwapchain>& RenderTarget::GetHWComposeSwapchain()
+const std::shared_ptr<HWComposeSwapchain>& RenderTarget::GetHWComposeSwapchain()
 {
     return this->OnGetHWComposeSwapchain();
 }
 
 
-const Shared<HWComposeSwapchain>& RenderTarget::OnGetHWComposeSwapchain()
+const std::shared_ptr<HWComposeSwapchain>& RenderTarget::OnGetHWComposeSwapchain()
 {
-    static Shared<HWComposeSwapchain> sw = nullptr;
+    static std::shared_ptr<HWComposeSwapchain> sw = nullptr;
     return sw;
 }
 

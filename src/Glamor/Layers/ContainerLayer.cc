@@ -30,7 +30,7 @@ void ContainerLayer::PrerollChildren(PrerollContext *context,
                                      SkRect *child_paint_bounds)
 {
     // Iterate each child layer and reroll them respectively
-    for (const Shared<Layer>& layer : child_layers_)
+    for (const std::shared_ptr<Layer>& layer : child_layers_)
     {
         // ContainerLayer doesn't have any transformations, so applying `matrix` directly
         // to child layer is reasonable.
@@ -50,7 +50,7 @@ void ContainerLayer::Paint(PaintContext *context) const
 void ContainerLayer::PaintChildren(PaintContext *context) const
 {
     // Iterate each child layer and paint them respectively
-    for (const Shared<Layer>& layer : child_layers_)
+    for (const std::shared_ptr<Layer>& layer : child_layers_)
     {
         if (layer->NeedsPainting(context))
             layer->Paint(context);
@@ -60,7 +60,7 @@ void ContainerLayer::PaintChildren(PaintContext *context) const
 void ContainerLayer::ChildrenToString(std::ostream& out)
 {
     bool is_first_child = true;
-    for (const Shared<Layer>& layer : child_layers_)
+    for (const std::shared_ptr<Layer>& layer : child_layers_)
     {
         if (is_first_child)
             is_first_child = false;

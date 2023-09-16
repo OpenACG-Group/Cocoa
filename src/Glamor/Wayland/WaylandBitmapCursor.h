@@ -28,7 +28,7 @@ class WaylandSharedMemoryHelper;
 class WaylandBitmapCursor : public WaylandCursor
 {
 public:
-    WaylandBitmapCursor(Shared<WaylandSharedMemoryHelper> helper,
+    WaylandBitmapCursor(std::shared_ptr<WaylandSharedMemoryHelper> helper,
                         wl_buffer *buffer,
                         wl_surface *surface,
                         const SkIVector& hotspot);
@@ -41,7 +41,8 @@ public:
     void OnTryStartAnimation() override;
 
 private:
-    Shared<WaylandSharedMemoryHelper> shm_pool_helper_;
+    std::shared_ptr<WaylandSharedMemoryHelper>
+                             shm_pool_helper_;
     wl_buffer               *bitmap_buffer_;
     wl_surface              *surface_;
     SkIVector                hotspot_;

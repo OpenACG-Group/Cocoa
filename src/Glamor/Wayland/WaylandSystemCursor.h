@@ -39,7 +39,7 @@ class WaylandCursorTheme;
 class WaylandSystemCursor : public WaylandCursor
 {
 public:
-    WaylandSystemCursor(const Shared<CursorTheme>& theme,
+    WaylandSystemCursor(const std::shared_ptr<CursorTheme>& theme,
                         wl_cursor *cursor,
                         wl_surface *cursor_surface);
     ~WaylandSystemCursor() override;

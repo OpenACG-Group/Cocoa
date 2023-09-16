@@ -47,16 +47,17 @@ public:
         void               *ptr;
         size_t              size;
         sk_sp<SkSurface>    surface;
-        Shared<WaylandSharedMemoryHelper>
+        std::shared_ptr<WaylandSharedMemoryHelper>
                             shared_pool_helper;
         WaylandSHMRenderTarget *rt;
     };
 
-    static Shared<WaylandSHMRenderTarget> Make(const Shared<WaylandDisplay>& display,
-                                               int32_t width, int32_t height, SkColorType format);
+    static std::shared_ptr<WaylandSHMRenderTarget> Make(
+            const std::shared_ptr<WaylandDisplay>& display,
+            int32_t width, int32_t height, SkColorType format);
 
-    WaylandSHMRenderTarget(const Shared<WaylandDisplay>& display, int32_t width, int32_t height,
-                           SkColorType format);
+    WaylandSHMRenderTarget(const std::shared_ptr<WaylandDisplay>& display,
+                           int32_t width, int32_t height, SkColorType format);
     ~WaylandSHMRenderTarget() override;
 
     SkSurface *OnBeginFrame() override;
@@ -78,8 +79,8 @@ private:
     void AllocateAppendBuffers(int32_t count, int32_t width, int32_t height, SkColorType format);
     int32_t GetNextDrawingBuffer();
 
-    std::vector<Unique<Buffer>>       buffers_;
-    std::vector<Unique<Buffer>>       deferred_destructing_buffers_;
+    std::vector<std::unique_ptr<Buffer>> buffers_;
+    std::vector<std::unique_ptr<Buffer>> deferred_destructing_buffers_;
     int32_t                              drawing_buffer_idx_;
     int32_t                              committed_buffer_idx_;
 };

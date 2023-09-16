@@ -29,7 +29,7 @@ public:
     using SignalCode = uint32_t;
 
     PresentSignalMessage(std::shared_ptr<PresentSignal> info,
-                         const Shared<PresentRemoteHandle>& emitter,
+                         const std::shared_ptr<PresentRemoteHandle>& emitter,
                          SignalCode code)
         : PresentMessage(PresentMessage::Type::kSignalEmit)
         , emitter_(emitter)
@@ -37,7 +37,7 @@ public:
         , signal_info_(std::move(info)) {}
     ~PresentSignalMessage() override = default;
 
-    g_nodiscard Shared<PresentRemoteHandle> GetEmitter() const {
+    g_nodiscard std::shared_ptr<PresentRemoteHandle> GetEmitter() const {
         return emitter_;
     }
 
@@ -45,14 +45,14 @@ public:
         return signal_code_;
     }
 
-    g_nodiscard Shared<PresentSignal> GetSignalInfo() const {
+    g_nodiscard std::shared_ptr<PresentSignal> GetSignalInfo() const {
         return signal_info_;
     }
 
 private:
-    Shared<PresentRemoteHandle>     emitter_;
-    SignalCode                      signal_code_;
-    std::shared_ptr<PresentSignal>  signal_info_;
+    std::shared_ptr<PresentRemoteHandle> emitter_;
+    SignalCode                           signal_code_;
+    std::shared_ptr<PresentSignal>       signal_info_;
 };
 
 GLAMOR_NAMESPACE_END

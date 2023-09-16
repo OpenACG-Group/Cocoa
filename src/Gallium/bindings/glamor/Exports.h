@@ -41,7 +41,7 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 class DisplayWrap;
 class SurfaceWrap;
-class BlenderWrap;
+class ContentAggregatorWrap;
 
 class Scene;
 
@@ -103,7 +103,7 @@ private:
 class GProfilerWrap : public ExportableObjectBase
 {
 public:
-    explicit GProfilerWrap(gl::Shared<gl::GProfiler> profiler)
+    explicit GProfilerWrap(std::shared_ptr<gl::GProfiler> profiler)
         : profiler_(std::move(profiler)) {}
     ~GProfilerWrap() = default;
 
@@ -114,7 +114,7 @@ public:
     v8::Local<v8::Value> generateCurrentReport();
 
 private:
-    gl::Shared<gl::GProfiler> profiler_;
+    std::shared_ptr<gl::GProfiler> profiler_;
 };
 
 //! TSDecl: class Display extends EventEmitterBase
@@ -122,7 +122,7 @@ class DisplayWrap : public ExportableObjectBase,
                     public EventEmitterBase
 {
 public:
-    explicit DisplayWrap(gl::Shared<gl::PresentRemoteHandle> handle);
+    explicit DisplayWrap(std::shared_ptr<gl::PresentRemoteHandle> handle);
     ~DisplayWrap() override;
 
     //! TSDecl: function close(): Promise<void>
@@ -161,7 +161,7 @@ class MonitorWrap : public ExportableObjectBase,
                     public EventEmitterBase
 {
 public:
-    explicit MonitorWrap(gl::Shared<gl::PresentRemoteHandle> handle);
+    explicit MonitorWrap(std::shared_ptr<gl::PresentRemoteHandle> handle);
     ~MonitorWrap() override = default;
 
     //! TSDecl: function requestPropertySet(): Promise<void>
@@ -216,7 +216,7 @@ class SurfaceWrap : public ExportableObjectBase,
                     public EventEmitterBase
 {
 public:
-    SurfaceWrap(gl::Shared<gl::PresentRemoteHandle> handle,
+    SurfaceWrap(std::shared_ptr<gl::PresentRemoteHandle> handle,
                 v8::Local<v8::Object> display);
     ~SurfaceWrap() override;
 
@@ -229,8 +229,8 @@ public:
     //! TSDecl: readonly display: Display
     g_nodiscard v8::Local<v8::Value> getDisplay();
 
-    //! TSDecl: function createBlender(): Promise<Blender>
-    g_nodiscard v8::Local<v8::Value> createBlender();
+    //! TSDecl: readonly contentAggregator: ContentAggregator
+    g_nodiscard v8::Local<v8::Value> getContentAggregator();
 
     //! TSDecl: function close(): Promise<void>
     g_nodiscard v8::Local<v8::Value> close();
@@ -271,15 +271,16 @@ private:
     std::shared_ptr<gl::PresentRemoteHandle> handle_;
     v8::Global<v8::Object>                  display_wrapped_;
     uint32_t                                surface_closed_slot_;
+    v8::Global<v8::Object>                  content_aggregator_;
 };
 
-//! TSDecl: class Blender extends EventEmitterBase
-class BlenderWrap : public ExportableObjectBase
-                  , public EventEmitterBase
+//! TSDecl: class ContentAggregator extends EventEmitterBase
+class ContentAggregatorWrap : public ExportableObjectBase
+                            , public EventEmitterBase
 {
 public:
-    explicit BlenderWrap(gl::Shared<gl::PresentRemoteHandle> handle);
-    ~BlenderWrap() override;
+    explicit ContentAggregatorWrap(std::shared_ptr<gl::PresentRemoteHandle> handle);
+    ~ContentAggregatorWrap() override;
 
     //! TSDecl: readonly profiler: null | GProfiler
     v8::Local<v8::Value> getProfiler();

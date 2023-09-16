@@ -101,9 +101,9 @@ void WaylandSeat::on_name(void *data, g_maybe_unused wl_seat *seat, const char *
     seat_object->seat_name_ = name;
 }
 
-Shared<WaylandSeat> WaylandSeat::Make(const std::shared_ptr<WaylandDisplay>& display,
-                                      wl_seat *seat,
-                                      uint32_t registry_id)
+std::shared_ptr<WaylandSeat>
+WaylandSeat::Make(const std::shared_ptr<WaylandDisplay>& display,
+                  wl_seat *seat, uint32_t registry_id)
 {
     CHECK(display && seat);
 
@@ -138,7 +138,8 @@ WaylandSeat::~WaylandSeat()
     wl_seat_destroy(wl_seat_);
 }
 
-Shared<WaylandSurface> WaylandSeat::FindSurfaceByNativeHandle(wl_surface *surface)
+std::shared_ptr<WaylandSurface>
+WaylandSeat::FindSurfaceByNativeHandle(wl_surface *surface)
 {
     // The userdata field of `surface` points to `WaylandRenderTarget` object with an uncertain type.
     // It may be `WaylandHWComposeRenderTarget` or `WaylandSHMRenderTarget`,

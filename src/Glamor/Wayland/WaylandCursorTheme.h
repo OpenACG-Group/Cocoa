@@ -31,12 +31,15 @@ public:
     WaylandCursorTheme(WaylandDisplay *display, wl_cursor_theme *theme, int size);
     ~WaylandCursorTheme() override = default;
 
-    g_nodiscard static Shared<WaylandCursorTheme> MakeDefault(const Shared<WaylandDisplay>& display);
-    g_nodiscard static Shared<WaylandCursorTheme> MakeFromName(const Shared<WaylandDisplay>& display,
-                                                               const std::string& name, int size);
+    g_nodiscard static std::shared_ptr<WaylandCursorTheme>
+    MakeDefault(const std::shared_ptr<WaylandDisplay>& display);
+
+    g_nodiscard static std::shared_ptr<WaylandCursorTheme>
+    MakeFromName(const std::shared_ptr<WaylandDisplay>& display,
+                 const std::string& name, int size);
 
     void OnDispose() override;
-    Shared<Cursor> OnLoadCursorFromName(const std::string &name) override;
+    std::shared_ptr<Cursor> OnLoadCursorFromName(const std::string &name) override;
 
     g_nodiscard g_inline int GetCursorSize() const {
         return cursor_size_;

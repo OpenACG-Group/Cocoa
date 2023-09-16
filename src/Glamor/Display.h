@@ -50,9 +50,9 @@ class Display : public PresentRemoteHandle,
                 public GraphicsResourcesTrackable
 {
 public:
-    using MonitorList = std::list<Shared<Monitor>>;
+    using MonitorList = std::list<std::shared_ptr<Monitor>>;
 
-    static Shared<Display> Connect(uv_loop_t *loop, const std::string& name);
+    static std::shared_ptr<Display> Connect(uv_loop_t *loop, const std::string& name);
 
     explicit Display(uv_loop_t *eventLoop);
     ~Display() override;
@@ -61,7 +61,8 @@ public:
         return event_loop_;
     }
 
-    g_nodiscard g_inline const std::list<Shared<Surface>>& GetSurfacesList() const {
+    g_nodiscard g_inline const std::list<std::shared_ptr<Surface>>&
+    GetSurfacesList() const {
         return surfaces_list_;
     }
 
@@ -70,16 +71,16 @@ public:
     g_async_api void Close();
 
     g_async_api MonitorList RequestMonitorList();
-    g_async_api Shared<Surface> CreateRasterSurface(int32_t width, int32_t height, SkColorType format);
-    g_async_api Shared<Surface> CreateHWComposeSurface(int32_t width, int32_t height, SkColorType format);
+    g_async_api std::shared_ptr<Surface> CreateRasterSurface(int32_t width, int32_t height, SkColorType format);
+    g_async_api std::shared_ptr<Surface> CreateHWComposeSurface(int32_t width, int32_t height, SkColorType format);
 
-    g_async_api Shared<Cursor> CreateCursor(const Shared<SkBitmap>& bitmap,
-                                            int32_t hotspot_x, int32_t hotspot_y);
-    g_async_api Shared<CursorTheme> LoadCursorTheme(const std::string& name, int size);
+    g_async_api std::shared_ptr<Cursor> CreateCursor(const std::shared_ptr<SkBitmap>& bitmap,
+                                                     int32_t hotspot_x, int32_t hotspot_y);
+    g_async_api std::shared_ptr<CursorTheme> LoadCursorTheme(const std::string& name, int size);
 
-    g_private_api void RemoveSurfaceFromList(const Shared<Surface>& s);
+    g_private_api void RemoveSurfaceFromList(const std::shared_ptr<Surface>& s);
 
-    g_sync_api Shared<CursorTheme> GetDefaultCursorTheme() const {
+    g_sync_api std::shared_ptr<CursorTheme> GetDefaultCursorTheme() const {
         CHECK(!cursor_themes_list_.empty());
         return cursor_themes_list_.front();
     }
@@ -87,31 +88,36 @@ public:
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 
 protected:
-    virtual Shared<Surface> OnCreateSurface(int32_t width, int32_t height, SkColorType format,
-                                            RenderTarget::RenderDevice device) = 0;
-    virtual Shared<Cursor> OnCreateCursor(const Shared<SkBitmap>& bitmap,
-                                          int32_t hotspot_x, int32_t hotspot_y);
-    virtual Shared<CursorTheme> OnLoadCursorTheme(const std::string& name, int size);
+    virtual std::shared_ptr<Surface> OnCreateSurface(
+            int32_t width, int32_t height, SkColorType format,
+            RenderTarget::RenderDevice device) = 0;
+
+    virtual std::shared_ptr<Cursor> OnCreateCursor(
+            const std::shared_ptr<SkBitmap>& bitmap,
+            int32_t hotspot_x, int32_t hotspot_y);
+
+    virtual std::shared_ptr<CursorTheme> OnLoadCursorTheme(
+            const std::string& name, int size);
 
     virtual void OnDispose() = 0;
 
-    void AppendSurface(const Shared<Surface>& surface);
+    void AppendSurface(const std::shared_ptr<Surface>& surface);
 
-    void AppendMonitor(const Shared<Monitor>& monitor);
-    bool RemoveMonitor(const Shared<Monitor>& monitor);
+    void AppendMonitor(const std::shared_ptr<Monitor>& monitor);
+    bool RemoveMonitor(const std::shared_ptr<Monitor>& monitor);
 
-    void AppendDefaultCursorTheme(const Shared<CursorTheme>& theme);
+    void AppendDefaultCursorTheme(const std::shared_ptr<CursorTheme>& theme);
 
-    uv_loop_t                          *event_loop_;
-    bool                                has_disposed_;
-    std::list<Shared<Monitor>>          monitors_list_;
-    std::list<Shared<Surface>>          surfaces_list_;
+    uv_loop_t                               *event_loop_;
+    bool                                     has_disposed_;
+    std::list<std::shared_ptr<Monitor>>      monitors_list_;
+    std::list<std::shared_ptr<Surface>>      surfaces_list_;
 
-    // Only stores cursor objects that was "created" by application,
-    // not loaded from cursor themes. Cursors that was loaded from
+    // Only stores cursor objects that were "created" by application,
+    // not loaded from cursor themes. Cursors that were loaded from
     // cursor themes are stored in `CursorTheme` objects.
-    std::list<Shared<Cursor>>           created_cursors_list_;
-    std::list<Shared<CursorTheme>>      cursor_themes_list_;
+    std::list<std::shared_ptr<Cursor>>       created_cursors_list_;
+    std::list<std::shared_ptr<CursorTheme>>  cursor_themes_list_;
 };
 
 GLAMOR_NAMESPACE_END

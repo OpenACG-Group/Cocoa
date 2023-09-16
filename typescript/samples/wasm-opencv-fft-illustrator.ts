@@ -246,15 +246,12 @@ async function main(): Promise<void> {
 
     window.addOnceListener('close', () => {
         animationCtx.stop = true;
-        blender.dispose();
         window.close();
     });
 
     window.addOnceListener('closed', () => {
         display.close();
     });
-
-    const blender = await window.createBlender();
 
     const paint = new gl.CkPaint();
     paint.setAntiAlias(true);
@@ -313,7 +310,7 @@ async function main(): Promise<void> {
             .addPicture(recorder.finishRecordingAsPicture(), true, 0, 0)
             .build();
 
-        blender.update(scene).then(() => {
+        window.contentAggregator.update(scene).then(() => {
             scene.dispose();
         });
     }, 30);

@@ -35,7 +35,7 @@ class CursorTheme;
 class Cursor : public PresentRemoteHandle
 {
 public:
-    explicit Cursor(Weak<CursorTheme> theme = {});
+    explicit Cursor(std::weak_ptr<CursorTheme> theme = {});
     ~Cursor() override;
 
     g_async_api void Dispose();
@@ -52,9 +52,9 @@ private:
     virtual void OnTryAbortAnimation() = 0;
     virtual void OnTryStartAnimation() = 0;
 
-    bool                    disposed_;
+    bool                        disposed_;
     // May be nullptr if the cursor is not loaded from a theme
-    Weak<CursorTheme>       theme_;
+    std::weak_ptr<CursorTheme>  theme_;
 };
 
 GLAMOR_NAMESPACE_END

@@ -141,8 +141,8 @@ bool check_surface_capabilities(const SwapchainDetails& details)
 }
 
 void populate_gr_vk_extensions(GrVkExtensions& ext,
-                               const Shared<HWComposeContext>& ctx,
-                               const Unique<HWComposeDevice>& device)
+                               const std::shared_ptr<HWComposeContext>& ctx,
+                               const std::unique_ptr<HWComposeDevice>& device)
 {
     std::vector<const char *> instance_ext;
     instance_ext.reserve(ctx->GetInstanceEnabledExtensions().size());
@@ -165,8 +165,8 @@ void populate_gr_vk_extensions(GrVkExtensions& ext,
 
 } // namespace anonymous
 
-Unique<HWComposeSwapchain>
-HWComposeSwapchain::Make(const Shared<HWComposeContext>& context,
+std::unique_ptr<HWComposeSwapchain>
+HWComposeSwapchain::Make(const std::shared_ptr<HWComposeContext>& context,
                          VkSurfaceFactory& factory,
                          int32_t width, int32_t height,
                          SkPixelGeometry pixel_geometry)

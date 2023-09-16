@@ -37,15 +37,6 @@ GLAMOR_NAMESPACE_BEGIN
 
 class SkEventTracerImpl;
 
-template<typename T>
-using Shared = std::shared_ptr<T>;
-
-template<typename T>
-using Unique = std::unique_ptr<T>;
-
-template<typename T>
-using Weak = std::weak_ptr<T>;
-
 #define GLAMOR_BACKEND_WAYLAND      "wayland"
 
 #define GLAMOR_SKIA_JIT_DEFAULT     true
@@ -244,28 +235,25 @@ public:
         return present_thread_.get();
     }
 
-    const Unique<StandaloneThreadPool>& GetRenderWorkersThreadPool();
+    const std::unique_ptr<StandaloneThreadPool>& GetRenderWorkersThreadPool();
 
     g_nodiscard SkEventTracerImpl *GetSkEventTracerImpl() {
         return skia_event_tracer_impl_;
     }
 
-    g_nodiscard Shared<HWComposeContext> GetHWComposeContext();
+    g_nodiscard std::shared_ptr<HWComposeContext> GetHWComposeContext();
 
 private:
-    ContextOptions  options_;
-    ApplicationInfo application_info_;
-    EventLoop      *event_loop_;
-    Unique<StandaloneThreadPool>  render_workers_;
-    SkEventTracerImpl
-                    *skia_event_tracer_impl_;
-
-    std::mutex               hw_compose_creation_lock_;
-    bool                     hw_compose_context_creation_failed_;
-    bool                     hw_compose_disabled_;
-    Shared<HWComposeContext> hw_compose_context_;
-
-    std::unique_ptr<PresentThread> present_thread_;
+    ContextOptions                          options_;
+    ApplicationInfo                         application_info_;
+    EventLoop                              *event_loop_;
+    std::unique_ptr<StandaloneThreadPool>   render_workers_;
+    SkEventTracerImpl                      *skia_event_tracer_impl_;
+    std::mutex                              hw_compose_creation_lock_;
+    bool                                    hw_compose_context_creation_failed_;
+    bool                                    hw_compose_disabled_;
+    std::shared_ptr<HWComposeContext>       hw_compose_context_;
+    std::unique_ptr<PresentThread>          present_thread_;
 };
 
 GLAMOR_NAMESPACE_END

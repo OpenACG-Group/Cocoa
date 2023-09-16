@@ -25,16 +25,16 @@
 #include "Glamor/Glamor.h"
 GLAMOR_NAMESPACE_BEGIN
 
-class Blender;
+class ContentAggregator;
 
 class FrameGeneratorBase
 {
 public:
-    explicit FrameGeneratorBase(const Shared<Blender>& blender)
+    explicit FrameGeneratorBase(const Shared<ContentAggregator>& blender)
         : weak_blender_(blender) {}
     virtual ~FrameGeneratorBase() = default;
 
-    g_nodiscard g_inline Shared<Blender> GetBlender() const {
+    g_nodiscard g_inline Shared<ContentAggregator> GetBlender() const {
         CHECK(!weak_blender_.expired());
         return weak_blender_.lock();
     }
@@ -49,7 +49,7 @@ protected:
                          const sk_sp<SkPicture>& picture, const SkIRect& rect) = 0;
 
 private:
-    Weak<Blender>        weak_blender_;
+    std::weak_ptr<ContentAggregator>        weak_blender_;
 };
 
 GLAMOR_NAMESPACE_END

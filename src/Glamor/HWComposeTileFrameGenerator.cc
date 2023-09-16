@@ -28,7 +28,7 @@
 #include "Glamor/HWComposeTileFrameGenerator.h"
 #include "Glamor/HWComposeSwapchain.h"
 #include "Glamor/Surface.h"
-#include "Glamor/Blender.h"
+#include "Glamor/ContentAggregator.h"
 GLAMOR_NAMESPACE_BEGIN
 
 namespace {

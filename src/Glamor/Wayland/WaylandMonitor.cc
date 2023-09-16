@@ -162,20 +162,20 @@ void WaylandMonitor::OutputEventDescription(void *data,
     monitor->description_ = description;
 }
 
-Shared<WaylandMonitor> WaylandMonitor::Make(const Shared<WaylandDisplay>& display,
-                                            wl_output *output,
-                                            uint32_t registry_id)
+std::shared_ptr<WaylandMonitor>
+WaylandMonitor::Make(const std::shared_ptr<WaylandDisplay>& display,
+                     wl_output *output, uint32_t registry_id)
 {
     auto monitor = std::make_shared<WaylandMonitor>(display, output, registry_id);
 
     // callback functions will not be called immediately, but they will be called
-    // in next roundtrip which is performed in `WaylandDisplay::Connect`.
+    //  in the next roundtrip which is performed in `WaylandDisplay::Connect`.
     wl_output_add_listener(output, &g_output_listener, monitor.get());
     return monitor;
 }
 
-WaylandMonitor::WaylandMonitor(const Weak<WaylandDisplay>& display, wl_output *output,
-                               uint32_t registry_id)
+WaylandMonitor::WaylandMonitor(const std::weak_ptr<WaylandDisplay>& display,
+                               wl_output *output, uint32_t registry_id)
     : Monitor(display)
     , wl_display_(display.lock()->GetWaylandDisplay())
     , wl_output_(output)

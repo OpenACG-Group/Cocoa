@@ -236,10 +236,11 @@ v8::Local<v8::Value> SceneBuilder::addVideoBuffer(v8::Local<v8::Value> vbo,
     utau::VideoFrameGLEmbedder *embedder = utau::GlobalContext::Ref().GetVideoFrameGLEmbedder();
     CHECK(embedder);
 
-    gl::Shared<gl::ExternalTextureLayer> layer = embedder->Commit(wrapper->GetBuffer(),
-                                                                  SkPoint::Make(dx, dy),
-                                                                  SkSize::Make(width, height).toRound(),
-                                                                  SamplingToSamplingOptions(sampling));
+    std::shared_ptr<gl::ExternalTextureLayer> layer =
+            embedder->Commit(wrapper->GetBuffer(),
+                             SkPoint::Make(dx, dy),
+                             SkSize::Make(width, height).toRound(),
+                             SamplingToSamplingOptions(sampling));
     if (!layer)
         g_throw(Error, "Failed to generate an external texture layer for video");
 

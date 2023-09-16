@@ -115,7 +115,7 @@ ContextOptions& GlobalScope::GetOptions()
     return options_;
 }
 
-const Unique<StandaloneThreadPool>& GlobalScope::GetRenderWorkersThreadPool()
+const std::unique_ptr<StandaloneThreadPool>& GlobalScope::GetRenderWorkersThreadPool()
 {
     if (!render_workers_)
     {
@@ -168,7 +168,7 @@ std::map<std::string, VkDBGLevelFilter> g_vkdbg_level_filters_name = {
 
 } // namespace anonymous
 
-Shared<HWComposeContext> GlobalScope::GetHWComposeContext()
+std::shared_ptr<HWComposeContext> GlobalScope::GetHWComposeContext()
 {
     // Only one thread can create a `HWComposeContext` at the same time.
     // Once a context is created, it will be used by all the threads.

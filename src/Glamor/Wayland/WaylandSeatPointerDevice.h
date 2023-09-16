@@ -46,8 +46,8 @@ public:
 
     ~WaylandSeatPointerDevice();
 
-    static Unique<WaylandSeatPointerDevice> MakeFromPointerDevice(WaylandSeat *seat,
-                                                                  wl_pointer *pointer);
+    static std::unique_ptr<WaylandSeatPointerDevice>
+    MakeFromPointerDevice(WaylandSeat *seat, wl_pointer *pointer);
 
     g_nodiscard g_inline WaylandSeat *GetSeat() const {
         return seat_;

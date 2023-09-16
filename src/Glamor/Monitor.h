@@ -84,10 +84,10 @@ public:
         std::string             description;
     };
 
-    explicit Monitor(const Weak<Display>& display);
+    explicit Monitor(const std::weak_ptr<Display>& display);
     ~Monitor() override = default;
 
-    g_nodiscard g_inline Shared<Display> GetDisplay() const {
+    g_nodiscard g_inline std::shared_ptr<Display> GetDisplay() const {
         return display_.lock();
     }
 
@@ -100,7 +100,7 @@ public:
     g_private_api PropertySet GetCurrentProperties() const;
 
 private:
-    Weak<Display>           display_;
+    std::weak_ptr<Display>  display_;
     uint32_t                unique_id_;
 
 protected:

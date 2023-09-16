@@ -40,7 +40,7 @@ display.addOnceListener('closed', () => {
 
 surface.setTitle('Lottie Viewer');
 
-let blender = await surface.createBlender();
+const aggregator = surface.contentAggregator;
 
 function playLottie(file: string) {
     const animation = new Lottie.AnimationBuilder(0)
@@ -66,12 +66,11 @@ function playLottie(file: string) {
                     .addPicture(picture, false,0, 0)
                     .build();
 
-        blender.update(scene).then(() => { scene.dispose(); });
+        aggregator.update(scene).then(() => { scene.dispose(); });
     }
 
     surface.addOnceListener('close', () => {
         surface.removeListener('frame', drawFrame);
-        blender.dispose();
         surface.close();
     });
 

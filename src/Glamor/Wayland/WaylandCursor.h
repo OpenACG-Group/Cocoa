@@ -14,14 +14,15 @@ class WaylandDisplay;
 class WaylandCursor : public Cursor
 {
 public:
-    explicit WaylandCursor(const Shared<CursorTheme>& theme,
+    explicit WaylandCursor(const std::shared_ptr<CursorTheme>& theme,
                            wl_surface *surface)
         : Cursor(theme), surface_(surface) {}
     ~WaylandCursor() override = default;
 
-    g_nodiscard static Shared<WaylandCursor> MakeFromBitmap(const Shared<WaylandDisplay>& display,
-                                                            const Shared<SkBitmap>& bitmap,
-                                                            const SkIVector& hotspot);
+    g_nodiscard static std::shared_ptr<WaylandCursor>
+    MakeFromBitmap(const std::shared_ptr<WaylandDisplay>& display,
+                   const std::shared_ptr<SkBitmap>& bitmap,
+                   const SkIVector& hotspot);
 
     g_nodiscard g_inline wl_surface *GetCursorSurface() const {
         return surface_;

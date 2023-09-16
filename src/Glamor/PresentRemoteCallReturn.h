@@ -35,7 +35,7 @@ public:
     explicit PresentRemoteCallReturn(PresentRemoteCallMessage *pInvocation);
     ~PresentRemoteCallReturn() = default;
 
-    g_nodiscard Shared<PresentRemoteHandle> GetReceiver() const;
+    g_nodiscard std::shared_ptr<PresentRemoteHandle> GetReceiver() const;
 
     g_nodiscard PresentRemoteCall::OpCode GetOpcode() const;
 

@@ -139,11 +139,11 @@ const Template g_templates[] = {
                     "See also --pass option for details."
         },
         {
-            .long_name = "startup",
-            .short_name = 's',
+            .long_name = "working-dir",
+            .short_name = 'd',
             .has_value = Template::RequireValue::kNecessary,
             .value_type = ValueType::kString,
-            .desc = "Specify a JavaScript file to run (index.js by default)."
+            .desc = "Specify a working directory."
         },
         {
             .long_name = "gl-transfer-queue-profile",
@@ -552,7 +552,7 @@ void PrintHelp(const char *program)
 {
     fmt::print(
 R"(Cocoa 2D Rendering Framework, version {}
-Usage {} [<options>...] [--] [<path>]
+Usage {} [<options>...] [--] <script file>
 
 AVAILABLE OPTIONS:
 )", COCOA_VERSION, program);

@@ -31,7 +31,7 @@ public:
     WaylandInputContext(WaylandDisplay *display, xkb_context *context);
     ~WaylandInputContext();
 
-    static Unique<WaylandInputContext> Make(WaylandDisplay *display);
+    static std::unique_ptr<WaylandInputContext> Make(WaylandDisplay *display);
 
     g_nodiscard g_inline xkb_context *GetXkbContext() const {
         return xkb_context_;

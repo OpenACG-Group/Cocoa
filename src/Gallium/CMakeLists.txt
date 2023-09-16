@@ -117,7 +117,7 @@ add_library(Gallium STATIC
         bindings/glamor/PresentThreadWrap.cc
         bindings/glamor/DisplayWrap.cc
         bindings/glamor/SurfaceWrap.cc
-        bindings/glamor/BlenderWrap.cc
+        bindings/glamor/ContentAggregatorWrap.cc
         bindings/glamor/CkPictureWrap.cc
         bindings/glamor/CkImageWrap.h
         bindings/glamor/CkImageWrap.cc

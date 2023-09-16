@@ -90,7 +90,6 @@ function draw(canvas: GL.CkCanvas, path: GL.CkPath): void {
 interface WindowContext {
     display: GL.Display;
     surface: GL.Surface;
-    blender: GL.Blender;
 }
 
 async function setupWindowContext(): Promise<WindowContext> {
@@ -101,14 +100,12 @@ async function setupWindowContext(): Promise<WindowContext> {
     });
 
     const surface = await display.createHWComposeSurface(WINDOW_WIDTH, WINDOW_HEIGHT);
-    const blender = await surface.createBlender();
 
     await surface.setTitle('PathText Interactive');
 
     return {
         display: display,
-        surface: surface,
-        blender: blender
+        surface: surface
     };
 }
 
@@ -138,7 +135,7 @@ function render(ctx: WindowContext, pts: GL.CkPoint[]): void {
         .addPicture(pict, true, 0, 0)
         .build();
 
-    ctx.blender.update(scene).then(() => {
+    ctx.surface.contentAggregator.update(scene).then(() => {
         scene.dispose();
     });
 }
@@ -196,9 +193,7 @@ async function main(): Promise<void> {
     });
 
     ctx.surface.addOnceListener('close', () => {
-        ctx.blender.dispose().then(() => {
-            ctx.surface.close();
-        });
+        ctx.surface.close();
     });
 
     ctx.surface.addOnceListener('closed', () => {

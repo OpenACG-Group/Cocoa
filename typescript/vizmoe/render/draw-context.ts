@@ -57,22 +57,21 @@ export class FrameCapturedEvent extends Event {
 
 export class DrawContext extends EventEmitter {
     private readonly fSurface: GL.Surface;
-    private readonly fBlender: GL.Blender;
+    private readonly fAggregator: GL.ContentAggregator;
     private fWidth: number;
     private fHeight: number;
     private fLastCaptureSerial: number;
     private readonly fSubmitter: DrawContextSubmitter;
 
     public static async Make(surface: GL.Surface): Promise<DrawContext> {
-        const blender = await surface.createBlender();
-        return new DrawContext(surface, blender);
+        return new DrawContext(surface);
     }
 
-    private constructor(surface_: GL.Surface, blender_: GL.Blender) {
+    private constructor(surface_: GL.Surface) {
         super();
 
         this.fSurface = surface_;
-        this.fBlender = blender_;
+        this.fAggregator = surface_.contentAggregator;
         this.fWidth = surface_.width;
         this.fHeight = surface_.height;
         this.fLastCaptureSerial = 0;
@@ -88,7 +87,7 @@ export class DrawContext extends EventEmitter {
             return new ResizeEvent(w, h, this);
         });
 
-        this.forwardNative(blender_, 'picture-captured', FrameCapturedEvent,
+        this.forwardNative(this.fAggregator, 'picture-captured', FrameCapturedEvent,
             (picture: GL.CriticalPicture, serial: number) => {
                 if (serial != this.fLastCaptureSerial) {
                     return null;
@@ -102,8 +101,8 @@ export class DrawContext extends EventEmitter {
         return this.fSurface;
     }
 
-    public get blender() {
-        return this.fBlender;
+    public get contentAggregator() {
+        return this.fAggregator;
     }
 
     public get width() {
@@ -118,20 +117,19 @@ export class DrawContext extends EventEmitter {
         return this.fSubmitter;
     }
 
-    public async dispose(): Promise<void> {
+    public dispose(): void {
         this.removeAllListeners(PaintEvent);
         this.removeAllListeners(ResizeEvent);
         this.removeAllListeners(FrameCapturedEvent);
-        return this.fBlender.dispose();
     }
 
     public async submitSceneOwnership(scene: GL.Scene, captureThis: boolean): Promise<void>
     {
         if (captureThis) {
             this.fLastCaptureSerial =
-                await this.fBlender.captureNextFrameAsPicture();
+                await this.fAggregator.captureNextFrameAsPicture();
         }
-        return this.fBlender.update(scene).then(() => {
+        return this.fAggregator.update(scene).then(() => {
             scene.dispose();
         });
     }
@@ -141,6 +139,6 @@ export class DrawContext extends EventEmitter {
     }
 
     public async purgeRasterCacheResources(): Promise<void> {
-        await this.fBlender.purgeRasterCacheResources();
+        await this.fAggregator.purgeRasterCacheResources();
     }
 }

@@ -54,7 +54,7 @@ public:
         return reinterpret_cast<WaylandDisplay*>(data);
     }
 
-    static Shared<WaylandDisplay> Connect(uv_loop_t *loop, const std::string& name);
+    static std::shared_ptr<WaylandDisplay> Connect(uv_loop_t *loop, const std::string& name);
 
     WaylandDisplay(uv_loop_t *loop, int fd);
     ~WaylandDisplay() override;
@@ -63,7 +63,7 @@ public:
         return globals_id_map_;
     }
 
-    g_nodiscard g_inline const Unique<Globals>& GetGlobalsRef() {
+    g_nodiscard g_inline const std::unique_ptr<Globals>& GetGlobalsRef() {
         return globals_;
     }
 
@@ -75,7 +75,7 @@ public:
         return input_context_.get();
     }
 
-    g_inline void AppendSeat(const Shared<WaylandSeat>& seat) {
+    g_inline void AppendSeat(const std::shared_ptr<WaylandSeat>& seat) {
         CHECK(seat && "Invalid seat");
 
         auto itr = std::find(seats_list_.begin(), seats_list_.end(), seat);
@@ -86,8 +86,8 @@ public:
     bool HasPointerDeviceInSeats();
     bool HasKeyboardDeviceInSeats();
 
-    g_nodiscard Shared<WaylandSurface> GetPointerEnteredSurface(wl_pointer *pointer);
-    g_nodiscard Shared<WaylandSurface> GetKeyboardEnteredSurface(wl_keyboard *keyboard);
+    g_nodiscard std::shared_ptr<WaylandSurface> GetPointerEnteredSurface(wl_pointer *pointer);
+    g_nodiscard std::shared_ptr<WaylandSurface> GetKeyboardEnteredSurface(wl_keyboard *keyboard);
 
     /**
      * Try to remove a seat specified by the wayland global ID.
@@ -106,11 +106,11 @@ public:
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 
 private:
-    Shared<Surface> OnCreateSurface(int32_t width, int32_t height, SkColorType format,
-                                    RenderTarget::RenderDevice device) override;
-    Shared<Cursor> OnCreateCursor(const Shared<SkBitmap> &bitmap,
-                                  int32_t hotspot_x, int32_t hotspot_y) override;
-    Shared<CursorTheme> OnLoadCursorTheme(const std::string &name, int size) override;
+    std::shared_ptr<Surface> OnCreateSurface(int32_t width, int32_t height, SkColorType format,
+                                             RenderTarget::RenderDevice device) override;
+    std::shared_ptr<Cursor> OnCreateCursor(const std::shared_ptr<SkBitmap> &bitmap,
+                                           int32_t hotspot_x, int32_t hotspot_y) override;
+    std::shared_ptr<CursorTheme> OnLoadCursorTheme(const std::string &name, int size) override;
     void OnDispose() override;
 
     void PrepareCallback();
@@ -124,8 +124,8 @@ private:
     std::unique_ptr<Globals>        globals_;
     std::vector<wl_shm_format>      wl_shm_formats_;
 
-    std::list<Shared<WaylandSeat>>  seats_list_;
-    std::unique_ptr<WaylandInputContext> input_context_;
+    std::list<std::shared_ptr<WaylandSeat>> seats_list_;
+    std::unique_ptr<WaylandInputContext>    input_context_;
 
     std::optional<uv::PrepareHandle> uv_prepare_;
     std::optional<uv::CheckHandle>   uv_check_;
@@ -136,12 +136,12 @@ private:
 class WaylandRoundtripScope
 {
 public:
-    explicit WaylandRoundtripScope(Shared<WaylandDisplay> display);
+    explicit WaylandRoundtripScope(std::shared_ptr<WaylandDisplay> display);
     ~WaylandRoundtripScope();
 
 private:
-    Shared<WaylandDisplay>   display_;
-    bool                    changed_;
+    std::shared_ptr<WaylandDisplay> display_;
+    bool                            changed_;
 };
 
 GLAMOR_NAMESPACE_END

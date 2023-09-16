@@ -21,19 +21,18 @@ import { print } from 'core';
 const presentThread = await gl.PresentThread.Start();
 const display = await presentThread.createDisplay();
 const surface = await display.createHWComposeSurface(800, 600);
-const blender = await surface.createBlender();
 
 const context = gl.GpuDirectContext.Make();
 const semaphore = context.makeBinarySemaphore();
 
-const id = await blender.importGpuSemaphoreFd(context.exportSemaphoreFd(semaphore));
+const id = await surface.contentAggregator.importGpuSemaphoreFd(
+    context.exportSemaphoreFd(semaphore));
 print(`Exported semaphore to onscreen context, ID=${id}\n`);
 
-await blender.deleteImportedGpuSemaphore(id);
+await surface.contentAggregator.deleteImportedGpuSemaphore(id);
 semaphore.dispose();
 context.dispose();
 
-await blender.dispose();
 await surface.close();
 await display.close();
 

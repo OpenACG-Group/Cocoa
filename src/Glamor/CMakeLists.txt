@@ -32,11 +32,8 @@ add_library(
         FrameNotificationRouter.h
         Surface.h
         Surface.cc
-        Blender.h
-        Blender.cc
-        FrameGeneratorBase.h
-        RasterFrameGenerator.h
-        RasterFrameGenerator.cc
+        ContentAggregator.h
+        ContentAggregator.cc
         HWComposeContext.h
         HWComposeContext.cc
         HWComposeDevice.h

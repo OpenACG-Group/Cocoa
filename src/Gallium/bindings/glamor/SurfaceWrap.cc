@@ -22,11 +22,11 @@
 #include "Gallium/bindings/glamor/PromiseHelper.h"
 #include "Glamor/PresentRemoteHandle.h"
 #include "Glamor/Surface.h"
-#include "Glamor/Blender.h"
+#include "Glamor/ContentAggregator.h"
 #include "Glamor/Cursor.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-SurfaceWrap::SurfaceWrap(gl::Shared<gl::PresentRemoteHandle> handle,
+SurfaceWrap::SurfaceWrap(std::shared_ptr<gl::PresentRemoteHandle> handle,
                          v8::Local<v8::Object> display)
     : handle_(std::move(handle))
     , display_wrapped_(v8::Isolate::GetCurrent(), display)
@@ -61,11 +61,24 @@ SurfaceWrap::SurfaceWrap(gl::Shared<gl::PresentRemoteHandle> handle,
     using InfoT = gl::PresentSignalArgs;
     surface_closed_slot_ = handle_->Connect(
             GLSI_SURFACE_CLOSED, [this](InfoT& info) { display_wrapped_.Reset(); });
+
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    v8::Local<v8::Object> aggregator = binder::NewObject<ContentAggregatorWrap>(
+            isolate, handle_->As<gl::Surface>()->GetContentAggregator());
+    content_aggregator_.Reset(isolate, aggregator);
 }
 
 SurfaceWrap::~SurfaceWrap()
 {
     handle_->Disconnect(surface_closed_slot_);
+}
+
+v8::Local<v8::Value> SurfaceWrap::getContentAggregator()
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    if (content_aggregator_.IsEmpty())
+        return v8::Null(isolate);
+    return content_aggregator_.Get(isolate);
 }
 
 int32_t SurfaceWrap::getWidth()
@@ -86,19 +99,11 @@ v8::Local<v8::Value> SurfaceWrap::getDisplay()
     return display_wrapped_.Get(isolate);
 }
 
-v8::Local<v8::Value> SurfaceWrap::createBlender()
-{
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    using CreateCast = CreateObjCast<gl::Shared<gl::Blender>, BlenderWrap>;
-    return PromisifiedRemoteCall::Call(
-            isolate, handle_,
-            PromisifiedRemoteCall::GenericConvert<CreateCast>,
-            GLOP_SURFACE_CREATE_BLENDER);
-}
-
 v8::Local<v8::Value> SurfaceWrap::close()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    display_wrapped_.Reset();
+    content_aggregator_.Reset();
     return PromisifiedRemoteCall::Call(isolate, handle_, {}, GLOP_SURFACE_CLOSE);
 }
 
@@ -166,7 +171,7 @@ v8::Local<v8::Value> SurfaceWrap::setFullscreen(bool value, v8::Local<v8::Value>
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
-    gl::Shared<gl::Monitor> monitor_ptr;
+    std::shared_ptr<gl::Monitor> monitor_ptr;
 
     if (!monitor->IsNullOrUndefined())
     {

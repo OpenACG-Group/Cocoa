@@ -9,7 +9,7 @@ GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.Wayland.Cursor)
 
-WaylandSystemCursor::WaylandSystemCursor(const Shared<CursorTheme>& theme,
+WaylandSystemCursor::WaylandSystemCursor(const std::shared_ptr<CursorTheme>& theme,
                                          wl_cursor *cursor,
                                          wl_surface *cursor_surface)
     : WaylandCursor(theme, cursor_surface)

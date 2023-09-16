@@ -48,9 +48,8 @@ public:
     WaylandSharedMemoryHelper(wl_shm *shm, wl_shm_pool *pool, size_t size, void *ptr);
     ~WaylandSharedMemoryHelper();
 
-    g_nodiscard static Shared<WaylandSharedMemoryHelper> Make(wl_shm *shm,
-                                                              size_t size,
-                                                              BufferRole role);
+    g_nodiscard static std::shared_ptr<WaylandSharedMemoryHelper>
+    Make(wl_shm *shm, size_t size, BufferRole role);
 
     g_nodiscard g_inline wl_shm *GetShm() const {
         return shm_registry_;

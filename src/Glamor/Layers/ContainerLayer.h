@@ -30,13 +30,13 @@ public:
     ContainerLayer() = default;
     ~ContainerLayer() override = default;
 
-    g_inline void AppendChildLayer(const Shared<Layer>& layer) {
+    g_inline void AppendChildLayer(const std::shared_ptr<Layer>& layer) {
         auto itr = std::find(child_layers_.begin(), child_layers_.end(), layer);
         if (itr == child_layers_.end())
             child_layers_.push_back(layer);
     }
 
-    g_inline void RemoveChildLayer(const Shared<Layer>& layer) {
+    g_inline void RemoveChildLayer(const std::shared_ptr<Layer>& layer) {
         auto itr = std::find(child_layers_.begin(), child_layers_.end(), layer);
         if (itr != child_layers_.end())
             child_layers_.erase(itr);
@@ -55,7 +55,7 @@ protected:
     void ChildrenToString(std::ostream& out);
 
 private:
-    std::list<Shared<Layer>>    child_layers_;
+    std::list<std::shared_ptr<Layer>> child_layers_;
 };
 
 GLAMOR_NAMESPACE_END

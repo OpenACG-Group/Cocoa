@@ -145,7 +145,7 @@ public:
         return_status_ = status;
     }
 
-    g_nodiscard g_inline Shared<PresentRemoteHandle> GetThis() const {
+    g_nodiscard g_inline std::shared_ptr<PresentRemoteHandle> GetThis() const {
         return this_;
     }
 
@@ -157,7 +157,7 @@ public:
         return return_status_;
     }
 
-    g_private_api g_inline void SetThis(const Shared<PresentRemoteHandle>& pThis) {
+    g_private_api g_inline void SetThis(const std::shared_ptr<PresentRemoteHandle>& pThis) {
         this_ = pThis;
     }
 
@@ -171,13 +171,13 @@ public:
     }
 
 private:
-    OpCode                      op_code_;
-    std::vector<std::any>       args_vector_;
-    Status                      return_status_;
-    std::any                    return_value_;
-    Shared<PresentRemoteHandle>   this_;
-    std::optional<std::string>  caught_exception_;
-    std::any                    closure_ptr_;
+    OpCode                                 op_code_;
+    std::vector<std::any>                  args_vector_;
+    Status                                 return_status_;
+    std::any                               return_value_;
+    std::shared_ptr<PresentRemoteHandle>   this_;
+    std::optional<std::string>             caught_exception_;
+    std::any                               closure_ptr_;
 };
 
 GLAMOR_NAMESPACE_END

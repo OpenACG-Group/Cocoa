@@ -36,9 +36,8 @@ public:
                 uint32_t registry_id);
     ~WaylandSeat();
 
-    static Shared<WaylandSeat> Make(const std::shared_ptr<WaylandDisplay>& display,
-                                    wl_seat *seat,
-                                    uint32_t registry_id);
+    static std::shared_ptr<WaylandSeat> Make(const std::shared_ptr<WaylandDisplay>& display,
+                                             wl_seat *seat, uint32_t registry_id);
 
     g_nodiscard g_inline uint32_t GetRegistryId() const {
         return registry_id_;
@@ -48,7 +47,7 @@ public:
         return seat_name_;
     }
 
-    Shared<WaylandSurface> FindSurfaceByNativeHandle(wl_surface *surface);
+    std::shared_ptr<WaylandSurface> FindSurfaceByNativeHandle(wl_surface *surface);
 
     g_nodiscard g_inline WaylandSeatKeyboardDevice *GetKeyboardDevice() const {
         return keyboard_device_.get();
@@ -62,7 +61,7 @@ public:
         return touch_device_;
     }
 
-    g_nodiscard g_inline Shared<WaylandDisplay> GetDisplay() {
+    g_nodiscard g_inline std::shared_ptr<WaylandDisplay> GetDisplay() {
         return display_.lock();
     }
 
@@ -71,14 +70,13 @@ public:
     static void on_name(void *data, wl_seat *seat, const char *name);
 
 private:
-    std::weak_ptr<WaylandDisplay>   display_;
-    wl_seat                        *wl_seat_;
-    uint32_t                        registry_id_;
-
-    Unique<WaylandSeatKeyboardDevice> keyboard_device_;
-    Unique<WaylandSeatPointerDevice> pointer_device_;
-    wl_touch                       *touch_device_;
-    std::string                     seat_name_;
+    std::weak_ptr<WaylandDisplay>               display_;
+    wl_seat                                    *wl_seat_;
+    uint32_t                                    registry_id_;
+    std::unique_ptr<WaylandSeatKeyboardDevice>  keyboard_device_;
+    std::unique_ptr<WaylandSeatPointerDevice>   pointer_device_;
+    wl_touch                                   *touch_device_;
+    std::string                                 seat_name_;
 };
 
 GLAMOR_NAMESPACE_END

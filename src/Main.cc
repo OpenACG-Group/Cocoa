@@ -51,7 +51,7 @@ namespace cocoa {
 cmd::ParseState initialize_logger(cmd::ParseResult& args)
 {
     const char *file = nullptr;
-    LogLevel level = LOG_LEVEL_NORMAL;
+    LogLevel level = LOG_LEVEL_QUIET;
     bool color = true;
     Journal::OutputDevice output = Journal::OutputDevice::kStandardOut;
 
@@ -129,19 +129,25 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
     if (state == cmd::ParseState::kError)
         return cmd::ParseState::kError;
 
-    // We must change working directory before call `ApplicationInfo::Setup()`
-    // to make sure `ApplicationInfo` get user-specified working directory.
     if (args.orphans.size() > 1)
     {
         fmt::print(stderr, "Too many arguments\n");
         return cmd::ParseState::kError;
     }
-    else if (!args.orphans.empty())
+
+    // We must change working directory before call `ApplicationInfo::Setup()`
+    // to make sure `ApplicationInfo` get user-specified working directory.
+    for (const auto& arg : args.options)
     {
-        if (vfs::Chdir(args.orphans[0]) < 0)
+        if arg_longopt_match("working-dir")
         {
-            fmt::print(stderr, "Failed to chdir to \"{}\": {}\n", args.orphans[0], strerror(errno));
-            return cmd::ParseState::kError;
+            int ret = vfs::Chdir(arg.value->v_str);
+            if (ret < 0)
+            {
+                fmt::print(stderr, "Failed to chdir: {}", strerror(ret));
+                return cmd::ParseState::kError;
+            }
+            break;
         }
     }
 
@@ -172,7 +178,7 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
 
     char delimiter = ',';
 
-    bool justInitialize = false;
+    bool init_only = false;
 
     for (const auto& arg : args.options)
     {
@@ -182,7 +188,7 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
         }
         else if arg_longopt_match("initialize-only")
         {
-            justInitialize = true;
+            init_only = true;
         }
         else if arg_longopt_match("v8-concurrent-workers")
         {
@@ -270,10 +276,6 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
                 }
             }
         }
-        else if arg_longopt_match("startup")
-        {
-            gallium_options.startup = arg.value->v_str;
-        }
         else if arg_longopt_match("gl-use-jit")
         {
             glamor_options.SetSkiaJIT(arg.value->v_bool);
@@ -319,7 +321,7 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
         }
         else if arg_longopt_match("gl-hwcompose-disable-presentation")
         {
-            glamor_options.SetDisableHWComposePresent(arg.value->v_int);
+            glamor_options.SetDisableHWComposePresent(true);
         }
         else if arg_longopt_match("utau-hwdevice-drm-devicepath")
         {
@@ -336,7 +338,17 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
         }
     }
 
-    return justInitialize ? cmd::ParseState::kJustInitialize : cmd::ParseState::kSuccess;
+    if (!gallium_options.inspector_no_script)
+    {
+        if (args.orphans.empty())
+        {
+            fmt::print(stderr, "Requires a JavaScript file to run.\n");
+            return cmd::ParseState::kError;
+        }
+        gallium_options.startup = args.orphans[0];
+    }
+
+    return init_only ? cmd::ParseState::kJustInitialize : cmd::ParseState::kSuccess;
 }
 
 #undef arg_longopt_match

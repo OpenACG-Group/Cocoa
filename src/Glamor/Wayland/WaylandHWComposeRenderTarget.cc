@@ -39,11 +39,11 @@ namespace {
 
 struct WaylandVkSurfaceFactory : public HWComposeSwapchain::VkSurfaceFactory
 {
-    explicit WaylandVkSurfaceFactory(Shared<WaylandHWComposeRenderTarget> rt)
+    explicit WaylandVkSurfaceFactory(std::shared_ptr<WaylandHWComposeRenderTarget> rt)
         : hw_compose_rt_(std::move(rt)) {}
     ~WaylandVkSurfaceFactory() = default;
 
-    VkSurfaceKHR Create(const Shared<HWComposeContext> &context) override
+    VkSurfaceKHR Create(const std::shared_ptr<HWComposeContext> &context) override
     {
         VkWaylandSurfaceCreateInfoKHR info{};
         info.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
@@ -62,13 +62,13 @@ struct WaylandVkSurfaceFactory : public HWComposeSwapchain::VkSurfaceFactory
         return result;
     }
 
-    Shared<WaylandHWComposeRenderTarget> hw_compose_rt_;
+    std::shared_ptr<WaylandHWComposeRenderTarget> hw_compose_rt_;
 };
 
 } // namespace anonymous
 
-Shared<WaylandHWComposeRenderTarget>
-WaylandHWComposeRenderTarget::Make(const Shared<WaylandDisplay>& display,
+std::shared_ptr<WaylandHWComposeRenderTarget>
+WaylandHWComposeRenderTarget::Make(const std::shared_ptr<WaylandDisplay>& display,
                                    int32_t width, int32_t height)
 {
     if (width <= 0 || height <= 0)
@@ -149,10 +149,11 @@ WaylandHWComposeRenderTarget::Make(const Shared<WaylandDisplay>& display,
     return rt;
 }
 
-WaylandHWComposeRenderTarget::WaylandHWComposeRenderTarget(Shared<HWComposeContext> hwContext,
-                                                           const Shared<WaylandDisplay>& display,
-                                                           int32_t width, int32_t height,
-                                                           SkColorType format)
+WaylandHWComposeRenderTarget::WaylandHWComposeRenderTarget(
+        std::shared_ptr<HWComposeContext> hwContext,
+        const std::shared_ptr<WaylandDisplay>& display,
+        int32_t width, int32_t height,
+        SkColorType format)
     : WaylandRenderTarget(display, RenderDevice::kHWComposer, width, height, format)
     , hw_compose_context_(std::move(hwContext))
 {
@@ -211,12 +212,14 @@ void WaylandHWComposeRenderTarget::OnResize(int32_t width, int32_t height)
     OnClearFrameBuffers();
 }
 
-const Shared<HWComposeSwapchain>& WaylandHWComposeRenderTarget::OnGetHWComposeSwapchain()
+const std::shared_ptr<HWComposeSwapchain>&
+WaylandHWComposeRenderTarget::OnGetHWComposeSwapchain()
 {
     return swapchain_;
 }
 
-sk_sp<SkSurface> WaylandHWComposeRenderTarget::OnCreateOffscreenBackendSurface(const SkImageInfo& info)
+sk_sp<SkSurface>
+WaylandHWComposeRenderTarget::OnCreateOffscreenBackendSurface(const SkImageInfo& info)
 {
     sk_sp<SkSurface> rt = SkSurfaces::RenderTarget(swapchain_->GetSkiaGpuContext(),
                                                    skgpu::Budgeted::kYes, info);
@@ -232,7 +235,7 @@ void WaylandHWComposeRenderTarget::Trace(GraphicsResourcesTrackable::Tracer *tra
 {
     WaylandRenderTarget::Trace(tracer);
 
-    // `HWComposeSwapchain` is only owned by the current render target
+    // `HWComposeSwapchain` is only owned by the current render target,
     // and each render target does not share the same swapchain with others.
     tracer->TraceMember("HWComposeSwapchain", swapchain_.get());
 }

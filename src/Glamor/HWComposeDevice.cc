@@ -185,8 +185,8 @@ VkDevice create_vk_device(VkPhysicalDevice physical_device,
 
 } // namespace anonymous
 
-Unique<HWComposeDevice>
-HWComposeDevice::Make(const Shared<HWComposeContext>& context,
+std::unique_ptr<HWComposeDevice>
+HWComposeDevice::Make(const std::shared_ptr<HWComposeContext>& context,
                       const std::vector<DeviceQueueSpecifier>& queue_specs,
                       const std::vector<std::string>& extra_device_ext)
 {
@@ -251,7 +251,7 @@ HWComposeDevice::Make(const Shared<HWComposeContext>& context,
                                              std::move(queue_multimap));
 }
 
-HWComposeDevice::HWComposeDevice(Shared<HWComposeContext> context,
+HWComposeDevice::HWComposeDevice(std::shared_ptr<HWComposeContext> context,
                                  std::vector<std::string> enabled_extensions,
                                  VkDevice vk_device,
                                  QueueMultiMap device_queue_multimap)

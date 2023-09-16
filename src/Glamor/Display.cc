@@ -52,9 +52,9 @@ GLAMOR_TRAMPOLINE_IMPL(Display, CreateRasterSurface)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(3);
     auto this_ = info.GetThis()->As<Display>();
-    Shared<Surface> result = this_->CreateRasterSurface(info.Get<int32_t>(0),
-                                                        info.Get<int32_t>(1),
-                                                        info.Get<SkColorType>(2));
+    auto result = this_->CreateRasterSurface(info.Get<int32_t>(0),
+                                             info.Get<int32_t>(1),
+                                             info.Get<SkColorType>(2));
     if (result == nullptr)
         info.SetReturnStatus(PresentRemoteHandle::ReturnStatus::kOpFailed);
     else
@@ -68,9 +68,9 @@ GLAMOR_TRAMPOLINE_IMPL(Display, CreateHWComposeSurface)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(3);
     auto this_ = info.GetThis()->As<Display>();
-    Shared<Surface> result = this_->CreateHWComposeSurface(info.Get<int32_t>(0),
-                                                           info.Get<int32_t>(1),
-                                                           info.Get<SkColorType>(2));
+    auto result = this_->CreateHWComposeSurface(info.Get<int32_t>(0),
+                                                info.Get<int32_t>(1),
+                                                info.Get<SkColorType>(2));
     if (result == nullptr)
         info.SetReturnStatus(PresentRemoteHandle::ReturnStatus::kOpFailed);
     else
@@ -91,7 +91,7 @@ GLAMOR_TRAMPOLINE_IMPL(Display, CreateCursor)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(3);
     auto _this = info.GetThis()->As<Display>();
-    auto cursor = _this->CreateCursor(info.Get<Shared<SkBitmap>>(0),
+    auto cursor = _this->CreateCursor(info.Get<std::shared_ptr<SkBitmap>>(0),
                                       info.Get<int32_t>(1), info.Get<int32_t>(2));
     info.SetReturnStatus(cursor ? PresentRemoteCall::Status::kOpSuccess
                                 : PresentRemoteCall::Status::kOpFailed);
@@ -108,7 +108,7 @@ GLAMOR_TRAMPOLINE_IMPL(Display, LoadCursorTheme)
     info.SetReturnValue(theme);
 }
 
-Shared<Display> Display::Connect(uv_loop_t *loop, const std::string& name)
+std::shared_ptr<Display> Display::Connect(uv_loop_t *loop, const std::string& name)
 {
     CHECK(loop);
 
@@ -165,23 +165,23 @@ void Display::Close()
         // when `Surface::Close` method is called. That makes trouble to
         // our iteration here, so we copy a new list and do iterations
         // on it.
-        std::list<Shared<Surface>> copySurfaceList(surfaces_list_);
-        for (const Shared<Surface>& surface : copySurfaceList)
+        std::list<std::shared_ptr<Surface>> copied_list(surfaces_list_);
+        for (const auto& surface : copied_list)
         {
             // Surfaces are supposed to give up all the resources it has retained
             // after being closed.
             surface->Close();
         }
-        copySurfaceList.clear();
+        copied_list.clear();
 
         // Destruct cursors and cursor themes.
-        for (const Shared<CursorTheme>& theme : cursor_themes_list_)
+        for (const auto& theme : cursor_themes_list_)
         {
             theme->Dispose();
         }
         cursor_themes_list_.clear();
 
-        for (const Shared<Cursor>& cursor : created_cursors_list_)
+        for (const auto& cursor : created_cursors_list_)
         {
             cursor->Dispose();
         }
@@ -198,17 +198,19 @@ void Display::Close()
     }
 }
 
-Shared<Surface> Display::CreateRasterSurface(int32_t width, int32_t height, SkColorType format)
+std::shared_ptr<Surface>
+Display::CreateRasterSurface(int32_t width, int32_t height, SkColorType format)
 {
     return this->OnCreateSurface(width, height, format, RenderTarget::RenderDevice::kRaster);
 }
 
-Shared<Surface> Display::CreateHWComposeSurface(int32_t width, int32_t height, SkColorType format)
+std::shared_ptr<Surface>
+Display::CreateHWComposeSurface(int32_t width, int32_t height, SkColorType format)
 {
     return this->OnCreateSurface(width, height, format, RenderTarget::RenderDevice::kHWComposer);
 }
 
-void Display::AppendSurface(const Shared<Surface>& surface)
+void Display::AppendSurface(const std::shared_ptr<Surface>& surface)
 {
     CHECK(surface);
     auto itr = std::find(surfaces_list_.begin(), surfaces_list_.end(), surface);
@@ -216,14 +218,14 @@ void Display::AppendSurface(const Shared<Surface>& surface)
         surfaces_list_.emplace_back(surface);
 }
 
-void Display::RemoveSurfaceFromList(const Shared<Surface>& s)
+void Display::RemoveSurfaceFromList(const std::shared_ptr<Surface>& s)
 {
     if (s == nullptr)
         return;
     surfaces_list_.remove(s);
 }
 
-void Display::AppendMonitor(const Shared<Monitor>& monitor)
+void Display::AppendMonitor(const std::shared_ptr<Monitor>& monitor)
 {
     auto itr = std::find(monitors_list_.begin(), monitors_list_.end(), monitor);
     if (itr == monitors_list_.end())
@@ -231,12 +233,12 @@ void Display::AppendMonitor(const Shared<Monitor>& monitor)
         monitors_list_.push_back(monitor);
 
         PresentSignal info;
-        info.EmplaceBack<Shared<Monitor>>(monitor);
+        info.EmplaceBack<std::shared_ptr<Monitor>>(monitor);
         Emit(GLSI_DISPLAY_MONITOR_ADDED, std::move(info));
     }
 }
 
-bool Display::RemoveMonitor(const Shared<Monitor>& monitor)
+bool Display::RemoveMonitor(const std::shared_ptr<Monitor>& monitor)
 {
     auto itr = std::find(monitors_list_.begin(), monitors_list_.end(), monitor);
     if (itr != monitors_list_.end())
@@ -244,7 +246,7 @@ bool Display::RemoveMonitor(const Shared<Monitor>& monitor)
         monitors_list_.remove(monitor);
 
         PresentSignal info;
-        info.EmplaceBack<Shared<Monitor>>(monitor);
+        info.EmplaceBack<std::shared_ptr<Monitor>>(monitor);
         Emit(GLSI_DISPLAY_MONITOR_REMOVED, std::move(info));
 
         return true;
@@ -253,14 +255,15 @@ bool Display::RemoveMonitor(const Shared<Monitor>& monitor)
     return false;
 }
 
-std::list<Shared<Monitor>> Display::RequestMonitorList()
+std::list<std::shared_ptr<Monitor>> Display::RequestMonitorList()
 {
     // Return a copy of monitors' list
     return monitors_list_;
 }
 
-Shared<Cursor> Display::CreateCursor(const Shared<SkBitmap>& bitmap,
-                                     int32_t hotspot_x, int32_t hotspot_y)
+std::shared_ptr<Cursor>
+Display::CreateCursor(const std::shared_ptr<SkBitmap>& bitmap,
+                      int32_t hotspot_x, int32_t hotspot_y)
 {
     auto cursor = this->OnCreateCursor(bitmap, hotspot_x, hotspot_y);
     if (cursor)
@@ -268,7 +271,8 @@ Shared<Cursor> Display::CreateCursor(const Shared<SkBitmap>& bitmap,
     return cursor;
 }
 
-Shared<CursorTheme> Display::LoadCursorTheme(const std::string& name, int size)
+std::shared_ptr<CursorTheme>
+Display::LoadCursorTheme(const std::string& name, int size)
 {
     auto theme = this->OnLoadCursorTheme(name, size);
     if (theme)
@@ -276,20 +280,22 @@ Shared<CursorTheme> Display::LoadCursorTheme(const std::string& name, int size)
     return theme;
 }
 
-Shared<CursorTheme> Display::OnLoadCursorTheme(g_maybe_unused const std::string& name,
-                                               g_maybe_unused int size)
+std::shared_ptr<CursorTheme>
+Display::OnLoadCursorTheme(g_maybe_unused const std::string& name,
+                           g_maybe_unused int size)
 {
     return nullptr;
 }
 
-Shared<Cursor> Display::OnCreateCursor(g_maybe_unused const Shared<SkBitmap>& bitmap,
-                                       g_maybe_unused int32_t hotspot_x,
-                                       g_maybe_unused int32_t hotspot_y)
+std::shared_ptr<Cursor> Display::OnCreateCursor(
+        g_maybe_unused const std::shared_ptr<SkBitmap>& bitmap,
+        g_maybe_unused int32_t hotspot_x,
+        g_maybe_unused int32_t hotspot_y)
 {
     return nullptr;
 }
 
-void Display::AppendDefaultCursorTheme(const Shared<CursorTheme>& theme)
+void Display::AppendDefaultCursorTheme(const std::shared_ptr<CursorTheme>& theme)
 {
     CHECK(cursor_themes_list_.empty() &&
           "Default theme only can be appended into empty list");

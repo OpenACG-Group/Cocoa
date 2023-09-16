@@ -27,7 +27,7 @@ class Monitor;
 class Cursor;
 class CursorTheme;
 class Surface;
-class Blender;
+class ContentAggregator;
 
 GLAMOR_NAMESPACE_END
 #endif //COCOA_GLAMOR_FORWARDTYPEDECLS_H

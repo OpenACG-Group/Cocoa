@@ -31,8 +31,8 @@ GLAMOR_NAMESPACE_BEGIN
 #define RT_INITIAL_BUFFERS  3
 #define RT_EMPTY_INDEX      (-1)
 
-Shared<WaylandSHMRenderTarget>
-WaylandSHMRenderTarget::Make(const Shared<WaylandDisplay>& display,
+std::shared_ptr<WaylandSHMRenderTarget>
+WaylandSHMRenderTarget::Make(const std::shared_ptr<WaylandDisplay>& display,
                              int32_t width, int32_t height, SkColorType format)
 {
     if (format == SkColorType::kUnknown_SkColorType)
@@ -79,7 +79,7 @@ WaylandSHMRenderTarget::Make(const Shared<WaylandDisplay>& display,
     return renderTarget;
 }
 
-WaylandSHMRenderTarget::WaylandSHMRenderTarget(const Shared<WaylandDisplay>& display,
+WaylandSHMRenderTarget::WaylandSHMRenderTarget(const std::shared_ptr<WaylandDisplay>& display,
                                                int32_t width, int32_t height,
                                                SkColorType format)
     : WaylandRenderTarget(display, RenderDevice::kRaster, width, height, format)
@@ -119,7 +119,7 @@ void WaylandSHMRenderTarget::BufferReleaseCallback(void *data, g_maybe_unused wl
 
         auto itr = std::find_if(self->rt->deferred_destructing_buffers_.begin(),
                                 self->rt->deferred_destructing_buffers_.end(),
-                                [self](const Unique<Buffer>& v) -> bool {
+                                [self](const std::unique_ptr<Buffer>& v) -> bool {
             return (v.get() == self);
         });
 
@@ -134,7 +134,7 @@ void WaylandSHMRenderTarget::BufferReleaseCallback(void *data, g_maybe_unused wl
 
 void WaylandSHMRenderTarget::ReleaseAllBuffers(bool forceRelease)
 {
-    for (Unique<Buffer>& ptr : buffers_)
+    for (std::unique_ptr<Buffer>& ptr : buffers_)
     {
         if (!forceRelease && ptr->state == BufferState::kCommitted)
         {
@@ -247,7 +247,7 @@ SkSurface *WaylandSHMRenderTarget::OnBeginFrame()
     if (drawing_buffer_idx_ < 0)
         return nullptr;
 
-    Unique<Buffer>& buf = buffers_[drawing_buffer_idx_];
+    std::unique_ptr<Buffer>& buf = buffers_[drawing_buffer_idx_];
     return buf->surface.get();
 }
 
@@ -296,7 +296,7 @@ void WaylandSHMRenderTarget::OnPresentFrame(SkSurface *surface,
     committed_buffer_idx_ = drawing_buffer_idx_;
     drawing_buffer_idx_ = GetNextDrawingBuffer();
 
-    Unique<Buffer>& committed = buffers_[committed_buffer_idx_];
+    std::unique_ptr<Buffer>& committed = buffers_[committed_buffer_idx_];
     committed->state = BufferState::kCommitted;
     wl_surface_attach(wl_surface_, committed->buffer, 0, 0);
 
@@ -327,7 +327,7 @@ std::string WaylandSHMRenderTarget::GetBufferStateDescriptor()
 
     std::string out;
     int32_t idx = 0;
-    for (const Unique<Buffer>& buffer : buffers_)
+    for (const std::unique_ptr<Buffer>& buffer : buffers_)
     {
         out.append(fmt::format("#{}:pool={}:addr={}:size={}:", idx++,
                                fmt::ptr(buffer->shared_pool_helper.get()), buffer->ptr, buffer->size));
@@ -384,7 +384,7 @@ void WaylandSHMRenderTarget::Trace(GraphicsResourcesTrackable::Tracer *tracer) n
 
     if (!buffers_.empty())
     {
-        Shared<WaylandSharedMemoryHelper> pool = buffers_[0]->shared_pool_helper;
+        std::shared_ptr<WaylandSharedMemoryHelper> pool = buffers_[0]->shared_pool_helper;
         CHECK(pool);
 
         tracer->TraceResource("Wayland shared memory pool",

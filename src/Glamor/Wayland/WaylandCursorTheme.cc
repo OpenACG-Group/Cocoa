@@ -24,7 +24,8 @@ GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.Wayland.CursorTheme)
 
-Shared<WaylandCursorTheme> WaylandCursorTheme::MakeDefault(const Shared<WaylandDisplay>& disp)
+std::shared_ptr<WaylandCursorTheme>
+WaylandCursorTheme::MakeDefault(const std::shared_ptr<WaylandDisplay>& disp)
 {
     CHECK(disp && "Invalid WaylandDisplay pointer");
 
@@ -56,8 +57,9 @@ Shared<WaylandCursorTheme> WaylandCursorTheme::MakeDefault(const Shared<WaylandD
     return MakeFromName(disp, env_cursor_theme, cursor_size);
 }
 
-Shared<WaylandCursorTheme> WaylandCursorTheme::MakeFromName(const Shared<WaylandDisplay>& display,
-                                                            const std::string& name, int size)
+std::shared_ptr<WaylandCursorTheme>
+WaylandCursorTheme::MakeFromName(const std::shared_ptr<WaylandDisplay>& display,
+                                 const std::string& name, int size)
 {
     wl_cursor_theme *theme = wl_cursor_theme_load(name.c_str(), size,
                                                   display->GetGlobalsRef()->wl_shm_);
@@ -83,7 +85,8 @@ void WaylandCursorTheme::OnDispose()
     wl_cursor_theme_destroy(cursor_theme_);
 }
 
-Shared<Cursor> WaylandCursorTheme::OnLoadCursorFromName(const std::string& name)
+std::shared_ptr<Cursor>
+WaylandCursorTheme::OnLoadCursorFromName(const std::string& name)
 {
     wl_cursor *cursor = wl_cursor_theme_get_cursor(cursor_theme_, name.c_str());
     if (!cursor)

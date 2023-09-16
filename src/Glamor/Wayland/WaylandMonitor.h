@@ -34,11 +34,12 @@ public:
         return reinterpret_cast<WaylandMonitor*>(ptr);
     }
 
-    static Shared<WaylandMonitor> Make(const Shared<WaylandDisplay>& display,
-                                       wl_output *output,
-                                       uint32_t registry_id);
+    static std::shared_ptr<WaylandMonitor> Make(const std::shared_ptr<WaylandDisplay>& display,
+                                                wl_output *output,
+                                                uint32_t registry_id);
 
-    WaylandMonitor(const Weak<WaylandDisplay>& display, wl_output *output, uint32_t registry_id);
+    WaylandMonitor(const std::weak_ptr<WaylandDisplay>& display,
+                   wl_output *output, uint32_t registry_id);
     ~WaylandMonitor() override = default;
 
     g_nodiscard g_inline uint32_t GetOutputRegistryId() const {

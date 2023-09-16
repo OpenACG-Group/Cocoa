@@ -18,6 +18,7 @@
 #include "Core/Journal.h"
 #include "Core/EnumClassBitfield.h"
 #include "Glamor/Glamor.h"
+#include "Glamor/ContentAggregator.h"
 #include "Glamor/Wayland/WaylandSurface.h"
 #include "Glamor/Wayland/WaylandRenderTarget.h"
 #include "Glamor/Wayland/WaylandDisplay.h"
@@ -105,7 +106,8 @@ const xdg_toplevel_listener g_xdg_toplevel_listener = {
 
 }
 
-Shared<Surface> WaylandSurface::Make(const Shared<WaylandRenderTarget>& rt)
+std::shared_ptr<Surface>
+WaylandSurface::Make(const std::shared_ptr<WaylandRenderTarget>& rt)
 {
     auto& g = rt->GetDisplay()->Cast<WaylandDisplay>()->GetGlobalsRef();
     if (!g->xdg_wm_base_)
@@ -167,10 +169,14 @@ Shared<Surface> WaylandSurface::Make(const Shared<WaylandRenderTarget>& rt)
     wl_display_roundtrip_queue(w->wl_display_, rt->GetWaylandEventQueue());
     rt->OnClearFrameBuffers();
 
+    std::shared_ptr<ContentAggregator> aggregator = ContentAggregator::Make(w);
+    CHECK(aggregator);
+    w->SetContentAggregator(std::move(aggregator));
+
     return w;
 }
 
-WaylandSurface::WaylandSurface(const Shared<WaylandRenderTarget>& rt)
+WaylandSurface::WaylandSurface(const std::shared_ptr<WaylandRenderTarget>& rt)
     : Surface(rt)
     , wl_display_(nullptr)
     , wl_surface_(rt->GetWaylandSurface())
@@ -234,7 +240,7 @@ void WaylandSurface::OnSetMaximized(bool value)
         xdg_toplevel_unset_maximized(xdg_toplevel_);
 }
 
-void WaylandSurface::OnSetFullscreen(bool value, const Shared<Monitor>& monitor)
+void WaylandSurface::OnSetFullscreen(bool value, const std::shared_ptr<Monitor>& monitor)
 {
     if (value && !monitor)
         return;
@@ -248,14 +254,14 @@ void WaylandSurface::OnSetFullscreen(bool value, const Shared<Monitor>& monitor)
         xdg_toplevel_unset_fullscreen(xdg_toplevel_);
 }
 
-void WaylandSurface::OnSetCursor(const Shared<Cursor>& cursor_base)
+void WaylandSurface::OnSetCursor(const std::shared_ptr<Cursor>& cursor_base)
 {
     // `entered_pointer_device_` is nullptr means that there is no pointer device
     // hovering on the surface. That is, we do not need to render any cursors.
     if (!entered_pointer_device_)
         return;
 
-    Shared<WaylandCursor> cursor = cursor_base->As<WaylandCursor>();
+    std::shared_ptr<WaylandCursor> cursor = cursor_base->As<WaylandCursor>();
     wl_pointer_set_cursor(entered_pointer_device_,
                           latest_pointer_enter_serial_,
                           cursor->GetCursorSurface(),

@@ -99,7 +99,7 @@ std::string GraphicsResourcesTrackable::Tracer::ToJsonString()
     builder["enableYAMLCompatibility"] = true;
 
     std::ostringstream oss;
-    Unique<Json::StreamWriter> writer(builder.newStreamWriter());
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
     writer->write(root_value_, &oss);
 
     return oss.str();

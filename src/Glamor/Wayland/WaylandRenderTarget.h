@@ -27,7 +27,7 @@ GLAMOR_NAMESPACE_BEGIN
 class WaylandRenderTarget : public RenderTarget
 {
 public:
-    WaylandRenderTarget(const Shared<Display>& display, RenderDevice device,
+    WaylandRenderTarget(const std::shared_ptr<Display>& display, RenderDevice device,
                         int32_t width, int32_t height, SkColorType format);
     ~WaylandRenderTarget() override = default;
 

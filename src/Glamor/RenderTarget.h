@@ -60,11 +60,11 @@ public:
         kRaster
     };
 
-    RenderTarget(const Shared<Display>& display, RenderDevice device,
+    RenderTarget(const std::shared_ptr<Display>& display, RenderDevice device,
                  int32_t width, int32_t height, SkColorType format);
     ~RenderTarget() override = default;
 
-    g_nodiscard g_inline Shared<Display> GetDisplay() const {
+    g_nodiscard g_inline std::shared_ptr<Display> GetDisplay() const {
         return display_weak_.lock();
     }
 
@@ -102,7 +102,7 @@ public:
     void Present();
     uint32_t RequestNextFrame();
 
-    const Shared<HWComposeSwapchain>& GetHWComposeSwapchain();
+    const std::shared_ptr<HWComposeSwapchain>& GetHWComposeSwapchain();
 
     sk_sp<SkSurface> CreateOffscreenBackendSurface(const SkImageInfo& info);
 
@@ -113,12 +113,12 @@ protected:
     virtual void OnSubmitFrame(SkSurface *surface, const FrameSubmitInfo& submit_info) = 0;
     virtual void OnPresentFrame(SkSurface *surface, const FrameSubmitInfo& submit_info) = 0;
     virtual void OnResize(int32_t width, int32_t height) = 0;
-    virtual const Shared<HWComposeSwapchain>& OnGetHWComposeSwapchain();
+    virtual const std::shared_ptr<HWComposeSwapchain>& OnGetHWComposeSwapchain();
     virtual sk_sp<SkSurface> OnCreateOffscreenBackendSurface(const SkImageInfo& info) = 0;
     virtual uint32_t OnRequestNextFrame() = 0;
 
 private:
-    Weak<Display>                   display_weak_;
+    std::weak_ptr<Display>          display_weak_;
     RenderDevice                    device_type_;
     SkColorType                     color_format_;
     int32_t                         width_;

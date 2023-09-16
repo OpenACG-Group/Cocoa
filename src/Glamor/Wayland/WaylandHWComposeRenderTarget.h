@@ -30,11 +30,11 @@ class HWComposeSwapchain;
 class WaylandHWComposeRenderTarget : public WaylandRenderTarget
 {
 public:
-    static Shared<WaylandHWComposeRenderTarget> Make(const Shared<WaylandDisplay>& display,
-                                                     int32_t width, int32_t height);
+    static std::shared_ptr<WaylandHWComposeRenderTarget>
+    Make(const std::shared_ptr<WaylandDisplay>& display, int32_t width, int32_t height);
 
-    WaylandHWComposeRenderTarget(Shared<HWComposeContext> hwContext,
-                                 const Shared<WaylandDisplay>& display,
+    WaylandHWComposeRenderTarget(std::shared_ptr<HWComposeContext> hwContext,
+                                 const std::shared_ptr<WaylandDisplay>& display,
                                  int32_t width, int32_t height, SkColorType format);
     ~WaylandHWComposeRenderTarget() override;
 
@@ -43,15 +43,15 @@ public:
     void OnSubmitFrame(SkSurface *surface, const FrameSubmitInfo& submit_info) override;
     void OnPresentFrame(SkSurface *surface, const FrameSubmitInfo& submit_info) override;
     void OnResize(int32_t width, int32_t height) override;
-    const Shared<HWComposeSwapchain>& OnGetHWComposeSwapchain() override;
+    const std::shared_ptr<HWComposeSwapchain>& OnGetHWComposeSwapchain() override;
     sk_sp<SkSurface> OnCreateOffscreenBackendSurface(const SkImageInfo& info) override;
     std::string GetBufferStateDescriptor() override;
 
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 
 private:
-    Shared<HWComposeContext>         hw_compose_context_;
-    Shared<HWComposeSwapchain>       swapchain_;
+    std::shared_ptr<HWComposeContext>   hw_compose_context_;
+    std::shared_ptr<HWComposeSwapchain> swapchain_;
 };
 
 GLAMOR_NAMESPACE_END

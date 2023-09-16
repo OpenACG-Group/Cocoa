@@ -73,7 +73,8 @@ void CursorTheme::Dispose()
     }
 }
 
-Shared<Cursor> CursorTheme::LoadCursorFromName(const std::string& name)
+std::shared_ptr<Cursor>
+CursorTheme::LoadCursorFromName(const std::string& name)
 {
     if (cached_cursors_.count(name) > 0)
         return cached_cursors_[name];
@@ -84,7 +85,7 @@ Shared<Cursor> CursorTheme::LoadCursorFromName(const std::string& name)
     return cursor;
 }
 
-void CursorTheme::RemoveCursorFromCache(const Shared<Cursor>& cursor)
+void CursorTheme::RemoveCursorFromCache(const std::shared_ptr<Cursor>& cursor)
 {
     auto itr = cached_cursors_.begin();
     for (; itr != cached_cursors_.end(); itr++)

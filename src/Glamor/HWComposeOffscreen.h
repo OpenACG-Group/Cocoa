@@ -48,9 +48,10 @@ class HWComposeContext;
 class HWComposeOffscreen : public SkiaGpuContextOwner
 {
 public:
-    static Unique<HWComposeOffscreen> Make(const Shared<HWComposeContext>& context);
+    static std::unique_ptr<HWComposeOffscreen> Make(
+            const std::shared_ptr<HWComposeContext>& context);
 
-    HWComposeOffscreen(Shared<HWComposeDevice> device,
+    HWComposeOffscreen(std::shared_ptr<HWComposeDevice> device,
                        sk_sp<GrDirectContext> direct_context);
     ~HWComposeOffscreen() override = default;
 
@@ -61,7 +62,7 @@ public:
 private:
     HWComposeDevice *OnGetHWComposeDevice() override;
 
-    Shared<HWComposeDevice>     device_;
+    std::shared_ptr<HWComposeDevice> device_;
 };
 
 GLAMOR_NAMESPACE_END

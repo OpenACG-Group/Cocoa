@@ -26,8 +26,8 @@
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 /**
- * A Scene object always holds an independent layer tree which can be applied to blender
- * through `BlenderWrap::updateScene` method. It can also be constructed by `SceneBuilder`.
+ * A Scene object always holds an independent layer tree which can be applied to
+ * the ContentAggregator, through `ContentAggregatorWrap::updateScene` method.
  */
 class Scene : public ExportableObjectBase
 {

@@ -19,7 +19,7 @@
 #include "Glamor/Surface.h"
 #include "Glamor/RenderTarget.h"
 #include "Glamor/Display.h"
-#include "Glamor/Blender.h"
+#include "Glamor/ContentAggregator.h"
 #include "Glamor/Cursor.h"
 GLAMOR_NAMESPACE_BEGIN
 
@@ -94,27 +94,20 @@ GLAMOR_TRAMPOLINE_IMPL(Surface, SetMinimized)
 GLAMOR_TRAMPOLINE_IMPL(Surface, SetFullscreen)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(2);
-    info.GetThis()->Cast<Surface>()->SetFullscreen(info.Get<bool>(0), info.Get<Shared<Monitor>>(1));
+    info.GetThis()->Cast<Surface>()->SetFullscreen(
+            info.Get<bool>(0), info.Get<std::shared_ptr<Monitor>>(1));
     info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
-}
-
-GLAMOR_TRAMPOLINE_IMPL(Surface, CreateBlender)
-{
-    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(0);
-    Shared<Blender> blender = info.GetThis()->Cast<Surface>()->CreateBlender();
-    info.SetReturnStatus(blender ? PresentRemoteCall::Status::kOpSuccess
-                                 : PresentRemoteCall::Status::kOpFailed);
-    info.SetReturnValue(blender);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(Surface, SetAttachedCursor)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
-    info.GetThis()->As<Surface>()->SetAttachedCursor(info.Get<Shared<Cursor>>(0));
+    info.GetThis()->As<Surface>()->SetAttachedCursor(
+            info.Get<std::shared_ptr<Cursor>>(0));
     info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
-Surface::Surface(Shared<RenderTarget> rt)
+Surface::Surface(std::shared_ptr<RenderTarget> rt)
     : PresentRemoteHandle(RealType::kSurface)
     , has_disposed_(false)
     , render_target_(std::move(rt))
@@ -134,7 +127,6 @@ Surface::Surface(Shared<RenderTarget> rt)
     SetMethodTrampoline(GLOP_SURFACE_SET_MAXIMIZED, Surface_SetMaximized_Trampoline);
     SetMethodTrampoline(GLOP_SURFACE_SET_MINIMIZED, Surface_SetMinimized_Trampoline);
     SetMethodTrampoline(GLOP_SURFACE_SET_FULLSCREEN, Surface_SetFullscreen_Trampoline);
-    SetMethodTrampoline(GLOP_SURFACE_CREATE_BLENDER, Surface_CreateBlender_Trampoline);
     SetMethodTrampoline(GLOP_SURFACE_SET_ATTACHED_CURSOR, Surface_SetAttachedCursor_Trampoline);
 }
 
@@ -160,15 +152,22 @@ SkColorType Surface::GetColorType() const
 
 void Surface::Close()
 {
-    if (!has_disposed_)
-    {
-        this->OnClose();
-        has_disposed_ = true;
-        render_target_.reset();
-        Emit(GLSI_SURFACE_CLOSED, PresentSignal());
-        GetDisplay()->RemoveSurfaceFromList(Self()->Cast<Surface>());
-        QLOG(LOG_DEBUG, "Surface has been disposed");
-    }
+    if (has_disposed_)
+        return;
+
+    // `ContentAggregator` contains resources depending on the
+    // window surface, so it should be disposed first.
+    content_aggregator_->Dispose();
+
+    // Notify implementor to close the window.
+    this->OnClose();
+    has_disposed_ = true;
+    render_target_.reset();
+
+    // Notify that the window has been closed.
+    Emit(GLSI_SURFACE_CLOSED, PresentSignal());
+    GetDisplay()->RemoveSurfaceFromList(Self()->Cast<Surface>());
+    QLOG(LOG_DEBUG, "Surface has been disposed");
 }
 
 bool Surface::Resize(int32_t width, int32_t height)
@@ -243,26 +242,12 @@ void Surface::SetMinimized(bool value)
     this->OnSetMinimized(value);
 }
 
-void Surface::SetFullscreen(bool value, const Shared<Monitor>& monitor)
+void Surface::SetFullscreen(bool value, const std::shared_ptr<Monitor>& monitor)
 {
     this->OnSetFullscreen(value, monitor);
 }
 
-Shared<Blender> Surface::CreateBlender()
-{
-    if (!weak_blender_.expired())
-    {
-        QLOG(LOG_ERROR, "Creating multiple blenders on the same surface is not allowed");
-        return nullptr;
-    }
-
-    auto blender = Blender::Make(Self()->Cast<Surface>());
-    weak_blender_ = blender;
-
-    return blender;
-}
-
-void Surface::SetAttachedCursor(const Shared<Cursor>& cursor)
+void Surface::SetAttachedCursor(const std::shared_ptr<Cursor>& cursor)
 {
     CHECK(cursor);
 
@@ -292,12 +277,7 @@ void Surface::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept
                               TraceIdFromPointer(display_.lock().get()));
     }
 
-    if (!weak_blender_.expired())
-    {
-        tracer->TraceMember("Blender", weak_blender_.lock().get());
-    }
-
-    // TODO(sora): trace cursors.
+    tracer->TraceMember("ContentAggregator", content_aggregator_.get());
 }
 
 GLAMOR_NAMESPACE_END

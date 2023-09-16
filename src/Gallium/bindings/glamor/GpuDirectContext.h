@@ -115,6 +115,30 @@ public:
     //! TSDecl: function isDisposed(): boolean
     bool isDisposed();
 
+    //! TSDecl: function isOutOfHostOrDeviceMemory(): boolean
+    bool isOutOfHostOrDeviceMemory();
+
+    //! TSDecl: function getResourceCacheLimit(): number
+    size_t getResourceCacheLimit();
+
+    //! TSDecl: function getResourceCacheUsage(): {count: number, totalBytes: number}
+    v8::Local<v8::Value> getResourceCacheUsage();
+
+    //! TSDecl: function getResourceCachePurgeableBytes(): number
+    size_t getResourceCachePurgeableBytes();
+
+    //! TSDecl: function setResourceCacheLimit(bytes: number): void
+    void setResourceCacheLimit(size_t bytes);
+
+    //! TSDecl: function freeGpuResources(): void
+    void freeGpuResources();
+
+    //! TSDecl: function performDeferredCleanup(msNotUsed: number, scratchOnly: boolean): void
+    void performDeferredCleanup(double ms_not_used, bool scratch_only);
+
+    //! TSDecl: function supportsDistanceFieldText() boolean
+    bool supportsDistanceFieldText();
+
     //! TSDecl: function makeSurface(imageInfo: CkImageInfo,
     //!                              budgeted: boolean,
     //!                              aaSamplesPerPixel: number): CkSurface

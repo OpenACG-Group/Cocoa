@@ -25,7 +25,7 @@
 #include "include/core/SkPicture.h"
 
 #include "Glamor/Glamor.h"
-#include "Glamor/Blender.h"
+#include "Glamor/ContentAggregator.h"
 #include "Glamor/Layers/Layer.h"
 #include "Glamor/MaybeGpuObject.h"
 GLAMOR_NAMESPACE_BEGIN
@@ -47,7 +47,7 @@ public:
     bool Preroll(Layer::PrerollContext *context);
     void Paint(Layer::PaintContext *context);
 
-    g_inline void SetRootLayer(const Shared<ContainerLayer>& root) {
+    g_inline void SetRootLayer(const std::shared_ptr<ContainerLayer>& root) {
         root_layer_ = root;
     }
 
@@ -63,7 +63,7 @@ public:
         return frame_size_;
     }
 
-    g_inline void AppendObserver(const Shared<RasterDrawOpObserver>& observer) {
+    g_inline void AppendObserver(const std::shared_ptr<RasterDrawOpObserver>& observer) {
         auto itr = std::find(raster_draw_op_observers_.begin(),
                              raster_draw_op_observers_.end(),
                              observer);
@@ -75,7 +75,7 @@ public:
         return raster_draw_op_observers_;
     }
 
-    g_inline void RemoveObserver(const Shared<RasterDrawOpObserver>& observer) {
+    g_inline void RemoveObserver(const std::shared_ptr<RasterDrawOpObserver>& observer) {
         auto itr = std::find(raster_draw_op_observers_.begin(),
                              raster_draw_op_observers_.end(),
                              observer);
@@ -86,9 +86,11 @@ public:
     std::string ToString();
 
 private:
-    SkISize frame_size_;
-    Shared<ContainerLayer> root_layer_;
-    std::list<Shared<RasterDrawOpObserver>> raster_draw_op_observers_;
+    using ObserverList = std::list<std::shared_ptr<RasterDrawOpObserver>>;
+
+    SkISize                         frame_size_;
+    std::shared_ptr<ContainerLayer> root_layer_;
+    ObserverList                    raster_draw_op_observers_;
 };
 
 GLAMOR_NAMESPACE_END

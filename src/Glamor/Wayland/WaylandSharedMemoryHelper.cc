@@ -117,9 +117,8 @@ const char *g_roles_id_name_map[] = {
 
 } // namespace anonymous
 
-Shared<WaylandSharedMemoryHelper> WaylandSharedMemoryHelper::Make(wl_shm *shm,
-                                                                  size_t size,
-                                                                  BufferRole role)
+std::shared_ptr<WaylandSharedMemoryHelper>
+WaylandSharedMemoryHelper::Make(wl_shm *shm, size_t size, BufferRole role)
 {
     CHECK(shm);
 

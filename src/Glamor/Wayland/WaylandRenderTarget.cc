@@ -19,7 +19,8 @@
 #include "Glamor/Wayland/WaylandDisplay.h"
 GLAMOR_NAMESPACE_BEGIN
 
-WaylandRenderTarget::WaylandRenderTarget(const Shared<Display>& display, RenderDevice device, int32_t width,
+WaylandRenderTarget::WaylandRenderTarget(const std::shared_ptr<Display>& display,
+                                         RenderDevice device, int32_t width,
                                          int32_t height, SkColorType format)
     : RenderTarget(display, device, width, height ,format)
     , wl_surface_(nullptr)

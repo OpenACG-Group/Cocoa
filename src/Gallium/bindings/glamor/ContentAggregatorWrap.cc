@@ -15,7 +15,7 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "Glamor/Blender.h"
+#include "Glamor/ContentAggregator.h"
 
 #include "Core/TraceEvent.h"
 #include "Gallium/binder/TypeTraits.h"
@@ -26,29 +26,29 @@
 #include "Gallium/bindings/glamor/GpuDirectContext.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-BlenderWrap::BlenderWrap(gl::Shared<gl::PresentRemoteHandle> handle)
+ContentAggregatorWrap::ContentAggregatorWrap(std::shared_ptr<gl::PresentRemoteHandle> handle)
     : handle_(std::move(handle))
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
     using PictCast = CreateObjCast<gl::MaybeGpuObject<SkPicture>, CriticalPictureWrap>;
     DefineSignalEventsOnEventEmitter(this, handle_, {
-        { "picture-captured", GLSI_BLENDER_PICTURE_CAPTURED,
+        { "picture-captured", GLSI_CONTENTAGGREGATOR_PICTURE_CAPTURED,
           GenericSignalArgsConverter<PictCast, NoCast<int32_t>> }
     });
 
-    gl::Shared<gl::Blender> blender = handle_->As<gl::Blender>();
-    if (blender->GetAttachedProfiler())
+    std::shared_ptr<gl::ContentAggregator> aggregator = handle_->As<gl::ContentAggregator>();
+    if (aggregator->GetAttachedProfiler())
     {
-        gl::Shared<gl::GProfiler> profiler = blender->GetAttachedProfiler();
+        std::shared_ptr<gl::GProfiler> profiler = aggregator->GetAttachedProfiler();
         wrapped_profiler_.Reset(isolate,
             binder::NewObject<GProfilerWrap>(isolate, profiler));
     }
 }
 
-BlenderWrap::~BlenderWrap() = default;
+ContentAggregatorWrap::~ContentAggregatorWrap() = default;
 
-v8::Local<v8::Value> BlenderWrap::getProfiler()
+v8::Local<v8::Value> ContentAggregatorWrap::getProfiler()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     if (wrapped_profiler_.IsEmpty())
@@ -57,15 +57,15 @@ v8::Local<v8::Value> BlenderWrap::getProfiler()
     return wrapped_profiler_.Get(isolate);
 }
 
-v8::Local<v8::Value> BlenderWrap::dispose()
+v8::Local<v8::Value> ContentAggregatorWrap::dispose()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return PromisifiedRemoteCall::Call(isolate, handle_, {}, GLOP_BLENDER_DISPOSE);
+    return PromisifiedRemoteCall::Call(isolate, handle_, {}, GLOP_CONTENTAGGREGATOR_DISPOSE);
 }
 
-v8::Local<v8::Value> BlenderWrap::update(v8::Local<v8::Value> sceneObject)
+v8::Local<v8::Value> ContentAggregatorWrap::update(v8::Local<v8::Value> sceneObject)
 {
-    TRACE_EVENT("main", "BlenderWrap::update");
+    TRACE_EVENT("main", "ContentAggregatorWrap::update");
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
@@ -77,27 +77,27 @@ v8::Local<v8::Value> BlenderWrap::update(v8::Local<v8::Value> sceneObject)
     CHECK(layer_tree.unique());
 
     return PromisifiedRemoteCall::Call(
-            isolate, handle_, {}, GLOP_BLENDER_UPDATE, layer_tree);
+            isolate, handle_, {}, GLOP_CONTENTAGGREGATOR_UPDATE, layer_tree);
 }
 
-v8::Local<v8::Value> BlenderWrap::captureNextFrameAsPicture()
+v8::Local<v8::Value> ContentAggregatorWrap::captureNextFrameAsPicture()
 {
-    TRACE_EVENT("main", "BlenderWrap::captureNextFrameAsPicture");
+    TRACE_EVENT("main", "ContentAggregatorWrap::captureNextFrameAsPicture");
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     return PromisifiedRemoteCall::Call(
             isolate, handle_, PromisifiedRemoteCall::GenericConvert<NoCast<int32_t>>,
-            GLOP_BLENDER_CAPTURE_NEXT_FRAME_AS_PICTURE);
+            GLOP_CONTENTAGGREGATOR_CAPTURE_NEXT_FRAME_AS_PICTURE);
 }
 
-v8::Local<v8::Value> BlenderWrap::purgeRasterCacheResources()
+v8::Local<v8::Value> ContentAggregatorWrap::purgeRasterCacheResources()
 {
-    TRACE_EVENT("main", "BlenderWrap::purgeRasterCacheResources");
+    TRACE_EVENT("main", "ContentAggregatorWrap::purgeRasterCacheResources");
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     return PromisifiedRemoteCall::Call(
-            isolate, handle_, {}, GLOP_BLENDER_PURGE_RASTER_CACHE_RESOURCES);
+            isolate, handle_, {}, GLOP_CONTENTAGGREGATOR_PURGE_RASTER_CACHE_RESOURCES);
 }
 
-v8::Local<v8::Value> BlenderWrap::importGpuSemaphoreFd(v8::Local<v8::Value> fd)
+v8::Local<v8::Value> ContentAggregatorWrap::importGpuSemaphoreFd(v8::Local<v8::Value> fd)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     GpuExportedFd *handle = binder::UnwrapObject<GpuExportedFd>(isolate, fd);
@@ -108,29 +108,29 @@ v8::Local<v8::Value> BlenderWrap::importGpuSemaphoreFd(v8::Local<v8::Value> fd)
         isolate,
         handle_,
         [](v8::Isolate *i, gl::PresentRemoteCallReturn& ret) {
-            auto id = ret.GetReturnValue<gl::Blender::ImportedSemaphoreId>();
+            auto id = ret.GetReturnValue<gl::ContentAggregator::ImportedSemaphoreId>();
             return v8::BigInt::New(i, id);
         },
-        GLOP_BLENDER_IMPORT_GPU_SEMAPHORE_FROM_FD,
+        GLOP_CONTENTAGGREGATOR_IMPORT_GPU_SEMAPHORE_FROM_FD,
         fd_value,
         true
     );
 }
 
-v8::Local<v8::Value> BlenderWrap::deleteImportedGpuSemaphore(v8::Local<v8::Value> id)
+v8::Local<v8::Value> ContentAggregatorWrap::deleteImportedGpuSemaphore(v8::Local<v8::Value> id)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     if (!id->IsBigInt())
         g_throw(TypeError, "Argument `id` must be a bigint");
     bool lossless;
-    gl::Blender::ImportedSemaphoreId value = id.As<v8::BigInt>()->Int64Value(&lossless);
+    gl::ContentAggregator::ImportedSemaphoreId value = id.As<v8::BigInt>()->Int64Value(&lossless);
     if (!lossless)
         g_throw(RangeError, "Invalid id was provided by argument `id`");
     return PromisifiedRemoteCall::Call(
-            isolate, handle_, {}, GLOP_BLENDER_DELETE_IMPORTED_GPU_SEMAPHORE, value);
+            isolate, handle_, {}, GLOP_CONTENTAGGREGATOR_DELETE_IMPORTED_GPU_SEMAPHORE, value);
 }
 
-v8::Local<v8::Object> BlenderWrap::OnGetObjectSelf(v8::Isolate *isolate)
+v8::Local<v8::Object> ContentAggregatorWrap::OnGetObjectSelf(v8::Isolate *isolate)
 {
     return GetObjectWeakReference().Get(isolate);
 }

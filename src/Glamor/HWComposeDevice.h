@@ -103,11 +103,12 @@ public:
     };
     using QueueMultiMap = std::unordered_map<DeviceQueueSelector, std::vector<DeviceQueue>>;
 
-    static Unique<HWComposeDevice> Make(const Shared<HWComposeContext>& context,
-                                        const std::vector<DeviceQueueSpecifier>& queue_specs,
-                                        const std::vector<std::string>& extra_device_ext);
+    static std::unique_ptr<HWComposeDevice> Make(
+            const std::shared_ptr<HWComposeContext>& context,
+            const std::vector<DeviceQueueSpecifier>& queue_specs,
+            const std::vector<std::string>& extra_device_ext);
 
-    HWComposeDevice(Shared<HWComposeContext> context,
+    HWComposeDevice(std::shared_ptr<HWComposeContext> context,
                     std::vector<std::string> enabled_extensions,
                     VkDevice vk_device,
                     QueueMultiMap device_queue_multimap);
@@ -117,7 +118,7 @@ public:
         return vk_device_;
     }
 
-    g_nodiscard g_inline Shared<HWComposeContext> GetHWComposeContext() const {
+    g_nodiscard g_inline std::shared_ptr<HWComposeContext> GetHWComposeContext() const {
         return context_;
     }
 
@@ -131,10 +132,10 @@ public:
     void Trace(Tracer *tracer) noexcept override;
 
 private:
-    Shared<HWComposeContext>        context_;
-    std::vector<std::string>        enabled_extensions_;
-    VkDevice                        vk_device_;
-    QueueMultiMap                   device_queue_multimap_;
+    std::shared_ptr<HWComposeContext>   context_;
+    std::vector<std::string>            enabled_extensions_;
+    VkDevice                            vk_device_;
+    QueueMultiMap                       device_queue_multimap_;
 };
 
 GLAMOR_NAMESPACE_END

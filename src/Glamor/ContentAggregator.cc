@@ -15,8 +15,6 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <future>
-
 #include "include/core/SkCanvas.h"
 #include "include/core/SkPicture.h"
 #include "include/core/SkPictureRecorder.h"
@@ -27,80 +25,80 @@
 #include "Core/StandaloneThreadPool.h"
 #include "Core/TraceEvent.h"
 #include "Core/Journal.h"
-#include "Glamor/Blender.h"
+#include "Glamor/ContentAggregator.h"
 #include "Glamor/RenderTarget.h"
 #include "Glamor/Surface.h"
 #include "Glamor/HWComposeSwapchain.h"
-#include "Glamor/RasterFrameGenerator.h"
 #include "Glamor/GProfiler.h"
 
 #include "Glamor/Layers/LayerTree.h"
 #include "Glamor/Layers/RasterDrawOpObserver.h"
 GLAMOR_NAMESPACE_BEGIN
 
-#define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.Blender)
+#define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.ContentAggregator)
 
-GLAMOR_TRAMPOLINE_IMPL(Blender, Dispose)
+GLAMOR_TRAMPOLINE_IMPL(ContentAggregator, Dispose)
 {
-    info.GetThis()->As<Blender>()->Dispose();
+    info.GetThis()->As<ContentAggregator>()->Dispose();
     info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
-GLAMOR_TRAMPOLINE_IMPL(Blender, Update)
+GLAMOR_TRAMPOLINE_IMPL(ContentAggregator, Update)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
-    info.GetThis()->As<Blender>()->Update(info.Get<Shared<LayerTree>>(0));
+    info.GetThis()->As<ContentAggregator>()->Update(
+            info.Get<std::shared_ptr<LayerTree>>(0));
     info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
-GLAMOR_TRAMPOLINE_IMPL(Blender, CaptureNextFrameAsPicture)
+GLAMOR_TRAMPOLINE_IMPL(ContentAggregator, CaptureNextFrameAsPicture)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(0);
-    auto bl = info.GetThis()->As<Blender>();
+    auto bl = info.GetThis()->As<ContentAggregator>();
     info.SetReturnValue(bl->CaptureNextFrameAsPicture());
     info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
-GLAMOR_TRAMPOLINE_IMPL(Blender, PurgeRasterCacheResources)
+GLAMOR_TRAMPOLINE_IMPL(ContentAggregator, PurgeRasterCacheResources)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(0);
-    auto bl = info.GetThis()->As<Blender>();
+    auto bl = info.GetThis()->As<ContentAggregator>();
     bl->PurgeRasterCacheResources();
     info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
-GLAMOR_TRAMPOLINE_IMPL(Blender, ImportGpuSemaphoreFromFd)
+GLAMOR_TRAMPOLINE_IMPL(ContentAggregator, ImportGpuSemaphoreFromFd)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(2);
-    auto bl = info.GetThis()->As<Blender>();
-    Blender::ImportedSemaphoreId id = bl->ImportGpuSemaphoreFromFd(
+    auto bl = info.GetThis()->As<ContentAggregator>();
+    ContentAggregator::ImportedSemaphoreId id = bl->ImportGpuSemaphoreFromFd(
             info.Get<int32_t>(0), info.Get<bool>(1));
     info.SetReturnStatus(id >= 0 ? PresentRemoteCall::Status::kOpSuccess
                                  : PresentRemoteCall::Status::kOpFailed);
     info.SetReturnValue(id);
 }
 
-GLAMOR_TRAMPOLINE_IMPL(Blender, DeleteImportedGpuSemaphore)
+GLAMOR_TRAMPOLINE_IMPL(ContentAggregator, DeleteImportedGpuSemaphore)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
-    auto bl = info.GetThis()->As<Blender>();
-    bl->DeleteImportedGpuSemaphore(info.Get<Blender::ImportedSemaphoreId>(0));
+    auto bl = info.GetThis()->As<ContentAggregator>();
+    bl->DeleteImportedGpuSemaphore(info.Get<ContentAggregator::ImportedSemaphoreId>(0));
     info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
-Shared<Blender> Blender::Make(const Shared<Surface>& surface)
+std::shared_ptr<ContentAggregator>
+ContentAggregator::Make(const std::shared_ptr<Surface>& surface)
 {
     CHECK(surface);
-    return std::make_shared<Blender>(surface);
+    return std::make_shared<ContentAggregator>(surface);
 }
 
-Blender::Blender(const Shared<Surface>& surface)
-    : PresentRemoteHandle(RealType::kBlender)
+ContentAggregator::ContentAggregator(const std::shared_ptr<Surface>& surface)
+    : PresentRemoteHandle(RealType::kContentAggregator)
     , disposed_(false)
     , surface_resize_slot_id_(0)
     , surface_frame_slot_id_(0)
-    , output_surface_(surface)
-    , layer_tree_(std::make_unique<LayerTree>(SkISize::Make(surface->GetWidth(), surface->GetWidth())))
+    , weak_surface_(surface)
     , current_dirty_rect_(SkIRect::MakeEmpty())
     , frame_schedule_state_(FrameScheduleState::kIdle)
     , raster_cache_()
@@ -110,64 +108,85 @@ Blender::Blender(const Shared<Surface>& surface)
 {
     CHECK(surface);
 
+    int32_t width = surface->GetWidth();
+    int32_t height = surface->GetHeight();
+    layer_tree_ = std::make_unique<LayerTree>(SkISize::Make(width, height));
+
     ContextOptions& options = GlobalScope::Ref().GetOptions();
     if (options.GetEnableProfiler())
     {
-        QLOG(LOG_DEBUG, "Graphics profiler is available on the Blender");
+        QLOG(LOG_DEBUG, "Graphics profiler is available on the ContentAggregator");
         gfx_profiler_ = std::make_shared<GProfiler>();
     }
 
     auto device = surface->GetRenderTarget()->GetRenderDeviceType();
     GrDirectContext *direct_context = nullptr;
     if (device == RenderTarget::RenderDevice::kHWComposer)
-        direct_context = surface->GetRenderTarget()->GetHWComposeSwapchain()->GetSkiaGpuContext();
+    {
+        direct_context = surface->GetRenderTarget()
+                ->GetHWComposeSwapchain()->GetSkiaGpuContext();
+    }
     raster_cache_ = std::make_unique<RasterCache>(direct_context);
 
-    SetMethodTrampoline(GLOP_BLENDER_DISPOSE, Blender_Dispose_Trampoline);
-    SetMethodTrampoline(GLOP_BLENDER_UPDATE, Blender_Update_Trampoline);
-    SetMethodTrampoline(GLOP_BLENDER_CAPTURE_NEXT_FRAME_AS_PICTURE,
-                        Blender_CaptureNextFrameAsPicture_Trampoline);
-    SetMethodTrampoline(GLOP_BLENDER_PURGE_RASTER_CACHE_RESOURCES,
-                        Blender_PurgeRasterCacheResources_Trampoline);
-    SetMethodTrampoline(GLOP_BLENDER_IMPORT_GPU_SEMAPHORE_FROM_FD,
-                        Blender_ImportGpuSemaphoreFromFd_Trampoline);
-    SetMethodTrampoline(GLOP_BLENDER_DELETE_IMPORTED_GPU_SEMAPHORE,
-                        Blender_DeleteImportedGpuSemaphore_Trampoline);
+    SetMethodTrampoline(GLOP_CONTENTAGGREGATOR_DISPOSE, ContentAggregator_Dispose_Trampoline);
+    SetMethodTrampoline(GLOP_CONTENTAGGREGATOR_UPDATE, ContentAggregator_Update_Trampoline);
+    SetMethodTrampoline(GLOP_CONTENTAGGREGATOR_CAPTURE_NEXT_FRAME_AS_PICTURE,
+                        ContentAggregator_CaptureNextFrameAsPicture_Trampoline);
+    SetMethodTrampoline(GLOP_CONTENTAGGREGATOR_PURGE_RASTER_CACHE_RESOURCES,
+                        ContentAggregator_PurgeRasterCacheResources_Trampoline);
+    SetMethodTrampoline(GLOP_CONTENTAGGREGATOR_IMPORT_GPU_SEMAPHORE_FROM_FD,
+                        ContentAggregator_ImportGpuSemaphoreFromFd_Trampoline);
+    SetMethodTrampoline(GLOP_CONTENTAGGREGATOR_DELETE_IMPORTED_GPU_SEMAPHORE,
+                        ContentAggregator_DeleteImportedGpuSemaphore_Trampoline);
 
-    surface_resize_slot_id_ = surface->Connect(GLSI_SURFACE_RESIZE,
-                                               [this](PresentSignalArgs& info) {
-        this->SurfaceResizeSlot(info.Get<int32_t>(0), info.Get<int32_t>(1));
-    }, true);
+    surface_resize_slot_id_ = surface->Connect(
+        GLSI_SURFACE_RESIZE,
+        [this](PresentSignalArgs& info) {
+            this->SurfaceResizeSlot(info.Get<int32_t>(0), info.Get<int32_t>(1));
+        },
+        true
+    );
 
-    surface_frame_slot_id_ = surface->Connect(GLSI_SURFACE_FRAME,
-                                              [this](PresentSignalArgs& info) {
-        this->SurfaceFrameSlot();
-    }, true);
+    surface_frame_slot_id_ = surface->Connect(
+        GLSI_SURFACE_FRAME,
+        [this](PresentSignalArgs& info) {
+            this->SurfaceFrameSlot();
+        },
+        true
+    );
 }
 
-Blender::~Blender()
+ContentAggregator::~ContentAggregator()
 {
     Dispose();
 }
 
-RenderTarget::RenderDevice Blender::GetRenderDeviceType() const
+std::shared_ptr<Surface> ContentAggregator::GetSurfaceChecked() const
 {
-    return output_surface_->GetRenderTarget()->GetRenderDeviceType();
+    auto sp = weak_surface_.lock();
+    CHECK(sp && "Surface has expired");
+    return sp;
 }
 
-int32_t Blender::GetWidth() const
+RenderTarget::RenderDevice ContentAggregator::GetRenderDeviceType() const
 {
-    return output_surface_->GetWidth();
+    return GetSurfaceChecked()->GetRenderTarget()->GetRenderDeviceType();
 }
 
-int32_t Blender::GetHeight() const
+int32_t ContentAggregator::GetWidth() const
 {
-    return output_surface_->GetHeight();
+    return GetSurfaceChecked()->GetWidth();
 }
 
-SkColorInfo Blender::GetOutputColorInfo() const
+int32_t ContentAggregator::GetHeight() const
 {
-    return {output_surface_->GetColorType(), SkAlphaType::kPremul_SkAlphaType, nullptr};
+    return GetSurfaceChecked()->GetHeight();
+}
+
+SkColorInfo ContentAggregator::GetOutputColorInfo() const
+{
+    return {GetSurfaceChecked()->GetColorType(),
+            SkAlphaType::kPremul_SkAlphaType, nullptr};
 }
 
 #define GPROFILER_TRY_MARK(tag)                                                  \
@@ -185,9 +204,9 @@ SkColorInfo Blender::GetOutputColorInfo() const
         gfx_profiler_->EndFrame();      \
     }
 
-void Blender::SurfaceFrameSlot()
+void ContentAggregator::SurfaceFrameSlot()
 {
-    TRACE_EVENT("rendering", "Blender::SurfaceFrameSlot");
+    TRACE_EVENT("rendering", "ContentAggregator::SurfaceFrameSlot");
 
     if (frame_schedule_state_ == FrameScheduleState::kIdle)
     {
@@ -200,10 +219,10 @@ void Blender::SurfaceFrameSlot()
         return;
     }
 
-    Shared<RenderTarget> rt = output_surface_->GetRenderTarget();
+    auto rt = GetSurfaceChecked()->GetRenderTarget();
     rt->Present();
 
-    for (const Shared<RasterDrawOpObserver>& observer : layer_tree_->GetObservers())
+    for (const auto& observer : layer_tree_->GetObservers())
         observer->EndFrame();
 
     GPROFILER_TRY_MARK(Presented)
@@ -212,9 +231,9 @@ void Blender::SurfaceFrameSlot()
     frame_schedule_state_ = FrameScheduleState::kPresented;
 }
 
-int32_t Blender::CaptureNextFrameAsPicture()
+int32_t ContentAggregator::CaptureNextFrameAsPicture()
 {
-    TRACE_EVENT("rendering", "Blender::CaptureNextFrameAsPicture");
+    TRACE_EVENT("rendering", "ContentAggregator::CaptureNextFrameAsPicture");
     if (!should_capture_next_frame_)
     {
         should_capture_next_frame_ = true;
@@ -223,9 +242,9 @@ int32_t Blender::CaptureNextFrameAsPicture()
     return capture_next_frame_serial_;
 }
 
-void Blender::Update(const Shared<LayerTree> &layer_tree)
+void ContentAggregator::Update(const std::shared_ptr<LayerTree> &layer_tree)
 {
-    TRACE_EVENT("rendering", "Blender::Update");
+    TRACE_EVENT("rendering", "ContentAggregator::Update");
 
     if (frame_schedule_state_ == FrameScheduleState::kPendingFrame)
     {
@@ -243,7 +262,8 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
     // TODO: diff & update layer tree
     layer_tree_ = layer_tree;
 
-    auto rt = output_surface_->GetRenderTarget();
+    auto surface = GetSurfaceChecked();
+    auto rt = surface->GetRenderTarget();
     GrDirectContext *gr_context = nullptr;
     if (rt->GetHWComposeSwapchain())
     {
@@ -254,7 +274,7 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
     // Prepare to preroll the layer tree
     Layer::PrerollContext context {
         .gr_context = gr_context,
-        .root_surface_transformation = output_surface_->GetRootTransformation(),
+        .root_surface_transformation = GetSurfaceChecked()->GetRootTransformation(),
         .cull_rect = SkRect::MakeEmpty(),
         .raster_cache = raster_cache_.get()
     };
@@ -275,7 +295,7 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
 
     SkNWayCanvas multiplexer_canvas(GetWidth(), GetHeight());
     multiplexer_canvas.addCanvas(frame_surface->getCanvas());
-    for (const Shared<RasterDrawOpObserver>& observer : layer_tree_->GetObservers())
+    for (const auto& observer : layer_tree_->GetObservers())
     {
         SkCanvas *observer_canvas = observer->BeginFrame(
                 gr_context, SkISize::Make(vp_width, vp_height));
@@ -302,7 +322,7 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
 
     Layer::PaintContext paint_context {
         .gr_context = gr_context,
-        .root_surface_transformation = output_surface_->GetRootTransformation(),
+        .root_surface_transformation = surface->GetRootTransformation(),
         .frame_surface = frame_surface,
         .frame_canvas = frame_surface->getCanvas(),
         .multiplexer_canvas = &multiplexer_canvas,
@@ -325,7 +345,7 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
         PresentSignal info;
         info.EmplaceBack<MaybeGpuObject<SkPicture>>(std::move(picture));
         info.EmplaceBack<int32_t>(capture_next_frame_serial_);
-        Emit(GLSI_BLENDER_PICTURE_CAPTURED, std::move(info));
+        Emit(GLSI_CONTENTAGGREGATOR_PICTURE_CAPTURED, std::move(info));
     }
 
     // At last, we request a new frame from WSI layer. We will be notified
@@ -335,9 +355,9 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
                                             static_cast<int32_t>(context.cull_rect.y()),
                                             static_cast<int32_t>(context.cull_rect.width()),
                                             static_cast<int32_t>(context.cull_rect.height()));
-    output_surface_->RequestNextFrame();
+    surface->RequestNextFrame();
 
-    output_surface_->GetRenderTarget()->Submit({
+    surface->GetRenderTarget()->Submit({
         .damage_region = SkRegion(current_dirty_rect_),
         .hw_signal_semaphores = std::move(paint_context.gpu_finished_semaphores)
     });
@@ -347,19 +367,21 @@ void Blender::Update(const Shared<LayerTree> &layer_tree)
     frame_schedule_state_ = FrameScheduleState::kPendingFrame;
 }
 
-void Blender::SurfaceResizeSlot(int32_t width, int32_t height)
+void ContentAggregator::SurfaceResizeSlot(int32_t width, int32_t height)
 {
-    TRACE_EVENT("rendering", "Blender::SurfaceResizeSlot");
+    TRACE_EVENT("rendering", "ContentAggregator::SurfaceResizeSlot");
     layer_tree_->SetFrameSize(SkISize::Make(width, height));
 }
 
-void Blender::Dispose()
+void ContentAggregator::Dispose()
 {
     if (disposed_)
         return;
 
-    output_surface_->Disconnect(surface_resize_slot_id_);
-    output_surface_->Disconnect(surface_frame_slot_id_);
+    auto surface = GetSurfaceChecked();
+
+    surface->Disconnect(surface_resize_slot_id_);
+    surface->Disconnect(surface_frame_slot_id_);
 
     // That the frame is in pending state means we have called the
     // `RenderTarget::Begin` function, which expects a corresponding
@@ -373,20 +395,19 @@ void Blender::Dispose()
     // Delete all the imported semaphores
     if (!imported_semaphore_ids_.empty())
     {
-        VkDevice device = output_surface_->GetRenderTarget()
+        VkDevice device = surface->GetRenderTarget()
                 ->GetHWComposeSwapchain()->GetVkDevice();
         for (const auto& pair : imported_semaphore_ids_)
             vkDestroySemaphore(device, pair.second, nullptr);
     }
 
     raster_cache_.reset();
-    output_surface_.reset();
 
     frame_schedule_state_ = FrameScheduleState::kDisposed;
     disposed_ = true;
 }
 
-void Blender::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept
+void ContentAggregator::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept
 {
     CHECK(!disposed_);
 
@@ -396,13 +417,13 @@ void Blender::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept
     tracer->TraceMember("RasterCache", raster_cache_.get());
 }
 
-void Blender::PurgeRasterCacheResources()
+void ContentAggregator::PurgeRasterCacheResources()
 {
-    TRACE_EVENT("rendering", "Blender::PurgeRasterCacheResources");
+    TRACE_EVENT("rendering", "ContentAggregator::PurgeRasterCacheResources");
     raster_cache_->PurgeAllCaches();
 }
 
-Blender::ImportedSemaphoreId Blender::ImportGpuSemaphoreFromFd(int32_t fd, bool auto_close)
+ContentAggregator::ImportedSemaphoreId ContentAggregator::ImportGpuSemaphoreFromFd(int32_t fd, bool auto_close)
 {
     CHECK(!disposed_);
 
@@ -411,8 +432,8 @@ Blender::ImportedSemaphoreId Blender::ImportGpuSemaphoreFromFd(int32_t fd, bool 
             close(fd);
     });
 
-    std::shared_ptr<RenderTarget> render_target =
-            output_surface_->GetRenderTarget();
+    std::shared_ptr<Surface> surface = GetSurfaceChecked();
+    std::shared_ptr<RenderTarget> render_target = surface->GetRenderTarget();
     if (render_target->GetRenderDeviceType() != RenderTarget::RenderDevice::kHWComposer)
         return -1;
     std::shared_ptr<HWComposeSwapchain> swapchain =
@@ -426,14 +447,14 @@ Blender::ImportedSemaphoreId Blender::ImportGpuSemaphoreFromFd(int32_t fd, bool 
     return id;
 }
 
-void Blender::DeleteImportedGpuSemaphore(ImportedSemaphoreId id)
+void ContentAggregator::DeleteImportedGpuSemaphore(ImportedSemaphoreId id)
 {
     CHECK(!disposed_);
     if (imported_semaphore_ids_.count(id) == 0)
         return;
 
-    std::shared_ptr<RenderTarget> render_target =
-            output_surface_->GetRenderTarget();
+    std::shared_ptr<Surface> surface = GetSurfaceChecked();
+    std::shared_ptr<RenderTarget> render_target = surface->GetRenderTarget();
     CHECK(render_target->GetRenderDeviceType() == RenderTarget::RenderDevice::kHWComposer);
     std::shared_ptr<HWComposeSwapchain> swapchain =
             render_target->GetHWComposeSwapchain();
@@ -444,7 +465,7 @@ void Blender::DeleteImportedGpuSemaphore(ImportedSemaphoreId id)
     imported_semaphore_ids_.erase(id);
 }
 
-VkSemaphore Blender::GetImportedGpuSemaphore(ImportedSemaphoreId id)
+VkSemaphore ContentAggregator::GetImportedGpuSemaphore(ImportedSemaphoreId id)
 {
     if (imported_semaphore_ids_.count(id) == 0)
         return VK_NULL_HANDLE;

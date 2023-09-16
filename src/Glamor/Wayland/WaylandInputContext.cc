@@ -36,7 +36,8 @@ WaylandInputContext::~WaylandInputContext()
     xkb_context_unref(xkb_context_);
 }
 
-Unique<WaylandInputContext> WaylandInputContext::Make(WaylandDisplay *display)
+std::unique_ptr<WaylandInputContext>
+WaylandInputContext::Make(WaylandDisplay *display)
 {
     CHECK(display);
 

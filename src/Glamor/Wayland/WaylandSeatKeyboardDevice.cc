@@ -205,7 +205,8 @@ wl_keyboard_listener g_keyboard_listener = {
     .repeat_info = &WaylandSeatKeyboardDevice::on_repeat_info
 };
 
-Shared<WaylandSurface> extract_surface_from_keyboard(void *data, wl_keyboard *keyboard)
+std::shared_ptr<WaylandSurface>
+extract_surface_from_keyboard(void *data, wl_keyboard *keyboard)
 {
     CHECK(data);
     auto *listener = LISTENER(data);
@@ -257,7 +258,7 @@ WaylandSeatKeyboardDevice::~WaylandSeatKeyboardDevice()
     wl_keyboard_destroy(keyboard_device_);
 }
 
-Unique<WaylandSeatKeyboardDevice>
+std::unique_ptr<WaylandSeatKeyboardDevice>
 WaylandSeatKeyboardDevice::MakeFromKeyboardDevice(WaylandSeat *seat, wl_keyboard *keyboard)
 {
     CHECK(seat && keyboard);
@@ -551,7 +552,7 @@ void WaylandSeatKeyboardDevice::repeat_timer_callback(uv_timer_t *timer)
 
     CHECK(listener->repeating_key_ != KeyboardKey::kPlaceholder);
 
-    Shared<WaylandSurface> surface = listener->seat_->GetDisplay()
+    std::shared_ptr<WaylandSurface> surface = listener->seat_->GetDisplay()
             ->GetKeyboardEnteredSurface(listener->keyboard_device_);
     if (!surface)
     {

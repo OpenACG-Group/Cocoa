@@ -25,7 +25,7 @@ GLAMOR_NAMESPACE_BEGIN
 class RasterFrameGenerator : public FrameGeneratorBase
 {
 public:
-    explicit RasterFrameGenerator(const Shared<Blender>& blender);
+    explicit RasterFrameGenerator(const Shared<ContentAggregator>& blender);
     ~RasterFrameGenerator() override;
 
     void OnPaint(SkSurface *surface, const sk_sp<SkPicture> &picture,

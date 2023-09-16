@@ -36,8 +36,8 @@ public:
     WaylandSeatKeyboardDevice(WaylandSeat *seat, wl_keyboard *keyboard);
     ~WaylandSeatKeyboardDevice();
 
-    static Unique<WaylandSeatKeyboardDevice> MakeFromKeyboardDevice(WaylandSeat *seat,
-                                                                    wl_keyboard *keyboard);
+    static std::unique_ptr<WaylandSeatKeyboardDevice>
+    MakeFromKeyboardDevice(WaylandSeat *seat, wl_keyboard *keyboard);
 
     g_nodiscard g_inline WaylandSeat *GetSeat() const {
         return seat_;

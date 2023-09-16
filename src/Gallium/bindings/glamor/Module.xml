@@ -75,7 +75,7 @@
             <property name="width" getter="@getWidth"/>
             <property name="height" getter="@getHeight"/>
             <property name="display" getter="@getDisplay"/>
-            <method name="createBlender" value="@createBlender"/>
+            <property name="contentAggregator" getter="@getContentAggregator"/>
             <method name="close" value="@close"/>
             <method name="resize" value="@resize"/>
             <method name="setTitle" value="@setTitle"/>
@@ -89,7 +89,7 @@
             <method name="setAttachedCursor" value="@setAttachedCursor"/>
         </class>
 
-        <class name="Blender" wrapper="BlenderWrap" inherit="EventEmitterBase">
+        <class name="ContentAggregator" wrapper="ContentAggregatorWrap" inherit="EventEmitterBase">
             <property name="profiler" getter="@getProfiler"/>
             <method name="dispose" value="@dispose"/>
             <method name="update" value="@update"/>

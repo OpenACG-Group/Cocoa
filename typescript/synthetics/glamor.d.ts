@@ -281,17 +281,8 @@ export class Surface extends EventEmitterBase {
     /* Window height in pixels. */
     readonly height: number;
 
-    /**
-     * Create a `Blender` object and make it associated with the surface.
-     * If the surface has an associated `Blender` object, `Blender.dispose`
-     * must be called before disposing the surface.
-     *
-     * Note that the surface only can associate a single `Blender` object,
-     * and the `Blender` object also only can be associated with a unique `Surface`.
-     * If the surface already has a `Blender`, this operation will fail and the
-     * promise will be rejected.
-     */
-    createBlender(): Promise<Blender>;
+    readonly display: Display | null;
+    readonly contentAggregator: ContentAggregator | null;
 
     /**
      * Close the window immediately.
@@ -431,27 +422,18 @@ export class GProfiler {
 type TextureId = number;
 
 /**
- * Blender, a content aggregator in the Glamor rendering framework, mainly manages
- * the textures and performs the rasterization work of layer trees.
- * It controls the presentation process of contents on a window, providing a higher
+ * Represents a rendering context of a certain window Surface.
+ * It controls the presentation process of contents in a window, providing a higher
  * abstraction of `Surface`. While `Surface` itself provides an interface by which
- * user can manipulate the behaviors and appearances of windows, `Blender` provides
- * an interface by which user can render frames on a window.
- *
- * A `Blender` instance always associates with a unique `Surface` instance
- * implicitly. See `Surface.createBlender` for more details about
- * creating a Blender.
+ * user can manipulate the behaviors and appearances of windows, `ContentAggregator`
+ * provides an interface by which user can render frames in a window.
  *
  * @event [picture-captured] A captured Picture of current frame has been delivered
  *                           from rendering thread. The serial number corresponds with the
  *                           number returned by `captureNextFrameAsPicture`.
  *                           Prototype: (pict: CriticalPicture, serial: number) -> void
- *
- * @event [<dynamic: texture deletion>] A texture has been deleted. The name of the signal
- *                                      is specified by user.
- *                                      Prototype: () -> void
  */
-export class Blender extends EventEmitterBase {
+export class ContentAggregator extends EventEmitterBase {
     readonly profiler: GProfiler | null;
 
     dispose(): Promise<void>;
