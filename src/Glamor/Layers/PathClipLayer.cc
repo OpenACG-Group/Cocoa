@@ -22,10 +22,27 @@
 GLAMOR_NAMESPACE_BEGIN
 
 PathClipLayer::PathClipLayer(const SkPath &path, SkClipOp op, bool AA)
-    : ClippingLayerBase(path)
+    : ClippingLayerBase(ContainerType::kPathClip, path)
     , clip_op_(op)
     , perform_anti_alias_(AA)
 {
+}
+
+ContainerLayer::ContainerAttributeChanged
+PathClipLayer::OnContainerDiffUpdateAttributes(const std::shared_ptr<ContainerLayer>& other)
+{
+    CHECK(other->GetContainerType() == ContainerType::kPathClip);
+    auto layer = std::static_pointer_cast<PathClipLayer>(other);
+    if (layer->clip_op_ == clip_op_ &&
+        layer->perform_anti_alias_ == perform_anti_alias_ &&
+        layer->GetClipShape() == GetClipShape())
+    {
+        return ContainerAttributeChanged::kNo;
+    }
+    else
+    {
+        return ContainerAttributeChanged::kYes;
+    }
 }
 
 void PathClipLayer::OnApplyClipShape(const SkPath &shape, PaintContext *ctx) const
@@ -43,7 +60,7 @@ void PathClipLayer::ToString(std::ostream &out)
 {
     SkPath shape = GetClipShape();
 
-    out << "(path-clip"
+    out << fmt::format("(path-clip#{}:{}", GetUniqueId(), GetGenerationId())
         << fmt::format(" '(op {})", clip_op_ == SkClipOp::kIntersect
                                     ? "Intersect" : "Difference")
         << fmt::format(" '(antialias {})", perform_anti_alias_)

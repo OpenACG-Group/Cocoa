@@ -21,7 +21,7 @@ export class Worker {
     private constructor();
     public static MakeFromURL(url: string): Worker;
 
-    readonly port: Worker;
+    readonly port: MessagePort;
 }
 
 export class MessagePort extends EventEmitterBase {

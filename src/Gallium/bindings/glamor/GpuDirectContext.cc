@@ -17,6 +17,8 @@
 
 #include "include/core/SkColorSpace.h"
 #include "include/gpu/ganesh/SkSurfaceGanesh.h"
+#include "include/gpu/ganesh/vk/GrVkBackendSurface.h"
+#include "include/gpu/GrBackendSurface.h"
 #include "fmt/format.h"
 
 #include "Glamor/Glamor.h"
@@ -26,6 +28,7 @@
 #include "Gallium/binder/Class.h"
 #include "Gallium/bindings/glamor/CkSurfaceWrap.h"
 #include "Gallium/bindings/glamor/GpuDirectContext.h"
+#include "Gallium/bindings/glamor/GpuExportedFd.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 namespace {
@@ -178,42 +181,6 @@ void GpuBinarySemaphore::CheckDisposedOrThrow()
         g_throw(Error, "GpuBinarySemaphore has been disposed or detached");
 }
 
-GpuExportedFd::GpuExportedFd(v8::Local<v8::Object> gpu_context, int32_t fd)
-    : gpu_context_(v8::Isolate::GetCurrent(), gpu_context)
-    , fd_(fd)
-{
-}
-
-GpuExportedFd::~GpuExportedFd()
-{
-    if (fd_ >= 0)
-        ::close(fd_);
-}
-
-void GpuExportedFd::close()
-{
-    if (fd_ < 0)
-        g_throw(Error, "Exported file descriptor has been closed");
-    ::close(fd_);
-    fd_ = -1;
-    gpu_context_.Reset();
-}
-
-bool GpuExportedFd::isImportedOrClosed() const
-{
-    return (fd_ < 0);
-}
-
-int32_t GpuExportedFd::CheckAndTakeDescriptor()
-{
-    if (fd_ < 0)
-        g_throw(Error, "Exported file descriptor has been closed");
-    int32_t fd = fd_;
-    fd_ = -1;
-    gpu_context_.Reset();
-    return fd;
-}
-
 v8::Local<v8::Value> GpuDirectContext::Make()
 {
     std::shared_ptr<gl::HWComposeContext> hw_context =
@@ -252,13 +219,13 @@ bool GpuDirectContext::isDisposed()
     return !static_cast<bool>(context_);
 }
 
-v8::Local<v8::Value> GpuDirectContext::makeSurface(v8::Local<v8::Value> image_info,
-                                                   bool budgeted,
-                                                   int32_t aa_samples_per_pixel)
-{
-    CheckDisposedOrThrow();
+namespace {
 
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+SkImageInfo check_make_render_target_params(v8::Isolate *isolate,
+                                            v8::Local<v8::Value> image_info,
+                                            int32_t aa_samples_per_pixel,
+                                            GrDirectContext *direct_ctx)
+{
     SkImageInfo sk_image_info = ExtractCkImageInfo(isolate, image_info);
 
     if (aa_samples_per_pixel < 0)
@@ -274,7 +241,6 @@ v8::Local<v8::Value> GpuDirectContext::makeSurface(v8::Local<v8::Value> image_in
         g_throw(Error, "Provided alpha type is not supported by GPU surface");
     }
 
-    GrDirectContext *direct_ctx = context_->GetSkiaGpuContext();
     int32_t max_aa_samples = direct_ctx->maxSurfaceSampleCountForColorType(
             sk_image_info.colorType());
     // Skia just rounds the sample count to the maximum supported value
@@ -285,6 +251,22 @@ v8::Local<v8::Value> GpuDirectContext::makeSurface(v8::Local<v8::Value> image_in
         g_throw(Error, fmt::format("Invalid antialias samples per pixel (maximum is {})",
                                    max_aa_samples));
     }
+
+    return sk_image_info;
+}
+
+} // namespace anonymous
+
+v8::Local<v8::Value>
+GpuDirectContext::makeRenderTarget(v8::Local<v8::Value> image_info,
+                                   bool budgeted,
+                                   int32_t aa_samples_per_pixel)
+{
+    CheckDisposedOrThrow();
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    GrDirectContext *direct_ctx = context_->GetSkiaGpuContext();
+    SkImageInfo sk_image_info = check_make_render_target_params(
+            isolate, image_info, aa_samples_per_pixel, direct_ctx);
 
     sk_sp<SkSurface> surface = SkSurfaces::RenderTarget(
         direct_ctx,
@@ -303,12 +285,65 @@ v8::Local<v8::Value> GpuDirectContext::makeSurface(v8::Local<v8::Value> image_in
                                         GetObjectWeakReference().Get(isolate));
 }
 
-v8::Local<v8::Value> GpuDirectContext::makeBinarySemaphore()
+v8::Local<v8::Value>
+GpuDirectContext::exportRenderTargetFd(v8::Local<v8::Value> surface)
+{
+    CheckDisposedOrThrow();
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    CkSurface *surface_wrap = binder::UnwrapObject<CkSurface>(isolate, surface);
+    if (!surface_wrap || surface_wrap->isDisposed())
+        g_throw(TypeError, "Argument `surface` must be an active CkSurface created by this context");
+    v8::Local<v8::Value> surface_gpu_context;
+    if (!surface_wrap->GetGpuDirectContext(isolate).ToLocal(&surface_gpu_context))
+        g_throw(Error, "Surface is not created by this GPU context");
+    if (surface_gpu_context != GetObjectWeakReference().Get(isolate))
+        g_throw(Error, "Surface is not created by this GPU context");
+
+    std::optional<GpuExportedFd::SkSurfacePayload> payload =
+            context_->ExportSkSurface(surface_wrap->GetSurface());
+    if (!payload)
+        g_throw(Error, "Failed to export surface");
+    auto payload_data = std::make_unique<uint8_t[]>(sizeof(GpuExportedFd::SkSurfacePayload));
+    std::memcpy(payload_data.get(), &(*payload), sizeof(GpuExportedFd::SkSurfacePayload));
+
+    return binder::NewObject<GpuExportedFd>(
+            isolate, payload->fd,
+            GpuExportedFd::FdPayloadType::kSkSurface, std::move(payload_data));
+}
+
+v8::Local<v8::Value> GpuDirectContext::importRenderTargetFd(v8::Local<v8::Value> fd)
+{
+    CheckDisposedOrThrow();
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    GpuExportedFd *handle = binder::UnwrapObject<GpuExportedFd>(isolate, fd);
+    if (!handle || handle->isImportedOrClosed())
+        g_throw(TypeError, "Argument `fd` must be a valid, active GpuExportedFd");
+    if (handle->GetPayloadType() != GpuExportedFd::FdPayloadType::kSkSurface)
+        g_throw(Error, "GpuExportedFd does not have a proper payload");
+
+    auto *payload = handle->GetPayload<GpuExportedFd::SkSurfacePayload>();
+    handle->CheckAndTakeDescriptor();
+    sk_sp<SkSurface> surface = context_->ImportSkSurface(*payload);
+    if (!surface)
+        g_throw(Error, "Failed to create renderable surface from the imported image");
+
+    return binder::NewObject<CkSurface>(isolate, std::move(surface),
+                                        GetObjectWeakReference().Get(isolate));
+}
+
+v8::Local<v8::Value> GpuDirectContext::makeBinarySemaphore(bool exportable)
 {
     CheckDisposedOrThrow();
     VkDevice device = context_->GetDevice()->GetVkDevice();
     VkSemaphoreCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    VkExportSemaphoreCreateInfo export_info{};
+    if (exportable)
+    {
+        export_info.sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO;
+        export_info.handleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT;
+        create_info.pNext = &export_info;
+    }
     VkSemaphore semaphore;
     VkResult result = vkCreateSemaphore(device, &create_info, nullptr, &semaphore);
     if (result != VK_SUCCESS)
@@ -328,8 +363,9 @@ v8::Local<v8::Value> GpuDirectContext::exportSemaphoreFd(v8::Local<v8::Value> se
     int32_t fd = context_->ExportSemaphoreFd(wrap->GetVkSemaphore());
     if (fd < 0)
         g_throw(Error, "Failed to export semaphore as a file descriptor");
+
     return binder::NewObject<GpuExportedFd>(
-            isolate, GetObjectWeakReference().Get(isolate), fd);
+            isolate, fd, GpuExportedFd::FdPayloadType::kSemaphore, nullptr);
 }
 
 v8::Local<v8::Value>
@@ -339,7 +375,9 @@ GpuDirectContext::importSemaphoreFd(v8::Local<v8::Value> fd)
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     GpuExportedFd *handle = binder::UnwrapObject<GpuExportedFd>(isolate, fd);
     if (!handle || handle->isImportedOrClosed())
-        g_throw(TypeError, "Argument `fd` must be a valid GpuExportedFd");
+        g_throw(TypeError, "Argument `fd` must be a valid, active GpuExportedFd");
+    if (handle->GetPayloadType() != GpuExportedFd::FdPayloadType::kSemaphore)
+        g_throw(Error, "GpuExportedFd does not have a semaphore payload");
     int32_t fd_value = handle->CheckAndTakeDescriptor();
     VkSemaphore imported = context_->ImportSemaphoreFromFd(fd_value);
     if (imported == VK_NULL_HANDLE)
@@ -369,7 +407,68 @@ int32_t GpuDirectContext::flush(v8::Local<v8::Value> info)
 bool GpuDirectContext::submit(bool wait_for_submit)
 {
     CheckDisposedOrThrow();
-    return context_->GetSkiaGpuContext()->submit(wait_for_submit);
+    return context_->GetSkiaGpuContext()->submit(
+            wait_for_submit ? GrSyncCpu::kYes : GrSyncCpu::kNo);
+}
+
+bool GpuDirectContext::isOutOfHostOrDeviceMemory()
+{
+    CheckDisposedOrThrow();
+    return context_->GetSkiaGpuContext()->oomed();
+}
+
+size_t GpuDirectContext::getResourceCacheLimit()
+{
+    CheckDisposedOrThrow();
+    return context_->GetSkiaGpuContext()->getResourceCacheLimit();
+}
+
+v8::Local<v8::Value> GpuDirectContext::getResourceCacheUsage()
+{
+    CheckDisposedOrThrow();
+    int count;
+    size_t size;
+    context_->GetSkiaGpuContext()->getResourceCacheUsage(&count, &size);
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    using ValueMapT = std::unordered_map<std::string_view, v8::Local<v8::Value>>;
+    return binder::to_v8(isolate, ValueMapT{
+        { "count", binder::to_v8(isolate, count) },
+        { "totalBytes", binder::to_v8(isolate, size) }
+    });
+}
+
+size_t GpuDirectContext::getResourceCachePurgeableBytes()
+{
+    CheckDisposedOrThrow();
+    return context_->GetSkiaGpuContext()->getResourceCachePurgeableBytes();
+}
+
+void GpuDirectContext::setResourceCacheLimit(size_t bytes)
+{
+    CheckDisposedOrThrow();
+    context_->GetSkiaGpuContext()->setResourceCacheLimit(bytes);
+}
+
+void GpuDirectContext::freeGpuResources()
+{
+    CheckDisposedOrThrow();
+    context_->GetSkiaGpuContext()->freeGpuResources();
+}
+
+void GpuDirectContext::performDeferredCleanup(double ms_not_used, bool scratch_only)
+{
+    CheckDisposedOrThrow();
+    namespace Tm = std::chrono;
+    context_->GetSkiaGpuContext()->performDeferredCleanup(
+            Tm::milliseconds(static_cast<int64_t>(ms_not_used)),
+            scratch_only ? GrPurgeResourceOptions::kScratchResourcesOnly
+                         : GrPurgeResourceOptions::kAllResources);
+}
+
+bool GpuDirectContext::supportsDistanceFieldText()
+{
+    CheckDisposedOrThrow();
+    return context_->GetSkiaGpuContext()->supportsDistanceFieldText();
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

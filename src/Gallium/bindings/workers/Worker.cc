@@ -101,24 +101,20 @@ void *worker_entrypoint(void *arg)
     params->Post();
 
     // Evaluate the specified module URL
+    bool eval_status;
     {
         v8::Isolate::Scope isolate_scope(runtime.GetIsolate());
         v8::HandleScope handle_scope(runtime.GetIsolate());
         v8::Context::Scope context_scope(runtime.GetContext());
 
         v8::Local<v8::Value> eval_ret;
-        if (!runtime.EvaluateModule(eval_url).ToLocal(&eval_ret))
-        {
-            QLOG(LOG_ERROR, "Failed to evaluate module `{}`", eval_url);
-            message_port->DetachFromEventLoop();
-            EventLoop::Delete();
-            return nullptr;
-        }
+        eval_status = runtime.EvaluateModule(eval_url).ToLocal(&eval_ret);
     }
 
-    // Run the event loop
-    runtime.SpinRun();
+    if (!eval_status)
+        QLOG(LOG_ERROR, "Failed to evaluate module `{}`", eval_url);
 
+    runtime.SpinRun();
     runtime.Dispose();
 
     message_port->DetachFromEventLoop();

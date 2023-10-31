@@ -26,8 +26,9 @@
 #include "include/gpu/vk/GrVkBackendContext.h"
 #include "include/gpu/GrDirectContext.h"
 #include "include/gpu/GrBackendSemaphore.h"
-#include "include/gpu/GrBackendSurfaceMutableState.h"
+#include "include/gpu/MutableTextureState.h"
 #include "include/gpu/ganesh/SkSurfaceGanesh.h"
+#include "include/gpu/ganesh/vk/GrVkBackendSurface.h"
 #include "include/gpu/GrBackendSurface.h"
 
 #include "fmt/format.h"
@@ -54,13 +55,6 @@ std::vector<T> vk_typed_enumerate(const std::function<void(uint32_t*, T*)>& enum
     std::vector<T> elements(count);
     enumerator(&count, elements.data());
     return std::move(elements);
-}
-
-PFN_vkVoidFunction vk_skia_proc_getter(const char *sym, VkInstance instance, VkDevice device)
-{
-    if (device != VK_NULL_HANDLE)
-        return vkGetDeviceProcAddr(device, sym);
-    return vkGetInstanceProcAddr(instance, sym);
 }
 
 using SwapchainDetails = HWComposeSwapchain::SwapchainDetails;
@@ -138,29 +132,6 @@ bool check_surface_capabilities(const SwapchainDetails& details)
     }
 
     return true;
-}
-
-void populate_gr_vk_extensions(GrVkExtensions& ext,
-                               const std::shared_ptr<HWComposeContext>& ctx,
-                               const std::unique_ptr<HWComposeDevice>& device)
-{
-    std::vector<const char *> instance_ext;
-    instance_ext.reserve(ctx->GetInstanceEnabledExtensions().size());
-    for (const auto& str : ctx->GetInstanceEnabledExtensions())
-        instance_ext.push_back(str.c_str());
-
-    std::vector<const char *> device_ext;
-    device_ext.reserve(device->GetEnabledExtensions().size());
-    for (const auto& str : device->GetEnabledExtensions())
-        device_ext.push_back(str.c_str());
-
-    ext.init(vk_skia_proc_getter,
-             ctx->GetVkInstance(),
-             ctx->GetVkPhysicalDevice(),
-             instance_ext.size(),
-             instance_ext.data(),
-             device_ext.size(),
-             device_ext.data());
 }
 
 } // namespace anonymous
@@ -241,33 +212,16 @@ HWComposeSwapchain::Make(const std::shared_ptr<HWComposeContext>& context,
     ret->device_present_queue_family_ = present_queue->family_index;
     ret->device_present_queue_ = present_queue->queue;
 
-    // Create Skia GPU direct context
-    GrVkExtensions extensions;
-    populate_gr_vk_extensions(extensions, context, ret->device_);
-
-    VkPhysicalDeviceFeatures2 features{};
-    features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    vkGetPhysicalDeviceFeatures2(context->GetVkPhysicalDevice(), &features);
-
-    GrVkBackendContext backend{};
-    backend.fInstance = context->GetVkInstance();
-    backend.fPhysicalDevice = physical_device;
-    backend.fDevice = ret->device_->GetVkDevice();
-    backend.fQueue = graphics_queue->queue;
-    backend.fGraphicsQueueIndex = graphics_queue->family_index;
-    backend.fMaxAPIVersion = VK_API_VERSION_1_2;
-    backend.fVkExtensions = &extensions;
-    backend.fGetProc = vk_skia_proc_getter;
-    backend.fDeviceFeatures2 = &features;
-
-    sk_sp<GrDirectContext> direct_ctx = GrDirectContext::MakeVulkan(backend);
-    if (!direct_ctx)
+    bool success = ret->InitializeSkiaGpuContext(SkiaGpuContextCreateInfo{
+        .hw_context = context,
+        .hw_device = ret->device_,
+        .graphics_queue_index = 0
+    });
+    if (!success)
     {
-        QLOG(LOG_ERROR, "Failed to create Skia GPU direct context with Vulkan backend");
+        QLOG(LOG_ERROR, "Failed to initialize Skia GPU context");
         return nullptr;
     }
-
-    ret->TakeOverSkiaGpuContext(std::move(direct_ctx));
 
     /* Create swapchain */
     if (!ret->CreateOrRecreateSwapchain(width, height))
@@ -303,11 +257,6 @@ HWComposeSwapchain::~HWComposeSwapchain()
     if (vk_surface_ != VK_NULL_HANDLE)
         vkDestroySurfaceKHR(context_->GetVkInstance(), vk_surface_, nullptr);
     device_.reset();
-}
-
-HWComposeDevice *HWComposeSwapchain::OnGetHWComposeDevice()
-{
-    return device_.get();
 }
 
 bool HWComposeSwapchain::CreateOrRecreateSwapchain(int32_t width, int32_t height)
@@ -406,7 +355,7 @@ bool HWComposeSwapchain::CreateGpuBuffers()
     gpu_buffers_.resize(vk_images_count_ + 1);
 
     VkSemaphoreCreateInfo info{};
-    info.sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO;
+    info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     for (int32_t i = 0; i < vk_images_count_ + 1; i++)
     {
         VkResult result = vkCreateSemaphore(vk_device, &info, nullptr, &gpu_buffers_[i].semaphore);
@@ -432,13 +381,14 @@ bool HWComposeSwapchain::CreateGpuBuffers()
         imageInfo.fLevelCount = 1;
         imageInfo.fSharingMode = vk_images_sharing_mode_;
 
-        GrBackendRenderTarget target(static_cast<int32_t>(vk_swapchain_extent_.width),
-                                     static_cast<int32_t>(vk_swapchain_extent_.height), imageInfo);
+        auto render_target = GrBackendRenderTargets::MakeVk(static_cast<int>(vk_swapchain_extent_.width),
+                                                            static_cast<int>(vk_swapchain_extent_.height),
+                                                            imageInfo);
 
         SkSurfaceProps surface_props(0, pixel_geometry_);
         skia_surfaces_[i] = SkSurfaces::WrapBackendRenderTarget(
                 GetSkiaGpuContext(),
-                target,
+                render_target,
                 GrSurfaceOrigin::kTopLeft_GrSurfaceOrigin,
                 SkColorType::kBGRA_8888_SkColorType,
                 SkColorSpace::MakeSRGB(),
@@ -499,7 +449,7 @@ SkSurface *HWComposeSwapchain::NextFrame()
     if (!buffer.acquired)
     {
         VkSemaphoreCreateInfo create_info{};
-        create_info.sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO;
+        create_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         VkSemaphore semaphore;
         if (vkCreateSemaphore(vk_device, &create_info, nullptr, &semaphore) != VK_SUCCESS)
         {
@@ -558,15 +508,15 @@ HWComposeSwapchain::SubmitFrame(const std::vector<GrBackendSemaphore>& signal_se
     };
 
     GrDirectContext *direct_ctx = GetSkiaGpuContext();
-    GrBackendSurfaceMutableState state(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                                       device_present_queue_family_);
+    skgpu::MutableTextureState state(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                     device_present_queue_family_);
 
-    if (direct_ctx->flush(surface, surface_flush_info, &state) != GrSemaphoresSubmitted::kYes)
+    if (direct_ctx->flush(surface.get(), surface_flush_info, &state) != GrSemaphoresSubmitted::kYes)
     {
         QLOG(LOG_ERROR, "Failed to flush current surface contents to GPU recording context");
         return GrSemaphoresSubmitted::kNo;
     }
-    if (!direct_ctx->submit())
+    if (!direct_ctx->submit(GrSyncCpu::kYes))
     {
         QLOG(LOG_ERROR, "Failed to submit drawing operations to GPU");
         return GrSemaphoresSubmitted::kNo;

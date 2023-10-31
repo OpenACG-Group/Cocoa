@@ -169,8 +169,12 @@ add_library(Gallium STATIC
         bindings/glamor/ConcurrentVertexProcessor.cc
         bindings/glamor/GpuDirectContext.h
         bindings/glamor/GpuDirectContext.cc
+        bindings/glamor/GpuExportedFd.h
+        bindings/glamor/GpuExportedFd.cc
         bindings/glamor/CkPixmapWrap.h
         bindings/glamor/CkPixmapWrap.cc
+        bindings/glamor/CkSurfaceContentTracker.h
+        bindings/glamor/CkSurfaceContentTracker.cc
 
         bindings/pixencoder/Exports.h
         bindings/pixencoder/Exports.cc

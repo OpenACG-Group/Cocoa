@@ -28,7 +28,7 @@
 #include "Glamor/PresentRemoteHandle.h"
 #include "Glamor/RenderTarget.h"
 #include "Glamor/GraphicsResourcesTrackable.h"
-#include "Glamor/Layers/RasterCache.h"
+#include "Glamor/Layers/LayerGenerationCache.h"
 
 class SkSurface;
 
@@ -46,6 +46,8 @@ class GProfiler;
 #define GLOP_CONTENTAGGREGATOR_PURGE_RASTER_CACHE_RESOURCES       9
 #define GLOP_CONTENTAGGREGATOR_IMPORT_GPU_SEMAPHORE_FROM_FD       10
 #define GLOP_CONTENTAGGREGATOR_DELETE_IMPORTED_GPU_SEMAPHORE      11
+#define GLOP_CONTENTAGGREGATOR_IMPORT_GPU_SKSURFACE               12
+#define GLOP_CONTENTAGGREGATOR_DELETE_IMPORTED_GPU_SKSURFACE      13
 
 #define GLSI_CONTENTAGGREGATOR_PICTURE_CAPTURED                   8
 
@@ -68,6 +70,13 @@ public:
 
         kPresented,
         kDisposed
+    };
+
+    enum class UpdateResult
+    {
+        kSuccess,
+        kFrameDropped,
+        kError
     };
 
     static std::shared_ptr<ContentAggregator> Make(
@@ -101,23 +110,30 @@ public:
     g_nodiscard int32_t GetHeight() const;
     g_nodiscard SkColorInfo GetOutputColorInfo() const;
 
-    g_async_api void Update(const std::shared_ptr<LayerTree>& layer_tree);
+    g_async_api UpdateResult Update(const std::shared_ptr<LayerTree>& layer_tree);
     g_async_api int32_t CaptureNextFrameAsPicture();
     g_async_api void Dispose();
 
     g_async_api void PurgeRasterCacheResources();
 
-    using ImportedSemaphoreId = int64_t;
-    g_async_api ImportedSemaphoreId ImportGpuSemaphoreFromFd(int32_t fd, bool auto_close);
-    g_async_api void DeleteImportedGpuSemaphore(ImportedSemaphoreId id);
+    using ImportedResourcesId = int64_t;
 
-    g_private_api VkSemaphore GetImportedGpuSemaphore(ImportedSemaphoreId id);
+    g_async_api ImportedResourcesId ImportGpuSemaphoreFromFd(int32_t fd, bool auto_close);
+    g_async_api void DeleteImportedGpuSemaphore(ImportedResourcesId id);
+
+    g_async_api ImportedResourcesId ImportGpuSkSurface(const SkiaGpuContextOwner::ExportedSkSurfaceInfo& info);
+    g_async_api void DeleteImportedGpuSkSurface(ImportedResourcesId id);
+
+    g_private_api VkSemaphore GetImportedGpuSemaphore(ImportedResourcesId id);
+    g_private_api SkSurface *GetImportedSkSurface(ImportedResourcesId id);
 
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 
 private:
     void SurfaceResizeSlot(int32_t width, int32_t height);
     void SurfaceFrameSlot();
+
+    std::shared_ptr<HWComposeSwapchain> TryGetSwapchain();
 
     std::shared_ptr<Surface> GetSurfaceChecked() const;
 
@@ -128,16 +144,29 @@ private:
     std::shared_ptr<LayerTree>     layer_tree_;
     SkIRect                        current_dirty_rect_;
     FrameScheduleState             frame_schedule_state_;
-    std::unique_ptr<RasterCache>   raster_cache_;
+    std::unique_ptr<LayerGenerationCache>
+                                   layer_generation_cache_;
     std::shared_ptr<GProfiler>     gfx_profiler_;
 
     bool                           should_capture_next_frame_;
     int32_t                        capture_next_frame_serial_;
 
-    using ImportedSemaphoreIdMap =
-            std::unordered_map<ImportedSemaphoreId, VkSemaphore>;
-    ImportedSemaphoreIdMap         imported_semaphore_ids_;
-    int64_t                        imported_semaphore_ids_cnt_;
+    struct ImportedResourceEntry
+    {
+        enum Type
+        {
+            kSemaphore,
+            kSkSurface
+        };
+        Type type;
+        VkSemaphore semaphore;
+        sk_sp<SkSurface> surface;
+    };
+
+    using ImportedResourcesIdMap =
+            std::unordered_map<ImportedResourcesId, ImportedResourceEntry>;
+    ImportedResourcesIdMap         imported_resources_ids_;
+    int64_t                        imported_resources_ids_cnt_;
 };
 
 GLAMOR_NAMESPACE_END

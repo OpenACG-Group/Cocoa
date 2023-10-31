@@ -62,6 +62,16 @@ public:
                                            uint64_t row_bytes,
                                            v8::Local<v8::Value> pixels);
 
+    g_nodiscard v8::MaybeLocal<v8::Value> GetGpuDirectContext(v8::Isolate *i) const {
+        if (gpu_direct_context_.IsEmpty())
+            return {};
+        return gpu_direct_context_.Get(i);
+    }
+
+    g_nodiscard sk_sp<SkSurface> GetSurface() const {
+        return surface_;
+    }
+
     //! TSDecl: function dispose(): void
     void dispose();
 
@@ -118,8 +128,9 @@ public:
     //!                            takeSemaphoresOwnership: boolean): boolean
     bool waitOnGpu(v8::Local<v8::Value> wait_semaphores, bool take_semaphores_ownership);
 
-    //! TSDecl: function flush(info: GpuFlushInfo): Enum<GpuSemaphoresSubmitted>
-    int32_t flush(v8::Local<v8::Value> info);
+    //! TSDecl: function flush(info: GpuFlushInfo,
+    //!                        transferOwnershipToOther: boolean): Enum<GpuSemaphoresSubmitted>
+    int32_t flush(v8::Local<v8::Value> info, bool transfer_ownership_to_other);
 
 private:
     void CheckDisposedOrThrow();

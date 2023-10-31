@@ -23,12 +23,15 @@
 #include <optional>
 
 #include <vulkan/vulkan.h>
+#include "include/core/SkRefCnt.h"
+#include "include/gpu/vk/GrVkExtensions.h"
 
 #include "Glamor/Glamor.h"
 #include "Glamor/GraphicsResourcesTrackable.h"
 GLAMOR_NAMESPACE_BEGIN
 
 class HWComposeContext;
+class VulkanAMDAllocatorImpl;
 
 /**
  * Represents a logical GPU device (created from physical device),
@@ -114,20 +117,22 @@ public:
                     QueueMultiMap device_queue_multimap);
     ~HWComposeDevice() override;
 
-    g_nodiscard g_inline VkDevice GetVkDevice() const {
+    VkDevice GetVkDevice() const {
         return vk_device_;
     }
 
-    g_nodiscard g_inline std::shared_ptr<HWComposeContext> GetHWComposeContext() const {
+    std::shared_ptr<HWComposeContext> GetHWComposeContext() const {
         return context_;
     }
 
-    g_nodiscard g_inline const std::vector<std::string>& GetEnabledExtensions() const {
+    const std::vector<std::string>& GetEnabledExtensions() const {
         return enabled_extensions_;
     }
 
-    g_nodiscard std::optional<DeviceQueue> GetDeviceQueue(DeviceQueueSelector selector,
-                                                          int32_t index);
+    std::optional<DeviceQueue> GetDeviceQueue(DeviceQueueSelector selector, int32_t index);
+
+    sk_sp<VulkanAMDAllocatorImpl> CreateAllocator(bool external_sync,
+                                                  const skgpu::VulkanExtensions *extensions);
 
     void Trace(Tracer *tracer) noexcept override;
 

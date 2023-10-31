@@ -27,34 +27,56 @@ GLAMOR_NAMESPACE_BEGIN
 class ContainerLayer : public Layer
 {
 public:
-    ContainerLayer() = default;
+    enum class ContainerType
+    {
+        kBackdropFilter,
+        kImageFilter,
+        kOpacity,
+        kPathClip,
+        kRectClip,
+        kRRectClip,
+        kTransform
+    };
+
+    explicit ContainerLayer(ContainerType container_type);
     ~ContainerLayer() override = default;
 
-    g_inline void AppendChildLayer(const std::shared_ptr<Layer>& layer) {
+    g_nodiscard ContainerType GetContainerType() const {
+        return container_type_;
+    }
+
+    void AppendChildLayer(const std::shared_ptr<Layer>& layer) {
         auto itr = std::find(child_layers_.begin(), child_layers_.end(), layer);
         if (itr == child_layers_.end())
             child_layers_.push_back(layer);
     }
 
-    g_inline void RemoveChildLayer(const std::shared_ptr<Layer>& layer) {
-        auto itr = std::find(child_layers_.begin(), child_layers_.end(), layer);
-        if (itr != child_layers_.end())
-            child_layers_.erase(itr);
-    }
-
-    g_nodiscard g_inline size_t GetChildrenCount() const {
+    g_nodiscard size_t GetChildrenCount() const {
         return child_layers_.size();
     }
 
+    bool IsComparableWith(Layer *other) const override;
+
     void Preroll(PrerollContext *context, const SkMatrix &matrix) override;
-    void Paint(PaintContext *context) const override;
+    void Paint(PaintContext *context) override;
+    void DiffUpdate(const std::shared_ptr<Layer>& other) override;
 
 protected:
     void PrerollChildren(PrerollContext *context, const SkMatrix& matrix, SkRect *child_paint_bounds);
     void PaintChildren(PaintContext *context) const;
     void ChildrenToString(std::ostream& out);
 
+    enum class ContainerAttributeChanged
+    {
+        kYes,
+        kNo
+    };
+
+    virtual ContainerAttributeChanged OnContainerDiffUpdateAttributes(
+            const std::shared_ptr<ContainerLayer>& other) = 0;
+
 private:
+    ContainerType container_type_;
     std::list<std::shared_ptr<Layer>> child_layers_;
 };
 

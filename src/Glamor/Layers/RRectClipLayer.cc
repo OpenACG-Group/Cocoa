@@ -20,6 +20,28 @@
 #include "Glamor/Layers/RRectClipLayer.h"
 GLAMOR_NAMESPACE_BEGIN
 
+RRectClipLayer::RRectClipLayer(const SkRRect& rrect, bool AA)
+    : ClippingLayerBase(ContainerType::kRRectClip, rrect)
+    , perform_anti_alias_(AA)
+{
+}
+
+ContainerLayer::ContainerAttributeChanged
+RRectClipLayer::OnContainerDiffUpdateAttributes(const std::shared_ptr<ContainerLayer>& other)
+{
+    CHECK(other->GetContainerType() == ContainerType::kRRectClip);
+    auto layer = std::static_pointer_cast<RRectClipLayer>(other);
+    if (layer->perform_anti_alias_ == perform_anti_alias_ &&
+        layer->GetClipShape() == GetClipShape())
+    {
+        return ContainerAttributeChanged::kNo;
+    }
+    else
+    {
+        return ContainerAttributeChanged::kYes;
+    }
+}
+
 SkRect RRectClipLayer::OnGetClipShapeBounds() const
 {
     return GetClipShape().rect();
@@ -40,7 +62,7 @@ void RRectClipLayer::ToString(std::ostream& os)
     shape.radii(SkRRect::k##v##_Corner).x(), \
     shape.radii(SkRRect::k##v##_Corner).y()
 
-    os << "(round-rect-clip"
+    os << fmt::format("(round-rect-clip#{}:{}", GetUniqueId(), GetGenerationId())
        << fmt::format(" '(bounds {} {} {} {})", bounds.x(), bounds.y(),
                       bounds.width(), bounds.height())
        << fmt::format(" '(radii {} {} {} {} {} {} {} {})",

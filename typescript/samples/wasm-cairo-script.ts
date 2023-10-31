@@ -17,7 +17,7 @@
 
 import * as Cairo from '../wasm/cairo/lib/cairo';
 import { DrawToWebp } from "./wasm-cairo-drawtowebp";
-import { LoadFromProjectThirdParty } from "../wasm/wasm-loader-polyfill";
+import { LoadFromProjectThirdParty } from "../wasm/wasm-loader";
 
 const lib = await LoadFromProjectThirdParty<Cairo.CairoLib>('cairo.wasm', 'cairo.js');
 

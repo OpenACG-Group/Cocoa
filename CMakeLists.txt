@@ -23,6 +23,7 @@ include_directories(
         third_party/skia
         third_party/v8
         third_party/v8/include
+        third_party/vulkanmemoryallocator/include
         third_party/build/include)
 
 link_directories(third_party/build/lib)

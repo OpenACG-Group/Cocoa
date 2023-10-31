@@ -224,7 +224,7 @@ sk_sp<SkImage> create_skimage_from_rgb_frame(GrDirectContext *direct, AVFrame *f
     if (!direct)
         return raster_image;
 
-    sk_sp<SkImage> texture_image = raster_image->makeSubset(raster_image->bounds(), direct);
+    sk_sp<SkImage> texture_image = raster_image->makeSubset(direct, raster_image->bounds());
     if (!texture_image)
         QLOG(LOG_ERROR, "Could not create a GPU-backed texture image");
 

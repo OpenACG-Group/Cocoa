@@ -21,11 +21,36 @@ GLAMOR_NAMESPACE_BEGIN
 
 BackdropFilterLayer::BackdropFilterLayer(const sk_sp<SkImageFilter>& filter,
                                          SkBlendMode blend_mode, bool auto_child_clip)
-    : auto_child_clip_(auto_child_clip)
+    : ContainerLayer(ContainerType::kBackdropFilter)
+    , auto_child_clip_(auto_child_clip)
     , image_filter_(filter)
     , blend_mode_(blend_mode)
 {
     CHECK(image_filter_);
+}
+
+ContainerLayer::ContainerAttributeChanged
+BackdropFilterLayer::OnContainerDiffUpdateAttributes(const std::shared_ptr<ContainerLayer>& other)
+{
+    CHECK(other->GetContainerType() == ContainerType::kBackdropFilter);
+    /*
+    auto layer = std::static_pointer_cast<BackdropFilterLayer>(other);
+    if (layer->image_filter_ == image_filter_ &&
+        layer->auto_child_clip_ == auto_child_clip_ &&
+        layer->blend_mode_ == blend_mode_)
+    {
+        return ContainerAttributeChanged::kNo;
+    }
+    else
+    {
+        return ContainerAttributeChanged::kYes;
+    }
+    */
+
+    // FIXME(sora): BackdropFilterLayer is not cachable, because its
+    //              content depends on the current backdrop, whose change
+    //              of content cannot be detected by checking the subtree.
+    return ContainerAttributeChanged::kYes;
 }
 
 void BackdropFilterLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
@@ -42,7 +67,7 @@ void BackdropFilterLayer::Preroll(PrerollContext *context, const SkMatrix& matri
     SetPaintBounds(child_paint_bounds);
 }
 
-void BackdropFilterLayer::Paint(PaintContext *context) const
+void BackdropFilterLayer::Paint(PaintContext *context)
 {
     SkCanvas *canvas = context->multiplexer_canvas;
     CHECK(canvas);
@@ -77,7 +102,9 @@ void BackdropFilterLayer::Paint(PaintContext *context) const
 
 void BackdropFilterLayer::ToString(std::ostream& out)
 {
-    out << fmt::format("(backdrop-filter '(typename \"{}\") '(auto-child-clipping {})",
+    out << fmt::format("(backdrop-filter#{}:{} '(typename \"{}\") '(auto-child-clipping {})",
+                       GetUniqueId(),
+                       GetGenerationId(),
                        image_filter_->getTypeName(),
                        auto_child_clip_ ? 1 : 0);
     if (GetChildrenCount() > 0)

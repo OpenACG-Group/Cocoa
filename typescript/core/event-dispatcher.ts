@@ -15,7 +15,7 @@
  * along with Vizmoe. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { LinkedList } from '../../core/linked_list';
+import { LinkedList } from './linked_list';
 import { EventEmitterBase as NativeEmitter } from 'synthetic://private/base';
 
 export class Event {

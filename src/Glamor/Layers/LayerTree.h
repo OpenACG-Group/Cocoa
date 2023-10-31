@@ -47,23 +47,23 @@ public:
     bool Preroll(Layer::PrerollContext *context);
     void Paint(Layer::PaintContext *context);
 
-    g_inline void SetRootLayer(const std::shared_ptr<ContainerLayer>& root) {
+    void SetRootLayer(const std::shared_ptr<ContainerLayer>& root) {
         root_layer_ = root;
     }
 
-    g_inline void SetFrameSize(const SkISize& size) {
+    void SetFrameSize(const SkISize& size) {
         frame_size_ = size;
     }
 
-    g_nodiscard g_inline ContainerLayer *GetRootLayer() const {
-        return root_layer_.get();
+    g_nodiscard std::shared_ptr<ContainerLayer> GetRootLayer() const {
+        return root_layer_;
     }
 
-    g_nodiscard g_inline const SkISize& GetFrameSize() const {
+    g_nodiscard const SkISize& GetFrameSize() const {
         return frame_size_;
     }
 
-    g_inline void AppendObserver(const std::shared_ptr<RasterDrawOpObserver>& observer) {
+    void AppendObserver(const std::shared_ptr<RasterDrawOpObserver>& observer) {
         auto itr = std::find(raster_draw_op_observers_.begin(),
                              raster_draw_op_observers_.end(),
                              observer);
@@ -71,11 +71,11 @@ public:
             raster_draw_op_observers_.push_back(observer);
     }
 
-    g_nodiscard g_inline const auto& GetObservers() const {
+    g_nodiscard const auto& GetObservers() const {
         return raster_draw_op_observers_;
     }
 
-    g_inline void RemoveObserver(const std::shared_ptr<RasterDrawOpObserver>& observer) {
+    void RemoveObserver(const std::shared_ptr<RasterDrawOpObserver>& observer) {
         auto itr = std::find(raster_draw_op_observers_.begin(),
                              raster_draw_op_observers_.end(),
                              observer);

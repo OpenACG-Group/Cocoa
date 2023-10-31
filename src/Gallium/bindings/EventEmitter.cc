@@ -82,6 +82,14 @@ void EventEmitterBase::CallListeners(EventData& event_data,
         //              Why V8 does not make it a const parameter?
         auto *ptr_args = const_cast<v8::Local<v8::Value>*>(args.data());
 
+        // User's callback function may call `removeListener()` or
+        // `removeAllListeners()` on the listener list on which we are
+        // iterating, and that will make the iterator invalid.
+        // Setting `iterating = true` lets `removeListener()` and
+        // `removeAllListeners()` know the iterator is being used and should
+        // not be removed immediately. Instead, set `removing` flag.
+        itr->iterating = true;
+
         v8::TryCatch try_catch(isolate);
         if (func->Call(ctx, recv, args_size, ptr_args).IsEmpty())
         {
@@ -89,7 +97,9 @@ void EventEmitterBase::CallListeners(EventData& event_data,
             rt->ReportUncaughtExceptionInCallback(try_catch);
         }
 
-        if (itr->once)
+        itr->iterating = false;
+
+        if (itr->once || itr->removing)
             itr = listeners.erase(itr);
         else
             itr++;
@@ -137,6 +147,21 @@ void EventEmitterBase::addOnceListener(const std::string& name, v8::Local<v8::Va
     EmitterSetListener(name, func, true);
 }
 
+auto EventEmitterBase::ListenerRemoveOrMarkRemoving(
+        ListenersList& list, ListenersList::iterator itr) -> ListenersList::iterator
+{
+    if (itr->iterating)
+    {
+        itr->removing = true;
+        itr++;
+    }
+    else
+    {
+        itr = list.erase(itr);
+    }
+    return itr;
+}
+
 bool EventEmitterBase::removeListener(const std::string& name, v8::Local<v8::Value> func)
 {
     if (events_map_.count(name) == 0)
@@ -155,10 +180,12 @@ bool EventEmitterBase::removeListener(const std::string& name, v8::Local<v8::Val
         if (itr->func == func)
         {
             found = true;
-            itr = event_data.listeners.erase(itr);
+            itr = ListenerRemoveOrMarkRemoving(event_data.listeners, itr);
         }
         else
+        {
             itr++;
+        }
     }
 
     if (event_data.listeners.empty() && event_data.on_listener_clear)
@@ -176,8 +203,11 @@ void EventEmitterBase::removeAllListeners(const std::string &name)
     if (event_data.listeners.empty())
         return;
 
-    event_data.listeners.clear();
-    if (event_data.on_listener_clear)
+    auto itr = event_data.listeners.begin();
+    while (itr != event_data.listeners.end())
+        itr = ListenerRemoveOrMarkRemoving(event_data.listeners, itr);
+
+    if (event_data.listeners.empty() && event_data.on_listener_clear)
         event_data.on_listener_clear(event_data.on_listener_set_ret);
 }
 

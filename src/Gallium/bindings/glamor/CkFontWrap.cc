@@ -16,6 +16,8 @@
  */
 
 #include "fmt/format.h"
+#include "include/core/SkFontTypes.h"
+#include "include/core/SkFont.h"
 
 #include "Gallium/bindings/glamor/CkTypefaceWrap.h"
 #include "Gallium/bindings/glamor/CkFontWrap.h"

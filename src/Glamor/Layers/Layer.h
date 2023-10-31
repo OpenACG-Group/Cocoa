@@ -36,14 +36,23 @@ GLAMOR_NAMESPACE_BEGIN
 // For example, an infinite clipping approximately means no clipping is applied on the canvas.
 static constexpr SkRect kGiantRect = SkRect::MakeLTRB(-1E9F, -1E9F, 1E9F, 1E9F);
 
-class RasterCache;
+class LayerGenerationCache;
 class HWComposeSwapchain;
+class ContentAggregator;
 
 class Layer
 {
 public:
     CO_NONCOPYABLE(Layer)
     CO_NONASSIGNABLE(Layer)
+
+    enum class Type
+    {
+        kContainer,
+        kExternalTexture,
+        kPicture,
+        kGpuSurfaceView
+    };
 
     // NOLINTNEXTLINE
     struct PrerollContext
@@ -55,14 +64,22 @@ public:
         // Calculated when we are prerolling the layer tree and will be available
         // after finishing prerolling.
         SkRect cull_rect;
-
-        RasterCache *raster_cache;
     };
 
     // NOLINTNEXTLINE
     struct PaintContext
     {
+        enum ResourceUsageFlags
+        {
+            kNone_ResourceUsage = 0,
+            kExternalTexture_ResourceUsage = 0x01,
+            kOffscreenTexture_ResourceUsage = 0x02,
+            kGpu_ResourceUsage = 0x04
+        };
+
         GrDirectContext *gr_context;
+
+        bool is_generating_cache;
 
         SkMatrix root_surface_transformation;
 
@@ -80,11 +97,11 @@ public:
 
         std::stack<SkPaint> paints_stack;
 
-        // Layers should set this if any GPU retained resources was drawn into
-        // canvas. For example, a `SkImage` object which holds GPU texture.
-        bool has_gpu_retained_resource;
+        uint32_t resource_usage_flags;
 
-        RasterCache *raster_cache;
+        LayerGenerationCache *cache;
+
+        ContentAggregator *content_aggregator;
 
         // Layers can set this to let Skia signal the specified semaphores
         // when all the commands in this frame submitted to GPU are finished.
@@ -93,16 +110,16 @@ public:
         // When raster backend is used, this is ignored.
         std::vector<GrBackendSemaphore> gpu_finished_semaphores;
 
-        g_nodiscard g_inline bool HasCurrentPaint() const {
+        g_nodiscard bool HasCurrentPaint() const {
             return !paints_stack.empty();
         }
 
-        g_nodiscard g_inline SkPaint& GetCurrentPaint() {
+        g_nodiscard SkPaint& GetCurrentPaint() {
             CHECK(!paints_stack.empty());
             return paints_stack.top();
         }
 
-        g_nodiscard g_inline SkPaint *GetCurrentPaintPtr() {
+        g_nodiscard SkPaint *GetCurrentPaintPtr() {
             if (paints_stack.empty())
                 return nullptr;
             return &paints_stack.top();
@@ -141,26 +158,35 @@ public:
         PaintContext   *paint_context_;
     };
 
-    Layer();
+    explicit Layer(Type type);
     virtual ~Layer() = default;
 
-    g_nodiscard g_inline const SkRect& GetPaintBounds() const {
+    g_nodiscard Type GetType() const {
+        return layer_type_;
+    }
+
+    // Generation ID increases when the node is updated.
+    g_nodiscard uint64_t GetGenerationId() const {
+        return generation_id_;
+    }
+
+    g_nodiscard const SkRect& GetPaintBounds() const {
         return paint_bounds_;
     }
 
     // This should be set for each layer when ContentAggregator is
     // prerolling the layer tree, otherwise it will stay empty.
-    g_inline void SetPaintBounds(const SkRect& bounds) {
+    void SetPaintBounds(const SkRect& bounds) {
         paint_bounds_ = bounds;
     }
 
-    g_nodiscard g_inline uint32_t GetUniqueId() const {
+    g_nodiscard uint32_t GetUniqueId() const {
         return unique_id_;
     }
 
     // Determine if the `Paint` method is necessary for this layer according to
     // the `paint_bound_` and properties in `PaintContext`.
-    g_inline bool NeedsPainting(PaintContext *context) const {
+    g_nodiscard bool NeedsPainting(PaintContext *context) const {
         // Workaround for Skia bug (quickReject does not reject empty bounds).
         // https://bugs.chromium.org/p/skia/issues/detail?id=10951
         if (paint_bounds_.isEmpty())
@@ -170,6 +196,8 @@ public:
         return !context->frame_canvas->quickReject(paint_bounds_);
     }
 
+    g_nodiscard virtual bool IsComparableWith(Layer *other) const;
+
     // The rasterization process is always split into two stages,
     // the first one of which is called "Preroll", while the second one is called "Paint".
     // In the "Preroll" stage, all the layer nodes will be accessed in preorder traversal.
@@ -177,13 +205,22 @@ public:
     // `RasterCacheEntry` optionally.
     virtual void Preroll(PrerollContext *context, const SkMatrix& matrix);
 
-    virtual void Paint(PaintContext *context) const = 0;
+    virtual void Paint(PaintContext *context) = 0;
+
+    virtual void DiffUpdate(const std::shared_ptr<Layer>& other) = 0;
 
     virtual void ToString(std::ostream& out);
 
+    virtual const char *GetLayerTypeName() = 0;
+
+protected:
+    uint64_t IncreaseGenerationId();
+
 private:
+    Type                layer_type_;
     SkRect              paint_bounds_;
     uint32_t            unique_id_;
+    uint64_t            generation_id_;
 };
 
 GLAMOR_NAMESPACE_END

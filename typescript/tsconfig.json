@@ -13,7 +13,12 @@
         },
         "sourceMap": true,
         "allowJs": true,
-        "lib": [ "ES2021", "DOM" ]
+        "lib": [ "ES2021", "DOM" ],
+        "strictBindCallApply": true,
+        "strictFunctionTypes": true,
+        "strictNullChecks": false,
+        "strictPropertyInitialization": false
+        // TODO(sora): enable strictNullChecks and structPropertyInitialization
     },
     "include": [
         "./global/infrastructure.d.ts",
@@ -36,26 +41,28 @@
         "core/assert.ts",
         "core/linked_list.ts",
         "core/formatter.ts",
+        "core/event-dispatcher.ts",
+        "core/error.ts",
 
         "samples/sknative-lottie-viewer.ts",
         "samples/sknative-path-measure.ts",
-        // "samples/sknative-svg-rasterizer.ts",
+        "samples/sknative-svg-rasterizer.ts",
         "samples/sknative-svg-to-skp.ts",
-        // "samples/sknative-pathtext.ts",
+        "samples/sknative-pathtext.ts",
         "samples/sknative-pathtext-interactive.ts",
-        "samples/mediapresent-audio-fft.ts",
-        "samples/vizmoe-simplest-scene.ts",
-        "samples/vizmoe-paragraph-layout.ts",
-        "samples/vizmoe-video-present.ts",
-        "samples/vizmoe-video-present-opencv-cvtcolor.ts",
-        "samples/vizmoe-widgets-hello.ts",
+        "samples/gpu-offscreen-surface-view.ts",
         "samples/wasm-cairo-hello.ts",
         "samples/wasm-cairo-sharing-composite.ts",
         "samples/wasm-cairo-recording-surface.ts",
         "samples/wasm-cairo-script.ts",
         "samples/wasm-opencv-fft-illustrator.ts",
-        "samples/gpu-semaphore-sharing.ts",
 
+        /*
+        "samples/mediapresent-audio-fft.ts",
+        "samples/vizmoe-paragraph-layout.ts",
+        "samples/vizmoe-video-present.ts",
+        "samples/vizmoe-video-present-opencv-cvtcolor.ts",
+        "samples/vizmoe-widgets-hello.ts",
         "vizmoe/base/event-dispatcher.ts",
         "vizmoe/utils/rasterpipeline.ts",
         "vizmoe/render/geometry.ts",
@@ -75,8 +82,16 @@
         "vizmoe/render/widgets-trivial-container.ts",
         "vizmoe/render/widgets-boxmodel-container.ts",
         "vizmoe/render/widgets-drawable-solid.ts",
+        */
 
-        "wasm/wasm-loader-polyfill.ts"
+        "wasm/wasm-loader.ts",
+
+        "graphics/base/Color.ts",
+        "graphics/base/EdgeInsets.ts",
+        "graphics/base/Rectangle.ts",
+        "graphics/base/Vector.ts",
+        "graphics/gsk/GskRenderNode.ts",
+        "graphics/gsk/GskPictureNode.ts"
     ],
     "exclude": [
         "out"

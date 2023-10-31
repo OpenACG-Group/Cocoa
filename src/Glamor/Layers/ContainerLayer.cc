@@ -18,6 +18,19 @@
 #include "Glamor/Layers/ContainerLayer.h"
 GLAMOR_NAMESPACE_BEGIN
 
+ContainerLayer::ContainerLayer(ContainerType container_type)
+    : Layer(Type::kContainer)
+    , container_type_(container_type)
+{
+}
+
+bool ContainerLayer::IsComparableWith(Layer *other) const
+{
+    if (other->GetType() != Type::kContainer)
+        return false;
+    return static_cast<ContainerLayer*>(other)->container_type_ == container_type_;
+}
+
 void ContainerLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
 {
     SkRect paint_bound = SkRect::MakeEmpty();
@@ -42,7 +55,7 @@ void ContainerLayer::PrerollChildren(PrerollContext *context,
     }
 }
 
-void ContainerLayer::Paint(PaintContext *context) const
+void ContainerLayer::Paint(PaintContext *context)
 {
     PaintChildren(context);
 }
@@ -55,6 +68,48 @@ void ContainerLayer::PaintChildren(PaintContext *context) const
         if (layer->NeedsPainting(context))
             layer->Paint(context);
     }
+}
+
+void ContainerLayer::DiffUpdate(const std::shared_ptr<Layer>& other)
+{
+    auto new_container = std::static_pointer_cast<ContainerLayer>(other);
+    std::list<std::shared_ptr<Layer>>& new_children = new_container->child_layers_;
+    std::list<std::shared_ptr<Layer>>& old_children = child_layers_;
+
+    std::list<std::shared_ptr<Layer>> replace_children;
+
+    // TODO(sora): Improve the comparison algorithm
+    bool subtree_dirty = false;
+    for (auto itr = new_children.begin(); itr != new_children.end(); itr++)
+    {
+        auto reusable_old_itr = std::find_if(old_children.begin(), old_children.end(),
+                                             [&itr](const std::shared_ptr<Layer>& layer) {
+            return layer->IsComparableWith(itr->get());
+        });
+
+        if (reusable_old_itr == old_children.end())
+        {
+            // No reusable child node is found.
+            replace_children.emplace_back(*itr);
+            continue;
+        }
+
+        std::shared_ptr<Layer> reusable_old_layer = *reusable_old_itr;
+        uint64_t old_gen_id = reusable_old_layer->GetGenerationId();
+        reusable_old_layer->DiffUpdate(*itr);
+        subtree_dirty = subtree_dirty || (old_gen_id != reusable_old_layer->GetGenerationId());
+
+        // Reuse the found node
+        old_children.erase(reusable_old_itr);
+        replace_children.emplace_back(std::move(reusable_old_layer));
+    }
+
+    child_layers_ = std::move(replace_children);
+
+    subtree_dirty = subtree_dirty ||
+            (OnContainerDiffUpdateAttributes(new_container) == ContainerAttributeChanged::kYes);
+    if (subtree_dirty)
+        IncreaseGenerationId();
 }
 
 void ContainerLayer::ChildrenToString(std::ostream& out)

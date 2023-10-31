@@ -28,10 +28,17 @@ public:
     explicit TransformLayer(const SkMatrix& transform);
     ~TransformLayer() override = default;
 
+    ContainerAttributeChanged OnContainerDiffUpdateAttributes(
+            const std::shared_ptr<ContainerLayer>& other) override;
+
     void Preroll(PrerollContext *context, const SkMatrix &matrix) override;
 
-    void Paint(PaintContext *context) const override;
+    void Paint(PaintContext *context) override;
     void ToString(std::ostream& out) override;
+
+    const char *GetLayerTypeName() override {
+        return "TransformLayer";
+    }
 
 private:
     SkMatrix transform_;

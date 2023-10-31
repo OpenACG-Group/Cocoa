@@ -20,6 +20,7 @@
 #include "Core/Journal.h"
 #include "Glamor/HWComposeContext.h"
 #include "Glamor/HWComposeDevice.h"
+#include "Glamor/VulkanAMDAllocatorImpl.h"
 GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.HWComposeDevice)
@@ -159,7 +160,7 @@ VkDevice create_vk_device(VkPhysicalDevice physical_device,
     VkPhysicalDeviceFeatures physical_features{};
 
     VkDeviceCreateInfo device_create_info{};
-    device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     device_create_info.pNext = nullptr;
     device_create_info.queueCreateInfoCount = queue_create_infos.size();
     device_create_info.pQueueCreateInfos = queue_create_infos.data();
@@ -280,6 +281,26 @@ HWComposeDevice::GetDeviceQueue(DeviceQueueSelector selector, int32_t index)
     if (index < 0 || index >= queues.size())
         return {};
     return queues[index];
+}
+
+sk_sp<VulkanAMDAllocatorImpl>
+HWComposeDevice::CreateAllocator(bool external_sync,
+                                 const skgpu::VulkanExtensions *extensions)
+{
+    // FIXME(sora): On Linux Intel HD405 (other Intel models are not tested), we are
+    //              seeing issues doing read pixels with non-coherent memory.
+    //              For that model of graphics card, we should enable the option
+    //              `force_coherent_host_visible_mem` as a workaround.
+    sk_sp<VulkanAMDAllocatorImpl> allocator_impl = VulkanAMDAllocatorImpl::Make(
+            context_->GetVkInstance(),
+            context_->GetVkPhysicalDevice(),
+            vk_device_,
+            VK_API_VERSION_1_2,
+            external_sync,
+            extensions,
+            /* force_coherent_host_visible_mem= */ false);
+
+    return allocator_impl;
 }
 
 void HWComposeDevice::Trace(Tracer *tracer) noexcept

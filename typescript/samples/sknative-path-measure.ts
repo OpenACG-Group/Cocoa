@@ -76,8 +76,8 @@ function render(): void {
             position[1] + k * tangent[1]
         ],
         [
-            position[0] - k * tangent[0],
-            position[1] - k * tangent[1]
+            position[0],
+            position[1]
         ],
         tanPaint
     );
@@ -86,10 +86,12 @@ function render(): void {
     const pict = recorder.finishRecordingAsPicture();
     const scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
         .pushOffset(0, 0)
-        .addPicture(pict, true, 0, 0)
+        .addPicture(pict, true)
         .build();
 
-    surface.contentAggregator.update(scene).then(() => { scene.dispose(); });
+    surface.contentAggregator.update(scene).catch(reason => {
+        std.print(`Failed to update: ${reason}\n`);
+    });
 
     t = (t + 0.001) % 1;
 }

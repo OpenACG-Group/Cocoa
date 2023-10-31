@@ -22,7 +22,7 @@ import * as Lottie from 'lottie';
 const WINDOW_WIDTH = 512;
 const WINDOW_HEIGHT = 512;
 
-if (std.args.length != 1) {
+if (std.args.length !== 1) {
     throw Error('Provide a lottie file in the arguments list');
 }
 
@@ -63,10 +63,12 @@ function playLottie(file: string) {
         const picture = recorder.finishRecordingAsPicture();
         let scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
                     .pushOffset(0, 0)
-                    .addPicture(picture, false,0, 0)
+                    .addPicture(picture, false)
                     .build();
 
-        aggregator.update(scene).then(() => { scene.dispose(); });
+        aggregator.update(scene).catch(reason => {
+            std.print(`Failed to update: ${reason}\n`);
+        });
     }
 
     surface.addOnceListener('close', () => {

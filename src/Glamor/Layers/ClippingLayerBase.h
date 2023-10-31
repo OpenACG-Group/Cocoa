@@ -28,8 +28,9 @@ class ClippingLayerBase : public ContainerLayer
 public:
     using ClipShape = T;
 
-    explicit ClippingLayerBase(ClipShape shape)
-        : clip_shape_(std::move(shape)) {}
+    explicit ClippingLayerBase(ContainerType container_type, ClipShape shape)
+        : ContainerLayer(container_type)
+        , clip_shape_(std::move(shape)) {}
     ~ClippingLayerBase() override = default;
 
     void Preroll(PrerollContext *context, const SkMatrix& matrix) override
@@ -47,7 +48,7 @@ public:
         PrerollChildren(context, matrix, &child_paint_bounds);
         if (child_paint_bounds.intersect(clip_shape_bounds))
         {
-            // There is no need to paint children if they are completely
+            // There is no need to paint children if they are complete
             // outside the clipping shape bounds.
             SetPaintBounds(child_paint_bounds);
         }
@@ -56,7 +57,7 @@ public:
         context->cull_rect = previous_cull;
     }
 
-    void Paint(PaintContext *context) const override
+    void Paint(PaintContext *context) override
     {
         SkCanvas *canvas = context->multiplexer_canvas;
         SkAutoCanvasRestore scoped_restore(canvas, true);

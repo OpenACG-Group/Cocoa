@@ -438,7 +438,9 @@ export class ContentAggregator extends EventEmitterBase {
 
     dispose(): Promise<void>;
 
-    update(scene: Scene): Promise<void>;
+    getNativeImageInfo(): Promise<CkImageInfo>;
+
+    update(scene: Scene): Promise<UpdateResult>;
 
     purgeRasterCacheResources(): Promise<void>;
 
@@ -469,15 +471,13 @@ export class ContentAggregator extends EventEmitterBase {
      * If raster backend is used, this operation will fail.
      */
     deleteImportedGpuSemaphore(id: bigint): Promise<void>;
+
+    importGpuCkSurface(fd: GpuExportedFd): Promise<bigint>;
+
+    deleteImportedGpuCkSurface(id: bigint): Promise<void>;
 }
 
 export class Scene {
-    /**
-     * A `Scene` instance MUST be disposed as quickly as possible
-     * if it is not used anymore.
-     */
-    dispose(): void;
-
     // ~Experimental API~
     toImage(width: number, height: number): Promise<CkImage>;
 
@@ -496,16 +496,7 @@ export class SceneBuilder {
 
     pop(): SceneBuilder;
 
-    addPicture(picture: CkPicture,
-               autoFastClipping: boolean,
-               dx: number, dy: number): SceneBuilder;
-
-    addTexture(textureId: TextureId,
-               offsetX: number,
-               offsetY: number,
-               width: number,
-               height: number,
-               sampling: number): SceneBuilder;
+    addPicture(picture: CkPicture, autoFastClipping: boolean): SceneBuilder;
 
     addVideoBuffer(vbo: VideoBuffer,
                    offsetX: number,
@@ -513,6 +504,12 @@ export class SceneBuilder {
                    width: number,
                    height: number,
                    sampling: number): SceneBuilder;
+
+    addGpuSurfaceView(surfaceId: bigint,
+                      dstRect: CkRect,
+                      waitSemaphoreId: bigint,
+                      signalSemaphoreId: bigint,
+                      contentTracker: CkSurfaceContentTracker | null): SceneBuilder;
 
     pushOffset(offsetX: number, offsetY: number): SceneBuilder;
 
@@ -540,7 +537,6 @@ export type KeyboardModifiers = number;
 export type KeyboardKey = number;
 export type ColorType = number;
 export type AlphaType = number;
-export type CodecFormat = number;
 export type SamplingOption = number;
 export type TileMode = number;
 export type BlendMode = number;
@@ -576,6 +572,7 @@ export type ToplevelStates = number;
 export type ImageBitDepth = number;
 export type TextureCompressionType = number;
 export type GpuSemaphoreSubmitted = number;
+export type UpdateResult = number;
 
 interface Constants {
     readonly CAPABILITY_HWCOMPOSE_ENABLED: Capability;
@@ -585,6 +582,10 @@ interface Constants {
 
     readonly GPU_SEMAPHORE_SUBMITTED_YES: GpuSemaphoreSubmitted;
     readonly GPU_SEMAPHORE_SUBMITTED_NO: GpuSemaphoreSubmitted;
+
+    readonly UPDATE_RESULT_SUCCESS: UpdateResult;
+    readonly UPDATE_RESULT_ERROR: UpdateResult;
+    readonly UPDATE_RESULT_FRAME_DROPPED: UpdateResult;
 
     readonly COLOR_TYPE_ALPHA8: ColorType;
     readonly COLOR_TYPE_RGB565: ColorType;
@@ -734,10 +735,6 @@ interface Constants {
     readonly VERTICES_VERTEX_MODE_TRIANGLES: VerticesVertexMode;
     readonly VERTICES_VERTEX_MODE_TRIANGLE_FAN: VerticesVertexMode;
     readonly VERTICES_VERTEX_MODE_TRIANGLE_STRIP: VerticesVertexMode;
-
-    readonly FORMAT_PNG: CodecFormat;
-    readonly FORMAT_JPEG: CodecFormat;
-    readonly FORMAT_WEBP: CodecFormat;
 
     readonly SAMPLING_FILTER_NEAREST: SamplingOption;
     readonly SAMPLING_FILTER_LINEAR: SamplingOption;
@@ -967,9 +964,29 @@ export class GpuDirectContext {
 
     isDisposed(): boolean;
 
-    makeSurface(imageInfo: CkImageInfo, budgeted: boolean, aaSamplesPerPixel: number): CkSurface;
+    isOutOfHostOrDeviceMemory(): boolean;
 
-    makeBinarySemaphore(): GpuBinarySemaphore;
+    getResourceCacheLimit(): number;
+
+    getResourceCacheUsage(): {count: number, totalBytes: number};
+
+    getResourceCachePurgeableBytes(): number;
+
+    setResourceCacheLimit(bytes: number): void;
+
+    freeGpuResources(): void;
+
+    performDeferredCleanup(msNotUsed: number, scratchOnly: boolean): void;
+
+    supportsDistanceFieldText(): boolean;
+
+    makeRenderTarget(imageInfo: CkImageInfo, budgeted: boolean, aaSamplesPerPixel: number): CkSurface;
+
+    exportRenderTargetFd(surface: CkSurface): GpuExportedFd;
+
+    importRenderTargetFd(fd: GpuExportedFd): CkSurface;
+
+    makeBinarySemaphore(exportable: boolean): GpuBinarySemaphore;
 
     exportSemaphoreFd(semaphore: GpuBinarySemaphore): GpuExportedFd;
 
@@ -1077,7 +1094,17 @@ export class CkSurface {
     waitOnGpu(waitSemaphores: Array<GpuBinarySemaphore>,
               takeSemaphoresOwnership: boolean): boolean;
 
-    flush(info: GpuFlushInfo): GpuSemaphoreSubmitted;
+    flush(info: GpuFlushInfo, externalBorrowed: boolean): GpuSemaphoreSubmitted;
+}
+
+export class CkSurfaceContentTracker {
+    constructor(surface: CkSurface);
+
+    fork(): CkSurfaceContentTracker;
+
+    updateTrackPoint(): void;
+
+    hasChanged(): boolean;
 }
 
 export class CkMatrix {

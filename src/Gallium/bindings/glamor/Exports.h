@@ -285,10 +285,13 @@ public:
     //! TSDecl: readonly profiler: null | GProfiler
     v8::Local<v8::Value> getProfiler();
 
+    //! TSDecl: function getNativeImageInfo(): Promise<CkImageInfo>
+    v8::Local<v8::Value> getNativeImageInfo();
+
     //! TSDecl: function dispose(): Promise<void>
     v8::Local<v8::Value> dispose();
 
-    //! TSDecl: function update(scene: Scene): Promise<void>
+    //! TSDecl: function update(scene: Scene): Promise<Enum<UpdateResult>>
     v8::Local<v8::Value> update(v8::Local<v8::Value> sceneObject);
 
     //! TSDecl: function captureNextFrameAsPicture(): Promise<number>
@@ -300,8 +303,14 @@ public:
     //! TSDecl: function importGpuSemaphoreFd(fd: GpuExportedFd): Promise<bigint>
     v8::Local<v8::Value> importGpuSemaphoreFd(v8::Local<v8::Value> fd);
 
-    //! TSDecl: function deleteImportedSemaphore(id: bigint): Promise<void>
+    //! TSDecl: function deleteImportedGpuSemaphore(id: bigint): Promise<void>
     v8::Local<v8::Value> deleteImportedGpuSemaphore(v8::Local<v8::Value> id);
+
+    //! TSDecl: function importGpuCkSurface(fd: GpuExportedFd): Promise<bigint>
+    v8::Local<v8::Value> importGpuCkSurface(v8::Local<v8::Value> fd);
+
+    //! TSDecl: function deleteImportedGpuCkSurface(id: bigint): Promise<void>
+    v8::Local<v8::Value> deleteImportedGpuCkSurface(v8::Local<v8::Value> id);
 
 private:
     v8::Local<v8::Object> OnGetObjectSelf(v8::Isolate *isolate) override;

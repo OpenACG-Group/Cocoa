@@ -25,9 +25,20 @@
 
 #include "Glamor/Glamor.h"
 #include "Glamor/GraphicsResourcesTrackable.h"
+#include "Glamor/VulkanAMDAllocatorImpl.h"
 GLAMOR_NAMESPACE_BEGIN
 
 class HWComposeDevice;
+
+struct SkiaGpuContextCreateInfo
+{
+    std::shared_ptr<HWComposeContext> hw_context;
+    std::shared_ptr<HWComposeDevice> hw_device;
+
+    // Queue index is defined by `HWComposeDevice::DeviceQueueSpecifier` when
+    // `HWComposeDevice` is created.
+    int32_t graphics_queue_index;
+};
 
 class SkiaGpuContextOwner : public GraphicsResourcesTrackable
 {
@@ -35,37 +46,61 @@ public:
     SkiaGpuContextOwner();
     ~SkiaGpuContextOwner() override = default;
 
-    g_nodiscard g_inline GrDirectContext *GetSkiaGpuContext() const {
+    g_nodiscard GrDirectContext *GetSkiaGpuContext() const {
         return direct_context_.get();
+    }
+
+    g_nodiscard sk_sp<VulkanAMDAllocatorImpl> GetAllocator() const {
+        return vk_allocator_;
     }
 
     int32_t ExportSemaphoreFd(VkSemaphore semaphore);
     VkSemaphore ImportSemaphoreFromFd(int32_t fd);
 
+    int32_t ExportDeviceMemoryFd(VkDeviceMemory memory);
+    VkDeviceMemory ImportDeviceMemoryFromFd(int32_t fd, uint32_t memory_type_index, VkDeviceSize size);
+
+    struct ExportedSkSurfaceInfo
+    {
+        int32_t fd;
+        uint32_t memory_type_index;
+        uint64_t size;
+        uint64_t offset;
+        uint32_t width;
+        uint32_t height;
+        VkImageTiling image_tilling;
+        VkFormat image_format;
+        uint32_t sample_count;
+        uint32_t level_count;
+        SkColorType sk_color_type;
+    };
+
+    std::optional<ExportedSkSurfaceInfo> ExportSkSurface(const sk_sp<SkSurface>& surface);
+    sk_sp<SkSurface> ImportSkSurface(const ExportedSkSurfaceInfo& exported_info);
+
     VkDevice GetVkDevice();
+
+    g_nodiscard std::shared_ptr<HWComposeDevice> GetDevice() const {
+        return hw_device_;
+    }
 
     void Trace(Tracer *tracer) noexcept override;
 
 protected:
-    void TakeOverSkiaGpuContext(sk_sp<GrDirectContext> direct_context);
+    bool InitializeSkiaGpuContext(const SkiaGpuContextCreateInfo& create_info);
+
     void DisposeSkiaGpuContext();
 
-    /**
-     * Implementors should return a non-null pointer of `HWComposeDevice`
-     * which was used to create the `GrDirectContext`. Returned pointer
-     * must keep valid until `DisposeSkiaGpuContext()` is called.
-     * It may be called multiple times, and implementors should return
-     * the same pointer for each call.
-     */
-    virtual HWComposeDevice *OnGetHWComposeDevice() = 0;
-
 private:
-    sk_sp<GrDirectContext>       direct_context_;
-    bool                         device_support_memory_sharing_;
-    bool                         device_support_semaphore_sharing_;
+    std::shared_ptr<HWComposeDevice> hw_device_;
+    sk_sp<GrDirectContext>          direct_context_;
+    sk_sp<VulkanAMDAllocatorImpl>   vk_allocator_;
+    bool                            device_support_memory_sharing_;
+    bool                            device_support_semaphore_sharing_;
 
-    PFN_vkGetSemaphoreFdKHR      pfn_vkGetSemaphoreFdKHR_;
-    PFN_vkImportSemaphoreFdKHR   pfn_vkImportSemaphoreFdKHR_;
+    PFN_vkGetSemaphoreFdKHR         pfn_vkGetSemaphoreFdKHR_;
+    PFN_vkImportSemaphoreFdKHR      pfn_vkImportSemaphoreFdKHR_;
+    PFN_vkGetMemoryFdKHR            pfn_vkGetMemoryFdKHR_;
 };
 
 GLAMOR_NAMESPACE_END

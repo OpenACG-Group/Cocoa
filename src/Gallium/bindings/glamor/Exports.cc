@@ -15,7 +15,6 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "include/core/SkEncodedImageFormat.h"
 #include "include/core/SkSamplingOptions.h"
 #include "include/core/SkPaint.h"
 #include "include/core/SkPath.h"
@@ -57,6 +56,10 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
 
         { "GPU_SEMAPHORE_SUBMITTED_YES", EV(GrSemaphoresSubmitted::kYes) },
         { "GPU_SEMAPHORE_SUBMITTED_NO",  EV(GrSemaphoresSubmitted::kNo) },
+
+        { "UPDATE_RESULT_SUCCESS", EV(gl::ContentAggregator::UpdateResult::kSuccess) },
+        { "UPDATE_RESULT_ERROR", EV(gl::ContentAggregator::UpdateResult::kError) },
+        { "UPDATE_RESULT_FRAME_DROPPED", EV(gl::ContentAggregator::UpdateResult::kFrameDropped) },
 
         { "COLOR_TYPE_ALPHA8",              EV(T::kAlpha_8_SkColorType)             },
         { "COLOR_TYPE_RGB565",              EV(T::kRGB_565_SkColorType)             },
@@ -207,11 +210,6 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
         { "VERTICES_VERTEX_MODE_TRIANGLES", EV(SkVertices::kTriangles_VertexMode) },
         { "VERTICES_VERTEX_MODE_TRIANGLE_STRIP", EV(SkVertices::kTriangleStrip_VertexMode) },
         { "VERTICES_VERTEX_MODE_TRIANGLE_FAN", EV(SkVertices::kTriangleFan_VertexMode) },
-
-        { "FORMAT_PNG",     EV(SkEncodedImageFormat::kPNG)  },
-        { "FORMAT_JPEG",    EV(SkEncodedImageFormat::kJPEG) },
-        { "FORMAT_WEBP",    EV(SkEncodedImageFormat::kWEBP) },
-        { "FORMAT_GIF",     EV(SkEncodedImageFormat::kGIF)  },
 
         { "SAMPLING_FILTER_NEAREST",    EV(Sampling::kNearest)          },
         { "SAMPLING_FILTER_LINEAR",     EV(Sampling::kLinear)           },

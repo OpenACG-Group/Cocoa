@@ -24,14 +24,20 @@ GLAMOR_NAMESPACE_BEGIN
 class OpacityLayer : public ContainerLayer
 {
 public:
-    explicit OpacityLayer(SkAlpha alpha)
-        : alpha_(alpha) {}
+    explicit OpacityLayer(SkAlpha alpha);
     ~OpacityLayer() override = default;
+
+    ContainerAttributeChanged OnContainerDiffUpdateAttributes(
+            const std::shared_ptr<ContainerLayer>& other) override;
 
     void Preroll(PrerollContext *context, const SkMatrix &matrix) override;
 
-    void Paint(PaintContext *context) const override;
+    void Paint(PaintContext *context) override;
     void ToString(std::ostream& out) override;
+
+    const char *GetLayerTypeName() override {
+        return "OpacityLayer";
+    }
 
 private:
     SkAlpha alpha_;

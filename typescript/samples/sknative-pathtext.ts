@@ -25,6 +25,7 @@
 
 import * as GL from 'glamor';
 import * as std from 'core';
+import {PNGEncoder} from "pixencoder";
 
 const TEXT = 'Hello, World! Text on the Curve!'
 const TEXT_UTF8 = std.Buffer.MakeFromString(TEXT, std.Buffer.ENCODE_UTF8).byteArray;
@@ -73,13 +74,8 @@ for (let g = 0; g < glyphs.length; g++) {
     }
 }
 
-const surface = GL.CkSurface.MakeRaster({
-    alphaType: GL.Constants.ALPHA_TYPE_OPAQUE,
-    colorType: GL.Constants.COLOR_TYPE_BGRA8888,
-    colorSpace: GL.Constants.COLOR_SPACE_SRGB,
-    width: 1000,
-    height: 300
-});
+const surface = GL.CkSurface.MakeRaster(GL.CkImageInfo.MakeSRGB(
+    1000, 300, GL.Constants.COLOR_TYPE_BGRA8888, GL.Constants.ALPHA_TYPE_OPAQUE));
 
 const canvas = surface.getCanvas();
 canvas.clear([1, 1, 1, 1]);
@@ -102,5 +98,5 @@ paint.setStyle(GL.Constants.PAINT_STYLE_STROKE);
 paint.setStrokeWidth(3);
 canvas.drawPath(path, paint);
 
-std.File.WriteFileSync('./output.png',
-    surface.makeImageSnapshot(null).encodeToData(GL.Constants.FORMAT_PNG, 100));
+const encoded = PNGEncoder.EncodeImage(surface.makeImageSnapshot(null), {});
+std.File.WriteFileSync('output.png', std.Buffer.MakeFromAdoptBuffer(new Uint8Array(encoded)));

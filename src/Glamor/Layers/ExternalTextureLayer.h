@@ -87,9 +87,15 @@ public:
                          const SkSamplingOptions& sampling);
     ~ExternalTextureLayer() override = default;
 
+    void DiffUpdate(const std::shared_ptr<Layer>& other) override;
+
     void Preroll(PrerollContext *context, const SkMatrix& matrix) override;
-    void Paint(PaintContext *context) const override;
+    void Paint(PaintContext *context) override;
     void ToString(std::ostream& out) override;
+
+    const char * GetLayerTypeName() override {
+        return "ExternalTextureLayer";
+    }
 
 private:
     std::unique_ptr<Accessor> frame_accessor_;

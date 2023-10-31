@@ -30,10 +30,17 @@ public:
     PathClipLayer(const SkPath& path, SkClipOp op, bool AA);
     ~PathClipLayer() override = default;
 
+    ContainerAttributeChanged OnContainerDiffUpdateAttributes(
+            const std::shared_ptr<ContainerLayer>& other) override;
+
     g_nodiscard SkRect OnGetClipShapeBounds() const override;
     void OnApplyClipShape(const SkPath &shape, PaintContext *ctx) const override;
 
     void ToString(std::ostream& out) override;
+
+    const char *GetLayerTypeName() override {
+        return "PathClipLayer";
+    }
 
 private:
     SkClipOp    clip_op_;

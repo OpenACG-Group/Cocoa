@@ -46,7 +46,7 @@ function executeScript<T>(wasmBinary: ArrayBuffer, script: string): Promise<T> {
         }
     };
 
-    // WebAssembly binary code will be loaded by this function.
+    // This function will load WebAssembly binary code.
     // It just provides a dummy implement of `fetch()` function
     // in Web environment.
     const fetch = () => {

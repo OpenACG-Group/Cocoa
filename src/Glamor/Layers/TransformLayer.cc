@@ -22,7 +22,8 @@ GLAMOR_NAMESPACE_BEGIN
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.Layers.TransformLayer)
 
 TransformLayer::TransformLayer(const SkMatrix& transform)
-    : transform_(transform)
+    : ContainerLayer(ContainerType::kTransform)
+    , transform_(transform)
 {
     // If a transformation matrix is invalid, we print a message to indicate
     // that and use identity matrix as a fallback.
@@ -31,6 +32,17 @@ TransformLayer::TransformLayer(const SkMatrix& transform)
         QLOG(LOG_ERROR, "TransformLayer is constructed with an invalid transformation matrix");
         transform_.setIdentity();
     }
+}
+
+ContainerLayer::ContainerAttributeChanged
+TransformLayer::OnContainerDiffUpdateAttributes(const std::shared_ptr<ContainerLayer>& other)
+{
+    CHECK(other->GetContainerType() == ContainerType::kTransform);
+    auto layer = std::static_pointer_cast<TransformLayer>(other);
+    if (layer->transform_ == transform_)
+        return ContainerAttributeChanged::kNo;
+    else
+        return ContainerAttributeChanged::kYes;
 }
 
 void TransformLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
@@ -63,7 +75,7 @@ void TransformLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
     context->cull_rect = previous_cull_rect;
 }
 
-void TransformLayer::Paint(PaintContext *context) const
+void TransformLayer::Paint(PaintContext *context)
 {
     SkAutoCanvasRestore scopedRestore(context->multiplexer_canvas, true);
     context->multiplexer_canvas->concat(transform_);
@@ -74,7 +86,7 @@ void TransformLayer::Paint(PaintContext *context) const
 void TransformLayer::ToString(std::ostream& out)
 {
 #define M(v) transform_[SkMatrix::kM##v]
-    out << "(transform"
+    out << fmt::format("(transform#{}:{}", GetUniqueId(), GetGenerationId())
         << fmt::format(" '(scale {} {})", M(ScaleX), M(ScaleY))
         << fmt::format(" '(skew {} {})", M(SkewX), M(SkewY))
         << fmt::format(" '(trans {} {})", M(TransX), M(TransY))

@@ -25,14 +25,20 @@ GLAMOR_NAMESPACE_BEGIN
 class RectClipLayer : public ClippingLayerBase<SkRect>
 {
 public:
-    RectClipLayer(const SkRect& rect, bool AA)
-        : ClippingLayerBase(rect), perform_anti_alias_(AA) {}
+    RectClipLayer(const SkRect& rect, bool AA);
     ~RectClipLayer() override = default;
+
+    ContainerAttributeChanged OnContainerDiffUpdateAttributes(
+            const std::shared_ptr<ContainerLayer>& other) override;
 
     g_nodiscard SkRect OnGetClipShapeBounds() const override;
     void OnApplyClipShape(const SkRect& shape, PaintContext *ctx) const override;
 
     void ToString(std::ostream& os) override;
+
+    const char *GetLayerTypeName() override {
+        return "RectClipLayer";
+    }
 
 private:
     bool perform_anti_alias_;

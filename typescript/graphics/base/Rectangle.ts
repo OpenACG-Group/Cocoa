@@ -15,7 +15,7 @@
  * along with Vizmoe. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Point2f, Vector2f } from './vector';
+import { Point2f, Vector2f } from './Vector';
 import * as Fmt from '../../core/formatter';
 import { CkArrayXYWHRect, CkRRect } from 'glamor';
 
@@ -227,7 +227,7 @@ export class Rect implements Fmt.Formattable {
                 this.right_ >= other.right_ && this.bottom_ >= other.bottom_);
     }
 
-    public toGLType(): CkArrayXYWHRect {
+    public toCkArrayXYWHRect(): CkArrayXYWHRect {
         return [this.x, this.y, this.width, this.height];
     }
 
@@ -369,10 +369,10 @@ export class RRect {
         return true;
     }
 
-    public toGLType(): CkRRect {
+    public toCkRRect(): CkRRect {
         if (this.isEmpty()) {
             return {
-                rect: this.rect_.toGLType(),
+                rect: this.rect_.toCkArrayXYWHRect(),
                 uniformRadii: true,
                 borderRadii: [0]
             };
@@ -392,7 +392,7 @@ export class RRect {
             }
         }
         return {
-            rect: this.rect_.toGLType(),
+            rect: this.rect_.toCkArrayXYWHRect(),
             uniformRadii: this.is_xy_uniform_,
             borderRadii: store
         };

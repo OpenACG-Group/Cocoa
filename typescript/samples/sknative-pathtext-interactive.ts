@@ -132,11 +132,11 @@ function render(ctx: WindowContext, pts: GL.CkPoint[]): void {
     const pict = rec.finishRecordingAsPicture();
     const scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
         .pushOffset(0, 0)
-        .addPicture(pict, true, 0, 0)
+        .addPicture(pict, true)
         .build();
 
-    ctx.surface.contentAggregator.update(scene).then(() => {
-        scene.dispose();
+    ctx.surface.contentAggregator.update(scene).catch(reason => {
+        std.print(`Failed to update: ${reason}\n`);
     });
 }
 
@@ -177,7 +177,7 @@ async function main(): Promise<void> {
     });
 
     ctx.surface.addListener('pointer-button', (button: GL.PointerButton, pressed: boolean) => {
-        if (button != GL.Constants.POINTER_BUTTON_LEFT) {
+        if (button !== GL.Constants.POINTER_BUTTON_LEFT) {
             return;
         }
         if (pressed) {

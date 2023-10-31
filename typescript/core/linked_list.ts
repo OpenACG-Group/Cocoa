@@ -142,4 +142,21 @@ export class LinkedList<T> implements Iterable<T> {
         }
         return removed;
     }
+
+    public toArray(filter?: (value: T) => boolean): Array<T> {
+        if (this.isEmpty()) {
+            return [];
+        }
+        if (filter == null) {
+            filter = () => { return true; };
+        }
+        const array = new Array<T>();
+        this.forEach((value: T) => {
+            if (filter(value)) {
+                array.push(value);
+            }
+            return true;
+        });
+        return array;
+    }
 }

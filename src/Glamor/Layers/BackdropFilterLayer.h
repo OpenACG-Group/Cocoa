@@ -33,8 +33,15 @@ public:
     ~BackdropFilterLayer() override = default;
 
     void Preroll(PrerollContext *context, const SkMatrix &matrix) override;
-    void Paint(PaintContext *context) const override;
+    void Paint(PaintContext *context) override;
     void ToString(std::ostream& out) override;
+
+    ContainerAttributeChanged OnContainerDiffUpdateAttributes(
+            const std::shared_ptr<ContainerLayer>& other) override;
+
+    const char *GetLayerTypeName() override {
+        return "BackdropFilterLayer";
+    }
 
 private:
     bool                    auto_child_clip_;

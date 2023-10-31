@@ -19,6 +19,7 @@
 #include "Gallium/bindings/glamor/SceneBuilder.h"
 #include "Gallium/bindings/glamor/CkMatrixWrap.h"
 #include "Gallium/bindings/glamor/CkPathWrap.h"
+#include "Gallium/bindings/glamor/CkSurfaceContentTracker.h"
 #include "Gallium/bindings/utau/Exports.h"
 
 #include "Glamor/Layers/TransformLayer.h"
@@ -29,6 +30,7 @@
 #include "Glamor/Layers/RRectClipLayer.h"
 #include "Glamor/Layers/PathClipLayer.h"
 #include "Glamor/Layers/OpacityLayer.h"
+#include "Glamor/Layers/GpuSurfaceViewLayer.h"
 
 #include "Utau/VideoFrameGLEmbedder.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
@@ -37,20 +39,6 @@ SceneBuilder::SceneBuilder(int32_t width, int32_t height)
     : width_(width)
     , height_(height)
 {
-}
-
-v8::Local<v8::Object> SceneBuilder::getSelfHandle()
-{
-    if (self_handle_.IsEmpty())
-    {
-        v8::Isolate *isolate = v8::Isolate::GetCurrent();
-        self_handle_.Reset(isolate, binder::Class<SceneBuilder>::find_object(isolate, this));
-        CHECK(!self_handle_.IsEmpty());
-
-        // Make this weak-reference to avoid circular reference.
-        self_handle_.SetWeak();
-    }
-    return self_handle_.Get(v8::Isolate::GetCurrent());
 }
 
 void SceneBuilder::pushLayer(const std::shared_ptr<gl::ContainerLayer>& layer)
@@ -96,20 +84,20 @@ v8::Local<v8::Value> SceneBuilder::pop()
     if (layer_stack_.empty())
         g_throw(Error, "Empty layer stack");
     layer_stack_.pop();
-    return getSelfHandle();
+    return GetObjectWeakReference().Get(v8::Isolate::GetCurrent());
 }
 
 v8::Local<v8::Value> SceneBuilder::pushOffset(SkScalar x, SkScalar y)
 {
     pushLayer(std::make_shared<gl::TransformLayer>(SkMatrix::Translate(x, y)));
-    return getSelfHandle();
+    return GetObjectWeakReference().Get(v8::Isolate::GetCurrent());
 }
 
 v8::Local<v8::Value> SceneBuilder::pushRotate(SkScalar rad, SkScalar pivotX, SkScalar pivotY)
 {
     pushLayer(std::make_shared<gl::TransformLayer>(
             SkMatrix::RotateDeg(SkRadiansToDegrees(rad), SkPoint::Make(pivotX, pivotY))));
-    return getSelfHandle();
+    return GetObjectWeakReference().Get(v8::Isolate::GetCurrent());
 }
 
 v8::Local<v8::Value> SceneBuilder::pushTransform(v8::Local<v8::Value> matrix)
@@ -119,7 +107,7 @@ v8::Local<v8::Value> SceneBuilder::pushTransform(v8::Local<v8::Value> matrix)
     if (!wrapper)
         g_throw(TypeError, "Argument `matrix` must be an instance of `CkMatrix`");
     pushLayer(std::make_shared<gl::TransformLayer>(wrapper->GetMatrix()));
-    return getSelfHandle();
+    return GetObjectWeakReference().Get(isolate);
 }
 
 v8::Local<v8::Value> SceneBuilder::pushOpacity(SkScalar alpha)
@@ -128,7 +116,7 @@ v8::Local<v8::Value> SceneBuilder::pushOpacity(SkScalar alpha)
         g_throw(RangeError, "Invalid alpha value, must between [0, 1]");
 
     pushLayer(std::make_shared<gl::OpacityLayer>(alpha * 255));
-    return getSelfHandle();
+    return GetObjectWeakReference().Get(v8::Isolate::GetCurrent());
 }
 
 v8::Local<v8::Value> SceneBuilder::pushImageFilter(v8::Local<v8::Value> filter)
@@ -141,7 +129,7 @@ v8::Local<v8::Value> SceneBuilder::pushImageFilter(v8::Local<v8::Value> filter)
     CHECK(wrapper->GetSkObject());
     pushLayer(std::make_shared<gl::ImageFilterLayer>(wrapper->GetSkObject()));
 
-    return getSelfHandle();
+    return GetObjectWeakReference().Get(isolate);
 }
 
 v8::Local<v8::Value> SceneBuilder::pushBackdropFilter(v8::Local<v8::Value> filter,
@@ -162,7 +150,7 @@ v8::Local<v8::Value> SceneBuilder::pushBackdropFilter(v8::Local<v8::Value> filte
     pushLayer(std::make_shared<gl::BackdropFilterLayer>(wrapper->GetSkObject(),
                                                         mode, autoChildClip));
 
-    return getSelfHandle();
+    return GetObjectWeakReference().Get(isolate);
 }
 
 v8::Local<v8::Value> SceneBuilder::pushRectClip(v8::Local<v8::Value> shape,
@@ -172,7 +160,7 @@ v8::Local<v8::Value> SceneBuilder::pushRectClip(v8::Local<v8::Value> shape,
     SkRect rect_shape = ExtractCkRect(isolate, shape);
 
     pushLayer(std::make_shared<gl::RectClipLayer>(rect_shape, AA));
-    return getSelfHandle();
+    return GetObjectWeakReference().Get(isolate);
 }
 
 v8::Local<v8::Value> SceneBuilder::pushRRectClip(v8::Local<v8::Value> shape,
@@ -182,7 +170,7 @@ v8::Local<v8::Value> SceneBuilder::pushRRectClip(v8::Local<v8::Value> shape,
     SkRRect rrect_shape = ExtractCkRRect(isolate, shape);
 
     pushLayer(std::make_shared<gl::RRectClipLayer>(rrect_shape, AA));
-    return getSelfHandle();
+    return GetObjectWeakReference().Get(isolate);
 }
 
 v8::Local<v8::Value> SceneBuilder::pushPathClip(v8::Local<v8::Value> shape,
@@ -201,22 +189,18 @@ v8::Local<v8::Value> SceneBuilder::pushPathClip(v8::Local<v8::Value> shape,
                                                   static_cast<SkClipOp>(op),
                                                   antialias));
 
-    return getSelfHandle();
+    return GetObjectWeakReference().Get(isolate);
 }
 
-v8::Local<v8::Value> SceneBuilder::addPicture(v8::Local<v8::Value> picture,
-                                              bool autoFastClip,
-                                              SkScalar dx, SkScalar dy)
+v8::Local<v8::Value> SceneBuilder::addPicture(v8::Local<v8::Value> picture, bool autoFastClip)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     auto *unwrapped = binder::UnwrapObject<CkPictureWrap>(isolate, picture);
     if (unwrapped == nullptr)
         g_throw(TypeError, "Argument `picture` must be a CkPicture");
 
-    addLayer(std::make_shared<gl::PictureLayer>(SkPoint::Make(dx, dy),
-                                                autoFastClip,
-                                                unwrapped->getPicture()));
-    return getSelfHandle();
+    addLayer(std::make_shared<gl::PictureLayer>(autoFastClip, unwrapped->getPicture()));
+    return GetObjectWeakReference().Get(isolate);
 }
 
 #define EV(v)   static_cast<typename std::underlying_type<Sampling>::type>(v)
@@ -246,7 +230,49 @@ v8::Local<v8::Value> SceneBuilder::addVideoBuffer(v8::Local<v8::Value> vbo,
 
     addLayer(layer);
 
-    return getSelfHandle();
+    return GetObjectWeakReference().Get(isolate);
+}
+
+v8::Local<v8::Value> SceneBuilder::addGpuSurfaceView(v8::Local<v8::Value> surface_id,
+                                                     v8::Local<v8::Value> dst_rect,
+                                                     v8::Local<v8::Value> wait_sem_id,
+                                                     v8::Local<v8::Value> signal_sem_id,
+                                                     v8::Local<v8::Value> content_tracker)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    gl::GpuSurfaceViewLayer::ContentTracker *ptracker = nullptr;
+    if (!content_tracker->IsNullOrUndefined())
+    {
+        auto *wrap = binder::UnwrapObject<CkSurfaceContentTracker>(isolate, content_tracker);
+        if (!wrap)
+        {
+            g_throw(TypeError, "Argument `contentTracker` must be null or"
+                               " an instance of CkSurfaceContentTracker");
+        }
+        ptracker = wrap->GetTracker();
+        CHECK(ptracker);
+    }
+
+    auto from_bigint = [](v8::Local<v8::Value> v) {
+        if (!v->IsBigInt())
+            g_throw(TypeError, "Resource ID must be a bigint value");
+        bool lossless;
+        int64_t integral = v.As<v8::BigInt>()->Int64Value(&lossless);
+        if (!lossless)
+            g_throw(RangeError, "Resource ID is out of range");
+        return integral;
+    };
+
+    SkRect sk_dst_rect = ExtractCkRect(isolate, dst_rect);
+    addLayer(std::make_shared<gl::GpuSurfaceViewLayer>(
+            from_bigint(surface_id),
+            sk_dst_rect,
+            from_bigint(wait_sem_id),
+            from_bigint(signal_sem_id),
+            ptracker
+    ));
+    return GetObjectWeakReference().Get(isolate);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

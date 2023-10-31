@@ -558,14 +558,29 @@ CkImageWrap::makeWithFilter(v8::Local<v8::Value> gpu_context,
 
     SkIRect filtered_subset = SkIRect::MakeEmpty();
     SkIPoint filtered_offset = SkIPoint::Make(0, 0);
-    sk_sp<SkImage> result = image_->makeWithFilter(
-            ctx,
-            image_filter->GetSkObject().get(),
-            ExtractCkRect(isolate, subset).round(),
-            ExtractCkRect(isolate, clip_bounds).round(),
-            &filtered_subset,
-            &filtered_offset
-    );
+
+    SkImageFilter *filter_ptr = image_filter->GetSkObject().get();
+    sk_sp<SkImage> result;
+    if (ctx)
+    {
+        result = SkImages::MakeWithFilter(
+                ctx, image_,
+                filter_ptr,
+                ExtractCkRect(isolate, subset).round(),
+                ExtractCkRect(isolate, clip_bounds).round(),
+                &filtered_subset,
+                &filtered_offset);
+    }
+    else
+    {
+        result = SkImages::MakeWithFilter(
+                image_,
+                filter_ptr,
+                ExtractCkRect(isolate, subset).round(),
+                ExtractCkRect(isolate, clip_bounds).round(),
+                &filtered_subset,
+                &filtered_offset);
+    }
     if (!result)
         g_throw(Error, "Image could not be created or GPU context mismatched");
 

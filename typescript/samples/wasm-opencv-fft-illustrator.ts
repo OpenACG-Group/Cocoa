@@ -18,7 +18,7 @@
 import * as std from 'core';
 import * as gl from 'glamor';
 import { MatVector, OpenCVLib } from '../wasm/opencv/lib/opencv';
-import { LoadFromProjectThirdParty } from '../wasm/wasm-loader-polyfill';
+import { LoadFromProjectThirdParty } from '../wasm/wasm-loader';
 import { FFT } from './fft';
 import * as GL from "glamor";
 
@@ -70,7 +70,7 @@ function resolveFFTResultTriples(fftResult: ArrayLike<number>, minAmplitude: num
     const terms = q * L;
     for (let i = 0; i < terms; i++) {
         // to reorder the frequencies a little nicer, we pick from the front and back alternatively
-        const j = i % 2 == 0 ? i / 2 : L - ((i+1) / 2);
+        const j = i % 2 === 0 ? i / 2 : L - ((i+1) / 2);
         const x = fftResult[2 * j];
         const y = fftResult[2 * j + 1];
         const freq = ((j + L / 2) % L) - L / 2;
@@ -98,7 +98,7 @@ function computeBitmapContours(bitmap: gl.CkBitmap, scalar: number): MatVector {
         new Uint8ClampedArray(bitmap.asTypedArray())
     );
 
-    if (scalar != 1) {
+    if (scalar !== 1) {
         const scaled = new cv.Mat();
         cv.resize(src, scaled, new cv.Size(bitmap.width * scalar, bitmap.height * scalar));
         src.delete();
@@ -131,7 +131,7 @@ function computeFFTResultPoints(contours: MatVector, q: number): Array<Array<gl.
     for (let i = 0; i < contours.size(); i++) {
         const contour = contours.get(i);
 
-        if (contour.rows == 1) {
+        if (contour.rows === 1) {
             continue;
         }
 
@@ -175,7 +175,7 @@ interface AnimationContext {
 
 async function main(): Promise<void> {
 
-    if (std.args.length != 2) {
+    if (std.args.length !== 2) {
         std.print('Options: <source image path> <size scalar>\n');
         return;
     }
@@ -183,7 +183,7 @@ async function main(): Promise<void> {
     const bitmap = gl.CkBitmap.MakeFromEncodedFile(std.args[0]);
     // OpenCV only uses BGR color format (corresponds to RGBA8888 in Glamor),
     // and we should make sure the image is decoded into that format.
-    if (bitmap.colorType != gl.Constants.COLOR_TYPE_RGBA8888) {
+    if (bitmap.colorType !== gl.Constants.COLOR_TYPE_RGBA8888) {
         throw Error('Image is decoded into an unsupported color format');
     }
 
@@ -217,18 +217,23 @@ async function main(): Promise<void> {
     const window = await display.createRasterSurface(vpWidth, vpHeight);
     await window.setTitle('FFT Drawing');
 
+    const paintSurface = gl.CkSurface.MakeRaster(
+        await window.contentAggregator.getNativeImageInfo());
+
+    paintSurface.getCanvas().clear([1, 1, 1, 1]);
+
     window.addListener('keyboard-key', (key: gl.KeyboardKey, modifiers: gl.KeyboardModifiers, pressed: boolean) => {
-        if (pressed == true) {
+        if (pressed === true) {
             return;
         }
 
-        if (key != gl.Constants.KEY_UP && key != gl.Constants.KEY_DOWN) {
+        if (key !== gl.Constants.KEY_UP && key !== gl.Constants.KEY_DOWN) {
             return;
         }
 
-        if (key == gl.Constants.KEY_UP) {
+        if (key === gl.Constants.KEY_UP) {
             animationCtx.q += 0.05;
-        } else if (key == gl.Constants.KEY_DOWN) {
+        } else if (key === gl.Constants.KEY_DOWN) {
             animationCtx.q -= 0.05;
         }
 
@@ -242,6 +247,8 @@ async function main(): Promise<void> {
         animationCtx.transformed = computeFFTResultPoints(animationCtx.contours, animationCtx.q);
         animationCtx.currentContour = 0;
         animationCtx.currentPointInContour = 0;
+
+        paintSurface.getCanvas().clear([1, 1, 1, 1]);
     });
 
     window.addOnceListener('close', () => {
@@ -294,25 +301,19 @@ async function main(): Promise<void> {
 
         canvas.clear([1, 1, 1, 1]);
 
-        // Draw all the previous contours
-        for (let i = 0; i < contourIdx; i++) {
-            canvas.drawPoints(gl.Constants.CANVAS_POINT_MODE_POLYGON, animationCtx.transformed[i], paint);
-        }
-
         // Draw current contour
         const pts = animationCtx.transformed[contourIdx].slice(0, pointIdx + 1);
-        canvas.drawPoints(gl.Constants.CANVAS_POINT_MODE_POLYGON, pts, paint);
+        paintSurface.getCanvas().drawPoints(gl.Constants.CANVAS_POINT_MODE_POLYGON, pts, paint);
 
+        paintSurface.draw(canvas, 0, 0, gl.Constants.SAMPLING_FILTER_LINEAR, null);
         canvas.drawCircle(pts[pts.length - 1][0], pts[pts.length - 1][1], 5, headPaint);
 
         const scene = new gl.SceneBuilder(vpWidth, vpHeight)
             .pushOffset(0, 0)
-            .addPicture(recorder.finishRecordingAsPicture(), true, 0, 0)
+            .addPicture(recorder.finishRecordingAsPicture(), true)
             .build();
 
-        window.contentAggregator.update(scene).then(() => {
-            scene.dispose();
-        });
+        window.contentAggregator.update(scene);
     }, 30);
 }
 

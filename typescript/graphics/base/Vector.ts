@@ -343,7 +343,7 @@ export class Vector3f implements IVector<Vector3f>, Fmt.Formattable {
 }
 
 /* Common orthogonal basis in Cartesian coordinates */
-export namespace CoordinateSpace {
+export namespace VecBasis {
     // X-axis in 2D coordinates, basis vector |i| = 1
     export const kVec2_i = new Vector2f(1, 0);
     // Y-axis in 2D coordinates, basis vector |j| = 1
@@ -355,6 +355,9 @@ export namespace CoordinateSpace {
     export const kVec3_j = new Vector3f(0, 1, 0);
     // Z-axis in 3D coordinates, basis vector |k| = 1
     export const kVec3_k = new Vector3f(0, 0, 1);
+
+    export const kVec2_zero = new Vector2f(0, 0);
+    export const kVec3_zero = new Vector3f(0, 0, 0);
 }
 
 /* Type aliases */

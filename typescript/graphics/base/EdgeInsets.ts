@@ -15,8 +15,8 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Vector2f } from './vector';
-import { Rect } from './rectangle';
+import { Vector2f } from './Vector';
+import { Rect } from './Rectangle';
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void)
                             ? I : never;

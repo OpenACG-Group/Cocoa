@@ -18,12 +18,10 @@
 #include "include/core/SkPathEffect.h"
 #include "include/effects/Sk1DPathEffect.h"
 #include "include/effects/Sk2DPathEffect.h"
-#include "include/effects/SkOpPathEffect.h"
 #include "include/effects/SkTrimPathEffect.h"
 #include "include/effects/SkDashPathEffect.h"
 #include "include/effects/SkCornerPathEffect.h"
 #include "include/effects/SkDiscretePathEffect.h"
-#include "include/effects/SkStrokeAndFillPathEffect.h"
 
 #include "Gallium/bindings/glamor/CkPathEffectWrap.h"
 #include "Gallium/bindings/glamor/EffectDSLParser.h"
@@ -134,13 +132,6 @@ DEF_BUILDER(discrete)
     return SkDiscretePathEffect::Make(*seg_length, *dev, *seed_assist);
 }
 
-//! EffectorDecl: stroke_and_fill()
-DEF_BUILDER(stroke_and_fill)
-{
-    CHECK_ARGC(0, stroke_and_fill)
-    return SkStrokeAndFillPathEffect::Make();
-}
-
 
 #define ENTRY(N)    { #N, builder_##N }
 EffectDSLParser::EffectorBuildersMap g_path_effect_builders_map = {
@@ -152,8 +143,7 @@ EffectDSLParser::EffectorBuildersMap g_path_effect_builders_map = {
     ENTRY(trim),
     ENTRY(dash),
     ENTRY(corner),
-    ENTRY(discrete),
-    ENTRY(stroke_and_fill)
+    ENTRY(discrete)
 };
 #undef ENTRY
 

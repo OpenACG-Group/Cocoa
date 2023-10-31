@@ -32,6 +32,7 @@
 #include "Glamor/GProfiler.h"
 
 #include "Glamor/Layers/LayerTree.h"
+#include "Glamor/Layers/ContainerLayer.h"
 #include "Glamor/Layers/RasterDrawOpObserver.h"
 GLAMOR_NAMESPACE_BEGIN
 
@@ -46,9 +47,12 @@ GLAMOR_TRAMPOLINE_IMPL(ContentAggregator, Dispose)
 GLAMOR_TRAMPOLINE_IMPL(ContentAggregator, Update)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
-    info.GetThis()->As<ContentAggregator>()->Update(
+    auto ret = info.GetThis()->As<ContentAggregator>()->Update(
             info.Get<std::shared_ptr<LayerTree>>(0));
-    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
+    info.SetReturnStatus(ret == ContentAggregator::UpdateResult::kError
+                         ? PresentRemoteCall::Status::kOpFailed
+                         : PresentRemoteCall::Status::kOpSuccess);
+    info.SetReturnValue(ret);
 }
 
 GLAMOR_TRAMPOLINE_IMPL(ContentAggregator, CaptureNextFrameAsPicture)
@@ -71,7 +75,7 @@ GLAMOR_TRAMPOLINE_IMPL(ContentAggregator, ImportGpuSemaphoreFromFd)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(2);
     auto bl = info.GetThis()->As<ContentAggregator>();
-    ContentAggregator::ImportedSemaphoreId id = bl->ImportGpuSemaphoreFromFd(
+    ContentAggregator::ImportedResourcesId id = bl->ImportGpuSemaphoreFromFd(
             info.Get<int32_t>(0), info.Get<bool>(1));
     info.SetReturnStatus(id >= 0 ? PresentRemoteCall::Status::kOpSuccess
                                  : PresentRemoteCall::Status::kOpFailed);
@@ -82,7 +86,26 @@ GLAMOR_TRAMPOLINE_IMPL(ContentAggregator, DeleteImportedGpuSemaphore)
 {
     GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
     auto bl = info.GetThis()->As<ContentAggregator>();
-    bl->DeleteImportedGpuSemaphore(info.Get<ContentAggregator::ImportedSemaphoreId>(0));
+    bl->DeleteImportedGpuSemaphore(info.Get<ContentAggregator::ImportedResourcesId>(0));
+    info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
+}
+
+GLAMOR_TRAMPOLINE_IMPL(ContentAggregator, ImportGpuSkSurface)
+{
+    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
+    auto self = info.GetThis()->As<ContentAggregator>();
+    ContentAggregator::ImportedResourcesId id = self->ImportGpuSkSurface(
+            info.Get<SkiaGpuContextOwner::ExportedSkSurfaceInfo>(0));
+    info.SetReturnStatus(id >= 0 ? PresentRemoteCall::Status::kOpSuccess
+                                 : PresentRemoteCall::Status::kOpFailed);
+    info.SetReturnValue(id);
+}
+
+GLAMOR_TRAMPOLINE_IMPL(ContentAggregator, DeleteImportedGpuSkSurface)
+{
+    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(1);
+    auto self = info.GetThis()->As<ContentAggregator>();
+    self->DeleteImportedGpuSkSurface(info.Get<ContentAggregator::ImportedResourcesId>(0));
     info.SetReturnStatus(PresentRemoteCall::Status::kOpSuccess);
 }
 
@@ -101,10 +124,9 @@ ContentAggregator::ContentAggregator(const std::shared_ptr<Surface>& surface)
     , weak_surface_(surface)
     , current_dirty_rect_(SkIRect::MakeEmpty())
     , frame_schedule_state_(FrameScheduleState::kIdle)
-    , raster_cache_()
     , should_capture_next_frame_(false)
     , capture_next_frame_serial_(0)
-    , imported_semaphore_ids_cnt_(0)
+    , imported_resources_ids_cnt_(0)
 {
     CHECK(surface);
 
@@ -120,13 +142,10 @@ ContentAggregator::ContentAggregator(const std::shared_ptr<Surface>& surface)
     }
 
     auto device = surface->GetRenderTarget()->GetRenderDeviceType();
-    GrDirectContext *direct_context = nullptr;
+    std::shared_ptr<SkiaGpuContextOwner> gpu_context_owner;
     if (device == RenderTarget::RenderDevice::kHWComposer)
-    {
-        direct_context = surface->GetRenderTarget()
-                ->GetHWComposeSwapchain()->GetSkiaGpuContext();
-    }
-    raster_cache_ = std::make_unique<RasterCache>(direct_context);
+        gpu_context_owner = surface->GetRenderTarget()->GetHWComposeSwapchain();
+    layer_generation_cache_ = std::make_unique<LayerGenerationCache>(gpu_context_owner);
 
     SetMethodTrampoline(GLOP_CONTENTAGGREGATOR_DISPOSE, ContentAggregator_Dispose_Trampoline);
     SetMethodTrampoline(GLOP_CONTENTAGGREGATOR_UPDATE, ContentAggregator_Update_Trampoline);
@@ -138,6 +157,10 @@ ContentAggregator::ContentAggregator(const std::shared_ptr<Surface>& surface)
                         ContentAggregator_ImportGpuSemaphoreFromFd_Trampoline);
     SetMethodTrampoline(GLOP_CONTENTAGGREGATOR_DELETE_IMPORTED_GPU_SEMAPHORE,
                         ContentAggregator_DeleteImportedGpuSemaphore_Trampoline);
+    SetMethodTrampoline(GLOP_CONTENTAGGREGATOR_IMPORT_GPU_SKSURFACE,
+                        ContentAggregator_ImportGpuSkSurface_Trampoline);
+    SetMethodTrampoline(GLOP_CONTENTAGGREGATOR_DELETE_IMPORTED_GPU_SKSURFACE,
+                        ContentAggregator_DeleteImportedGpuSkSurface_Trampoline);
 
     surface_resize_slot_id_ = surface->Connect(
         GLSI_SURFACE_RESIZE,
@@ -208,16 +231,8 @@ void ContentAggregator::SurfaceFrameSlot()
 {
     TRACE_EVENT("rendering", "ContentAggregator::SurfaceFrameSlot");
 
-    if (frame_schedule_state_ == FrameScheduleState::kIdle)
-    {
-        QLOG(LOG_WARNING, "Frame scheduler: Expecting PendingFrame state instead of Idle");
+    if (frame_schedule_state_ != FrameScheduleState::kPendingFrame)
         return;
-    }
-    else if (frame_schedule_state_ == FrameScheduleState::kPresented)
-    {
-        QLOG(LOG_WARNING, "Frame scheduler: Expecting PendingFrame state instead of Presented");
-        return;
-    }
 
     auto rt = GetSurfaceChecked()->GetRenderTarget();
     rt->Present();
@@ -242,25 +257,23 @@ int32_t ContentAggregator::CaptureNextFrameAsPicture()
     return capture_next_frame_serial_;
 }
 
-void ContentAggregator::Update(const std::shared_ptr<LayerTree> &layer_tree)
+ContentAggregator::UpdateResult
+ContentAggregator::Update(const std::shared_ptr<LayerTree> &layer_tree)
 {
     TRACE_EVENT("rendering", "ContentAggregator::Update");
 
     if (frame_schedule_state_ == FrameScheduleState::kPendingFrame)
-    {
-        QLOG(LOG_WARNING, "Frame scheduler: frame is dropped (updating in PendingFrame state)");
-        return;
-    }
+        return UpdateResult::kFrameDropped;
 
     GPROFILER_TRY_BEGIN_FRAME()
 
     int32_t vp_width = this->GetWidth();
     int32_t vp_height = this->GetHeight();
 
-    raster_cache_->IncreaseFrameCount();
-
-    // TODO: diff & update layer tree
-    layer_tree_ = layer_tree;
+    if (layer_tree_->GetRootLayer())
+        layer_tree_->GetRootLayer()->DiffUpdate(layer_tree->GetRootLayer());
+    else
+        layer_tree_ = layer_tree;
 
     auto surface = GetSurfaceChecked();
     auto rt = surface->GetRenderTarget();
@@ -272,19 +285,18 @@ void ContentAggregator::Update(const std::shared_ptr<LayerTree> &layer_tree)
     }
 
     // Prepare to preroll the layer tree
-    Layer::PrerollContext context {
+    Layer::PrerollContext preroll_context {
         .gr_context = gr_context,
         .root_surface_transformation = GetSurfaceChecked()->GetRootTransformation(),
-        .cull_rect = SkRect::MakeEmpty(),
-        .raster_cache = raster_cache_.get()
+        .cull_rect = SkRect::MakeEmpty()
     };
 
     GPROFILER_TRY_MARK(PrerollBegin)
 
-    if (!layer_tree_->Preroll(&context))
+    if (!layer_tree_->Preroll(&preroll_context))
     {
         QLOG(LOG_ERROR, "Preroll stage was cancelled, no contents will be represented");
-        return;
+        return UpdateResult::kError;
     }
 
     GPROFILER_TRY_MARK(PrerollEnd)
@@ -322,24 +334,28 @@ void ContentAggregator::Update(const std::shared_ptr<LayerTree> &layer_tree)
 
     Layer::PaintContext paint_context {
         .gr_context = gr_context,
+        .is_generating_cache = false,
         .root_surface_transformation = surface->GetRootTransformation(),
         .frame_surface = frame_surface,
         .frame_canvas = frame_surface->getCanvas(),
         .multiplexer_canvas = &multiplexer_canvas,
-        .cull_rect = context.cull_rect,
-        .has_gpu_retained_resource = false,
-        .raster_cache = raster_cache_.get()
+        .cull_rect = preroll_context.cull_rect,
+        .cache = layer_generation_cache_.get(),
+        .content_aggregator = this
     };
 
+    layer_generation_cache_->BeginFrame();
 
     GPROFILER_TRY_MARK(PaintBegin)
     layer_tree_->Paint(&paint_context);
     GPROFILER_TRY_MARK(PaintEnd)
 
+    layer_generation_cache_->EndFrame();
+
     if (picture_recorder.getRecordingCanvas())
     {
         MaybeGpuObject<SkPicture> picture(
-                paint_context.has_gpu_retained_resource,
+                paint_context.resource_usage_flags & Layer::PaintContext::kGpu_ResourceUsage,
                 picture_recorder.finishRecordingAsPicture());
 
         PresentSignal info;
@@ -351,10 +367,7 @@ void ContentAggregator::Update(const std::shared_ptr<LayerTree> &layer_tree)
     // At last, we request a new frame from WSI layer. We will be notified
     // (slot function `SurfaceFrameSlot` will be called) later
     // when it is a good time to present a new frame (VSync).
-    current_dirty_rect_ = SkIRect::MakeXYWH(static_cast<int32_t>(context.cull_rect.x()),
-                                            static_cast<int32_t>(context.cull_rect.y()),
-                                            static_cast<int32_t>(context.cull_rect.width()),
-                                            static_cast<int32_t>(context.cull_rect.height()));
+    current_dirty_rect_ = preroll_context.cull_rect.roundOut();
     surface->RequestNextFrame();
 
     surface->GetRenderTarget()->Submit({
@@ -365,6 +378,7 @@ void ContentAggregator::Update(const std::shared_ptr<LayerTree> &layer_tree)
     GPROFILER_TRY_MARK(Requested)
 
     frame_schedule_state_ = FrameScheduleState::kPendingFrame;
+    return UpdateResult::kSuccess;
 }
 
 void ContentAggregator::SurfaceResizeSlot(int32_t width, int32_t height)
@@ -392,16 +406,24 @@ void ContentAggregator::Dispose()
     if (frame_schedule_state_ == FrameScheduleState::kPendingFrame)
         SurfaceFrameSlot();
 
-    // Delete all the imported semaphores
-    if (!imported_semaphore_ids_.empty())
+    // Delete all the imported resources
+    if (!imported_resources_ids_.empty())
     {
         VkDevice device = surface->GetRenderTarget()
                 ->GetHWComposeSwapchain()->GetVkDevice();
-        for (const auto& pair : imported_semaphore_ids_)
-            vkDestroySemaphore(device, pair.second, nullptr);
+        for (auto& pair : imported_resources_ids_)
+        {
+            if (pair.second.type == ImportedResourceEntry::kSemaphore)
+                vkDestroySemaphore(device, pair.second.semaphore, nullptr);
+            else if (pair.second.type == ImportedResourceEntry::kSkSurface)
+            {
+                CHECK(pair.second.surface->unique() && "SkSurface is referenced");
+                pair.second.surface.reset();
+            }
+        }
     }
 
-    raster_cache_.reset();
+    layer_generation_cache_.reset();
 
     frame_schedule_state_ = FrameScheduleState::kDisposed;
     disposed_ = true;
@@ -410,66 +432,119 @@ void ContentAggregator::Dispose()
 void ContentAggregator::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept
 {
     CHECK(!disposed_);
-
-    // `LayerTree` only contains raw data and texture references which are from
-    // user-defined data (generally from the CanvasKit module in JavaScript land),
-    // and there is no need to trace them.
-    tracer->TraceMember("RasterCache", raster_cache_.get());
+    tracer->TraceMember("LayerGenerationCache", layer_generation_cache_.get());
 }
 
 void ContentAggregator::PurgeRasterCacheResources()
 {
     TRACE_EVENT("rendering", "ContentAggregator::PurgeRasterCacheResources");
-    raster_cache_->PurgeAllCaches();
+    layer_generation_cache_->PurgeCacheResources(true);
 }
 
-ContentAggregator::ImportedSemaphoreId ContentAggregator::ImportGpuSemaphoreFromFd(int32_t fd, bool auto_close)
+std::shared_ptr<HWComposeSwapchain> ContentAggregator::TryGetSwapchain()
 {
     CHECK(!disposed_);
+    std::shared_ptr<Surface> surface = GetSurfaceChecked();
+    std::shared_ptr<RenderTarget> render_target = surface->GetRenderTarget();
+    if (render_target->GetRenderDeviceType() != RenderTarget::RenderDevice::kHWComposer)
+        return nullptr;
+    return render_target->GetHWComposeSwapchain();
+}
 
+ContentAggregator::ImportedResourcesId ContentAggregator::ImportGpuSemaphoreFromFd(int32_t fd, bool auto_close)
+{
+    CHECK(!disposed_);
     ScopeExitAutoInvoker auto_closer([auto_close, fd] {
         if (auto_close)
             close(fd);
     });
 
-    std::shared_ptr<Surface> surface = GetSurfaceChecked();
-    std::shared_ptr<RenderTarget> render_target = surface->GetRenderTarget();
-    if (render_target->GetRenderDeviceType() != RenderTarget::RenderDevice::kHWComposer)
-        return -1;
-    std::shared_ptr<HWComposeSwapchain> swapchain =
-            render_target->GetHWComposeSwapchain();
+    auto swapchain = TryGetSwapchain();
     if (!swapchain)
         return -1;
 
     auto_closer.cancel();
-    ImportedSemaphoreId id = imported_semaphore_ids_cnt_++;
-    imported_semaphore_ids_[id] = swapchain->ImportSemaphoreFromFd(fd);
+    ImportedResourcesId id = imported_resources_ids_cnt_++;
+    imported_resources_ids_[id] = {
+        .type = ImportedResourceEntry::kSemaphore,
+        .semaphore = swapchain->ImportSemaphoreFromFd(fd),
+        .surface = nullptr
+    };
     return id;
 }
 
-void ContentAggregator::DeleteImportedGpuSemaphore(ImportedSemaphoreId id)
+void ContentAggregator::DeleteImportedGpuSemaphore(ImportedResourcesId id)
 {
     CHECK(!disposed_);
-    if (imported_semaphore_ids_.count(id) == 0)
+    if (imported_resources_ids_.count(id) == 0)
         return;
 
-    std::shared_ptr<Surface> surface = GetSurfaceChecked();
-    std::shared_ptr<RenderTarget> render_target = surface->GetRenderTarget();
-    CHECK(render_target->GetRenderDeviceType() == RenderTarget::RenderDevice::kHWComposer);
-    std::shared_ptr<HWComposeSwapchain> swapchain =
-            render_target->GetHWComposeSwapchain();
-    CHECK(swapchain);
-
-    VkSemaphore semaphore = imported_semaphore_ids_[id];
-    vkDestroySemaphore(swapchain->GetVkDevice(), semaphore, nullptr);
-    imported_semaphore_ids_.erase(id);
+    auto swapchain = TryGetSwapchain();
+    if (!swapchain)
+        return;
+    ImportedResourceEntry& entry = imported_resources_ids_[id];
+    if (entry.type != ImportedResourceEntry::kSemaphore)
+        return;
+    vkDestroySemaphore(swapchain->GetVkDevice(), entry.semaphore, nullptr);
+    imported_resources_ids_.erase(id);
 }
 
-VkSemaphore ContentAggregator::GetImportedGpuSemaphore(ImportedSemaphoreId id)
+ContentAggregator::ImportedResourcesId
+ContentAggregator::ImportGpuSkSurface(const SkiaGpuContextOwner::ExportedSkSurfaceInfo& info)
 {
-    if (imported_semaphore_ids_.count(id) == 0)
+    CHECK(!disposed_);
+    ScopeExitAutoInvoker auto_closer([&info] {
+        close(info.fd);
+    });
+
+    auto swapchain = TryGetSwapchain();
+    if (!swapchain)
+        return -1;
+
+    sk_sp<SkSurface> sk_surface = swapchain->ImportSkSurface(info);
+    if (!sk_surface)
+        return -1;
+
+    auto_closer.cancel();
+    ImportedResourcesId id = imported_resources_ids_cnt_++;
+    imported_resources_ids_[id] = {
+        .type = ImportedResourceEntry::kSkSurface,
+        .semaphore = VK_NULL_HANDLE,
+        .surface = std::move(sk_surface)
+    };
+    return id;
+}
+
+void ContentAggregator::DeleteImportedGpuSkSurface(ImportedResourcesId id)
+{
+    CHECK(!disposed_);
+    if (imported_resources_ids_.count(id) == 0)
+        return;
+    ImportedResourceEntry& entry = imported_resources_ids_[id];
+    if (entry.type != ImportedResourceEntry::kSkSurface)
+        return;
+    imported_resources_ids_.erase(id);
+}
+
+SkSurface *ContentAggregator::GetImportedSkSurface(ImportedResourcesId id)
+{
+    CHECK(!disposed_);
+    if (imported_resources_ids_.count(id) == 0)
+        return nullptr;
+    ImportedResourceEntry& entry = imported_resources_ids_[id];
+    if (entry.type != ImportedResourceEntry::kSkSurface)
+        return nullptr;
+    return entry.surface.get();
+}
+
+VkSemaphore ContentAggregator::GetImportedGpuSemaphore(ImportedResourcesId id)
+{
+    if (imported_resources_ids_.count(id) == 0)
         return VK_NULL_HANDLE;
-    return imported_semaphore_ids_[id];
+    ImportedResourceEntry& entry = imported_resources_ids_[id];
+    if (entry.type != ImportedResourceEntry::kSemaphore)
+        return VK_NULL_HANDLE;
+    return entry.semaphore;
 }
 
 GLAMOR_NAMESPACE_END

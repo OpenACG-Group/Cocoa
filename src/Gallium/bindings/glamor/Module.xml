@@ -22,8 +22,10 @@
     <include src="Gallium/bindings/glamor/CkFontMgrWrap.h"/>
     <include src="Gallium/bindings/glamor/ConcurrentVertexProcessor.h"/>
     <include src="Gallium/bindings/glamor/GpuDirectContext.h"/>
+    <include src="Gallium/bindings/glamor/GpuExportedFd.h"/>
     <include src="Gallium/bindings/glamor/CkPixmapWrap.h"/>
     <include src="Gallium/bindings/glamor/CkImageWrap.h"/>
+    <include src="Gallium/bindings/glamor/CkSurfaceContentTracker.h"/>
     <include src="Glamor/Surface.h"/>
     <include src="Glamor/Monitor.h"/>
     <hook on="instantiate" call="GlamorSetInstanceProperties"/>
@@ -91,19 +93,20 @@
 
         <class name="ContentAggregator" wrapper="ContentAggregatorWrap" inherit="EventEmitterBase">
             <property name="profiler" getter="@getProfiler"/>
+            <method name="getNativeImageInfo" value="@getNativeImageInfo"/>
             <method name="dispose" value="@dispose"/>
             <method name="update" value="@update"/>
             <method name="captureNextFrameAsPicture" value="@captureNextFrameAsPicture"/>
             <method name="purgeRasterCacheResources" value="@purgeRasterCacheResources"/>
             <method name="importGpuSemaphoreFd" value="@importGpuSemaphoreFd"/>
             <method name="deleteImportedGpuSemaphore" value="@deleteImportedGpuSemaphore"/>
+            <method name="importGpuCkSurface" value="@importGpuCkSurface"/>
+            <method name="deleteImportedGpuCkSurface" value="@deleteImportedGpuCkSurface"/>
         </class>
 
         <class name="Scene" wrapper="Scene">
-            <method name="dispose" value="@dispose"/>
             <method name="toImage" value="@toImage"/>
             <method name="toString" value="@toString"/>
-            <property name="isDisposed" getter="@isDisposed"/>
         </class>
 
         <class name="SceneBuilder" wrapper="SceneBuilder">
@@ -121,13 +124,24 @@
             <method name="pushPathClip" value="@pushPathClip"/>
             <method name="addPicture" value="@addPicture"/>
             <method name="addVideoBuffer" value="@addVideoBuffer"/>
+            <method name="addGpuSurfaceView" value="@addGpuSurfaceView"/>
         </class>
 
         <class name="GpuDirectContext" wrapper="GpuDirectContext">
             <method static="true" name="Make" value="@Make"/>
             <method name="dispose" value="@dispose"/>
             <method name="isDisposed" value="@isDisposed"/>
-            <method name="makeSurface" value="@makeSurface"/>
+            <method name="isOutOfHostOrDeviceMemory" value="@isOutOfHostOrDeviceMemory"/>
+            <method name="getResourceCacheLimit" value="@getResourceCacheLimit"/>
+            <method name="getResourceCacheUsage" value="@getResourceCacheUsage"/>
+            <method name="getResourceCachePurgeableBytes" value="@getResourceCachePurgeableBytes"/>
+            <method name="setResourceCacheLimit" value="@setResourceCacheLimit"/>
+            <method name="freeGpuResources" value="@freeGpuResources"/>
+            <method name="performDeferredCleanup" value="@performDeferredCleanup"/>
+            <method name="supportsDistanceFieldText" value="@supportsDistanceFieldText"/>
+            <method name="makeRenderTarget" value="@makeRenderTarget"/>
+            <method name="exportRenderTargetFd" value="@exportRenderTargetFd"/>
+            <method name="importRenderTargetFd" value="@importRenderTargetFd"/>
             <method name="makeBinarySemaphore" value="@makeBinarySemaphore"/>
             <method name="exportSemaphoreFd" value="@exportSemaphoreFd"/>
             <method name="importSemaphoreFd" value="@importSemaphoreFd"/>
@@ -319,6 +333,13 @@
             <method name="notifyContentWillChange" value="@notifyContentWillChange"/>
             <method name="waitOnGpu" value="@waitOnGpu"/>
             <method name="flush" value="@flush"/>
+        </class>
+
+        <class name="CkSurfaceContentTracker" wrapper="CkSurfaceContentTracker">
+            <constructor prototype="v8::Local&lt;v8::Value&gt;"/>
+            <method name="fork" value="@fork"/>
+            <method name="updateTrackPoint" value="@updateTrackPoint"/>
+            <method name="hasChanged" value="@hasChanged"/>
         </class>
 
         <class name="CkCanvas" wrapper="CkCanvas">

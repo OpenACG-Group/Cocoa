@@ -26,11 +26,28 @@ ExternalTextureLayer::ExternalTextureLayer(std::unique_ptr<Accessor> frame_acces
                                            const SkPoint& offset,
                                            const SkISize& size,
                                            const SkSamplingOptions& sampling)
-        : frame_accessor_(std::move(frame_accessor))
+        : Layer(Type::kExternalTexture)
+        , frame_accessor_(std::move(frame_accessor))
         , offset_(offset)
         , scale_size_(size)
         , scale_sampling_(sampling)
 {
+}
+
+void ExternalTextureLayer::DiffUpdate(const std::shared_ptr<Layer>& other)
+{
+    CHECK(other->GetType() == Type::kExternalTexture);
+    auto layer = std::static_pointer_cast<ExternalTextureLayer>(other);
+
+    frame_accessor_ = std::move(layer->frame_accessor_);
+    offset_ = layer->offset_;
+    scale_size_ = layer->scale_size_;
+    scale_sampling_ = layer->scale_sampling_;
+
+    // There is no way to know whether the external texture is
+    // changed, so we should assume that the external texture
+    // changes every frame.
+    IncreaseGenerationId();
 }
 
 void ExternalTextureLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
@@ -43,7 +60,7 @@ void ExternalTextureLayer::Preroll(PrerollContext *context, const SkMatrix& matr
     frame_accessor_->Prefetch();
 }
 
-void ExternalTextureLayer::Paint(PaintContext *context) const
+void ExternalTextureLayer::Paint(PaintContext *context)
 {
     sk_sp<SkImage> texture = frame_accessor_->Acquire(context->gr_context);
     if (!texture)
@@ -57,7 +74,7 @@ void ExternalTextureLayer::Paint(PaintContext *context) const
     if (image_info.width() == scale_size_.width()
         && image_info.height() == scale_size_.height())
     {
-        // No rescales are needed
+        // No rescaling are needed
         context->multiplexer_canvas->drawImage(texture,
                                                offset_.x(),
                                                offset_.y(),
@@ -77,13 +94,17 @@ void ExternalTextureLayer::Paint(PaintContext *context) const
     }
 
     frame_accessor_->Release();
-    context->has_gpu_retained_resource =
-            frame_accessor_->IsGpuBackedTexture(context->gr_context);
+
+    context->resource_usage_flags |= PaintContext::kExternalTexture_ResourceUsage;
+    if (frame_accessor_->IsGpuBackedTexture(context->gr_context))
+        context->resource_usage_flags |= PaintContext::kGpu_ResourceUsage;
 }
 
 void ExternalTextureLayer::ToString(std::ostream& out)
 {
-    out << fmt::format("(external-texture '(size {} {}) '(offset {} {}))",
+    out << fmt::format("(external-texture#{}:{} '(size {} {}) '(offset {} {}))",
+                       GetUniqueId(),
+                       GetGenerationId(),
                        scale_size_.width(), scale_size_.height(),
                        offset_.x(), offset_.y());
 }

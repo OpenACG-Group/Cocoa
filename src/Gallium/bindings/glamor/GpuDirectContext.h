@@ -65,26 +65,6 @@ private:
     VkSemaphore             semaphore_;
 };
 
-//! TSDecl: class GpuExportedFd
-class GpuExportedFd : public ExportableObjectBase
-{
-public:
-    GpuExportedFd(v8::Local<v8::Object> gpu_context, int32_t fd);
-    ~GpuExportedFd();
-
-    int32_t CheckAndTakeDescriptor();
-
-    //! TSDecl: function close(): void
-    void close();
-
-    //! TSDecl: function isImportedOrClosed(): boolean
-    bool isImportedOrClosed() const;
-
-private:
-    v8::Global<v8::Object>  gpu_context_;
-    int32_t                 fd_;
-};
-
 //! TSDecl: class GpuDirectContext
 class GpuDirectContext : public ExportableObjectBase
 {
@@ -139,12 +119,18 @@ public:
     //! TSDecl: function supportsDistanceFieldText() boolean
     bool supportsDistanceFieldText();
 
-    //! TSDecl: function makeSurface(imageInfo: CkImageInfo,
-    //!                              budgeted: boolean,
-    //!                              aaSamplesPerPixel: number): CkSurface
-    v8::Local<v8::Value> makeSurface(v8::Local<v8::Value> image_info,
-                                     bool budgeted,
-                                     int32_t aa_samples_per_pixel);
+    //! TSDecl: function makeRenderTarget(imageInfo: CkImageInfo,
+    //!                                   budgeted: boolean,
+    //!                                   aaSamplesPerPixel: number): CkSurface
+    v8::Local<v8::Value> makeRenderTarget(v8::Local<v8::Value> image_info,
+                                          bool budgeted,
+                                          int32_t aa_samples_per_pixel);
+
+    //! TSDecl: function exportRenderTargetFd(surface: CkSurface): GpuExportedFd
+    v8::Local<v8::Value> exportRenderTargetFd(v8::Local<v8::Value> surface);
+
+    //! TSDecl: function importRenderTargetFd(fd: GpuExportedFd): CkSurface
+    v8::Local<v8::Value> importRenderTargetFd(v8::Local<v8::Value> fd);
 
     //! TSDecl: function exportSemaphoreFd(semaphore: GpuBinarySemaphore): GpuExportedFd
     v8::Local<v8::Value> exportSemaphoreFd(v8::Local<v8::Value> semaphore);
@@ -152,8 +138,8 @@ public:
     //! TSDecl: function importSemaphoreFd(fd: GpuExportedFd): GpuBinarySemaphore
     v8::Local<v8::Value> importSemaphoreFd(v8::Local<v8::Value> fd);
 
-    //! TSDecl: function makeBinarySemaphore(): GpuBinarySemaphore
-    v8::Local<v8::Value> makeBinarySemaphore();
+    //! TSDecl: function makeBinarySemaphore(exportable: boolean): GpuBinarySemaphore
+    v8::Local<v8::Value> makeBinarySemaphore(bool exportable);
 
     //! TSDecl: function flush(info: GpuFlushInfo): Enum<GpuSemaphoreSubmitted>
     int32_t flush(v8::Local<v8::Value> info);
@@ -165,7 +151,6 @@ private:
     void CheckDisposedOrThrow();
 
     std::unique_ptr<gl::HWComposeOffscreen> context_;
-    std::list<int32_t> dangling_fds_;
 };
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

@@ -51,18 +51,8 @@ public:
     static std::unique_ptr<HWComposeOffscreen> Make(
             const std::shared_ptr<HWComposeContext>& context);
 
-    HWComposeOffscreen(std::shared_ptr<HWComposeDevice> device,
-                       sk_sp<GrDirectContext> direct_context);
+    HWComposeOffscreen();
     ~HWComposeOffscreen() override = default;
-
-    g_nodiscard std::shared_ptr<HWComposeDevice> GetDevice() const {
-        return device_;
-    }
-
-private:
-    HWComposeDevice *OnGetHWComposeDevice() override;
-
-    std::shared_ptr<HWComposeDevice> device_;
 };
 
 GLAMOR_NAMESPACE_END

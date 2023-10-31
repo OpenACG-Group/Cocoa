@@ -20,11 +20,24 @@
 
 #include "Core/Errors.h"
 #include "Glamor/Layers/ImageFilterLayer.h"
+#include "Glamor/Layers/LayerGenerationCache.h"
 GLAMOR_NAMESPACE_BEGIN
 
 ImageFilterLayer::ImageFilterLayer(const sk_sp<SkImageFilter>& filter)
-    : filter_(filter)
+    : ContainerLayer(ContainerType::kImageFilter)
+    , filter_(filter)
 {
+}
+
+ContainerLayer::ContainerAttributeChanged
+ImageFilterLayer::OnContainerDiffUpdateAttributes(const std::shared_ptr<ContainerLayer>& other)
+{
+    CHECK(other->GetContainerType() == ContainerType::kImageFilter);
+    auto layer = std::static_pointer_cast<ImageFilterLayer>(other);
+    if (layer->filter_ == filter_)
+        return ContainerAttributeChanged::kNo;
+    else
+        return ContainerAttributeChanged::kYes;
 }
 
 void ImageFilterLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
@@ -41,10 +54,13 @@ void ImageFilterLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
     SetPaintBounds(SkRect::Make(filter_bounds));
 }
 
-void ImageFilterLayer::Paint(PaintContext *context) const
+void ImageFilterLayer::Paint(PaintContext *context)
 {
     SkCanvas *canvas = context->multiplexer_canvas;
     CHECK(canvas);
+
+    if (context->cache->TryDrawCacheImageSnapshot(this, context))
+        return;
 
     // Graphics state stored in `PaintContext::paints_stack` can be overwritten
     // (consider there are multiple container layers linked serially, and each of
@@ -64,7 +80,8 @@ void ImageFilterLayer::Paint(PaintContext *context) const
 
 void ImageFilterLayer::ToString(std::ostream& out)
 {
-    out << fmt::format("(imagefilter '(typename \"{}\")", filter_->getTypeName());
+    out << fmt::format("(imagefilter#{}:{} '(typename \"{}\")",
+                       GetUniqueId(), GetGenerationId(), filter_->getTypeName());
     if (GetChildrenCount() > 0)
     {
         out << ' ';

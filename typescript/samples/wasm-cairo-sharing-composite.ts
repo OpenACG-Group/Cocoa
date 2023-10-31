@@ -22,7 +22,7 @@ import * as std from 'core';
 import * as gl from 'glamor';
 import * as pixenc from 'pixencoder';
 import * as Cairo from '../wasm/cairo/lib/cairo';
-import { LoadFromProjectThirdParty } from "../wasm/wasm-loader-polyfill";
+import { LoadFromProjectThirdParty } from "../wasm/wasm-loader";
 
 const WIDTH = 512, HEIGHT = 512;
 const BYTES_PER_PIXEL = 4;

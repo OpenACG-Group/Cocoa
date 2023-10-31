@@ -22,16 +22,28 @@ namespace {
 
 uint32_t get_next_unique_id()
 {
-    static uint32_t counter = 1;
+    static std::atomic<uint32_t> counter = 1;
     return counter++;
 }
 
 } // namespace cocoa
 
-Layer::Layer()
-    : paint_bounds_(SkRect::MakeEmpty())
+Layer::Layer(Type type)
+    : layer_type_(type)
+    , paint_bounds_(SkRect::MakeEmpty())
     , unique_id_(get_next_unique_id())
+    , generation_id_(0)
 {
+}
+
+uint64_t Layer::IncreaseGenerationId()
+{
+    return ++generation_id_;
+}
+
+bool Layer::IsComparableWith(Layer *other) const
+{
+    return other->layer_type_ == layer_type_;
 }
 
 void Layer::Preroll(PrerollContext *context, const SkMatrix& matrix) {}

@@ -7,6 +7,8 @@ add_library(
         ForwardTypeDecls.h
         MaybeGpuObject.h
         MaybeGpuObject.cc
+        VulkanAMDAllocatorImpl.h
+        VulkanAMDAllocatorImpl.cc
 
         PresentThread.h
         PresentThread.cc
@@ -55,6 +57,8 @@ add_library(
         SkEventTracerImpl.h
         SkEventTracerImpl.cc
 
+        Layers/LayerGenerationCache.h
+        Layers/LayerGenerationCache.cc
         Layers/RasterCacheKey.h
         Layers/RasterCache.h
         Layers/RasterCache.cc
@@ -84,6 +88,8 @@ add_library(
         Layers/OpacityLayer.cc
         Layers/ExternalTextureLayer.h
         Layers/ExternalTextureLayer.cc
+        Layers/GpuSurfaceViewLayer.h
+        Layers/GpuSurfaceViewLayer.cc
 
         Wayland/protos/xdg-shell-client-protocol.h
         Wayland/protos/xdg-shell-client-protocol.c

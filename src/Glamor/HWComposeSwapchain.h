@@ -81,13 +81,12 @@ public:
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 
 private:
-    HWComposeDevice *OnGetHWComposeDevice() override;
     bool CreateOrRecreateSwapchain(int32_t width, int32_t height);
     bool CreateGpuBuffers();
     void ReleaseEntireSwapchain();
 
     std::shared_ptr<HWComposeContext>   context_;
-    std::unique_ptr<HWComposeDevice>    device_;
+    std::shared_ptr<HWComposeDevice>    device_;
     SkPixelGeometry                     pixel_geometry_;
     uint32_t                            device_graphics_queue_family_;
     uint32_t                            device_present_queue_family_;

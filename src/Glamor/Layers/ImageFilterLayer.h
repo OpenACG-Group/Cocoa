@@ -27,9 +27,16 @@ public:
     explicit ImageFilterLayer(const sk_sp<SkImageFilter>& filter);
     ~ImageFilterLayer() override = default;
 
+    ContainerAttributeChanged OnContainerDiffUpdateAttributes(
+            const std::shared_ptr<ContainerLayer>& other) override;
+
     void Preroll(PrerollContext *context, const SkMatrix &matrix) override;
-    void Paint(PaintContext *context) const override;
+    void Paint(PaintContext *context) override;
     void ToString(std::ostream& out) override;
+
+    const char *GetLayerTypeName() override {
+        return "ImageFilterLayer";
+    }
 
 private:
     sk_sp<SkImageFilter> filter_;

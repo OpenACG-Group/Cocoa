@@ -163,10 +163,12 @@ private:
     struct ListenerData
     {
         ListenerData(bool once_, v8::Isolate *i, v8::Local<v8::Function> f)
-            : once(once_), func(i, f) {}
+            : once(once_), func(i, f), iterating(false), removing(false) {}
 
         bool once;
         v8::Global<v8::Function> func;
+        bool iterating;
+        bool removing;
     };
     using ListenersList = std::list<ListenerData>;
 
@@ -178,6 +180,9 @@ private:
         uint64_t on_listener_set_ret;
     };
     using EventsMap = std::unordered_map<std::string, EventData>;
+
+    static ListenersList::iterator ListenerRemoveOrMarkRemoving(
+            ListenersList& list, ListenersList::iterator itr);
 
     static void CallListeners(EventData& event_data, v8::Local<v8::Value> recv,
                               const ListenerArgsT& args);

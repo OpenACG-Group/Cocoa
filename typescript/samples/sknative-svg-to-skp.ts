@@ -24,10 +24,10 @@ function main(): void {
     let input: string = null, output: string = null;
     let widthHint = 0, heightHint = 0;
 
-    if (std.args.length == 2) {
+    if (std.args.length === 2) {
         input = std.args[0];
         output = std.args[1];
-    } else if (std.args.length == 4) {
+    } else if (std.args.length === 4) {
         input = std.args[0];
         output = std.args[1];
         widthHint = Number.parseInt(std.args[2]);
@@ -51,14 +51,14 @@ function main(): void {
     let width = widthHint, height = heightHint;
     
     const intrinsicSize = document.intrinsicSize(lengthContext);
-    if (intrinsicSize.width != 0 && intrinsicSize.height != 0) {
+    if (intrinsicSize.width !== 0 && intrinsicSize.height !== 0) {
         // SVG can provide an intrinsic size (width and height are
         // not specified as percentage), then we prefer to use intrinsic size.
         width = intrinsicSize.width;
         height = intrinsicSize.height;
     }
 
-    if (width == 0 || height == 0) {
+    if (width === 0 || height === 0) {
         std.print('The SVG itself cannot provide an intrinsic size. Try specifying a size hint\n');
         return;
     }

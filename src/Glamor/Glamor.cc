@@ -104,8 +104,10 @@ GlobalScope::GlobalScope(const ContextOptions& options, EventLoop *loop)
 {
     SkEventTracer::SetInstance(skia_event_tracer_impl_, false);
 
+    /*
     if (options_.GetSkiaJIT())
         SkGraphics::AllowJIT();
+    */
 }
 
 GlobalScope::~GlobalScope() = default;

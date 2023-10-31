@@ -15,6 +15,8 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "include/gpu/MutableTextureState.h"
+
 #include "Gallium/binder/ThrowExcept.h"
 #include "Gallium/binder/Class.h"
 #include "Gallium/binder/TypeTraits.h"
@@ -363,7 +365,7 @@ bool CkSurface::waitOnGpu(v8::Local<v8::Value> wait_semaphores,
     return true;
 }
 
-int32_t CkSurface::flush(v8::Local<v8::Value> info)
+int32_t CkSurface::flush(v8::Local<v8::Value> info, bool transfer_ownership_to_other)
 {
     CheckDisposedOrThrow();
     if (gpu_direct_context_.IsEmpty())
@@ -378,7 +380,15 @@ int32_t CkSurface::flush(v8::Local<v8::Value> info)
             isolate, gpu_direct_context_.Get(isolate));
     CHECK(direct_context);
     GrDirectContext *gr_context = direct_context->GetHWComposeOffscreen()->GetSkiaGpuContext();
-    return static_cast<int32_t>(gr_context->flush(surface_, flush_info));
+
+    skgpu::MutableTextureState *mutable_state_ptr = nullptr;
+    skgpu::MutableTextureState mutable_state(VK_IMAGE_LAYOUT_UNDEFINED,
+                                             VK_QUEUE_FAMILY_EXTERNAL);
+    if (transfer_ownership_to_other)
+        mutable_state_ptr = &mutable_state;
+
+    return static_cast<int32_t>(
+            gr_context->flush(surface_.get(), flush_info, mutable_state_ptr));
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

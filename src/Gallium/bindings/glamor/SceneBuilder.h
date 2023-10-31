@@ -50,12 +50,8 @@ public:
     //! TSDecl: function pushTransform(matrix: CkMatrix): SceneBuilder
     v8::Local<v8::Value> pushTransform(v8::Local<v8::Value> matrix);
 
-    //! TSDecl: function addPicture(picture: CkPicture,
-    //!                             autoFastClip: boolean,
-    //!                             dx: number,
-    //!                             dy: number): SceneBuilder
-    v8::Local<v8::Value> addPicture(v8::Local<v8::Value> picture, bool autoFastClip,
-                                    SkScalar dx, SkScalar dy);
+    //! TSDecl: function addPicture(picture: CkPicture, autoFastClip: boolean): SceneBuilder
+    v8::Local<v8::Value> addPicture(v8::Local<v8::Value> picture, bool autoFastClip);
 
     //! TSDecl: function pushOpacity(alpha: number): SceneBuilder
     v8::Local<v8::Value> pushOpacity(SkScalar alpha);
@@ -92,12 +88,21 @@ public:
                                         SkScalar height,
                                         int32_t sampling);
 
+    //! TSDecl: function addGpuSurfaceView(surfaceId: bigint,
+    //!                                    dstRect: CkRect,
+    //!                                    waitSemaphoreId: bigint,
+    //!                                    signalSemaphoreId: bigint,
+    //!                                    contentTracker: CkSurfaceContentTracker | null): SceneBuilder
+    v8::Local<v8::Value> addGpuSurfaceView(v8::Local<v8::Value> surface_id,
+                                           v8::Local<v8::Value> dst_rect,
+                                           v8::Local<v8::Value> wait_sem_id,
+                                           v8::Local<v8::Value> signal_sem_id,
+                                           v8::Local<v8::Value> content_tracker);
+
 private:
-    v8::Local<v8::Object> getSelfHandle();
     void pushLayer(const std::shared_ptr<gl::ContainerLayer>& layer);
     void addLayer(const std::shared_ptr<gl::Layer>& layer);
 
-    v8::Global<v8::Object> self_handle_;
     int32_t     width_;
     int32_t     height_;
     std::shared_ptr<gl::ContainerLayer> layer_tree_;

@@ -184,8 +184,8 @@ DEF_BUILDER(gradient_two_point_conical)
                                                  static_cast<SkTileMode>(*tile_mode));
 }
 
-//! TSDecl: gradient_sweep(Float cx, Float cy, Color[] colors, Float[]? pos, Int tile_mode,
-//!                        Float start_angle, Float end_angle)
+//! ShaderDecl: gradient_sweep(Float cx, Float cy, Color[] colors, Float[]? pos, Int tile_mode,
+//!                            Float start_angle, Float end_angle)
 DEF_BUILDER(gradient_sweep)
 {
     CHECK_ARGC(7, gradient_sweep)
@@ -220,6 +220,33 @@ DEF_BUILDER(gradient_sweep)
                                        *start_angle, *end_angle, 0, nullptr);
 }
 
+//! ShaderDecl: blend(Int blend_mode, Shader dst, Shader src)
+DEF_BUILDER(blend)
+{
+    CHECK_ARGC(3, blend)
+
+    POP_ARGUMENT_CHECKED(src, Shader, blend)
+    POP_ARGUMENT_CHECKED(dst, Shader, blend)
+    POP_ARGUMENT_CHECKED(blend_mode_int, Integer, blend)
+
+    if (*blend_mode_int < 0 || *blend_mode_int > static_cast<int>(SkBlendMode::kLastMode))
+        g_throw(RangeError, "blend: Invalid enumeration value for `blend_mode`");
+
+    return SkShaders::Blend(static_cast<SkBlendMode>(*blend_mode_int), *dst, *src);
+}
+
+//! TSDecl: blender(Blender blender, Shader dst, Shader src)
+DEF_BUILDER(blender)
+{
+    CHECK_ARGC(3, blender)
+
+    POP_ARGUMENT_CHECKED(src, Shader, blender)
+    POP_ARGUMENT_CHECKED(dst, Shader, blender)
+    POP_ARGUMENT_CHECKED(blender, Blender, blender)
+
+    return SkShaders::Blend(*blender, *dst, *src);
+}
+
 #define ENTRY(N)    { #N, builder_##N }
 EffectDSLParser::EffectorBuildersMap g_shader_builders_map = {
     ENTRY(empty),
@@ -229,7 +256,9 @@ EffectDSLParser::EffectorBuildersMap g_shader_builders_map = {
     ENTRY(gradient_linear),
     ENTRY(gradient_radial),
     ENTRY(gradient_two_point_conical),
-    ENTRY(gradient_sweep)
+    ENTRY(gradient_sweep),
+    ENTRY(blend),
+    ENTRY(blender)
 };
 #undef ENTRY
 

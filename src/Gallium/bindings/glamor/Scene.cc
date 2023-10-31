@@ -26,32 +26,13 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.bindings.Glamor)
 
-Scene::Scene(const std::shared_ptr<gl::ContainerLayer>& rootLayer,
-             const SkISize& frameSize)
-    : disposed_(false)
+Scene::Scene(const std::shared_ptr<gl::ContainerLayer>& rootLayer, const SkISize& frameSize)
 {
     layer_tree_ = std::make_unique<gl::LayerTree>(frameSize);
     layer_tree_->SetRootLayer(rootLayer);
 }
 
-Scene::~Scene()
-{
-    if (!disposed_)
-    {
-        QLOG(LOG_ERROR, "%fg<hl,re>Incorrect usage of resources:%reset"
-                        " Scene object must be disposed before destructing");
-    }
-}
-
-void Scene::dispose()
-{
-    // This function can be called for multiple times.
-    if (disposed_)
-        return;
-
-    layer_tree_.reset();
-    disposed_ = true;
-}
+Scene::~Scene() = default;
 
 std::string Scene::toString()
 {

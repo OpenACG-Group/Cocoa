@@ -20,6 +20,28 @@
 #include "Glamor/Layers/RectClipLayer.h"
 GLAMOR_NAMESPACE_BEGIN
 
+RectClipLayer::RectClipLayer(const SkRect &rect, bool AA)
+    : ClippingLayerBase(ContainerType::kRectClip, rect)
+    , perform_anti_alias_(AA)
+{
+}
+
+ContainerLayer::ContainerAttributeChanged
+RectClipLayer::OnContainerDiffUpdateAttributes(const std::shared_ptr<ContainerLayer>& other)
+{
+    CHECK(other->GetContainerType() == ContainerType::kRectClip);
+    auto layer = std::static_pointer_cast<RectClipLayer>(other);
+    if (layer->perform_anti_alias_ == perform_anti_alias_ &&
+        layer->GetClipShape() == GetClipShape())
+    {
+        return ContainerAttributeChanged::kNo;
+    }
+    else
+    {
+        return ContainerAttributeChanged::kYes;
+    }
+}
+
 void RectClipLayer::OnApplyClipShape(const SkRect& shape, PaintContext *ctx) const
 {
     CHECK(ctx && ctx->multiplexer_canvas);
@@ -35,7 +57,7 @@ void RectClipLayer::ToString(std::ostream& os)
 {
     SkRect bounds = GetClipShape();
 
-    os << "(rect-clip"
+    os << fmt::format("(rect-clip#{}:{}", GetUniqueId(), GetGenerationId())
        << fmt::format(" '(bounds {} {} {} {})", bounds.x(), bounds.y(),
                                                 bounds.width(), bounds.height())
        << fmt::format(" '(antialias {})", perform_anti_alias_)
