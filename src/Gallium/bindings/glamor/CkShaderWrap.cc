@@ -287,11 +287,7 @@ v8::Local<v8::Value> CkShaderWrap::MakeFromDSL(v8::Local<v8::Value> dsl,
 v8::Local<v8::Value> CkShaderWrap::makeWithLocalMatrix(v8::Local<v8::Value> matrix)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *m = binder::UnwrapObject<CkMatrix>(isolate, matrix);
-    if (!m)
-        g_throw(TypeError, "Argument `matrix` must be an instance of `CkMatrix`");
-
-    sk_sp<SkShader> result = GetSkObject()->makeWithLocalMatrix(m->GetMatrix());
+    sk_sp<SkShader> result = GetSkObject()->makeWithLocalMatrix(ExtractCkMat3x3(isolate, matrix));
     if (!result)
         g_throw(Error, "Failed to make shader with local matrix");
 

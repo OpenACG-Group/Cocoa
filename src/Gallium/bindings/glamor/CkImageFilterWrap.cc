@@ -21,6 +21,7 @@
 #include "fmt/format.h"
 
 #include "Gallium/bindings/glamor/Exports.h"
+#include "Gallium/bindings/glamor/CkMatrixWrap.h"
 #include "Gallium/bindings/glamor/EffectDSLParser.h"
 #include "Gallium/bindings/glamor/EffectDSLBuilderHelperMacros.h"
 #include "Gallium/binder/TypeTraits.h"
@@ -31,12 +32,34 @@ namespace {
 template<typename T>
 using Nullable = EffectStackOperand::Nullable<T>;
 
+//! FilterDecl: crop(Rect crop, Int? tile_mode, ImageFilter input)
+DEF_BUILDER(crop)
+{
+    CHECK_ARGC(3, crop)
+
+    // Arguments in the stack should be taken in the reverse order
+    POP_ARGUMENT_CHECKED(input, ImageFilter, crop)
+    POP_ARGUMENT(tile_mode_int, Integer)
+    POP_ARGUMENT_CHECKED(crop, Rect, crop)
+
+    if (tile_mode_int)
+    {
+        if (*tile_mode_int < 0 || *tile_mode_int > static_cast<int>(SkTileMode::kLastTileMode))
+            g_throw(RangeError, "Invalid enumeration value in argument `tile_mode` for `crop` filter");
+    }
+
+    return SkImageFilters::Crop(
+        *crop,
+        tile_mode_int ? static_cast<SkTileMode>(*tile_mode_int) : SkTileMode::kDecal,
+        *input
+    );
+}
+
 //! FilterDecl: blur(Float sigma_x, Float sigma_y, Int tile_mode?, ImageFilter input?)
 DEF_BUILDER(blur)
 {
     CHECK_ARGC(4, blur)
 
-    // Arguments in the stack should be taken in the reverse order
     POP_ARGUMENT(input, ImageFilter)
     POP_ARGUMENT(tile_mode_int, Integer)
 
@@ -49,10 +72,11 @@ DEF_BUILDER(blur)
     POP_ARGUMENT_CHECKED(sigma_y, Float, blur)
     POP_ARGUMENT_CHECKED(sigma_x, Float, blur)
 
-    return SkImageFilters::Blur(*sigma_x, *sigma_y,
-                                tile_mode_int ? static_cast<SkTileMode>(*tile_mode_int)
-                                              : SkTileMode::kClamp,
-                                AUTO_SELECT(input));
+    return SkImageFilters::Blur(
+        *sigma_x, *sigma_y,
+        tile_mode_int ? static_cast<SkTileMode>(*tile_mode_int) : SkTileMode::kClamp,
+        AUTO_SELECT(input)
+    );
 }
 
 //! FilterDecl: arithmetic(Float k1, Float k2, Float k3, Float k4,
@@ -369,6 +393,7 @@ DEF_BUILDER(spot_lit_specular)
 
 #define ENTRY(N)    { #N, builder_##N }
 EffectDSLParser::EffectorBuildersMap g_image_filter_builders_map = {
+    ENTRY(crop),
     ENTRY(blur),
     ENTRY(compose),
     ENTRY(arithmetic),
@@ -439,6 +464,59 @@ v8::Local<v8::Value> CkImageFilterWrap::Deserialize(v8::Local<v8::Value> buffer)
         g_throw(Error, "Failed to deserialize the given buffer as an image filter");
 
     return binder::NewObject<CkImageFilterWrap>(isolate, filter);
+}
+
+v8::Local<v8::Value> CkImageFilterWrap::filterBounds(v8::Local<v8::Value> src,
+                                                     v8::Local<v8::Value> ctm,
+                                                     int32_t map_direction,
+                                                     v8::Local<v8::Value> input_rect)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+
+    if (map_direction != SkImageFilter::kReverse_MapDirection &&
+        map_direction != SkImageFilter::kForward_MapDirection)
+    {
+        g_throw(RangeError, "Argument `mapDirection` has an invalid enumeration value");
+    }
+
+    SkIRect store_input_rect;
+    SkIRect *input_rect_ptr = nullptr;
+    if (!input_rect->IsNullOrUndefined())
+    {
+        store_input_rect = ExtractCkRect(isolate, input_rect).round();
+        input_rect_ptr = &store_input_rect;
+    }
+
+    SkIRect result = GetSkObject()->filterBounds(
+            ExtractCkRect(isolate, src).round(),
+            ExtractCkMat3x3(isolate, ctm),
+            static_cast<SkImageFilter::MapDirection>(map_direction),
+            input_rect_ptr
+    );
+
+    return NewCkRect(isolate, SkRect::Make(result));
+}
+
+bool CkImageFilterWrap::canComputeFastBounds()
+{
+    return GetSkObject()->canComputeFastBounds();
+}
+
+v8::Local<v8::Value> CkImageFilterWrap::computeFastBounds(v8::Local<v8::Value> bounds)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    return NewCkRect(isolate, GetSkObject()->computeFastBounds(
+            ExtractCkRect(isolate, bounds)));
+}
+
+v8::Local<v8::Value> CkImageFilterWrap::makeWithLocalMatrix(v8::Local<v8::Value> matrix)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    sk_sp<SkImageFilter> result = GetSkObject()->makeWithLocalMatrix(
+            ExtractCkMat3x3(isolate, matrix));
+    if (!result)
+        return v8::Null(isolate);
+    return binder::NewObject<CkImageFilterWrap>(isolate, std::move(result));
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

@@ -346,6 +346,7 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
             return cmd::ParseState::kError;
         }
         gallium_options.startup = args.orphans[0];
+        app_env->js_first_script_name = args.orphans[0];
     }
 
     return init_only ? cmd::ParseState::kJustInitialize : cmd::ParseState::kSuccess;

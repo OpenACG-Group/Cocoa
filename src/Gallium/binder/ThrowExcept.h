@@ -28,9 +28,8 @@ GALLIUM_BINDER_NS_BEGIN
 v8::Local<v8::Value> throw_(v8::Isolate* isolate,
                             std::string_view str);
 
-v8::Local<v8::Value> throw_(v8::Isolate* isolate,
-                            std::string_view str,
-                            v8::Local<v8::Value>(*builder)(v8::Local<v8::String>));
+using ExceptionBuilderF = v8::Local<v8::Value>(v8::Local<v8::String> message, v8::Local<v8::Value> options);
+v8::Local<v8::Value> throw_(v8::Isolate* isolate, std::string_view str, ExceptionBuilderF builder);
 
 class JSException : public std::runtime_error
 {

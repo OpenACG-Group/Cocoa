@@ -1,18 +1,18 @@
 /**
- * This file is part of Vizmoe.
+ * This file is part of Cocoa.
  *
- * Vizmoe is free software: you can redistribute it and/or modify it
+ * Cocoa is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published
  * by the Free Software Foundation, either version 3 of the License,
  * or (at your option) any later version.
  *
- * Vizmoe is distributed in the hope that it will be useful,
+ * Cocoa is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Vizmoe. If not, see <https://www.gnu.org/licenses/>.
+ * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { CkColor4f } from 'glamor';
@@ -95,7 +95,7 @@ export class Color4f implements Fmt.Formattable {
 
     public [Fmt.kObjectFormatter](ctx: Fmt.FormatterContext): Array<Fmt.TextBlock> {
         return [
-            Fmt.TB(Fmt.TextBlockLayoutHint.kPrefix, [Fmt.TAG('Vizmoe.Color4f')]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kPrefix, [Fmt.TAG('Color4f')]),
             Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureBegin, [
                 Fmt.TAG('(')
             ]),
@@ -155,8 +155,17 @@ export class Color4f implements Fmt.Formattable {
                 this.G == other.G && this.B == other.B);
     }
 
+    public transparent(): boolean {
+        const scaled = Math.round(255 * this.A);
+        return (scaled == 0);
+    }
+
     public mul(S: number): Color4f {
         return new Color4f(S * this.R, S * this.G, S * this.B, S * this.A);
+    }
+
+    public mula(alpha: number): Color4f {
+        return new Color4f(this.R, this.G, this.B, alpha * this.A);
     }
 
     public mulc(S: Color4f): Color4f {
@@ -207,7 +216,7 @@ export class Color4f implements Fmt.Formattable {
         return [H, S, V];
     }
 
-    public toGLType(): CkColor4f {
+    public toCkColor4f(): CkColor4f {
         return [this.R, this.G, this.B, this.A];
     }
 

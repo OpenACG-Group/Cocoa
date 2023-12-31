@@ -38,6 +38,8 @@ RRectClipLayer::OnContainerDiffUpdateAttributes(const std::shared_ptr<ContainerL
     }
     else
     {
+        perform_anti_alias_ = layer->perform_anti_alias_;
+        SetClipShape(layer->GetClipShape());
         return ContainerAttributeChanged::kYes;
     }
 }

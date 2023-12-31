@@ -75,17 +75,8 @@ class CkTypeface : public ExportableObjectBase,
                    public SkiaObjectWrapper<SkTypeface>
 {
 public:
-    //! TSDecl: function MakeDefault(): CkTypeface
-    static v8::Local<v8::Value> MakeDefault();
-
-    //! TSDecl: function MakeFromName(name: string, style: CkFontStyle): CkTypeface
-    static v8::Local<v8::Value> MakeFromName(const std::string& name, v8::Local<v8::Value> style);
-
-    //! TSDecl: function MakeFromFile(file: string, index: number): CkTypeface
-    static v8::Local<v8::Value> MakeFromFile(const std::string& file, int32_t index);
-
-    //! TSDecl: function MakeFromData(buffer: TypedArray, index: number): CkTypeface
-    static v8::Local<v8::Value> MakeFromData(v8::Local<v8::Value> buffer, int32_t index);
+    //! TSDecl: function MakeEmpty(): CkTypeface
+    static v8::Local<v8::Value> MakeEmpty();
 
     using SkiaObjectWrapper::SkiaObjectWrapper;
 

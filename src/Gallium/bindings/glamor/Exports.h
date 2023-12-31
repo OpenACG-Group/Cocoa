@@ -360,6 +360,23 @@ public:
 
     //! TSDecl: function serialize(): ArrayBuffer
     v8::Local<v8::Value> serialize();
+
+    //! TSDecl: function filterBounds(src: CkRect, ctm: CkMat3x3,
+    //!                               mapDirection: Enum<ImageFilterMapDirection>,
+    //!                               inputRect: CkRect | null): CkRect
+    v8::Local<v8::Value> filterBounds(v8::Local<v8::Value> src,
+                                      v8::Local<v8::Value> ctm,
+                                      int32_t map_direction,
+                                      v8::Local<v8::Value> input_rect);
+
+    //! TSDecl: function canComputeFastBounds(): boolean
+    bool canComputeFastBounds();
+
+    //! TSDecl: function computeFastBounds(bounds: CkRect): CkRect
+    v8::Local<v8::Value> computeFastBounds(v8::Local<v8::Value> bounds);
+
+    //! TSDecl: function makeWithLocalMatrix(matrix: CkMat3x3): CkImageFilter | null
+    v8::Local<v8::Value> makeWithLocalMatrix(v8::Local<v8::Value> matrix);
 };
 
 //! TSDecl: class CkColorFilter
@@ -392,7 +409,7 @@ public:
     static v8::Local<v8::Value> MakeFromDSL(v8::Local<v8::Value> dsl,
                                             v8::Local<v8::Value> kwargs);
 
-    //! TSDecl: function makeWithLocalMatrix(matrix: CkMatrix): CkShader
+    //! TSDecl: function makeWithLocalMatrix(matrix: CkMat3x3): CkShader
     v8::Local<v8::Value> makeWithLocalMatrix(v8::Local<v8::Value> matrix);
 
     //! TSDecl: function makeWithColorFilter(filter: CkColorFilter): CkShader
@@ -548,7 +565,7 @@ public:
 
     //! TSDecl: function makeShader(tmx: Enum<TileMode>, tmy: Enum<TileMode>,
     //!                             sampling: Enum<Sampling>,
-    //!                             localMatrix: CkMatrix | null): CkShader
+    //!                             localMatrix: CkMat3x3 | null): CkShader
     g_nodiscard v8::Local<v8::Value> makeShader(int32_t tmx, int32_t tmy, int32_t sampling,
                                                 v8::Local<v8::Value> local_matrix);
 

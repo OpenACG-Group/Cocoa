@@ -18,6 +18,11 @@
 import {VideoBuffer} from 'synthetic://utau';
 import {EventEmitterBase} from 'private/base';
 
+/**
+ * A variant of `CkRect` that specified by four edges (top, left, right, bottom).
+ * `left` and `right` is the X coordinate, while `top` and `bottom` is the
+ * Y coordinate.
+ */
 export interface CkLTRBRect {
     left: number;
     top: number;
@@ -25,6 +30,10 @@ export interface CkLTRBRect {
     right: number;
 }
 
+/**
+ * A variant of `CkRect` that specified by a point (top-left corner)
+ * and its size (width and height).
+ */
 export interface CkXYWHRect {
     x: number;
     y: number;
@@ -32,9 +41,21 @@ export interface CkXYWHRect {
     height: number;
 }
 
+/**
+ * Similar to `CkXYWHRect`, but datas are stored in an array instead
+ * of an object. The layout is [x, y, w, h].
+ */
 export type CkArrayXYWHRect = [number, number, number, number];
-export type CkRect = CkLTRBRect | CkXYWHRect | CkArrayXYWHRect | Float32Array;
+export type CkF32ArrayXYWHRect = Float32Array;
 
+/**
+ * Represents a rectangle whose edges are parallel to the axis.
+ */
+export type CkRect = CkLTRBRect | CkXYWHRect | CkArrayXYWHRect | CkF32ArrayXYWHRect;
+
+/**
+ * Represents a round rectangle (including ellipse).
+ */
 export interface CkRRect {
     rect: CkRect;
 
@@ -77,9 +98,13 @@ export type CkPoint3 = [number, number, number];
 // [R, G, B, A] where R,G,B,A∈[0,1]
 export type CkColor4f = [number, number, number, number];
 
+// Represents a 3x3 matrix. If the matrix is represented in `Float32Array`
+// or `Array<number>`, elements are in the column-major order.
+export type CkMat3x3 = Float32Array | Array<number> | /* preferred */ CkMatrix;
+
 /**
  * Overwrite the default application name and version.
- * The application info will not be parsed, and only be used for identify
+ * The application info will not be parsed, and only be used for identifying
  * the application itself.
  */
 export function setApplicationInfo(name: string, major: number,
@@ -92,21 +117,50 @@ export function setApplicationInfo(name: string, major: number,
 export function traceSkiaMemoryJSON(): string;
 
 /**
- * Query a certain capability of current Glamor context.
+ * Query a certain capability of the current Glamor context.
  * This function can be called before Glamor is initialized.
  * See `Constants.CAPABILITY_*` constants for available capabilities.
  */
 export function queryCapabilities(cap: Capability): boolean | number | string;
 
+/**
+ * Represents a background thread, called PresentThread, for onscreen rendering.
+ * The PresentThread schedules and performs onscreen rendering tasks, interacts
+ * with the system's window manager, and dispatches window events.
+ *
+ * It is allowed to create multiple PresentThread in one Glamor context, and they
+ * run independently. An active PresentThread is treated as a pending work in event
+ * loop, which prevents the exiting of the event loop until the thread is disposed.
+ */
 export class PresentThread {
     private constructor();
 
+    /**
+     * Launch a new PresentThread. The thread keeps running in the background,
+     * preventing the exiting of the event loop. The only way to properly terminate
+     * it is to explicitly call the `dispose()` method.
+     */
     static Start(): Promise<PresentThread>;
 
+    /**
+     * Notify the PresentThread to clean up and exit. It blocks the caller thread
+     * until the PresentThread exits properly.
+     */
     dispose(): void;
 
+    /**
+     * Connect to the system's display server (Wayland, X11, etc.), and return
+     * a `Display` object by which the user can interact with the display server.
+     */
     createDisplay(): Promise<Display>;
 
+    /**
+     * Explicitly perform the garbage collection on PresentThread.
+     * Most of the rendering resources (especially GPU objects) are uniquely owned
+     * by the PresentThread, but there are still some resources that need sharing
+     * with JavaScript thread.
+     * TODO(sora): complete this (why the mechanism is introduced).
+     */
     collect(): void;
 
     startMessageProfiling(): void;
@@ -515,6 +569,8 @@ export class SceneBuilder {
 
     pushOpacity(alpha: number): SceneBuilder;
 
+    pushTransform(matrix: CkMat3x3): SceneBuilder;
+
     pushRotate(rad: number, pivotX: number, pivotY: number): SceneBuilder;
 
     pushImageFilter(filter: CkImageFilter): SceneBuilder;
@@ -573,6 +629,7 @@ export type ImageBitDepth = number;
 export type TextureCompressionType = number;
 export type GpuSemaphoreSubmitted = number;
 export type UpdateResult = number;
+export type ImageFilterMapDirection = number;
 
 interface Constants {
     readonly CAPABILITY_HWCOMPOSE_ENABLED: Capability;
@@ -775,6 +832,9 @@ interface Constants {
     readonly BLEND_MODE_COLOR: BlendMode;
     readonly BLEND_MODE_LUMINOSITY: BlendMode;
 
+    readonly IMAGE_FILTER_MAP_DIRECTION_REVERSE: ImageFilterMapDirection;
+    readonly IMAGE_FILTER_MAP_DIRECTION_FORWARD: ImageFilterMapDirection;
+
     /* Pointer buttons (mouse and other pointing devices) */
     readonly POINTER_BUTTON_LEFT: PointerButton;
     readonly POINTER_BUTTON_RIGHT: PointerButton;
@@ -947,6 +1007,7 @@ interface Constants {
     readonly SURFACE_TOPLEVEL_TILED_RIGHT: ToplevelStates;
     readonly SURFACE_TOPLEVEL_TILED_TOP: ToplevelStates;
     readonly SURFACE_TOPLEVEL_TILED_BOTTOM: ToplevelStates;
+    readonly SURFACE_TOPLEVEL_SUSPENDED: ToplevelStates;
 }
 
 export declare let Constants: Constants;
@@ -1126,16 +1187,17 @@ export class CkMatrix {
                skewY: number, scaleY: number, transY: number,
                pers0: number, pers1: number, pers2: number): CkMatrix;
 
-    static Concat(a: CkMatrix, b: CkMatrix): CkMatrix;
+    static Concat(a: CkMat3x3, b: CkMat3x3): CkMatrix;
 
-    readonly scaleX: number;
-    readonly scaleY: number;
-    readonly skewX: number;
-    readonly skewY: number;
-    readonly translateX: number;
-    readonly translateY: number;
-    readonly perspectiveX: number;
-    readonly perspectiveY: number;
+    scaleX: number;
+    scaleY: number;
+    skewX: number;
+    skewY: number;
+    transX: number;
+    transY: number;
+    persp0: number;
+    persp1: number;
+    persp2: number;
 
     clone(): CkMatrix;
 
@@ -1155,7 +1217,7 @@ export class CkMatrix {
 
     preSkew(kx: number, ky: number, px: number, py: number): void;
 
-    preConcat(other: CkMatrix): CkMatrix;
+    preConcat(other: CkMat3x3): void;
 
     postTranslate(dx: number, dy: number): void;
 
@@ -1165,7 +1227,7 @@ export class CkMatrix {
 
     postSkew(kx: number, ky: number, px: number, py: number): void;
 
-    postConcat(other: CkMatrix): CkMatrix;
+    postConcat(other: CkMat3x3): void;
 
     invert(): null | CkMatrix;
 
@@ -1201,7 +1263,7 @@ export class CkPixmap {
     readonly colorType: ColorType;
     readonly alphaType: AlphaType;
     readonly isOpaque: boolean;
-    readonly bounds: CkRect;
+    readonly bounds: CkArrayXYWHRect;
     readonly rowBytesAsPixels: number;
     readonly shiftPerPixel: number;
 
@@ -1260,6 +1322,12 @@ export class CkPaint {
     setPathEffect(effect: CkPathEffect): void;
 
     setImageFilter(filter: CkImageFilter): void;
+
+    nothingToDraw(): boolean;
+
+    canComputeFastBounds(): boolean;
+
+    computeFastBounds(original: CkRect): CkArrayXYWHRect;
 }
 
 export class CkPath {
@@ -1301,11 +1369,13 @@ export class CkPath {
 
     getPoint(): CkPoint;
 
-    getBounds(): CkRect;
+    getBounds(): CkArrayXYWHRect;
 
-    computeTightBounds(): CkRect;
+    computeTightBounds(): CkArrayXYWHRect;
 
     conservativelyContainsRect(rect: CkRect): boolean;
+
+    contains(x: number, y: number): boolean;
 
     moveTo(x: number, y: number): void;
 
@@ -1352,13 +1422,15 @@ export class CkPath {
 
     addPath(src: CkPath, dx: number, dy: number, mode: PathAddPathMode): void;
 
-    addPathMatrix(src: CkPath, matrix: CkMatrix, mode: PathAddPathMode): void;
+    addPathMatrix(src: CkPath, matrix: CkMat3x3, mode: PathAddPathMode): void;
 
     reverseAddPath(src: CkPath): void;
 
+    fillWithPaint(paint: CkPaint, cull: CkRect | null, resScale: number): CkPath | null;
+
     offset(dx: number, dy: number): void;
 
-    transform(matrix: CkMatrix, pc: ApplyPerspectiveClip): void;
+    transform(matrix: CkMat3x3, pc: ApplyPerspectiveClip): void;
 
     toString(hex: boolean): string;
 }
@@ -1380,13 +1452,7 @@ export class CkFontStyle {
 }
 
 export class CkTypeface {
-    static MakeDefault(): CkTypeface;
-
-    static MakeFromName(name: string, style: CkFontStyle): CkTypeface;
-
-    static MakeFromFile(file: string, index: number): CkTypeface;
-
-    static MakeFromData(buffer: TypedArray, index: number): CkTypeface;
+    static MakeEmpty(): CkTypeface;
 
     readonly fontStyle: CkFontStyle;
     readonly bold: boolean;
@@ -1395,7 +1461,7 @@ export class CkTypeface {
     readonly unitsPerEm: number;
     readonly familyName: string;
     readonly postScriptName: string | null;
-    readonly bounds: CkRect;
+    readonly bounds: CkArrayXYWHRect;
 
     getKerningPairAdjustments(glyphs: Uint16Array): Array<number> | null;
 
@@ -1512,14 +1578,14 @@ export class CkTextBlob {
                                font: CkFont,
                                encoding: TextEncoding): CkTextBlob;
 
-    readonly bounds: CkRect;
+    readonly bounds: CkArrayXYWHRect;
     readonly uniqueID: number;
 
     getIntercepts(upperBound: number, lowerBound: number, paint: null | CkPaint): Float32Array;
 }
 
 export interface CanvasSaveLayerRec {
-    bounds: null | CkRect;
+    bounds: null | CkArrayXYWHRect;
     paint: null | CkPaint;
     backdrop: null | CkImageFilter;
     flags: CanvasSaveLayerFlag;
@@ -1540,6 +1606,8 @@ export class CkCanvas {
 
     restoreToCount(saveCount: number): void;
 
+    getSaveCount(): number;
+
     translate(dx: number, dy: number): void;
 
     scale(sx: number, sy: number): void;
@@ -1548,11 +1616,13 @@ export class CkCanvas {
 
     skew(sx: number, sy: number): void;
 
-    concat(matrix: CkMatrix): void;
+    concat(matrix: CkMat3x3): void;
 
-    setMatrix(matrix: CkMatrix): void;
+    setMatrix(matrix: CkMat3x3): void;
 
     resetMatrix(): void;
+
+    getTotalMatrix(): CkMatrix;
 
     clipRect(rect: CkRect, op: ClipOp, AA: boolean): void;
 
@@ -1566,9 +1636,9 @@ export class CkCanvas {
 
     quickRejectPath(path: CkPath): boolean;
 
-    getLocalClipBounds(): CkRect
+    getLocalClipBounds(): CkArrayXYWHRect
 
-    getDeviceClipBounds(): CkRect
+    getDeviceClipBounds(): CkArrayXYWHRect
 
     drawColor(color: CkColor4f, mode: BlendMode): void;
 
@@ -1609,7 +1679,7 @@ export class CkCanvas {
 
     drawTextBlob(blob: CkTextBlob, x: number, y: number, paint: CkPaint): void;
 
-    drawPicture(picture: CkPicture, matrix: null | CkMatrix, paint: null | CkPaint): void;
+    drawPicture(picture: CkPicture, matrix: null | CkMat3x3, paint: null | CkPaint): void;
 
     drawVertices(vertices: CkVertices, mode: BlendMode, paint: CkPaint): void;
 
@@ -1648,9 +1718,9 @@ export class CkVertices {
 
     static MakeTransform(mode: VerticesVertexMode,
                          positions: Float32Array,
-                         positionsMatrix: CkMatrix,
+                         positionsMatrix: CkMat3x3,
                          texCoords: Float32Array | null,
-                         texCoordsMatrix: CkMatrix | null,
+                         texCoordsMatrix: CkMat3x3 | null,
                          colors: Uint32Array | null,
                          indices: Uint16Array | null): Promise<CkVertices>;
 
@@ -1664,6 +1734,15 @@ export class CkImageFilter {
     static Deserialize(buffer: TypedArray): CkImageFilter;
 
     serialize(): ArrayBuffer;
+
+    filterBounds(src: CkRect, ctm: CkMat3x3, mapDirection: ImageFilterMapDirection,
+                 inputRect: CkRect | null): CkArrayXYWHRect;
+
+    canComputeFastBounds(): boolean;
+
+    computeFastBounds(bounds: CkRect): CkArrayXYWHRect;
+
+    makeWithLocalMatrix(matrix: CkMat3x3): CkImageFilter | null;
 }
 
 export class CkColorFilter {
@@ -1677,7 +1756,7 @@ export class CkColorFilter {
 export class CkShader {
     static MakeFromDSL(dsl: string, kwargs: object): CkShader;
 
-    makeWithLocalMatrix(matrix: CkMatrix): CkShader;
+    makeWithLocalMatrix(matrix: CkMat3x3): CkShader;
 
     makeWithColorFilter(filter: CkColorFilter): CkShader;
 }
@@ -1730,7 +1809,7 @@ export class CkRuntimeEffect {
     findChild(name: string): RTEffectChild;
 
     makeShader(uniforms: Array<number>, children: Array<RTEffectChildSpecifier>,
-               localMatrix: CkMatrix | null): CkShader | null;
+               localMatrix: CkMat3x3 | null): CkShader | null;
 
     makeBlender(uniforms: Array<number>, children: Array<RTEffectChildSpecifier>): CkBlender | null;
 
@@ -1772,7 +1851,7 @@ export class CkBitmap {
     asImage(): CkImage;
 
     makeShader(tmx: TileMode, tmy: TileMode, sampling: SamplingOption,
-               localMatrix: CkMatrix | null): CkShader;
+               localMatrix: CkMat3x3 | null): CkShader;
 
     asTypedArray(): Uint8Array;
 }
@@ -1793,7 +1872,7 @@ export class CkImage {
     static MakeDeferredFromPicture(picture: CkPicture,
                                    width: number,
                                     height: number,
-                                    matrix: CkMatrix | null,
+                                    matrix: CkMat3x3 | null,
                                     paint: CkPaint | null,
                                     bitDepth: ImageBitDepth,
                                     colorSpace: ColorSpace): CkImage;
@@ -1855,12 +1934,12 @@ export class CkImage {
     makeShader(tmx: TileMode,
                tmy: TileMode,
                sampling: SamplingOption,
-               local_matrix: CkMatrix | null): CkShader | null;
+               local_matrix: CkMat3x3 | null): CkShader | null;
 
     makeRawShader(tmx: TileMode,
                   tmy: TileMode,
                   sampling: SamplingOption,
-                  local_matrix: CkMatrix | null): CkShader | null;
+                  local_matrix: CkMat3x3 | null): CkShader | null;
 }
 
 export class CkPicture {
@@ -1908,9 +1987,9 @@ export class VertexBatch {
 export class VertexBatchBuilder {
     constructor();
 
-    pushPositionMatrix(matrix: CkMatrix): VertexBatchBuilder;
+    pushPositionMatrix(matrix: CkMat3x3): VertexBatchBuilder;
 
-    pushTexCoordMatrix(matrix: CkMatrix): VertexBatchBuilder;
+    pushTexCoordMatrix(matrix: CkMat3x3): VertexBatchBuilder;
 
     popPositionMatrix(): VertexBatchBuilder;
 

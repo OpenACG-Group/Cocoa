@@ -250,6 +250,9 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
         { "BLEND_MODE_COLOR",       EV(SkBlendMode::kColor)      },
         { "BLEND_MODE_LUMINOSITY",  EV(SkBlendMode::kLuminosity) },
 
+        { "IMAGE_FILTER_MAP_DIRECTION_REVERSE", EV(SkImageFilter::MapDirection::kReverse_MapDirection) },
+        { "IMAGE_FILTER_MAP_DIRECTION_FORWARD", EV(SkImageFilter::MapDirection::kForward_MapDirection) },
+
         { "POINTER_BUTTON_LEFT",    EV(gl::PointerButton::kLeft)        },
         { "POINTER_BUTTON_RIGHT",   EV(gl::PointerButton::kRight)       },
         { "POINTER_BUTTON_MIDDLE",  EV(gl::PointerButton::kMiddle)      },
@@ -420,7 +423,8 @@ void GlamorSetInstanceProperties(v8::Local<v8::Object> instance)
         { "SURFACE_TOPLEVEL_TILED_RIGHT", EV(gl::ToplevelStates::kTiledRight) },
         { "SURFACE_TOPLEVEL_TILED_TOP", EV(gl::ToplevelStates::kTiledTop) },
         { "SURFACE_TOPLEVEL_TILED_BOTTOM", EV(gl::ToplevelStates::kTiledBottom) },
-        { "SURFACE_TOPLEVEL_RESIZING", EV(gl::ToplevelStates::kResizing) }
+        { "SURFACE_TOPLEVEL_RESIZING", EV(gl::ToplevelStates::kResizing) },
+        { "SURFACE_TOPLEVEL_SUSPENDED", EV(gl::ToplevelStates::kSuspended) }
     };
 
     instance->Set(ctx, binder::to_v8(isolate, "Constants"),

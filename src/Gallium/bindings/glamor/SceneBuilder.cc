@@ -103,10 +103,7 @@ v8::Local<v8::Value> SceneBuilder::pushRotate(SkScalar rad, SkScalar pivotX, SkS
 v8::Local<v8::Value> SceneBuilder::pushTransform(v8::Local<v8::Value> matrix)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *wrapper = binder::UnwrapObject<CkMatrix>(isolate, matrix);
-    if (!wrapper)
-        g_throw(TypeError, "Argument `matrix` must be an instance of `CkMatrix`");
-    pushLayer(std::make_shared<gl::TransformLayer>(wrapper->GetMatrix()));
+    pushLayer(std::make_shared<gl::TransformLayer>(ExtractCkMat3x3(isolate, matrix)));
     return GetObjectWeakReference().Get(isolate);
 }
 

@@ -60,8 +60,6 @@ add_library(Gallium STATIC
         Inspector.cc
         InspectorChannel.h
         InspectorChannel.cc
-        InspectorClient.h
-        InspectorClient.cc
         InspectorThread.h
         InspectorThread.cc
         binder/PtrTraits.h

@@ -87,7 +87,7 @@ public:
 
     //! TSDecl: function makeShader(uniforms: Array<number>,
     //!                             children: Array<RTEffectChildSpecifier>,
-    //!                             local_matrix: CkMatrix | null): CkShader | null
+    //!                             local_matrix: CkMat3x3 | null): CkShader | null
     v8::Local<v8::Value> makeShader(v8::Local<v8::Value> uniforms, v8::Local<v8::Value> children,
                                     v8::Local<v8::Value> local_matrix);
 

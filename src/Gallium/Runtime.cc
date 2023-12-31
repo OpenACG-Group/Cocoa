@@ -15,33 +15,25 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
 #include <memory>
 #include <utility>
 #include <thread>
-#include <map>
 
 #include "include/libplatform/libplatform.h"
 #include "include/v8.h"
 
-#include "Core/Exception.h"
 #include "Core/Journal.h"
 #include "Core/EventLoop.h"
-#include "Core/Data.h"
-#include "Core/TraceEvent.h"
 #include "Gallium/Gallium.h"
 #include "Gallium/Runtime.h"
-#include "Gallium/BindingManager.h"
 #include "Gallium/ModuleImportURL.h"
 #include "Gallium/Infrastructures.h"
 #include "Gallium/Platform.h"
 #include "Gallium/Inspector.h"
 #include "Gallium/TracingController.h"
 
-#include "Gallium/binder/TypeTraits.h"
 #include "Gallium/binder/Module.h"
 #include "Gallium/binder/Class.h"
-#include "Gallium/binder/CallV8.h"
 #include "Gallium/bindings/Base.h"
 GALLIUM_NS_BEGIN
 
@@ -155,28 +147,24 @@ void Runtime::RunWithMainLoop()
 
     EvaluateModule("internal:///bootstrap.js", nullptr, nullptr, kSysInvoke_ScriptSourceFlag);
 
-    if (!options_.start_with_inspector)
+    if (!options_.start_with_inspector ||
+        (options_.start_with_inspector && !options_.inspector_no_script))
     {
-        // Inspector is not enabled, and we can evaluate the startup script
-        // immediately.
-        v8::Local<v8::Value> result;
-        if (!EvaluateModule(options_.startup).ToLocal(&result))
-            return;
-    }
-    else
-    {
-        inspector_->WaitForConnection();
-        if (!options_.inspector_no_script)
-        {
-            // Startup script should not be executed here immediately.
-            // Instead, it should be executed when the inspector frontend
-            // notifies us to do that.
-            inspector_->ScheduleModuleEvaluation(options_.startup);
-        }
+        auto eval_main_script = [url = options_.startup, this]() {
+            v8::Isolate *isolate = GetIsolate();
+            v8::HandleScope handle_scope(isolate);
+            v8::TryCatch cache_block(isolate);
+            EvaluateModule(url);
+            if (cache_block.HasCaught())
+                ReportUncaughtExceptionInCallback(cache_block);
+        };
+
+        if (options_.start_with_inspector)
+            inspector_->ScheduleModuleEvalOnNextConnect(std::move(eval_main_script));
+        else
+            eval_main_script();
     }
 
-    // Inspector messages from frontend will also be handled
-    // in the event loop.
     SpinRun();
 }
 

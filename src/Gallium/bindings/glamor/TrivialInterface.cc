@@ -23,6 +23,7 @@
 #include "fmt/format.h"
 
 #include "Gallium/bindings/glamor/Exports.h"
+#include "Gallium/bindings/glamor/CkMatrixWrap.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 #define CHECK_OBJECT_TYPE(typename, isolate, obj)           \
@@ -562,6 +563,56 @@ bool CkImageInfo::equalsTo(v8::Local<v8::Value> other)
     if (!i)
         g_throw(TypeError, "Argument `other` must be an instance of `CkImageInfo`");
     return (info_ == i->info_);
+}
+
+SkMatrix ExtractCkMat3x3(v8::Isolate *isolate, v8::Local<v8::Value> mat)
+{
+    if (mat->IsFloat32Array())
+    {
+        auto memory = binder::GetTypedArrayMemory<v8::Float32Array>(mat);
+        if (!memory || memory->size != 9)
+            g_throw(Error, "An invalid `Float32Array` was provided for matrix creation");
+        auto *m = reinterpret_cast<float*>(memory->ptr);
+        return SkMatrix::MakeAll(m[0], m[3], m[6],
+                                 m[1], m[4], m[7],
+                                 m[2], m[5], m[8]);
+    }
+    else if (mat->IsArray())
+    {
+        auto array = mat.As<v8::Array>();
+        if (array->Length() != 9)
+            g_throw(Error, "An invalid array was provided for matrix creation");
+
+        float m[9];
+        v8::Local<v8::Context> context = isolate->GetCurrentContext();
+        for (uint32_t i = 0; i < 9; i++)
+        {
+            v8::Local<v8::Value> element;
+            if (!array->Get(context, i).ToLocal(&element) || !element->IsNumber())
+                g_throw(Error, "An invalid array was provided for matrix creation");
+            m[i] = element->NumberValue(context).ToChecked();
+        }
+        return SkMatrix::MakeAll(m[0], m[3], m[6],
+                                 m[1], m[4], m[7],
+                                 m[2], m[5], m[8]);
+    }
+    else if (mat->IsObject())
+    {
+        auto *matrix_wrap = binder::UnwrapObject<CkMatrix>(isolate, mat);
+        if (!matrix_wrap)
+            g_throw(TypeError, "An invalid object was provided for matrix creation");
+        return matrix_wrap->GetMatrix();
+    }
+    else
+    {
+        g_throw(TypeError, "Invalid value of `CkMat3x3` type");
+    }
+    MARK_UNREACHABLE();
+}
+
+v8::Local<v8::Value> NewCkMat3x3(v8::Isolate *isolate, const SkMatrix& mat)
+{
+    return binder::NewObject<CkMatrix>(isolate, mat);
 }
 
 GALLIUM_BINDINGS_GLAMOR_NS_END

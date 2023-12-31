@@ -106,9 +106,8 @@ void ContainerLayer::DiffUpdate(const std::shared_ptr<Layer>& other)
 
     child_layers_ = std::move(replace_children);
 
-    subtree_dirty = subtree_dirty ||
-            (OnContainerDiffUpdateAttributes(new_container) == ContainerAttributeChanged::kYes);
-    if (subtree_dirty)
+    auto attrs_changed = OnContainerDiffUpdateAttributes(new_container);
+    if (subtree_dirty || attrs_changed == ContainerAttributeChanged::kYes)
         IncreaseGenerationId();
 }
 

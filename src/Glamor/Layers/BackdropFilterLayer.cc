@@ -33,8 +33,8 @@ ContainerLayer::ContainerAttributeChanged
 BackdropFilterLayer::OnContainerDiffUpdateAttributes(const std::shared_ptr<ContainerLayer>& other)
 {
     CHECK(other->GetContainerType() == ContainerType::kBackdropFilter);
-    /*
     auto layer = std::static_pointer_cast<BackdropFilterLayer>(other);
+    /*
     if (layer->image_filter_ == image_filter_ &&
         layer->auto_child_clip_ == auto_child_clip_ &&
         layer->blend_mode_ == blend_mode_)
@@ -46,6 +46,8 @@ BackdropFilterLayer::OnContainerDiffUpdateAttributes(const std::shared_ptr<Conta
         return ContainerAttributeChanged::kYes;
     }
     */
+
+    this->image_filter_ = layer->image_filter_;
 
     // FIXME(sora): BackdropFilterLayer is not cachable, because its
     //              content depends on the current backdrop, whose change

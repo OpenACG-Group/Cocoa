@@ -54,6 +54,7 @@ target_link_libraries(
         avcodec
         avfilter
         swscale
+        swresample
         drm
         va
         va-drm

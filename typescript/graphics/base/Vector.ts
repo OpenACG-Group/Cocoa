@@ -1,118 +1,44 @@
 /**
- * This file is part of Vizmoe.
+ * This file is part of Cocoa.
  *
- * Vizmoe is free software: you can redistribute it and/or modify it
+ * Cocoa is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published
  * by the Free Software Foundation, either version 3 of the License,
  * or (at your option) any later version.
  *
- * Vizmoe is distributed in the hope that it will be useful,
+ * Cocoa is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Vizmoe. If not, see <https://www.gnu.org/licenses/>.
+ * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {CkPoint, CkPoint3} from 'glamor';
+import { CkPoint, CkPoint3 } from 'glamor';
 import * as Fmt from '../../core/formatter';
+import { IsFloatEq } from './NumericUtils';
 
-/**
- * A two- or three-dimensional vector represented in
- * Cartesian Coordinate System.
- *
- * Use constructors to create vectors directly, for example:
- * @example
- *      // Default constructor makes a zero vector.
- *      let v = new Vector2f();
- *      let u = new Vector3f();
- *
- *      // Specify a coordinate
- *      let w = new Vector3f(1, 2, 1);
- */
-export interface IVector<T> {
-    /**
-     * Get length of the vector |v|, also known as the modulus of a vector.
-     */
-    length(): number;
+// Degenerate is the operation by which an N dimension vector is transformed
+// to an N-1 dimension vector. This enumeration controls how to handle the
+// N-th coordinate.
+export enum Degenerate {
+    // Discard the N-th coordinate directly:
+    // (x, y, z, w) => (x, y, z)
+    kDiscard,
 
-    /**
-     * Get squared length of the vector, which is |v|^2.
-     */
-    lengthSquared(): number;
+    // Divide the other components by the N-th component:
+    // (x, y, z, w) => (x / w, y / w, z / w)
+    kHomogenousNorm,
+    kDiv = kHomogenousNorm,
 
-    /**
-     * Get a string representation of the vector.
-     *
-     * @param fracDigits The number of fraction digits (precision).
-     */
-    toString(fracDigits?: number): string;
-
-    /**
-     * Add the vector and another specified vector `v`, and the result
-     * will be returned as a new vector, leaving the vector itself unchanged.
-     */
-    add(v: T): T;
-
-    /**
-     * Subtract the vector from another specified vector `v`, and the result
-     * will be returned as a new vector, leaving the vector itself unchanged.
-     */
-    sub(v: T): T;
-
-    /**
-     * Calculate the inner product (aka dot product) of the vector and another
-     * specified vector `v`. Result is a scalar.
-     */
-    dot(v: T): number;
-
-    /**
-     * Calculate the outer product (aka cross product) of the vector and another
-     * specified vector `v`, leaving the vector itself unchanged.
-     * When it is applied to two-dimensional vectors, the result will be scalar which
-     * represents the directed area of the parallelogram spanned by vectors.
-     * When it is applied to three-dimensional vectors, the result will be a three-dimensional
-     * vector which is the cross product of vectors.
-     */
-    cross(v: T): number | T;
-
-    /**
-     * Keep the direction of the vector, change the length to 1.
-     * A new vector is returned, leaving the vector itself unchanged.
-     */
-    normalize(): T;
-
-    /**
-     * Invert the direction of the vector, and a new inverted vector
-     * is returned, leaving the vector itself unchanged.
-     */
-    neg(): T;
-
-    /**
-     * Multiply the vector by `lambda`, and a new multiplied vector
-     * is returned, leaving the vector itself unchanged.
-     */
-    mul(lambda: number): T;
-
-    /**
-     * Return the cosine of the included angle of two vectors.
-     */
-    angleCos(v: T): number;
-
-    /**
-     * Return the sine of the included angle of two vectors.
-     */
-    angleSin(v: T): number;
-
-    equalTo(other: T): boolean;
-    clone(): T;
-
-    toGLType(): CkPoint | CkPoint3;
+    // Multipy the other components with the N-th component:
+    // (x, y, z, w) => (x * w, y * w, z * w)
+    kMul
 }
 
-export class Vector2f implements IVector<Vector2f>, Fmt.Formattable {
-    constructor(public x: number = 0, public y: number = 0) {}
+export class Vector2f implements Fmt.Formattable {
+    constructor(public readonly x: number = 0, public readonly y: number = 0) {}
 
     static Dot(u: Vector2f, v: Vector2f): number {
         return (u.x * v.x + u.y * v.y);
@@ -189,41 +115,33 @@ export class Vector2f implements IVector<Vector2f>, Fmt.Formattable {
     }
 
     equalTo(other: Vector2f): boolean {
-        return (this.x == other.x && this.y == other.y);
+        return this.x === other.x && this.y === other.y;
     }
 
     clone(): Vector2f {
         return new Vector2f(this.x, this.y);
     }
 
-    toGLType(): CkPoint {
+    toCkPoint(): CkPoint {
         return [this.x, this.y];
     }
 
     public [Fmt.kObjectFormatter](ctx: Fmt.FormatterContext): Array<Fmt.TextBlock> {
         return [
-            Fmt.TB(Fmt.TextBlockLayoutHint.kPrefix, [
-                Fmt.TAG('Vizmoe.Vector2f')
-            ]),
-            Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureBegin, [
-                Fmt.TAG('(')
-            ]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kPrefix, [Fmt.TAG('Vector2f')]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureBegin, [Fmt.TAG('(')]),
             ...Fmt.formatAnyValue(this.x, ctx),
-            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [
-                Fmt.TAG(',')
-            ]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(',')]),
             ...Fmt.formatAnyValue(this.y, ctx),
-            Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureEnd, [
-                Fmt.TAG(')')
-            ])
+            Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureEnd, [Fmt.TAG(')')])
         ];
     }
 }
 
-export class Vector3f implements IVector<Vector3f>, Fmt.Formattable {
-    constructor(public x: number = 0,
-                public y: number = 0,
-                public z: number = 0) {}
+export class Vector3f implements Fmt.Formattable {
+    constructor(public readonly x: number = 0,
+                public readonly y: number = 0,
+                public readonly z: number = 0) {}
 
     static Dot(u: Vector3f, v: Vector3f): number {
         return (u.x * v.x + u.y * v.y + u.z * v.z);
@@ -304,14 +222,14 @@ export class Vector3f implements IVector<Vector3f>, Fmt.Formattable {
         return Vector3f.AngleSin(this, v);
     }
 
-    toGLType(): CkPoint3 {
+    toCkPoint(): CkPoint3 {
         return [this.x, this.y, this.z];
     }
 
     equalTo(other: Vector3f): boolean {
-        return (this.x == other.x &&
-                this.y == other.y &&
-                this.z == other.z);
+        return (this.x === other.x &&
+                this.y === other.y &&
+                this.z === other.z);
     }
 
     clone(): Vector3f {
@@ -320,24 +238,125 @@ export class Vector3f implements IVector<Vector3f>, Fmt.Formattable {
 
     public [Fmt.kObjectFormatter](ctx: Fmt.FormatterContext): Array<Fmt.TextBlock> {
         return [
-            Fmt.TB(Fmt.TextBlockLayoutHint.kPrefix, [
-                Fmt.TAG('Vizmoe.Vector3f')
-            ]),
-            Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureBegin, [
-                Fmt.TAG('(')
-            ]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kPrefix, [Fmt.TAG('Vector3f')]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureBegin, [Fmt.TAG('(')]),
             ...Fmt.formatAnyValue(this.x, ctx),
-            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [
-                Fmt.TAG(',')
-            ]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(',')]),
             ...Fmt.formatAnyValue(this.y, ctx),
-            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [
-                Fmt.TAG(',')
-            ]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(',')]),
             ...Fmt.formatAnyValue(this.z, ctx),
-            Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureEnd, [
-                Fmt.TAG(')')
-            ])
+            Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureEnd, [Fmt.TAG(')')])
+        ];
+    }
+
+    public degenerate(opt: Degenerate = Degenerate.kDiscard): Vector2f {
+        if (opt === Degenerate.kDiscard) {
+            return new Vector2f(this.x, this.y);
+        } else if (opt === Degenerate.kDiv) {
+            const k = 1 / this.z;
+            return new Vector2f(k * this.x, k * this.y);
+        } else if (opt === Degenerate.kMul) {
+            return new Vector2f(this.x * this.z, this.y * this.z);
+        } else {
+            throw RangeError('Invalid enumeration value for `Degenerate`');
+        }
+    }
+}
+
+export class Vector4f implements Fmt.Formattable {
+    public static Dot(a: Vector4f, b: Vector4f): number {
+        return (a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w);
+    }
+
+    constructor(public readonly x: number = 0,
+                public readonly y: number = 0,
+                public readonly z: number = 0,
+                public readonly w: number = 0) {
+    }
+
+    public clone(): Vector4f {
+        return new Vector4f(this.x, this.y, this.z, this.w);
+    }
+
+    public add(v: Vector4f): Vector4f {
+        return new Vector4f(this.x + v.x, this.y + v.y, this.z + v.z, this.w + v.w);
+    }
+
+    public sub(v: Vector4f): Vector4f {
+        return new Vector4f(this.x - v.x, this.y - v.y, this.z - v.z, this.w - v.w);
+    }
+
+    public neg(): Vector4f {
+        return new Vector4f(-this.x, -this.y, -this.z, -this.w);
+    }
+
+    public mul(lambda: number): Vector4f {
+        return new Vector4f(
+            this.x * lambda,
+            this.y * lambda,
+            this.z * lambda,
+            this.w * lambda
+        );
+    }
+
+    public lengthSquared(): number {
+        return (this.x * this.x + this.y * this.y + this.z * this.z +
+                this.w * this.w);
+    }
+
+    public length(): number {
+        return Math.sqrt(this.lengthSquared());
+    }
+
+    public normalize(): Vector4f {
+        const f = 1.0 / this.length();
+        return new Vector4f(
+            this.x * f,
+            this.y * f,
+            this.z * f,
+            this.w * f
+        );
+    }
+
+    public dot(v: Vector4f): number {
+        return Vector4f.Dot(this, v);
+    }
+
+    public equalTo(v: Vector4f): boolean {
+        return (this.x === v.x &&
+                this.y === v.y &&
+                this.z === v.z &&
+                this.w === v.w);
+    }
+
+    public degenerate(opt: Degenerate = Degenerate.kDiscard): Vector3f {
+        if (opt === Degenerate.kDiscard) {
+            return new Vector3f(this.x, this.y, this.z);
+        } else if (opt === Degenerate.kDiv) {
+            const k = 1 / this.w;
+            return new Vector3f(k * this.x, k * this.y, k * this.z);
+        } else if (opt === Degenerate.kMul) {
+            const p = this.w;
+            return new Vector3f(p * this.x, p * this.y, p * this.z);
+        } else {
+            throw RangeError('Invalid enumeration value for `Degenerate`');
+        }
+    }
+
+    public [Fmt.kObjectFormatter](ctx: Fmt.FormatterContext): Array<Fmt.TextBlock> {
+        return [
+            Fmt.TB(Fmt.TextBlockLayoutHint.kPrefix, [
+                Fmt.TAG('Vector4f')
+            ]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureBegin, [Fmt.TAG('(')]),
+            ...Fmt.formatAnyValue(this.x, ctx),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(',')]),
+            ...Fmt.formatAnyValue(this.y, ctx),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(',')]),
+            ...Fmt.formatAnyValue(this.z, ctx),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(',')]),
+            ...Fmt.formatAnyValue(this.w, ctx),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureEnd, [Fmt.TAG(')')])
         ];
     }
 }
@@ -358,6 +377,7 @@ export namespace VecBasis {
 
     export const kVec2_zero = new Vector2f(0, 0);
     export const kVec3_zero = new Vector3f(0, 0, 0);
+    export const kVec4_zero = new Vector4f(0, 0, 0, 0);
 }
 
 /* Type aliases */

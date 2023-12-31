@@ -197,12 +197,13 @@
             <method static="true" name="Concat" value="@Concat"/>
             <property name="scaleX" getter="@getScaleX" setter="@setScaleX"/>
             <property name="scaleY" getter="@getScaleY" setter="@setScaleY"/>
-            <property name="translateX" getter="@getTranslateX" setter="@setTranslateX"/>
-            <property name="translateY" getter="@getTranslateY" setter="@setTranslateY"/>
+            <property name="transX" getter="@getTransX" setter="@setTransX"/>
+            <property name="transY" getter="@getTransY" setter="@setTransY"/>
             <property name="skewX" getter="@getSkewX" setter="@setSkewX"/>
             <property name="skewY" getter="@getSkewY" setter="@setSkewY"/>
-            <property name="perspectiveX" getter="@getPerspectiveX" setter="@setPerspectiveX"/>
-            <property name="perspectiveY" getter="@getPerspectiveY" setter="@setPerspectiveY"/>
+            <property name="persp0" getter="@getPersp0" setter="@setPersp0"/>
+            <property name="persp1" getter="@getPersp1" setter="@setPersp1"/>
+            <property name="persp2" getter="@getPersp2" setter="@setPersp2"/>
             <method name="clone" value="@clone"/>
             <method name="rectStaysRect" value="@rectStaysRect"/>
             <method name="hasPerspective" value="@hasPerspective"/>
@@ -248,6 +249,9 @@
             <method name="setBlender" value="@setBlender"/>
             <method name="setPathEffect" value="@setPathEffect"/>
             <method name="setImageFilter" value="@setImageFilter"/>
+            <method name="nothingToDraw" value="@nothingToDraw"/>
+            <method name="canComputeFastBounds" value="@canComputeFastBounds"/>
+            <method name="computeFastBounds" value="@computeFastBounds"/>
         </class>
 
         <class name="CkPath" wrapper="CkPath">
@@ -273,6 +277,7 @@
             <method name="getBounds" value="@getBounds"/>
             <method name="computeTightBounds" value="@computeTightBounds"/>
             <method name="conservativelyContainsRect" value="@conservativelyContainsRect"/>
+            <method name="contains" value="@contains"/>
             <method name="moveTo" value="@moveTo"/>
             <method name="rMoveTo" value="@rMoveTo"/>
             <method name="lineTo" value="@lineTo"/>
@@ -297,6 +302,7 @@
             <method name="addPath" value="@addPath"/>
             <method name="addPathMatrix" value="@addPathMatrix"/>
             <method name="reverseAddPath" value="@reverseAddPath"/>
+            <method name="fillWithPaint" value="@fillWithPaint"/>
             <method name="offset" value="@offset"/>
             <method name="transform" value="@transform"/>
             <method name="toString" value="@toString"/>
@@ -349,6 +355,7 @@
             <method name="saveLayerRec" value="@saveLayerRec"/>
             <method name="restore" value="@restore"/>
             <method name="restoreToCount" value="@restoreToCount"/>
+            <method name="getSaveCount" value="@getSaveCount"/>
             <method name="translate" value="@translate"/>
             <method name="scale" value="@scale"/>
             <method name="rotate" value="@rotate"/>
@@ -356,6 +363,7 @@
             <method name="concat" value="@concat"/>
             <method name="setMatrix" value="@setMatrix"/>
             <method name="resetMatrix" value="@resetMatrix"/>
+            <method name="getTotalMatrix" value="@getTotalMatrix"/>
             <method name="clipRect" value="@clipRect"/>
             <method name="clipRRect" value="@clipRRect"/>
             <method name="clipPath" value="@clipPath"/>
@@ -400,10 +408,7 @@
         </class>
 
         <class name="CkTypeface" wrapper="CkTypeface">
-            <method static="true" name="MakeDefault" value="@MakeDefault"/>
-            <method static="true" name="MakeFromName" value="@MakeFromName"/>
-            <method static="true" name="MakeFromFile" value="@MakeFromFile"/>
-            <method static="true" name="MakeFromData" value="@MakeFromData"/>
+            <method static="true" name="MakeEmpty" value="@MakeEmpty"/>
             <property name="fontStyle" getter="@getFontStyle"/>
             <property name="bold" getter="@getBold"/>
             <property name="italic" getter="@getItalic"/>
@@ -492,6 +497,10 @@
             <method static="true" name="MakeFromDSL" value="@MakeFromDSL"/>
             <method static="true" name="Deserialize" value="@Deserialize"/>
             <method name="serialize" value="@serialize"/>
+            <method name="filterBounds" value="@filterBounds"/>
+            <method name="canComputeFastBounds" value="@canComputeFastBounds"/>
+            <method name="computeFastBounds" value="@computeFastBounds"/>
+            <method name="makeWithLocalMatrix" value="@makeWithLocalMatrix"/>
         </class>
 
         <class name="CkColorFilter" wrapper="CkColorFilterWrap">

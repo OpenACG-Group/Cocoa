@@ -32,8 +32,13 @@ OpacityLayer::OnContainerDiffUpdateAttributes(const std::shared_ptr<ContainerLay
 {
     CHECK(other->GetContainerType() == ContainerType::kOpacity);
     auto layer = std::static_pointer_cast<OpacityLayer>(other);
-    return (layer->alpha_ == alpha_ ? ContainerAttributeChanged::kNo
-                                    : ContainerAttributeChanged::kYes);
+    if (layer->alpha_ == alpha_)
+        return ContainerAttributeChanged::kNo;
+    else
+    {
+        alpha_ = layer->alpha_;
+        return ContainerAttributeChanged::kYes;
+    }
 }
 
 void OpacityLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)

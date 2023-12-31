@@ -93,6 +93,15 @@ public:
     //! TSDecl: function setImageFilter(filter: CkImageFilter): void
     void setImageFilter(v8::Local<v8::Value> filter);
 
+    //! TSDecl: function nothingToDraw(): boolean
+    bool nothingToDraw();
+
+    //! TSDecl: function canComputeFastBounds(): boolean
+    bool canComputeFastBounds();
+
+    //! TSDecl: function computeFastBounds(original: CkRect): CkRect
+    v8::Local<v8::Value> computeFastBounds(v8::Local<v8::Value> original);
+
 private:
     SkPaint paint_;
 };

@@ -15,202 +15,120 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "json/json.h"
-
 #include "Core/Errors.h"
 #include "Core/Journal.h"
 #include "Gallium/Runtime.h"
 #include "Gallium/Inspector.h"
 #include "Gallium/InspectorThread.h"
-#include "Gallium/InspectorClient.h"
 #include "Gallium/InspectorChannel.h"
 GALLIUM_NS_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.Inspector)
 
-Inspector::Inspector(uv_loop_t *loop,
-                     v8::Isolate *isolate,
-                     v8::Local<v8::Context> context,
-                     int32_t port)
-    : event_loop_(loop)
-    , isolate_(isolate)
-    , async_handle_{}
-    , has_connected_(false)
-    , connected_barrier_{}
-{
-    CHECK(event_loop_ && isolate_);
-
-    context_.Reset(isolate_, context);
-
-    // Main thread and the inspector thread will reach this barrier.
-    uv_barrier_init(&connected_barrier_, 2);
-
-    uv_async_init(event_loop_, &async_handle_, AsyncHandler);
-    async_handle_.data = this;
-
-    // Create `InspectorThread` starts the inspector thread.
-    // The inspector thread will start a WebSocket server and wait for connection
-    // asynchronously. When a connection comes, we will be notified by `ConnectedCallback`
-    // function.
-    io_thread_ = std::make_unique<InspectorThread>(
-        port,
-        [this](const std::string& message) { this->AsyncMessageCallback(message); },
-        [this]() { this->DisconnectedCallback(); },
-        [this]() { this->ConnectedCallback(); }
-    );
-
-    client_ = std::make_unique<InspectorClient>(isolate, context, this);
-
-    QLOG(LOG_INFO, "Started V8 inspector, listening on ws://127.0.0.1:{}", port);
-}
-
-Inspector::~Inspector()
-{
-}
-
-void Inspector::WaitForConnection()
-{
-    if (has_connected_)
-        return;
-
-    QLOG(LOG_INFO, "Inspector is waiting for connection from frontend");
-    uv_barrier_wait(&connected_barrier_);
-    has_connected_ = true;
-}
-
-void Inspector::ConnectedCallback()
-{
-    // Called in the inspector IO thread.
-
-    uv_barrier_wait(&connected_barrier_);
-    QLOG(LOG_INFO, "Connected with inspector frontend, debugging was started");
-}
-
-void Inspector::AsyncMessageCallback(const std::string& message)
-{
-    // Called in the inspector IO thread.
-
-    message_queue_.Push(std::make_unique<AsyncMessageDelivery>(message));
-
-    // The main thread may process messages by explicitly waiting on the queue,
-    // and it consumes all the messages in the queue.
-    // When main thread later enters the event loop, it will be notified again
-    // by `AsyncHandler` callback, but it is fine as the event queue has been emptied.
-    uv_async_send(&async_handle_);
-}
-
-void Inspector::DisconnectedCallback()
-{
-    // Called in the inspector thread.
-
-    message_queue_.Push(std::make_unique<AsyncMessageDelivery>());
-    uv_async_send(&async_handle_);
-}
-
 namespace {
 
-bool should_evaluate_startup_script(const std::string& message)
+v8_inspector::StringView as_v8sv(const std::string_view& sv)
 {
-    Json::Value root;
-    Json::Reader reader;
-    if (!reader.parse(message, root, false))
-    {
-        // FIXME(sora): Is there any better way to handle parsing error?
-        return false;
-    }
-
-    Json::Value& method = root["method"];
-    if (!method.isString())
-        return false;
-
-    return (method.asString() == "Runtime.runIfWaitingForDebugger");
+    return {reinterpret_cast<const uint8_t*>(sv.data()), sv.length()};
 }
 
 } // namespace anonymous
 
-void Inspector::AsyncHandler(uv_async_t *async)
+Inspector::Inspector(uv_loop_t *loop, v8::Isolate *isolate,
+                     v8::Local<v8::Context> context, int32_t port)
+    : event_loop_(loop)
+    , isolate_(isolate)
+    , is_nested_message_loop_(false)
+    , should_quit_loop_(false)
 {
-    CHECK(async && async->data);
-    auto *inspector = reinterpret_cast<Inspector*>(async->data);
+    CHECK(event_loop_ && isolate_);
+    context_.Reset(isolate_, context);
 
-    while (auto front = inspector->message_queue_.Pop())
+    io_thread_ = InspectorThread::Start(loop, port, this);
+
+    channel_ = std::make_unique<InspectorChannel>(this);
+    v8_inspector_ = v8_inspector::V8Inspector::create(isolate, this);
+    v8_inspector_session_ = v8_inspector_->connect(
+        kContextGroupId,
+        channel_.get(),
+        {},
+        v8_inspector::V8Inspector::kFullyTrusted,
+        v8_inspector::V8Inspector::SessionPauseState::kWaitingForDebugger
+    );
+
+    context->SetAlignedPointerInEmbedderData(1, this);
+    v8_inspector::V8ContextInfo context_info(context, kContextGroupId, as_v8sv("mainthread"));
+    v8_inspector_->contextCreated(context_info);
+
+    QLOG(LOG_INFO, "Started V8 inspector, listening on ws://127.0.0.1:{}", port);
+}
+
+Inspector::~Inspector() = default;
+
+void Inspector::ScheduleModuleEvalOnNextConnect(std::function<void()> eval)
+{
+    schedule_module_eval_ = std::move(eval);
+}
+
+void Inspector::runMessageLoopOnPause(int ctx_group_id)
+{
+    if (is_nested_message_loop_)
+        return;
+
+    should_quit_loop_ = false;
+    is_nested_message_loop_ = true;
+    while (!should_quit_loop_)
     {
-        if (front->type_ == AsyncMessageDelivery::kDisconnected)
-        {
-            inspector->DisconnectedFromFrontend();
-            break;
-        }
-
-        inspector->client_->DispatchMessage(front->message_);
-        if (!inspector->has_connected_)
-            break;
-
-        // Perform the scheduled evaluation of startup script.
-        if (!inspector->scheduled_module_eval_url_.empty() &&
-            should_evaluate_startup_script(front->message_))
-        {
-            std::string url = inspector->scheduled_module_eval_url_;
-            Runtime *runtime = Runtime::GetBareFromIsolate(inspector->isolate_);
-            if (runtime->getOptions().inspector_startup_brk)
-            {
-                QLOG(LOG_INFO, "Inspector inserted a startup-breakpoint automatically");
-                inspector->client_->SchedulePauseOnNextStatement("startup");
-            }
-
-            try
-            {
-                v8::HandleScope handle_scope(inspector->isolate_);
-                v8::Context::Scope context_scope(inspector->isolate_->GetCurrentContext());
-
-                v8::Local<v8::Value> result;
-                bool success = runtime->EvaluateModule(url).ToLocal(&result);
-                if (!success)
-                    throw std::runtime_error("Failed to evaluate module " + url);
-            }
-            catch (const std::exception& e)
-            {
-                QLOG(LOG_ERROR, "An exception occurred when evaluating module {}: {}",
-                     inspector->scheduled_module_eval_url_, e.what());
-                // TODO(sora): error handling
-            }
-
-            // Startup script should be evaluated only once
-            inspector->scheduled_module_eval_url_.clear();
-        }
+        // During this call, the `OnDisconnect()` or `OnMessage()` method
+        // may be called to handle the incoming messages.
+        // If `OnMessage()` is called, we enters V8 and then the `quitMessageLoopOnPause()`
+        // may be called from v8. These methods will set `should_quit_loop_` to
+        // exit this loop properly.
+        io_thread_->WaitOnce();
     }
+    is_nested_message_loop_ = false;
 }
 
-void Inspector::DisconnectedFromFrontend()
+void Inspector::quitMessageLoopOnPause()
 {
-    has_connected_ = false;
-    client_->DisconnectedFromFrontend();
-
-    uv_barrier_destroy(&connected_barrier_);
-    uv_close(reinterpret_cast<uv_handle_t*>(&async_handle_),
-             [](uv_handle_t*) {});
-
-    QLOG(LOG_INFO, "Inspector frontend has disconnected");
+    should_quit_loop_ = true;
 }
 
-std::string Inspector::WaitAndTakeFrontendMessage()
+void Inspector::runIfWaitingForDebugger(int ctx_group_id)
 {
-    std::unique_ptr<AsyncMessageDelivery> message = message_queue_.WaitPop();
+    if (!schedule_module_eval_)
+        return;
 
-    if (message->type_ == AsyncMessageDelivery::kDisconnected)
-        DisconnectedFromFrontend();
-
-    return std::move(message->message_);
+    Runtime *runtime = Runtime::GetBareFromIsolate(isolate_);
+    if (runtime->getOptions().inspector_startup_brk)
+    {
+        v8_inspector_session_->schedulePauseOnNextStatement(
+                as_v8sv("startup"), as_v8sv("{}"));
+    }
+    schedule_module_eval_();
+    schedule_module_eval_ = nullptr;
 }
 
-void Inspector::SendMessageToFrontend(const std::string& message)
+void Inspector::OnConnect()
 {
-    io_thread_->SendFrontendMessage(message);
 }
 
-void Inspector::ScheduleModuleEvaluation(const std::string& url)
+void Inspector::OnMessage(InspectorThread::MessageBuffer::Ptr msg)
 {
-    CHECK(!url.empty());
-    scheduled_module_eval_url_ = url;
+    v8::SealHandleScope seal_handle_scope(isolate_);
+    v8_inspector_session_->dispatchProtocolMessage(
+            v8_inspector::StringView(msg->payload, msg->payload_size));
+}
+
+void Inspector::OnDisconnect()
+{
+    should_quit_loop_ = true;
+}
+
+v8::Local<v8::Context> Inspector::ensureDefaultContextInGroup(int ctx_group_id)
+{
+    CHECK(ctx_group_id == kContextGroupId);
+    return context_.Get(isolate_);
 }
 
 GALLIUM_NS_END

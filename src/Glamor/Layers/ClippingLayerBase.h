@@ -74,6 +74,10 @@ protected:
         return clip_shape_;
     }
 
+    void SetClipShape(ClipShape shape) {
+        clip_shape_ = std::move(shape);
+    }
+
 private:
     ClipShape   clip_shape_;
 };

@@ -75,10 +75,10 @@ public:
     VertexBatchBuilder() = default;
     ~VertexBatchBuilder() = default;
 
-    //! TSDecl: function pushPositionMatrix(matrix: CkMatrix): VertexBatchBuilder
+    //! TSDecl: function pushPositionMatrix(matrix: CkMat3x3): VertexBatchBuilder
     v8::Local<v8::Value> pushPositionMatrix(v8::Local<v8::Value> matrix);
 
-    //! TSDecl: function pushTexCoordMatrix(matrix: CkMatrix): VertexBatchBuilder
+    //! TSDecl: function pushTexCoordMatrix(matrix: CkMat3x3): VertexBatchBuilder
     v8::Local<v8::Value> pushTexCoordMatrix(v8::Local<v8::Value> matrix);
 
     //! TSDecl: function popPositionMatrix(): VertexBatchBuilder

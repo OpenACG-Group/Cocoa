@@ -20,12 +20,6 @@
 #include "Gallium/binder/Class.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
-#define EXTRACT_MAT_CHECKED(arg, result) \
-    auto *result = binder::UnwrapObject<CkMatrix>(isolate, arg); \
-    if (!result) {                       \
-        g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkPath`"); \
-    }
-
 #define CHECK_ENUM_RANGE(v, last) \
     if (v < 0 || v > static_cast<int32_t>(last)) { \
         g_throw(RangeError, "Invalid enumeration value for arguemnt `" #v "`"); \
@@ -91,27 +85,23 @@ v8::Local<v8::Value> CkMatrix::All(SkScalar scaleX,
 v8::Local<v8::Value> CkMatrix::Concat(v8::Local<v8::Value> a, v8::Local<v8::Value> b)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    EXTRACT_MAT_CHECKED(a, ma)
-    EXTRACT_MAT_CHECKED(b, mb)
-    return binder::NewObject<CkMatrix>(isolate, SkMatrix::Concat(ma->matrix_, mb->matrix_));
+    return binder::NewObject<CkMatrix>(isolate, SkMatrix::Concat(ExtractCkMat3x3(isolate, a),
+                                                                 ExtractCkMat3x3(isolate, b)));
 }
 
-#define IMPL_PROP_SETTER_GETTER(prop) \
-    SkScalar CkMatrix::get##prop() { return matrix_.get##prop(); } \
-    void CkMatrix::set##prop(SkScalar v) { matrix_.set##prop(v); }
+#define IMPL_PROP_SETTER_GETTER(prop, idx) \
+    SkScalar CkMatrix::get##prop() { return matrix_[SkMatrix::kM##idx]; } \
+    void CkMatrix::set##prop(SkScalar v) { matrix_[SkMatrix::kM##idx] = v; }
 
-#define IMPL_PROP_SETTER_GETTER2(prop, matProp) \
-    SkScalar CkMatrix::get##prop() { return matrix_.get##matProp(); } \
-    void CkMatrix::set##prop(SkScalar v) { matrix_.set##matProp(v); }
-
-IMPL_PROP_SETTER_GETTER(ScaleX)
-IMPL_PROP_SETTER_GETTER(ScaleY)
-IMPL_PROP_SETTER_GETTER(SkewX)
-IMPL_PROP_SETTER_GETTER(SkewY)
-IMPL_PROP_SETTER_GETTER(TranslateX)
-IMPL_PROP_SETTER_GETTER(TranslateY)
-IMPL_PROP_SETTER_GETTER2(PerspectiveX, PerspX)
-IMPL_PROP_SETTER_GETTER2(PerspectiveY, PerspY)
+IMPL_PROP_SETTER_GETTER(ScaleX, ScaleX)
+IMPL_PROP_SETTER_GETTER(ScaleY, ScaleY)
+IMPL_PROP_SETTER_GETTER(SkewX, SkewX)
+IMPL_PROP_SETTER_GETTER(SkewY, SkewY)
+IMPL_PROP_SETTER_GETTER(TransX, TransX)
+IMPL_PROP_SETTER_GETTER(TransY, TransY)
+IMPL_PROP_SETTER_GETTER(Persp0, Persp0)
+IMPL_PROP_SETTER_GETTER(Persp1, Persp1)
+IMPL_PROP_SETTER_GETTER(Persp2, Persp2)
 
 v8::Local<v8::Value> CkMatrix::clone()
 {
@@ -162,8 +152,7 @@ void CkMatrix::preSkew(SkScalar kx, SkScalar ky, SkScalar px, SkScalar py)
 void CkMatrix::preConcat(v8::Local<v8::Value> other)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    EXTRACT_MAT_CHECKED(other, m)
-    matrix_.preConcat(m->matrix_);
+    matrix_.preConcat(ExtractCkMat3x3(isolate, other));
 }
 
 void CkMatrix::postTranslate(SkScalar dx, SkScalar dy)
@@ -189,8 +178,7 @@ void CkMatrix::postRotate(SkScalar rad, SkScalar px, SkScalar py)
 void CkMatrix::postConcat(v8::Local<v8::Value> other)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    EXTRACT_MAT_CHECKED(other, m)
-    matrix_.postConcat(m->matrix_);
+    matrix_.postConcat(ExtractCkMat3x3(isolate, other));
 }
 
 v8::Local<v8::Value> CkMatrix::invert()

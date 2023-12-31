@@ -100,7 +100,8 @@ enum class ToplevelStates : uint32_t
     kTiledLeft      = (1 << 5),
     kTiledRight     = (1 << 6),
     kTiledTop       = (1 << 7),
-    kTiledBottom    = (1 << 8)
+    kTiledBottom    = (1 << 8),
+    kSuspended      = (1 << 9)
 };
 
 class Surface : public PresentRemoteHandle,

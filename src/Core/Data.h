@@ -64,6 +64,7 @@ public:
     static std::shared_ptr<Data> MakeFromPtrWithoutCopy(void *ptr, size_t size, bool release = false);
     static std::shared_ptr<Data> MakeFromSize(size_t size);
     static std::shared_ptr<Data> MakeFromString(const char *str, bool no_terminator = false);
+    static std::shared_ptr<Data> MakeFromString(const std::string_view& view, bool no_terminator = false);
     static std::shared_ptr<Data> MakeLinearBuffer(const std::shared_ptr<Data>& data);
     static std::shared_ptr<Data> MakeFromExternal(void *ptr, size_t size, const ExternalDeleter& deleter);
 

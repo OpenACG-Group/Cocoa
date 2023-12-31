@@ -47,7 +47,7 @@ public:
     //! TSDecl: function pushRotate(rad: number, pivotX: number, pivotY: number): SceneBuilder
     v8::Local<v8::Value> pushRotate(SkScalar rad, SkScalar pivotX, SkScalar pivotY);
 
-    //! TSDecl: function pushTransform(matrix: CkMatrix): SceneBuilder
+    //! TSDecl: function pushTransform(matrix: CkMat3x3): SceneBuilder
     v8::Local<v8::Value> pushTransform(v8::Local<v8::Value> matrix);
 
     //! TSDecl: function addPicture(picture: CkPicture, autoFastClip: boolean): SceneBuilder

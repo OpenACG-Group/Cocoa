@@ -37,7 +37,10 @@ ImageFilterLayer::OnContainerDiffUpdateAttributes(const std::shared_ptr<Containe
     if (layer->filter_ == filter_)
         return ContainerAttributeChanged::kNo;
     else
+    {
+        filter_ = layer->filter_;
         return ContainerAttributeChanged::kYes;
+    }
 }
 
 void ImageFilterLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)

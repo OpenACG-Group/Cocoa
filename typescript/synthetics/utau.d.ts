@@ -354,7 +354,7 @@ export class VideoBuffer implements AVGenericBuffer {
     queryHardwareTransferableFormats(): Array<PixelFormat>;
 
     /**
-     * Decrease the reference count the underlying buffer, and make the object
+     * Decrease the reference counts the underlying buffer, and make the object
      * become a dangling buffer.
      */
     dispose(): void;
@@ -362,7 +362,7 @@ export class VideoBuffer implements AVGenericBuffer {
     /**
      * Create a new `VideoBuffer` instance which shares the same underlying
      * buffer with this object. This operation increases the reference count
-     * of the underlying buffer. Returned object is completely equivalent
+     * of the underlying buffer. The returned object is completely equivalent
      * to the original object, but they are different JavaScript instances.
      */
     clone(): VideoBuffer;

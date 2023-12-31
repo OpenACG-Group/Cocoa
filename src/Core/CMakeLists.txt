@@ -33,13 +33,19 @@ add_library(
         ApplicationInfo.cc
         TraceEvent.h
         AsyncMessageQueue.h
+        UUIDGenerator.h
+        UUIDGenerator.cc
 )
+
+find_package(OpenSSL REQUIRED)
+find_package(ZLIB REQUIRED)
 
 target_link_libraries(Core
         pthread
         dl
         unwind
-        z
+        ZLIB::ZLIB
+        OpenSSL::SSL
         ${LINK_STATIC_FMT}
         ${LINK_STATIC_LIBUV}
         ${LINK_STATIC_LIBSQUASH})

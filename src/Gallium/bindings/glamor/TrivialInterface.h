@@ -37,6 +37,27 @@
 #include "Gallium/binder/TypeTraits.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
+/**
+ * TrivialInterface - Basic data types and JS wrappers of Skia objects.
+ * Those data types are usually small objects and it is relatively expensive
+ * to create binding classes and export them into JS. They can be represented
+ * by JS native data types like arrays and simple objects (only contain datas),
+ * which is more lightweight and has less overhead when they are passed
+ * between C++ and JS. For example, an `SkPoint` or `SkV2` type (2d vector),
+ * can be represented by a JS array with 2 elements `[x, y]`.
+ *
+ * Each of those data types has a `Extract*` function and a `New*` function.
+ * The former converts a JS object into its corresponding C++ native object,
+ * and the latter creates the JS object from a given native object.
+ *
+ * Some types are union types, which means a native object can be represented
+ * by more than one JS data type. For example, a JS array `Array<number>`, or
+ * `Float32Array`, or `interface {x, y, width, height}`, all them can represent
+ * an `SkRect` object. The `Extract*` function accepts all the types of union
+ * type, and the `New*` function creates a JS value in the PREFERRED type.
+ * The preferred type of a union type can be found in its TSDecl declaration.
+ */
+
 enum class Sampling : uint32_t
 {
     kNearest = 0,
@@ -49,10 +70,10 @@ enum class Sampling : uint32_t
 
 SkSamplingOptions SamplingToSamplingOptions(int32_t v);
 
-//! TSDecl: Array<number> [x, y, w, h]
-//!         or Float32Array [x, y, w, h]
-//!         or interface { x: number, y: number, width: number, height: number }
-//!         or interface { top: number, left: number, right: number, bottom: number }
+//! TSDecl: type CkRect = (preferred) Array<number> [x, y, w, h]
+//!                     | Float32Array [x, y, w, h]
+//!                     | interface { x: number, y: number, width: number, height: number }
+//!                     | interface { top: number, left: number, right: number, bottom: number }
 SkRect ExtractCkRect(v8::Isolate *isolate, v8::Local<v8::Value> object);
 v8::Local<v8::Value> NewCkRect(v8::Isolate *isolate, const SkRect& rect);
 
@@ -68,15 +89,15 @@ enum class ColorSpace : uint32_t
 
 sk_sp<SkColorSpace> ExtrackCkColorSpace(int32_t v);
 
-//! TSDecl: Array<number> [R, G, B, A] where R,G,B,A∈[0, 1]
+//! TSDecl: type CkColor4f = Array<number> [R, G, B, A] where R,G,B,A∈[0, 1]
 SkColor4f ExtractColor4f(v8::Isolate *isolate, v8::Local<v8::Value> color);
 v8::Local<v8::Value> NewColor4f(v8::Isolate *isolate, const SkColor4f& color);
 
-//! TSDecl: Array<number> [x, y]
+//! TSDecl: type CkPoint = Array<number> [x, y]
 SkPoint ExtractCkPoint(v8::Isolate *isolate, v8::Local<v8::Value> point);
 v8::Local<v8::Value> NewCkPoint(v8::Isolate *isolate, const SkPoint& p);
 
-//! TSDecl: Array<number> [x, y, z]
+//! TSDecl: type CkPoint3 = Array<number> [x, y, z]
 SkPoint3 ExtractCkPoint3(v8::Isolate *isolate, v8::Local<v8::Value> point3);
 v8::Local<v8::Value> NewCkPoint3(v8::Isolate *isolate, const SkPoint3& point3);
 
@@ -212,6 +233,13 @@ v8::Local<v8::Value> NewCkImageInfo(v8::Isolate *isolate, const SkImageInfo& inf
 //! }
 SkRSXform ExtractCkRSXform(v8::Isolate *isolate, v8::Local<v8::Value> object);
 v8::Local<v8::Object> NewCkRSXform(v8::Isolate *isolate, const SkRSXform& from);
+
+
+//! TSDecl: type CkMat3x3 = Float32Array [ <column-major-matrix> ]
+//!                       | Array<number> [ <column-major-matrix> ]
+//!                       | (preferred) CkMatrix
+SkMatrix ExtractCkMat3x3(v8::Isolate *isolate, v8::Local<v8::Value> mat);
+v8::Local<v8::Value> NewCkMat3x3(v8::Isolate *isolate, const SkMatrix& mat);
 
 struct TAMemoryForSkData
 {

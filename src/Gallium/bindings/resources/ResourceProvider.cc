@@ -16,6 +16,7 @@
  */
 
 #include "fmt/format.h"
+#include "include/core/SkFontMgr.h"
 
 #include "Core/Errors.h"
 
@@ -325,7 +326,9 @@ v8::Local<v8::Value> ImageAssetWrap::MakeMultiFrame(v8::Local<v8::Value> data, b
             closure->size, release_proc, closure);
 
     return binder::NewObject<ImageAssetWrap>(
-            isolate, skresources::MultiFrameImageAsset::Make(skdata, predecode));
+            isolate, skresources::MultiFrameImageAsset::Make(
+                skdata, predecode ? skresources::ImageDecodeStrategy::kPreDecode
+                                  : skresources::ImageDecodeStrategy::kLazyDecode));
 }
 
 v8::Local<v8::Value> ImageAssetWrap::MakeImpl(v8::Local<v8::Value> impl)
@@ -355,7 +358,9 @@ v8::Local<v8::Value> ResourceProviderWrap::MakeFile(const std::string& base_dir,
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
 
     sk_sp<skresources::FileResourceProvider> rp =
-            skresources::FileResourceProvider::Make(SkString(base_dir), predecode);
+            skresources::FileResourceProvider::Make(
+                SkString(base_dir), predecode ? skresources::ImageDecodeStrategy::kPreDecode
+                                              : skresources::ImageDecodeStrategy::kLazyDecode);
     if (!rp)
         g_throw(TypeError, "Failed to create FileResourceProvider");
 
@@ -389,7 +394,9 @@ v8::Local<v8::Value> ResourceProviderWrap::MakeDataURIProxy(v8::Local<v8::Value>
         g_throw(TypeError, "Argument `rp` must be an instance of `ResourceProvider`");
 
     sk_sp<skresources::ResourceProvider> proxy =
-            skresources::DataURIResourceProviderProxy::Make(wrap->Get(), predecode);
+            skresources::DataURIResourceProviderProxy::Make(
+                wrap->Get(), predecode ? skresources::ImageDecodeStrategy::kPreDecode
+                                       : skresources::ImageDecodeStrategy::kLazyDecode);
 
     CHECK(proxy);
 

@@ -26,10 +26,9 @@ v8::Local<v8::Value> throw_(v8::Isolate* isolate, std::string_view str)
     return isolate->ThrowException(to_v8(isolate, str));
 }
 
-v8::Local<v8::Value> throw_(v8::Isolate* isolate, std::string_view str,
-                            v8::Local<v8::Value> (*builder)(v8::Local<v8::String>))
+v8::Local<v8::Value> throw_(v8::Isolate* isolate, std::string_view str, ExceptionBuilderF builder)
 {
-    return isolate->ThrowException(builder(to_v8(isolate, str)));
+    return isolate->ThrowException(builder(to_v8(isolate, str), /* options= */ {}));
 }
 
 void JSException::Throw(Category category, const std::string& what, v8::Isolate *isolate)

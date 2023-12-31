@@ -34,12 +34,6 @@ GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 namespace {
 
-#define EXTRACT_MAT_CHECKED(arg, result) \
-    auto *result = binder::UnwrapObject<CkMatrix>(isolate, arg); \
-    if (!result) {                       \
-        g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkMatrix`"); \
-    }
-
 #define EXTRACT_PATH_CHECKED(arg, result) \
     auto *result = binder::UnwrapObject<CkPath>(isolate, arg); \
     if (!result) {                       \
@@ -91,18 +85,11 @@ SkPaint *extract_maybe_paint(v8::Isolate *isolate,
     return &w->GetPaint();
 }
 
-SkMatrix *extract_maybe_matrix(v8::Isolate *isolate,
-                             v8::Local<v8::Value> v,
-                             const char *argname)
+std::optional<SkMatrix> extract_maybe_matrix(v8::Isolate *isolate, v8::Local<v8::Value> v)
 {
     if (v->IsNullOrUndefined())
-        return nullptr;
-
-    auto *w = binder::UnwrapObject<CkMatrix>(isolate, v);
-    if (!w)
-        g_throw(TypeError, fmt::format("Argument `{}` must be an instance of `CkMatrix`", argname));
-
-    return &w->GetMatrix();
+        return std::nullopt;
+    return ExtractCkMat3x3(isolate, v);
 }
 
 sk_sp<SkImageFilter> extract_maybe_imagefilter(v8::Isolate *isolate,
@@ -190,6 +177,11 @@ void CkCanvas::restoreToCount(int saveCount)
     canvas_->restoreToCount(saveCount);
 }
 
+int CkCanvas::getSaveCount()
+{
+    return canvas_->getSaveCount();
+}
+
 void CkCanvas::translate(SkScalar dx, SkScalar dy)
 {
     canvas_->translate(dx, dy);
@@ -213,20 +205,24 @@ void CkCanvas::skew(SkScalar sx, SkScalar sy)
 void CkCanvas::concat(v8::Local<v8::Value> matrix)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    EXTRACT_MAT_CHECKED(matrix, m)
-    canvas_->concat(m->GetMatrix());
+    canvas_->concat(ExtractCkMat3x3(isolate, matrix));
 }
 
 void CkCanvas::setMatrix(v8::Local<v8::Value> matrix)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    EXTRACT_MAT_CHECKED(matrix, m)
-    canvas_->setMatrix(SkM44(m->GetMatrix()));
+    canvas_->setMatrix(SkM44(ExtractCkMat3x3(isolate, matrix)));
 }
 
 void CkCanvas::resetMatrix()
 {
     canvas_->resetMatrix();
+}
+
+v8::Local<v8::Value> CkCanvas::getTotalMatrix()
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    return binder::NewObject<CkMatrix>(isolate, canvas_->getTotalMatrix());
 }
 
 void CkCanvas::clipRect(v8::Local<v8::Value> rect, int32_t op, bool AA)
@@ -497,8 +493,9 @@ void CkCanvas::drawPicture(v8::Local<v8::Value> picture, v8::Local<v8::Value> ma
     auto *pict = binder::UnwrapObject<CkPictureWrap>(isolate, picture);
     if (!pict)
         g_throw(TypeError, "Argument `picture` must be an instance of `CkPicture`");
+    auto opt_matrix = extract_maybe_matrix(isolate, matrix);
     canvas_->drawPicture(pict->getPicture(),
-                         extract_maybe_matrix(isolate, matrix, "matrix"),
+                         opt_matrix ? &(*opt_matrix) : nullptr,
                          extract_maybe_paint(isolate, paint, "paint"));
 }
 

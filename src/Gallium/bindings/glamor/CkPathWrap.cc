@@ -16,17 +16,25 @@
  */
 
 #include "include/core/SkStream.h"
+#include "include/core/SkPathUtils.h"
 
 #include "Gallium/binder/Class.h"
 #include "Gallium/binder/ThrowExcept.h"
 #include "Gallium/bindings/glamor/CkPathWrap.h"
 #include "Gallium/bindings/glamor/CkMatrixWrap.h"
+#include "Gallium/bindings/glamor/CkPaintWrap.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
 
 #define EXTRACT_PATH_CHECKED(arg, result) \
     auto *result = binder::UnwrapObject<CkPath>(isolate, arg); \
     if (!result) {                       \
         g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkPath`"); \
+    }
+
+#define EXTRACT_PAINT_CHECKED(arg, result) \
+    auto *result = binder::UnwrapObject<CkPaint>(isolate, arg); \
+    if (!result) {                       \
+        g_throw(TypeError, "Argument `" #arg "` must be an instance of `CkPaint`"); \
     }
 
 #define CHECK_ENUM_RANGE(v, last) \
@@ -172,6 +180,11 @@ bool CkPath::conservativelyContainsRect(v8::Local<v8::Value> rect)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     return path_.conservativelyContainsRect(ExtractCkRect(isolate, rect));
+}
+
+bool CkPath::contains(SkScalar x, SkScalar y)
+{
+    return path_.contains(x, y);
 }
 
 void CkPath::moveTo(SkScalar x, SkScalar y)
@@ -333,11 +346,8 @@ void CkPath::addPathMatrix(v8::Local<v8::Value> src, v8::Local<v8::Value> matrix
     CHECK_ENUM_RANGE(mode, SkPath::AddPathMode::kExtend_AddPathMode)
     EXTRACT_PATH_CHECKED(src, path)
 
-    auto *m = binder::UnwrapObject<CkMatrix>(isolate, matrix);
-    if (!m)
-        g_throw(TypeError, "Argument `matrix` must be be an instance of `CkMatrix`");
-
-    path_.addPath(path->path_, m->GetMatrix(), static_cast<SkPath::AddPathMode>(mode));
+    path_.addPath(path->path_, ExtractCkMat3x3(isolate, matrix),
+                  static_cast<SkPath::AddPathMode>(mode));
 }
 
 void CkPath::reverseAddPath(v8::Local<v8::Value> src)
@@ -345,6 +355,31 @@ void CkPath::reverseAddPath(v8::Local<v8::Value> src)
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     EXTRACT_PATH_CHECKED(src, path)
     path_.reverseAddPath(path->path_);
+}
+
+v8::Local<v8::Value> CkPath::fillWithPaint(v8::Local<v8::Value> paint,
+                                           v8::Local<v8::Value> cull,
+                                           SkScalar resScale)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    EXTRACT_PAINT_CHECKED(paint, ckpaint)
+
+    SkRect cull_rect_store;
+    SkRect *cull_rect = nullptr;
+    if (!cull->IsNullOrUndefined())
+    {
+        cull_rect_store = ExtractCkRect(isolate, cull);
+        cull_rect = &cull_rect_store;
+    }
+
+    SkPath dst_path;
+    if (!skpathutils::FillPathWithPaint(path_, ckpaint->GetPaint(),
+                                        &dst_path, cull_rect, resScale))
+    {
+        return v8::Null(isolate);
+    }
+
+    return binder::NewObject<CkPath>(isolate, std::move(dst_path));
 }
 
 void CkPath::offset(SkScalar dx, SkScalar dy)
@@ -356,10 +391,8 @@ void CkPath::transform(v8::Local<v8::Value> matrix, int32_t pc)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     CHECK_ENUM_RANGE(pc, SkApplyPerspectiveClip::kYes)
-    auto *m = binder::UnwrapObject<CkMatrix>(isolate, matrix);
-    if (!m)
-        g_throw(TypeError, "Argument `matrix` must be be an instance of `CkMatrix`");
-    path_.transform(m->GetMatrix(), static_cast<SkApplyPerspectiveClip>(pc));
+    path_.transform(ExtractCkMat3x3(isolate, matrix),
+                    static_cast<SkApplyPerspectiveClip>(pc));
 }
 
 std::string CkPath::toString(bool hex)

@@ -41,6 +41,9 @@ PathClipLayer::OnContainerDiffUpdateAttributes(const std::shared_ptr<ContainerLa
     }
     else
     {
+        clip_op_ = layer->clip_op_;
+        perform_anti_alias_ = layer->perform_anti_alias_;
+        SetClipShape(layer->GetClipShape());
         return ContainerAttributeChanged::kYes;
     }
 }

@@ -21,27 +21,10 @@
 #include "Core/EventLoop.h"
 #include "Core/TraceEvent.h"
 #include "Gallium/bindings/glamor/ConcurrentVertexProcessor.h"
+#include "Gallium/bindings/glamor/TrivialInterface.h"
 #include "Gallium/bindings/glamor/CkMatrixWrap.h"
 #include "Gallium/binder/Class.h"
 GALLIUM_BINDINGS_GLAMOR_NS_BEGIN
-
-namespace {
-
-CkMatrix *unwrap_matrix(v8::Isolate *isolate, v8::Local<v8::Value> object,
-                        const std::string_view& argname)
-{
-    CHECK(isolate);
-    if (!object->IsObject())
-        g_throw(TypeError, fmt::format("Argument `{}` must be a CkMatrix", argname));
-    CkMatrix *w = binder::UnwrapObject<CkMatrix>(isolate, object);
-    if (!w)
-        g_throw(TypeError, fmt::format("Argument `{}` must be a CkMatrix", argname));
-    return w;
-}
-
-#define UNWRAP_MATRIX(isolate, arg) unwrap_matrix(isolate, arg, #arg)
-
-} // namespace anonymous
 
 v8::Local<v8::Object> VertexBatchBuilder::GetSelf(v8::Isolate *isolate)
 {
@@ -60,8 +43,7 @@ v8::Local<v8::Object> VertexBatchBuilder::GetSelf(v8::Isolate *isolate)
 v8::Local<v8::Value> VertexBatchBuilder::pushPositionMatrix(v8::Local<v8::Value> matrix)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    CkMatrix *mat = UNWRAP_MATRIX(isolate, matrix);
-    matrix_store_.emplace_back(mat->GetMatrix());
+    matrix_store_.emplace_back(ExtractCkMat3x3(isolate, matrix));
     pos_matrix_stack_.push(static_cast<int32_t>(matrix_store_.size()) - 1);
     return GetSelf(isolate);
 }
@@ -69,8 +51,7 @@ v8::Local<v8::Value> VertexBatchBuilder::pushPositionMatrix(v8::Local<v8::Value>
 v8::Local<v8::Value> VertexBatchBuilder::pushTexCoordMatrix(v8::Local<v8::Value> matrix)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    CkMatrix *mat = UNWRAP_MATRIX(isolate, matrix);
-    matrix_store_.emplace_back(mat->GetMatrix());
+    matrix_store_.emplace_back(ExtractCkMat3x3(isolate, matrix));
     uvs_matrix_stack_.push(static_cast<int32_t>(matrix_store_.size()) - 1);
     return GetSelf(isolate);
 }

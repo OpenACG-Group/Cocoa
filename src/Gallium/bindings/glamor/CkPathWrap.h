@@ -106,6 +106,9 @@ public:
     //! TSDecl: function conservativelyContainsRect(rect: CkRect): boolean
     bool conservativelyContainsRect(v8::Local<v8::Value> rect);
 
+    //! TSDecl: function contains(x: number, y: number): boolean
+    bool contains(SkScalar x, SkScalar y);
+
     //! TSDecl: function moveTo(x: number, y: number): void
     void moveTo(SkScalar x, SkScalar y);
 
@@ -186,16 +189,20 @@ public:
     //! TSDecl: function addPath(src: CkPath, dx: number, dy: number, mode: Enum<AddPathMode>): void
     void addPath(v8::Local<v8::Value> src, SkScalar dx, SkScalar dy, int32_t mode);
 
-    //! TSDecl: function addPathMatrix(src: CkPath, matrix: CkMatrix, mode: Enum<AddPathMode>): void
+    //! TSDecl: function addPathMatrix(src: CkPath, matrix: CkMat3x3, mode: Enum<AddPathMode>): void
     void addPathMatrix(v8::Local<v8::Value> src, v8::Local<v8::Value> matrix, int32_t mode);
 
     //! TSDecl: function reverseAddPath(src: CkPath): void
     void reverseAddPath(v8::Local<v8::Value> src);
 
+    //! TSDecl: function fillWithPaint(paint: CkPaint, cull: CkRect | null, resScale: number): CkPath | null
+    v8::Local<v8::Value> fillWithPaint(v8::Local<v8::Value> paint, v8::Local<v8::Value> cull,
+                                       SkScalar resScale);
+
     //! TSDecl: function offset(dx: number, dy: number): void
     void offset(SkScalar dx, SkScalar dy);
 
-    //! TSDecl: function transform(matrix: CkMatrix, pc: Enum<ApplyPerspectiveClip>): void
+    //! TSDecl: function transform(matrix: CkMat3x3, pc: Enum<ApplyPerspectiveClip>): void
     void transform(v8::Local<v8::Value> matrix, int32_t pc);
 
     //! TSDecl: function toString(hex: boolean): string

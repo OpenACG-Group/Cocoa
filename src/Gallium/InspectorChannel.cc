@@ -17,14 +17,13 @@
 
 #include "Core/Errors.h"
 #include "Gallium/InspectorChannel.h"
-#include "Gallium/InspectorClient.h"
 #include "Gallium/Inspector.h"
 GALLIUM_NS_BEGIN
 
-InspectorChannel::InspectorChannel(InspectorClient *client)
-    : client_(client)
+InspectorChannel::InspectorChannel(Inspector *inspector)
+    : inspector_(inspector)
 {
-    CHECK(client_);
+    CHECK(inspector);
 }
 
 namespace {
@@ -50,27 +49,27 @@ std::string inspector_string_view_extract(v8::Isolate *isolate,
     return *v8::String::Utf8Value(isolate, string);
 }
 
-void send_frontend_message(InspectorClient *client,
+void send_frontend_message(Inspector *inspector,
                            std::unique_ptr<v8_inspector::StringBuffer> message)
 {
-    v8::Isolate *isolate = client->GetIsolate();
+    v8::Isolate *isolate = inspector->GetIsolate();
     v8::Isolate::AllowJavascriptExecutionScope allow_js_scope(isolate);
     v8::HandleScope scope(isolate);
 
     std::string string = inspector_string_view_extract(isolate, message->string());
-    client->GetInspector()->SendMessageToFrontend(string);
+    inspector->GetIOThread()->Send(string);
 }
 
 } // namespace anonymous
 
 void InspectorChannel::sendResponse(int callId, std::unique_ptr<v8_inspector::StringBuffer> message)
 {
-    send_frontend_message(client_, std::move(message));
+    send_frontend_message(inspector_, std::move(message));
 }
 
 void InspectorChannel::sendNotification(std::unique_ptr<v8_inspector::StringBuffer> message)
 {
-    send_frontend_message(client_, std::move(message));
+    send_frontend_message(inspector_, std::move(message));
 }
 
 void InspectorChannel::flushProtocolNotifications()

@@ -22,49 +22,65 @@
 #include <functional>
 #include <atomic>
 
-#include "Core/ConcurrentTaskQueue.h"
+#include "Core/AsyncMessageQueue.h"
+#include "Core/EventLoop.h"
 #include "Gallium/Gallium.h"
 GALLIUM_NS_BEGIN
 
 class InspectorThread
 {
 public:
-    using MessageNotifier = std::function<void(const std::string&)>;
-    using DisconnectNotifier = std::function<void()>;
-    using ConnectNotifier = std::function<void()>;
-
-    struct SendBuffer
+    struct MessageBuffer
     {
-        SendBuffer(std::unique_ptr<uint8_t[]> _ptr, size_t _data_size)
-            : ptr(std::move(_ptr)), data_size(_data_size) {}
+        enum Type { kExit, kConnect, kDisconnect, kPayload };
 
-        std::unique_ptr<uint8_t[]> ptr;
-        size_t data_size;
+        using Ptr = std::unique_ptr<MessageBuffer, void(*)(MessageBuffer*)>;
+        static Ptr Allocate(Type type, size_t payload_size);
+
+        Type type;
+        size_t payload_size;
+        uint8_t payload[];
+    };
+    using MessageQueue = AsyncMessageQueue<MessageBuffer, MessageBuffer::Ptr>;
+
+    class EventHandler
+    {
+    public:
+        virtual void OnMessage(MessageBuffer::Ptr message) = 0;
+        virtual void OnDisconnect() = 0;
+        virtual void OnConnect() = 0;
     };
 
-    InspectorThread(int32_t port,
-                    MessageNotifier message_notifier,
-                    DisconnectNotifier disconnect_notifier,
-                    ConnectNotifier connect_notifier);
+    static std::unique_ptr<InspectorThread> Start(
+            uv_loop_t *loop, int32_t port, EventHandler *handler);
+
+    InspectorThread(uv_loop_t *loop, int32_t port, EventHandler *handler);
     ~InspectorThread();
 
-    void SendFrontendMessage(const std::string& message);
+    g_nodiscard uv_loop_t *GetEventLoop() const {
+        return event_loop_;
+    }
 
-    g_private_api void NotifyConnected();
-    g_private_api void NotifyDisconnected();
-    g_private_api void NotifyMessage(const std::string& message);
+    void Dispose();
+
+    void Send(const std::string& message);
+    void WaitOnce();
+
+    struct ThreadInitInfo;
 
 private:
-    void IoThreadRoutine();
+    void IoThreadRoutine(ThreadInitInfo *thread_init_info);
 
-    int32_t                 port_;
-    std::thread             thread_;
-    MessageNotifier         message_notifier_;
-    DisconnectNotifier      disconnect_notifier_;
-    ConnectNotifier         connect_notifier_;
-    ConcurrentTaskQueue<SendBuffer> send_queue_;
-    std::atomic<bool>       disconnected_;
-    uv_async_t              message_queue_async_;
+    void OnMainThreadRecvMessage(MessageBuffer::Ptr buffer);
+
+    bool                                disposed_;
+    uv_loop_t                          *event_loop_;
+    int32_t                             port_;
+    std::thread                         thread_;
+    EventHandler                       *event_handler_;
+    bool                                has_active_session_;
+    MessageQueue                        recv_queue_;
+    std::optional<MessageQueue>         send_queue_;
 };
 
 GALLIUM_NS_END

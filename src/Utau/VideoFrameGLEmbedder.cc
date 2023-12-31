@@ -392,7 +392,7 @@ sk_sp<SkImage> create_skimage_gpu_from_yuv_frame(GrDirectContext *direct, AVFram
     if (!pixmaps.isValid())
         return nullptr;
 
-    return SkImages::TextureFromYUVAPixmaps(direct, pixmaps, GrMipmapped::kNo, false);
+    return SkImages::TextureFromYUVAPixmaps(direct, pixmaps, skgpu::Mipmapped::kNo, false);
 }
 
 sk_sp<SkImage> create_skimage_raster_from_frame(AVFrame *frame,
@@ -555,8 +555,8 @@ public:
             return;
         }
 
-        // `map_frame_` has not been received by `Acquire` method yet
-        // (`Acquire` is not called for some reasons like dropped frame)
+        // `map_frame_` has not been received by `Acquire` method, yet
+        // (`Acquire` is not called for some reason like dropped frame)
         if (async_map_pending_)
         {
             map_frame_ = async_map_promise_->get_future().get();

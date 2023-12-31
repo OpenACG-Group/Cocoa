@@ -49,4 +49,8 @@ export class Maybe<T> {
         }
         return this.fVal;
     }
+
+    public unwrap(): T {
+        return this.value();
+    }
 }

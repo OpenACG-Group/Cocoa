@@ -76,6 +76,9 @@ void toplevel_configure_callback(void *data, g_maybe_unused xdg_toplevel *toplev
         case XDG_TOPLEVEL_STATE_TILED_BOTTOM:
             st |= ToplevelStates::kTiledBottom;
             break;
+        case XDG_TOPLEVEL_STATE_SUSPENDED:
+            st |= ToplevelStates::kSuspended;
+            break;
         }
     }
 

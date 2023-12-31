@@ -186,7 +186,7 @@ export class TextAttributeGroup {
                 public styles: Array<TextStyle> = []) {}
 }
 
-// Internal constructor shorthand
+// Shorthand of `new TextAttributeGroup()`
 export function TAG(content: string, ...args: any[]): TextAttributeGroup {
     return new TextAttributeGroup(content, ...args);
 }
@@ -266,7 +266,7 @@ export class TextBlock {
     }
 }
 
-// Internal constructor shorthand
+// Shorthand of `new TextBlock()`
 export function TB(hint: TextBlockLayoutHint, contents: Array<TextAttributeGroup>): TextBlock {
     return new TextBlock(hint, contents);
 }

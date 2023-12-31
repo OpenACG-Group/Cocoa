@@ -54,6 +54,8 @@ public:
     StringV    js_arguments;
     StringV    js_native_preloads;
     StringV    js_native_preloads_blacklist;
+
+    String     js_first_script_name;
 };
 
 COCOA_END_NAMESPACE

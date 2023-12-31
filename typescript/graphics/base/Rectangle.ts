@@ -1,18 +1,18 @@
 /**
- * This file is part of Vizmoe.
+ * This file is part of Cocoa.
  *
- * Vizmoe is free software: you can redistribute it and/or modify it
+ * Cocoa is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published
  * by the Free Software Foundation, either version 3 of the License,
  * or (at your option) any later version.
  *
- * Vizmoe is distributed in the hope that it will be useful,
+ * Cocoa is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Vizmoe. If not, see <https://www.gnu.org/licenses/>.
+ * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { Point2f, Vector2f } from './Vector';
@@ -53,7 +53,7 @@ export class Rect implements Fmt.Formattable {
     }
 
     public static Union(a: Rect, b: Rect): Rect {
-        if (a.isEmpty() || b.isEmpty()) {
+        if (a.isEmpty() && b.isEmpty()) {
             return Rect.MakeEmpty();
         }
         return new Rect(
@@ -102,7 +102,7 @@ export class Rect implements Fmt.Formattable {
     public [Fmt.kObjectFormatter](ctx: Fmt.FormatterContext): Array<Fmt.TextBlock> {
         return [
             Fmt.TB(Fmt.TextBlockLayoutHint.kPrefix, [
-                Fmt.TAG('Vizmoe.Rect')
+                Fmt.TAG('Rect')
             ]),
             ...Fmt.formatObjectValue({
                 L: this.left_,
@@ -303,14 +303,16 @@ export class RRect {
         this.is_xy_uniform_ = true;
 
         for (let i = 0; i < radii.length; i++) {
-            this.radii_[i] = radii[i].clone();
+            let x = radii[i].x, y = radii[i].y;
 
-            if (this.radii_[i].x < 0) {
-                this.radii_[i].x = 0;
+            if (x < 0) {
+                x = 0;
             }
-            if (this.radii_[i].y < 0) {
-                this.radii_[i].y = 0;
+            if (y < 0) {
+                y = 0;
             }
+
+            this.radii_[i] = new Vector2f(x, y);
 
             if (this.radii_[i].x != 0 || this.radii_[i].y != 0) {
                 this.type_ = RRectType.kTrivial;

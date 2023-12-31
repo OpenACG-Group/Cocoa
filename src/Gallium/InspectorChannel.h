@@ -23,12 +23,12 @@
 #include "Gallium/Gallium.h"
 GALLIUM_NS_BEGIN
 
-class InspectorClient;
+class Inspector;
 
 class InspectorChannel : public v8_inspector::V8Inspector::Channel
 {
 public:
-    explicit InspectorChannel(InspectorClient *client);
+    explicit InspectorChannel(Inspector *inspector);
     ~InspectorChannel() override = default;
 
     void sendResponse(int callId, std::unique_ptr<v8_inspector::StringBuffer> message) override;
@@ -36,7 +36,7 @@ public:
     void flushProtocolNotifications() override;
 
 private:
-    InspectorClient *client_;
+    Inspector *inspector_;
 };
 
 GALLIUM_NS_END

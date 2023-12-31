@@ -213,13 +213,12 @@ CkImageWrap::MakeDeferredFromPicture(v8::Local<v8::Value> picture,
     if (width <= 0 || height <= 0)
         g_throw(RangeError, "Invalid image dimension provided by `width` and `height`");
 
+    SkMatrix matrix_store;
     SkMatrix *p_matrix = nullptr;
     if (!matrix->IsNullOrUndefined())
     {
-        auto *matrix_wrap = binder::UnwrapObject<CkMatrix>(isolate, matrix);
-        if (!matrix_wrap)
-            g_throw(TypeError, "Argument `matrix` must be `CkMatrix | null`");
-        p_matrix = &matrix_wrap->GetMatrix();
+        matrix_store = ExtractCkMat3x3(isolate, matrix);
+        p_matrix = &matrix_store;
     }
 
     SkPaint *p_paint = nullptr;
@@ -440,14 +439,9 @@ v8::Local<v8::Value> make_shader_generic(const sk_sp<SkImage>& image, int32_t tm
     if (tmy < 0 || tmy > static_cast<int32_t>(SkTileMode::kLastTileMode))
         g_throw(RangeError, "Invalid enumeration value for argument `tmx`");
 
-    SkMatrix *matrix = nullptr;
+    std::optional<SkMatrix> opt_matrix;
     if (!local_matrix->IsNullOrUndefined())
-    {
-        auto *wrap = binder::UnwrapObject<CkMatrix>(isolate, local_matrix);
-        if (!wrap)
-            g_throw(TypeError, "Argument `local_matrix` must be an instance of `CkMatrix` or null");
-        matrix = &wrap->GetMatrix();
-    }
+        opt_matrix = ExtractCkMat3x3(isolate, local_matrix);
 
     sk_sp<SkShader> shader;
     if constexpr (RAW_SHADER)
@@ -455,14 +449,14 @@ v8::Local<v8::Value> make_shader_generic(const sk_sp<SkImage>& image, int32_t tm
         shader = image->makeRawShader(static_cast<SkTileMode>(tmx),
                                       static_cast<SkTileMode>(tmy),
                                       SamplingToSamplingOptions(sampling),
-                                      matrix);
+                                      opt_matrix ? &(*opt_matrix) : nullptr);
     }
     else
     {
         shader = image->makeShader(static_cast<SkTileMode>(tmx),
                                    static_cast<SkTileMode>(tmy),
                                    SamplingToSamplingOptions(sampling),
-                                   matrix);
+                                   opt_matrix ? &(*opt_matrix) : nullptr);
     }
 
     if (!shader)

@@ -221,16 +221,11 @@ extract_child_specifier_checked(v8::Local<v8::Value> input,
     return result;
 }
 
-SkMatrix *extract_maybe_matrix(v8::Isolate *isolate, v8::Local<v8::Value> v, const char *argname)
+std::optional<SkMatrix> extract_maybe_matrix(v8::Isolate *isolate, v8::Local<v8::Value> v)
 {
     if (v->IsNullOrUndefined())
-        return nullptr;
-
-    auto *w = binder::UnwrapObject<CkMatrix>(isolate, v);
-    if (!w)
-        g_throw(TypeError, fmt::format("Argument `{}` must be an instance of `CkMatrix`", argname));
-
-    return &w->GetMatrix();
+        return std::nullopt;
+    return ExtractCkMat3x3(isolate, v);
 }
 
 } // namespace anonymous
@@ -304,9 +299,11 @@ v8::Local<v8::Value> CkRuntimeEffect::makeShader(v8::Local<v8::Value> uniforms,
     auto children_vec = extract_child_specifier_checked(children, GetSkObject()->children());
     SkSpan<SkRuntimeEffect::ChildPtr> children_span(children_vec);
 
+    std::optional<SkMatrix> opt_matrix = extract_maybe_matrix(isolate, local_matrix);
+
     sk_sp<SkShader> shader = GetSkObject()->makeShader(
             create_flattened_uniforms_checked(uniforms, GetSkObject()->uniforms()),
-            children_span, extract_maybe_matrix(isolate, local_matrix, "local_matrix"));
+            children_span, opt_matrix ? &(*opt_matrix) : nullptr);
 
     if (!shader)
         return v8::Null(isolate);

@@ -29,7 +29,17 @@ include_directories(
 link_directories(third_party/build/lib)
 
 ## Compile options and targets
-add_compile_definitions(COCOA_PROJECT=1 V8_COMPRESS_POINTERS SK_VULKAN SK_GANESH SK_DISABLE_LEGACY_SKSURFACE_FLUSH)
+add_compile_definitions(
+    COCOA_PROJECT=1
+    # V8 options
+    V8_COMPRESS_POINTERS
+    # Skia options
+    SK_VULKAN
+    SK_GANESH
+    SK_DISABLE_LEGACY_SKSURFACE_FLUSH
+    SK_DISABLE_LEGACY_DEFAULT_TYPEFACE
+    SK_DISABLE_LEGACY_FONTMGR_REDEFAULT
+)
 add_compile_options(-Wall -fno-rtti)
 
 if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")

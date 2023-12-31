@@ -22,6 +22,7 @@
 #include "include/gpu/ganesh/SkImageGanesh.h"
 #include "include/gpu/ganesh/SkSurfaceGanesh.h"
 #include "include/gpu/ganesh/vk/GrVkBackendSurface.h"
+#include "include/gpu/ganesh/vk/GrVkDirectContext.h"
 #include "include/gpu/vk/GrVkBackendContext.h"
 
 #include "Glamor/SkiaGpuContextOwner.h"
@@ -126,7 +127,7 @@ bool SkiaGpuContextOwner::InitializeSkiaGpuContext(const SkiaGpuContextCreateInf
         delete reinterpret_cast<GrContextDeviceClosure*>(userdata);
     };
 
-    sk_sp<GrDirectContext> ctx = GrDirectContext::MakeVulkan(backend, context_options);
+    sk_sp<GrDirectContext> ctx = GrDirectContexts::MakeVulkan(backend, context_options);
     if (!ctx)
         return false;
 

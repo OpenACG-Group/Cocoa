@@ -206,19 +206,18 @@ v8::Local<v8::Value> CkBitmapWrap::makeShader(int32_t tmx, int32_t tmy, int32_t 
     if (tmy < 0 || tmy > static_cast<int32_t>(SkTileMode::kLastTileMode))
         g_throw(RangeError, "Invalid enumeration value for argument `tmy`");
 
-    SkMatrix *matrix = nullptr;
+    SkMatrix matrix_store;
+    SkMatrix *matrix_ptr = nullptr;
     if (!local_matrix->IsNullOrUndefined())
     {
-        auto *w = binder::UnwrapObject<CkMatrix>(isolate, local_matrix);
-        if (!w)
-            g_throw(TypeError, "Argument `localMatrix` requires an instance of `CkMatrix` or null");
-        matrix = &w->GetMatrix();
+        matrix_store = ExtractCkMat3x3(isolate, local_matrix);
+        matrix_ptr = &matrix_store;
     }
 
     sk_sp<SkShader> shader = bitmap_.makeShader(static_cast<SkTileMode>(tmx),
                                                  static_cast<SkTileMode>(tmy),
                                                  SamplingToSamplingOptions(sampling),
-                                                 matrix);
+                                                 matrix_ptr);
     if (!shader)
         g_throw(Error, "Failed to create shader from bitmap");
 

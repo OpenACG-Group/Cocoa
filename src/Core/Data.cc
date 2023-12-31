@@ -290,8 +290,9 @@ std::shared_ptr<Data> Data::MakeFromSize(size_t size)
 {
     void *ptr = malloc(size);
     CHECK(ptr && "Memory allocation failed");
-
-    return Data::MakeFromPtr(ptr, size);
+    return std::make_shared<MemoryData>(ptr, size, true, [](void *ptr) {
+        std::free(ptr);
+    });
 }
 
 std::shared_ptr<Data> Data::MakeLinearBuffer(const std::shared_ptr<Data>& data)
@@ -323,6 +324,18 @@ std::shared_ptr<Data> Data::MakeFromString(const char *str, bool no_terminator)
 {
     CHECK(str);
     return Data::MakeFromPtr(const_cast<char*>(str), std::strlen(str) + !no_terminator);
+}
+
+std::shared_ptr<Data> Data::MakeFromString(const std::string_view& view, bool no_terminator)
+{
+    CHECK(!view.empty());
+    size_t len = view.length();
+    uint8_t *ptr = static_cast<uint8_t*>(malloc(len + !no_terminator));
+    CHECK(ptr && "Memory allocation failed");
+    std::memcpy(ptr, view.data(), len);
+    if (!no_terminator)
+        ptr[len] = '\0';
+    return Data::MakeFromPtrWithoutCopy(ptr, len + !no_terminator, true);
 }
 
 } // namespace cocoa

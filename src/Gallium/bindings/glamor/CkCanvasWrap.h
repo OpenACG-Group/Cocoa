@@ -89,6 +89,9 @@ public:
     //! TSDecl: function restoreToCount(saveCount: number): void
     void restoreToCount(int saveCount);
 
+    //! TSDecl: function getSaveCount(): number
+    int getSaveCount();
+
     //! TSDecl: function translate(dx: number, dy: number): void
     void translate(SkScalar dx, SkScalar dy);
 
@@ -101,14 +104,17 @@ public:
     //! TSDecl: function skew(sx: number, sy: number)
     void skew(SkScalar sx, SkScalar sy);
 
-    //! TSDecl: function concat(matrix: CkMatrix): void
+    //! TSDecl: function concat(matrix: CkMat3x3): void
     void concat(v8::Local<v8::Value> matrix);
 
-    //! TSDecl: function setMatrix(matrix: CkMatrix): void
+    //! TSDecl: function setMatrix(matrix: CkMat3x3): void
     void setMatrix(v8::Local<v8::Value> matrix);
 
     //! TSDecl: function resetMatrix(): void
     void resetMatrix();
+
+    //! TSDecl: function getTotalMatrix(): CkMatrix
+    v8::Local<v8::Value> getTotalMatrix();
 
     //! TSDecl: function clipRect(rect: CkRect, op: Enum<ClipOp>, AA: boolean): void
     void clipRect(v8::Local<v8::Value> rect, int32_t op, bool AA);
@@ -204,7 +210,7 @@ public:
     //! TSDecl: function drawTextBlob(blob: CkTextBlob, x: number, y: number, paint: CkPaint): void
     void drawTextBlob(v8::Local<v8::Value> blob, SkScalar x, SkScalar y, v8::Local<v8::Value> paint);
 
-    //! TSDecl: function drawPicture(picture: CkPicture, matrix: null | CkMatrix,
+    //! TSDecl: function drawPicture(picture: CkPicture, matrix: null | CkMat3x3,
     //!                              paint: null | CkPaint): void
     void drawPicture(v8::Local<v8::Value> picture, v8::Local<v8::Value> matrix,
                      v8::Local<v8::Value> paint);

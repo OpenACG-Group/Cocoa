@@ -62,7 +62,7 @@ public:
                                     SkScalar skewY,  SkScalar scaleY, SkScalar transY,
                                     SkScalar pers0, SkScalar pers1, SkScalar pers2);
 
-    //! TSDecl: function Concat(a: CkMatrix, b: CkMatrix): CkMatrix
+    //! TSDecl: function Concat(a: CkMat3x3, b: CkMat3x3): CkMatrix
     static v8::Local<v8::Value> Concat(v8::Local<v8::Value> a, v8::Local<v8::Value> b);
 
     //! TSDecl: scaleX: number
@@ -81,21 +81,25 @@ public:
     SkScalar getSkewY();
     void setSkewY(SkScalar v);
 
-    //! TSDecl: translateX: number
-    SkScalar getTranslateX();
-    void setTranslateX(SkScalar v);
+    //! TSDecl: transX: number
+    SkScalar getTransX();
+    void setTransX(SkScalar v);
 
-    //! TSDecl: translateY: number
-    SkScalar getTranslateY();
-    void setTranslateY(SkScalar v);
+    //! TSDecl: transY: number
+    SkScalar getTransY();
+    void setTransY(SkScalar v);
 
-    //! TSDecl: perspectiveX: number
-    SkScalar getPerspectiveX();
-    void setPerspectiveX(SkScalar v);
+    //! TSDecl: persp0: number
+    SkScalar getPersp0();
+    void setPersp0(SkScalar v);
 
-    //! TSDecl: perspectiveY: number
-    SkScalar getPerspectiveY();
-    void setPerspectiveY(SkScalar v);
+    //! TSDecl: persp1: number
+    SkScalar getPersp1();
+    void setPersp1(SkScalar v);
+
+    //! TSDecl: persp2: number
+    SkScalar getPersp2();
+    void setPersp2(SkScalar v);
 
     //! TSDecl: function clone(): CkMatrix
     v8::Local<v8::Value> clone();
@@ -124,7 +128,7 @@ public:
     //! TSDecl: function preSkew(kx: number, ky: number, px: number, py: number): void
     void preSkew(SkScalar kx, SkScalar ky, SkScalar px, SkScalar py);
 
-    //! TSDecl: function preConcat(other: CkMatrix): void
+    //! TSDecl: function preConcat(other: CkMat3x3): void
     void preConcat(v8::Local<v8::Value> other);
 
     //! TSDecl: function postTranslate(dx: number, dy: number): void
@@ -139,7 +143,7 @@ public:
     //! TSDecl: function postSkew(kx: number, ky: number, px: number, py: number): void
     void postSkew(SkScalar kx, SkScalar ky, SkScalar px, SkScalar py);
 
-    //! TSDecl: function postConcat(other: CkMatrix): void
+    //! TSDecl: function postConcat(other: CkMat3x3): void
     void postConcat(v8::Local<v8::Value> other);
 
     //! TSDecl: function invert(): null | CkMatrix

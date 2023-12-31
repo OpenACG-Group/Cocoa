@@ -47,7 +47,7 @@ public:
     //! TSDecl: function MakeDeferredFromPicture(picture: CkPicture,
     //!                                          width: number,
     //!                                          height: number,
-    //!                                          matrix: CkMatrix | null,
+    //!                                          matrix: CkMat3x3 | null,
     //!                                          paint: CkPaint | null,
     //!                                          bitDepth: Enum<ImageBitDepth>,
     //!                                          colorSpace: Enum<ColorSpace>): CkImage
@@ -157,12 +157,12 @@ public:
     v8::Local<v8::Value> makeSubset(v8::Local<v8::Value> gpu_context, v8::Local<v8::Value> subset);
 
     //! TSDecl: function makeShader(tmx: Enum<TileMode>, tmy: Enum<TileMode>,
-    //!                             sampling: Enum<Sampling>, local_matrix: CkMatrix | null): CkShader | null
+    //!                             sampling: Enum<Sampling>, local_matrix: CkMat3x3 | null): CkShader | null
     v8::Local<v8::Value> makeShader(int32_t tmx, int32_t tmy, int32_t sampling,
                                     v8::Local<v8::Value> local_matrix);
 
     //! TSDecl: function makeRawShader(tmx: Enum<TileMode>, tmy: Enum<TileMode>,
-    //!                                sampling: Enum<Sampling>, local_matrix: CkMatrix | null): CkShader | null
+    //!                                sampling: Enum<Sampling>, local_matrix: CkMat3x3 | null): CkShader | null
     v8::Local<v8::Value> makeRawShader(int32_t tmx, int32_t tmy, int32_t sampling,
                                        v8::Local<v8::Value> local_matrix);
 

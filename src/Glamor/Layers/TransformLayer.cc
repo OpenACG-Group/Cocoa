@@ -42,7 +42,10 @@ TransformLayer::OnContainerDiffUpdateAttributes(const std::shared_ptr<ContainerL
     if (layer->transform_ == transform_)
         return ContainerAttributeChanged::kNo;
     else
+    {
+        transform_ = layer->transform_;
         return ContainerAttributeChanged::kYes;
+    }
 }
 
 void TransformLayer::Preroll(PrerollContext *context, const SkMatrix& matrix)
@@ -87,10 +90,10 @@ void TransformLayer::ToString(std::ostream& out)
 {
 #define M(v) transform_[SkMatrix::kM##v]
     out << fmt::format("(transform#{}:{}", GetUniqueId(), GetGenerationId())
-        << fmt::format(" '(scale {} {})", M(ScaleX), M(ScaleY))
-        << fmt::format(" '(skew {} {})", M(SkewX), M(SkewY))
-        << fmt::format(" '(trans {} {})", M(TransX), M(TransY))
-        << fmt::format(" '(perspective {} {} {})", M(Persp0), M(Persp1), M(Persp2));
+        << fmt::format(" '(mat3x3 [[{}, {}, {}], [{}, {}, {}], [{}, {}, {}]]))",
+                       M(ScaleX), M(SkewX), M(TransX),
+                       M(SkewY), M(ScaleY), M(TransY),
+                       M(Persp0), M(Persp1), M(Persp2));
 
     if (GetChildrenCount() > 0)
     {

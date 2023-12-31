@@ -61,48 +61,10 @@ v8::Local<v8::Value> CkFontStyle::MakeBoldItalic()
     return binder::NewObject<CkFontStyle>(isolate, SkFontStyle::BoldItalic());
 }
 
-v8::Local<v8::Value> CkTypeface::MakeDefault()
+v8::Local<v8::Value> CkTypeface::MakeEmpty()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    return binder::NewObject<CkTypeface>(isolate, SkTypeface::MakeDefault());
-}
-
-v8::Local<v8::Value> CkTypeface::MakeFromName(const std::string& name, v8::Local<v8::Value> style)
-{
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto *w = binder::UnwrapObject<CkFontStyle>(isolate, style);
-    if (!w)
-        g_throw(TypeError, "Argument `style` must be an instance of `CkFontStyle`");
-
-    sk_sp<SkTypeface> tf = SkTypeface::MakeFromName(name.c_str(), w->GetFontStyle());
-    if (!tf)
-        g_throw(Error, "Failed to create a typeface from name");
-
-    return binder::NewObject<CkTypeface>(isolate, tf);
-}
-
-v8::Local<v8::Value> CkTypeface::MakeFromFile(const std::string& file, int32_t index)
-{
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    sk_sp<SkTypeface> tf = SkTypeface::MakeFromFile(file.c_str(), index);
-    if (!tf)
-        g_throw(Error, fmt::format("Failed to create a typeface from file `{}`", file));
-    return binder::NewObject<CkTypeface>(isolate, tf);
-}
-
-v8::Local<v8::Value> CkTypeface::MakeFromData(v8::Local<v8::Value> buffer, int32_t index)
-{
-    v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    auto memory = binder::GetTypedArrayMemory<v8::TypedArray>(buffer);
-    if (!memory)
-        g_throw(Error, "Argument `buffer` must be an allocated TypedArray");
-
-    sk_sp<SkData> data = SkData::MakeWithCopy(memory->ptr, memory->byte_size);
-    sk_sp<SkTypeface> tf = SkTypeface::MakeFromData(data, index);
-    if (!tf)
-        g_throw(Error, "Failed to create a typeface from provided data");
-
-    return binder::NewObject<CkTypeface>(isolate, tf);
+    return binder::NewObject<CkTypeface>(isolate, SkTypeface::MakeEmpty());
 }
 
 v8::Local<v8::Value> CkTypeface::getFontStyle()

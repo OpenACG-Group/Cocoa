@@ -1,3 +1,5 @@
+import { Maybe } from './error';
+
 export class LinkedListNode<T> {
     constructor(public list: LinkedList<T>,
                 public value: T,
@@ -61,13 +63,15 @@ export class LinkedList<T> implements Iterable<T> {
         }
     }
 
-    public forEachNode(callback: (node: LinkedListNode<T>) => boolean): void {
+    public forEachNode(callback: (node: LinkedListNode<T>, index: number) => boolean): void {
         let current = this.#head.next;
+        let index = 0;
         while (!current.head) {
             const next = current.next;
-            if (!callback(current))
+            if (!callback(current, index))
                 break;
             current = next;
+            index++;
         }
     }
 
@@ -158,5 +162,30 @@ export class LinkedList<T> implements Iterable<T> {
             return true;
         });
         return array;
+    }
+
+    public findFirst(value: T): Maybe<[number, LinkedListNode<T>]> {
+        let foundIndex = -1, foundNode: LinkedListNode<T> = null;
+        this.forEachNode((current, index) => {
+            if (current.value === value) {
+                foundIndex = index;
+                foundNode = current;
+                return false;
+            }
+            return true;
+        });
+        return foundIndex >= 0 ? Maybe.Ok([foundIndex, foundNode]) : Maybe.None();
+    }
+
+    public findLast(value: T): Maybe<[number, LinkedListNode<T>]> {
+        let foundIndex = -1, foundNode: LinkedListNode<T> = null;
+        this.forEachNode((current, index) => {
+            if (current.value == value) {
+                foundIndex = index;
+                foundNode = current;
+            }
+            return true;
+        });
+        return foundIndex >= 0 ? Maybe.Ok([foundIndex, foundNode]) : Maybe.None();
     }
 }

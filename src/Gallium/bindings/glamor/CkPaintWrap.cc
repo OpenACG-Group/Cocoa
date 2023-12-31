@@ -139,4 +139,23 @@ void CkPaint::setImageFilter(v8::Local<v8::Value> filter)
     paint_.setImageFilter(wrapper->GetSkObject());
 }
 
+bool CkPaint::nothingToDraw()
+{
+    return paint_.nothingToDraw();
+}
+
+bool CkPaint::canComputeFastBounds()
+{
+    return paint_.canComputeFastBounds();
+}
+
+v8::Local<v8::Value> CkPaint::computeFastBounds(v8::Local<v8::Value> original)
+{
+    v8::Isolate *isolate = v8::Isolate::GetCurrent();
+    SkRect storage;
+    const auto res = paint_.computeFastBounds(
+            ExtractCkRect(isolate, original), &storage);
+    return NewCkRect(isolate, res);
+}
+
 GALLIUM_BINDINGS_GLAMOR_NS_END
