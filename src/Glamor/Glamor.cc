@@ -19,6 +19,10 @@
 #include "Core/StandaloneThreadPool.h"
 #include "Core/Journal.h"
 #include "Glamor/Glamor.h"
+
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_wayland.h>
+
 #include "Glamor/SkEventTracerImpl.h"
 #include "Glamor/HWComposeContext.h"
 #include "Glamor/PresentThread.h"
@@ -29,13 +33,10 @@ GLAMOR_NAMESPACE_BEGIN
 ContextOptions::ContextOptions()
     : backend_(Backends::kDefault)
     , skia_jit_(GLAMOR_SKIA_JIT_DEFAULT)
-    , profile_render_host_transfer_(false)
     , tile_width_(GLAMOR_TILE_WIDTH_DEFAULT)
     , tile_height_(GLAMOR_TILE_HEIGHT_DEFAULT)
     , render_workers_concurrency_count_(GLAMOR_WORKERS_CONCURRENCY)
     , show_tile_boundaries_(false)
-    , enable_profiler_(false)
-    , profiler_rb_threshold_(GLAMOR_PROFILER_RINGBUFFER_THRESHOLD_DEFAULT)
     , disable_hw_compose_(false)
     , disable_hw_compose_present_(false)
     , enable_vkdbg_(false)
@@ -62,16 +63,6 @@ void ContextOptions::SetBackend(Backends backend)
 void ContextOptions::SetSkiaJIT(bool allow)
 {
     skia_jit_ = allow;
-}
-
-bool ContextOptions::GetProfileRenderHostTransfer() const
-{
-    return profile_render_host_transfer_;
-}
-
-void ContextOptions::SetProfileRenderHostTransfer(bool value)
-{
-    profile_render_host_transfer_ = value;
 }
 
 int32_t ContextOptions::GetTileHeight() const
@@ -102,12 +93,7 @@ GlobalScope::GlobalScope(const ContextOptions& options, EventLoop *loop)
     , hw_compose_context_creation_failed_(false)
     , hw_compose_disabled_(false)
 {
-    SkEventTracer::SetInstance(skia_event_tracer_impl_, false);
-
-    /*
-    if (options_.GetSkiaJIT())
-        SkGraphics::AllowJIT();
-    */
+    CHECK(SkEventTracer::SetInstance(skia_event_tracer_impl_, false));
 }
 
 GlobalScope::~GlobalScope() = default;
@@ -225,21 +211,40 @@ std::shared_ptr<HWComposeContext> GlobalScope::GetHWComposeContext()
         }
     }
 
-    options.device_extensions.emplace_back("VK_KHR_external_memory");
-    options.device_extensions.emplace_back("VK_KHR_external_memory_fd");
-    options.device_extensions.emplace_back("VK_KHR_external_semaphore");
-    options.device_extensions.emplace_back("VK_KHR_external_semaphore_fd");
+    options.device_name_hint = gl_options.GetVkDeviceNameHint();
+
+    options.device_extensions = {
+        VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME
+    };
 
     if (!gl_options.GetDisableHWComposePresent())
     {
         switch (gl_options.GetBackend())
         {
         case Backends::kWayland:
-            options.instance_extensions.emplace_back("VK_KHR_surface");
-            options.instance_extensions.emplace_back("VK_KHR_wayland_surface");
+            options.instance_extensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
+            options.instance_extensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
             break;
         }
     }
+
+    options.optional_device_extensions = {
+        // For hw accelerated video decoding
+        VK_KHR_VIDEO_QUEUE_EXTENSION_NAME,
+        VK_KHR_VIDEO_DECODE_QUEUE_EXTENSION_NAME,
+        VK_KHR_VIDEO_DECODE_H264_EXTENSION_NAME,
+        VK_KHR_VIDEO_DECODE_H265_EXTENSION_NAME,
+        VK_KHR_VIDEO_DECODE_AV1_EXTENSION_NAME,
+
+        // For texture zero-copy sharing
+        VK_EXT_EXTERNAL_MEMORY_DMA_BUF_EXTENSION_NAME,
+        VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME,
+        VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,
+        VK_EXT_IMAGE_DRM_FORMAT_MODIFIER_EXTENSION_NAME
+    };
 
     hw_compose_context_ = HWComposeContext::MakeVulkan(options);
 

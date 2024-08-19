@@ -42,14 +42,13 @@
 #define COCOA_VERSION   "1.0.0-develop"
 #define COCOA_LICENSE   "General Public License (GPLv3)"
 
-#define COCOA_COPYRIGHT_YEAR    "2023"
+#define COCOA_COPYRIGHT_YEAR    "2024"
 
 // Property specifiers for functions, methods, member variables.
 // Can be used as function signature.
 #define g_private_api
 #define g_nodiscard     [[nodiscard]]
 #define g_noreturn      [[noreturn]]
-#define g_inline        inline
 #define g_maybe_unused  [[maybe_unused]]
 #define g_async_api
 #define g_sync_api

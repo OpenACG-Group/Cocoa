@@ -15,6 +15,8 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
+
 #include "fmt/format.h"
 
 #include "Core/Errors.h"

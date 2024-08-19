@@ -87,11 +87,11 @@ public:
     explicit Monitor(const std::weak_ptr<Display>& display);
     ~Monitor() override = default;
 
-    g_nodiscard g_inline std::shared_ptr<Display> GetDisplay() const {
+    g_nodiscard std::shared_ptr<Display> GetDisplay() const {
         return display_.lock();
     }
 
-    g_nodiscard g_inline uint32_t GetUniqueId() const {
+    g_nodiscard uint32_t GetUniqueId() const {
         return unique_id_;
     }
 

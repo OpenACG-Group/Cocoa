@@ -24,7 +24,6 @@
 
 #include "Gallium/Platform.h"
 #include "Gallium/RuntimeBase.h"
-#include "Gallium/binder/Class.h"
 #include "Gallium/bindings/workers/Exports.h"
 #include "Gallium/bindings/workers/WorkerRuntime.h"
 #include "Gallium/bindings/workers/MessagePort.h"
@@ -124,7 +123,7 @@ void *worker_entrypoint(void *arg)
 
 } // namespace anonymous
 
-v8::Local<v8::Value> WorkerWrap::MakeFromURL(const std::string &url)
+ffi::RetLocal<v8::Value> WorkerWrap::MakeFromURL(const std::string &url)
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     RuntimeBase *current_runtime = RuntimeBase::FromIsolate(isolate);
@@ -140,11 +139,11 @@ v8::Local<v8::Value> WorkerWrap::MakeFromURL(const std::string &url)
     pthread_t thread;
     int ret = pthread_create(&thread, nullptr, worker_entrypoint, &params);
     if (ret < 0)
-        g_throw(Error, fmt::format("Failed to create thread: {}", strerror(ret)));
+        return ffi::Fail(ffi::kErr, fmt::format("Failed to create thread: {}", strerror(ret)));
 
     params.WaitForPost();
     if (params.maybe_error)
-        g_throw(Error, fmt::format("{}", *params.maybe_error));
+        return ffi::Fail(ffi::kErr, fmt::format("{}", *params.maybe_error));
 
     // Following callbacks are designed to make sure the worker threads
     // have exited before the parent thread exiting.
@@ -153,7 +152,7 @@ v8::Local<v8::Value> WorkerWrap::MakeFromURL(const std::string &url)
     using AfterCallBehaviour = RuntimeBase::ExternalCallbackAfterCall;
 
     uint64_t spin_exit_cb_id = current_runtime->AddExternalCallback(CbType::kBeforeSpinRunExit, [thread] {
-        // When parent thread is going to exit, the worker thread is still running.
+        // When the parent thread is going to exit, the worker thread is still running.
         // Just wait for it, we can do nothing, and it is hard to know what the worker
         // thread is doing (maybe it is executing some tasks and will exit later, or maybe
         // it gets into trouble).
@@ -177,7 +176,7 @@ v8::Local<v8::Value> WorkerWrap::MakeFromURL(const std::string &url)
         return AfterCallBehaviour::kRemove;
     });
 
-    return binder::NewObject<WorkerWrap>(isolate, std::move(message_ports.first));
+    return ffi::JSObject::New<WorkerWrap>(isolate, std::move(message_ports.first));
 }
 
 WorkerWrap::WorkerWrap(std::shared_ptr<MessagePort> port)
@@ -185,7 +184,7 @@ WorkerWrap::WorkerWrap(std::shared_ptr<MessagePort> port)
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     message_port_.Reset(
         isolate,
-        binder::NewObject<MessagePortWrap>(isolate, std::move(port))
+        ffi::JSObject::New<MessagePortWrap>(isolate, std::move(port))
     );
 }
 

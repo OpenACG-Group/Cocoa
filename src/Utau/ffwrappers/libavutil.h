@@ -26,6 +26,7 @@ extern "C" {
 #include <libavutil/frame.h>
 #include <libavutil/samplefmt.h>
 #include <libavutil/opt.h>
+#include <libavutil/imgutils.h>
 
 #include <libavutil/hwcontext.h>
 

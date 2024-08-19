@@ -71,21 +71,21 @@ public:
     g_nodiscard static const char *GetTypeName(RealType type);
 
     template<typename T>
-    g_nodiscard g_inline std::shared_ptr<T> Cast() {
+    g_nodiscard std::shared_ptr<T> Cast() {
         return std::static_pointer_cast<T>(shared_from_this());
     }
 
-    g_nodiscard g_inline std::shared_ptr<PresentRemoteHandle> Self() {
+    g_nodiscard std::shared_ptr<PresentRemoteHandle> Self() {
         return shared_from_this();
     }
 
     template<typename T, typename std::enable_if<std::is_base_of_v<PresentRemoteHandle, T>>::type* = nullptr>
-    g_nodiscard g_inline std::shared_ptr<T> As() {
+    g_nodiscard std::shared_ptr<T> As() {
         auto ptr = std::static_pointer_cast<T>(shared_from_this());
         return ptr;
     }
 
-    g_nodiscard g_inline RealType GetRealType() const {
+    g_nodiscard RealType GetRealType() const {
         return real_type_;
     }
 
@@ -102,11 +102,11 @@ public:
     uint32_t Connect(SignalCode signal, const PresentSignalCallback& callback, bool localThread = false);
     void Disconnect(uint32_t id);
 
-    g_nodiscard g_inline const PresentRemoteCallResultCallback& DummyHostCallback() const {
+    g_nodiscard const PresentRemoteCallResultCallback& DummyHostCallback() const {
         return dummy_host_callback_;
     }
 
-    g_nodiscard g_inline uint32_t GetDanglingCallbacksCounter() const {
+    g_nodiscard uint32_t GetDanglingCallbacksCounter() const {
         return dangling_callbacks_counter_;
     }
 

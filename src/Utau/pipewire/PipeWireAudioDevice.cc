@@ -69,8 +69,6 @@ std::shared_ptr<AudioDevice> AudioDevice::MakePipeWire(uv_loop_t *loop)
 
     auto dev = std::make_shared<PipeWireAudioDevice>();
 
-    dev->main_thread_loop_ = loop;
-
     // Connect to PipeWire daemon
     dev->pw_loop_ = pw_thread_loop_new("PipeWire", nullptr);
     if (!dev->pw_loop_)
@@ -115,13 +113,15 @@ std::shared_ptr<AudioDevice> AudioDevice::MakePipeWire(uv_loop_t *loop)
     uv_async_init(loop, dev->uv_async_, PipeWireAudioDevice::AsyncHandler);
     dev->uv_async_->data = dev.get();
 
-    scope_exit.cancel();
+    uv_unref((uv_handle_t*) dev->uv_async_);
+
+    scope_exit.Cancel();
     return dev;
 }
 
 PipeWireAudioDevice::PipeWireAudioDevice()
     : AudioDevice(kPipeWire_Backend)
-    , main_thread_loop_(nullptr)
+    , nb_event_listeners_(0)
     , uv_async_(nullptr)
     , pw_loop_(nullptr)
     , pw_core_(nullptr)
@@ -155,13 +155,31 @@ void PipeWireAudioDevice::UnlockThreadLoop()
     pw_thread_loop_unlock(pw_loop_);
 }
 
-std::unique_ptr<AudioSinkStream>
-PipeWireAudioDevice::CreateSinkStream(const std::string& name)
+void PipeWireAudioDevice::IncreaseEventListenerCount()
 {
-    return PipeWireAudioSinkStream::MakeFromDevice(shared_from_this(), name);
+    nb_event_listeners_++;
+    if (nb_event_listeners_ == 1)
+        uv_ref((uv_handle_t*) uv_async_);
 }
 
-void PipeWireAudioDevice::InvokeFromMainThread(const std::function<void()>& proc)
+void PipeWireAudioDevice::DecreaseEventListenerCount()
+{
+    if (nb_event_listeners_ == 0)
+        return;
+    nb_event_listeners_--;
+    if (nb_event_listeners_ == 0)
+        uv_unref((uv_handle_t*) uv_async_);
+}
+
+std::shared_ptr<AudioSinkStream>
+PipeWireAudioDevice::CreateSinkStream(const std::string& name, AVSampleFormat format, int32_t sample_rate,
+                                      const AVChannelLayout& ch_layout, bool realtime)
+{
+    return PipeWireAudioSinkStream::MakeFromDevice(
+            shared_from_this(), name, format, sample_rate, ch_layout, realtime);
+}
+
+void PipeWireAudioDevice::SendTaskToMainThread(const std::function<void()>& proc)
 {
     std::scoped_lock<std::mutex> lock(calls_queue_lock_);
     main_thread_calls_queue_.emplace(proc);

@@ -19,6 +19,7 @@
 #include <cxxabi.h>
 #include <sys/sysinfo.h>
 
+#include <algorithm>
 #include <fstream>
 #include <typeinfo>
 #include <atomic>
@@ -224,6 +225,33 @@ void SetThreadName(const char *name)
 {
     pthread_t self = ::pthread_self();
     ::pthread_setname_np(self, name);
+}
+
+int SolveLevenshteinDistance(const std::string_view& a, const std::string_view& b)
+{
+    size_t m = a.size(), n = b.size();
+
+    // Just allocate for dynamic programming
+    std::vector<std::vector<int>> dp(m + 1);
+    for (std::vector<int>& slice : dp)
+        slice.reserve(n + 1);
+
+    for (int i = 0; i <= m; i++)
+        dp[i][0] = i;
+    for (int j = 0; j <= n; j++)
+        dp[0][j] = j;
+
+    for (int i = 1; i <= m; i++)
+    {
+        for (int j = 1; j <= n; j++)
+        {
+            if (a[i - 1] == b[j - 1])
+                dp[i][j] = dp[i - 1][j - 1];
+            else
+                dp[i][j] = std::min({dp[i][j-1] + 1, dp[i-1][j] + 1, dp[i-1][j-1] + 1});
+        }
+    }
+    return dp[m][n];
 }
 
 } // namespace cocoa::utils

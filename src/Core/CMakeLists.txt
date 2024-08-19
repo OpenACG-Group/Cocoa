@@ -47,7 +47,8 @@ target_link_libraries(Core
         ZLIB::ZLIB
         OpenSSL::SSL
         ${LINK_STATIC_FMT}
-        ${LINK_STATIC_LIBUV}
+        # ${LINK_STATIC_LIBUV}
+        uv
         ${LINK_STATIC_LIBSQUASH})
 
 ## For symbol analyzing in RuntimeException

@@ -29,7 +29,7 @@ class WaylandDisplay;
 class WaylandMonitor : public Monitor
 {
 public:
-    g_nodiscard g_inline static WaylandMonitor *BareCast(void *ptr) {
+    g_nodiscard static WaylandMonitor *BareCast(void *ptr) {
         CHECK(ptr && "Invalid pointer of WaylandMonitor");
         return reinterpret_cast<WaylandMonitor*>(ptr);
     }
@@ -40,13 +40,13 @@ public:
 
     WaylandMonitor(const std::weak_ptr<WaylandDisplay>& display,
                    wl_output *output, uint32_t registry_id);
-    ~WaylandMonitor() override = default;
+    ~WaylandMonitor() override;
 
-    g_nodiscard g_inline uint32_t GetOutputRegistryId() const {
+    g_nodiscard uint32_t GetOutputRegistryId() const {
         return output_registry_id_;
     }
 
-    g_nodiscard g_inline wl_output *GetWaylandOutput() const {
+    g_nodiscard wl_output *GetWaylandOutput() const {
         return wl_output_;
     }
 

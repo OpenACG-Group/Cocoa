@@ -20,7 +20,6 @@
 #include "Core/Utils.h"
 #include "Gallium/GlobalIsolateGuard.h"
 #include "Gallium/Runtime.h"
-#include "Gallium/binder/Convert.h"
 #include "Gallium/Infrastructures.h"
 GALLIUM_NS_BEGIN
 
@@ -51,8 +50,8 @@ void per_isolate_message_listener(v8::Local<v8::Message> message,
     {
     case v8::Isolate::MessageErrorLevel::kMessageWarning:
     {
-        auto script = binder::from_v8<std::string>(isolate, message->GetScriptResourceName());
-        auto content = binder::from_v8<std::string>(isolate, message->Get());
+        auto script = ffi::Cast<std::string>::FromChecked(isolate, message->GetScriptResourceName());
+        auto content = ffi::Cast<std::string>::FromChecked(isolate, message->Get());
         QLOG(LOG_WARNING, "%fg<hl>(Isolate)%reset Warning from script {} line {}:", script,
              message->GetLineNumber(rt->GetContext()).FromMaybe(-1));
         QLOG(LOG_WARNING, "  {}", content);
@@ -155,13 +154,25 @@ void GlobalIsolateGuard::performUnhandledRejectPromiseCheck()
         reject_promises_.clear();
         return;
     }
+
+    v8::HandleScope scope(isolate_);
+    v8::Local<v8::Context> ctx = isolate_->GetCurrentContext();
     for (PromiseWithValue& pv : reject_promises_)
     {
-        v8::HandleScope scope(isolate_);
         v8::Local<v8::Promise> promise = pv.promise.Get(isolate_);
         v8::Local<v8::Value> value = pv.value.Get(isolate_);
-        if (!introspect->notifyUnhandledPromiseRejection(promise, value))
-            throw RuntimeException(__func__, "Uncaught and unhandled promise rejection");
+        if (introspect->notifyUnhandledPromiseRejection(promise, value))
+            continue;
+
+        v8::Local<v8::String> str;
+        v8::TryCatch try_catch(isolate_);
+        if (value->ToString(ctx).ToLocal(&str))
+        {
+            QLOG(LOG_WARNING, "unhandled promise rejection: {}",
+                 ffi::Cast<std::string>::FromChecked(isolate_, str));
+        }
+        else
+            QLOG(LOG_WARNING, "unhandled promise rejection: <failed to stringify the error>");
     }
     reject_promises_.clear();
 }

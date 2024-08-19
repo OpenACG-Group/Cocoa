@@ -50,12 +50,29 @@ public:
                                   const char *name,
                                   SkEventTracer::Handle handle) override;
 
-    void StartTracing(const std::vector<std::string>& enabled_categories);
+    void StartTracing();
     void StopTracing();
 
 private:
-    bool                                     trace_started_;
-    std::vector<HashString<std::string>>     enabled_;
+    void TriggerTraceEvent(const uint8_t *category_enabled_flag, const char *event_name);
+    void TriggerTraceEvent(const uint8_t *category_enabled_flag, const char *event_name,
+                           const char *arg1_name, const uint8_t& arg1_type, const uint64_t& arg1_val);
+    void TriggerTraceEvent(const uint8_t *category_enabled_flag, const char *event_name,
+                           const char *arg1_name, const uint8_t& arg1_type, const uint64_t& arg1_val,
+                           const char *arg2_name, const uint8_t& arg2_type, const uint64_t& arg2_val);
+
+    constexpr static int kMaxCategories = 256;
+
+    struct CategoryState
+    {
+        uint8_t enabled;
+        const char *name;
+    };
+
+    std::mutex        lock_;
+    bool              trace_started_;
+    CategoryState     categories_[kMaxCategories];
+    int               nb_categories_;
 };
 
 GLAMOR_NAMESPACE_END

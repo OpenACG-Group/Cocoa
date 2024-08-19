@@ -22,11 +22,17 @@
 
 #include <vulkan/vulkan.h>
 
-#include "include/gpu/GrDirectContext.h"
-#include "include/core/SkSurface.h"
+#include "Utau/ffwrappers/libavutil.h"
 #include "Glamor/Glamor.h"
 #include "Glamor/GraphicsResourcesTrackable.h"
 #include "Glamor/SkiaGpuContextOwner.h"
+#include "include/core/SkSurface.h"
+#include "include/gpu/GrDirectContext.h"
+
+namespace cocoa::utau {
+class HWDeviceContext;
+}
+
 GLAMOR_NAMESPACE_BEGIN
 
 class HWComposeContext;
@@ -63,10 +69,23 @@ public:
             const std::shared_ptr<HWComposeContext>& context,
             VkSurfaceFactory& factory,
             int32_t width, int32_t height,
-            SkPixelGeometry pixel_geometry);
+            SkPixelGeometry pixel_geometry,
+            const PresentGpuContextOptions& options);
 
     HWComposeSwapchain();
     ~HWComposeSwapchain() override;
+
+    g_nodiscard const PresentGpuContextOptions& GetOptions() const {
+        return options_;
+    }
+
+    // Returns a ref to `AVHWDeviceContext` that shares the same GPU device with the swapchain.
+    // The context has an attached `utau::HWDeviceContext` instance that can be accessed via
+    // `utau::HWDeviceContext::GetEmbedded(hwctx)` method.
+    // Only available when `GetOptions().video_decode_compatible` is enabled.
+    g_nodiscard AVBufferRef *GetVideoDecodeHWContext() const {
+        return videodec_hwcontext_;
+    }
 
     bool Resize(int32_t width, int32_t height);
     SkSurface *NextFrame();
@@ -85,6 +104,7 @@ private:
     bool CreateGpuBuffers();
     void ReleaseEntireSwapchain();
 
+    PresentGpuContextOptions            options_;
     std::shared_ptr<HWComposeContext>   context_;
     std::shared_ptr<HWComposeDevice>    device_;
     SkPixelGeometry                     pixel_geometry_;
@@ -103,6 +123,9 @@ private:
     std::vector<GpuBufferInfo>          gpu_buffers_;
     std::vector<sk_sp<SkSurface>>       skia_surfaces_;
     uint32_t                            current_buffer_idx_;
+
+    // Only avilable if `options_.video_decode_compatible` is enabled
+    AVBufferRef                        *videodec_hwcontext_;
 };
 
 GLAMOR_NAMESPACE_END

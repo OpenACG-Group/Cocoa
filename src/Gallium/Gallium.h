@@ -33,6 +33,9 @@
 #define GALLIUM_BINDINGS_NS_BEGIN   namespace cocoa::gallium::bindings {
 #define GALLIUM_BINDINGS_NS_END     }
 
+#define GALLIUM_FFI_NS_BEGIN        namespace cocoa::gallium::ffi {
+#define GALLIUM_FFI_NS_END          }
+
 #define GALLIUM_JS_TYPEOF_STRING    "string"
 #define GALLIUM_JS_TYPEOF_OBJECT    "object"
 #define GALLIUM_JS_TYPEOF_FUNCTION  "function"

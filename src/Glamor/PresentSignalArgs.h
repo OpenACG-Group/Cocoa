@@ -37,17 +37,17 @@ public:
     ~PresentSignalArgs() = default;
 
     template<typename T>
-    g_nodiscard g_inline T& Get(size_t index) {
+    g_nodiscard T& Get(size_t index) {
         CHECK(index < args_vector_ref_.size());
         return std::any_cast<T&>(args_vector_ref_[index]);
     }
 
-    g_nodiscard g_inline std::any& Get(size_t index) {
+    g_nodiscard std::any& Get(size_t index) {
         CHECK(index < args_vector_ref_.size());
         return args_vector_ref_[index];
     }
 
-    g_nodiscard g_inline size_t Length() const {
+    g_nodiscard size_t Length() const {
         return args_vector_ref_.size();
     }
 

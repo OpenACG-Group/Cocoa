@@ -15,174 +15,532 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    CkCanvas,
-    Scene,
-    SceneBuilder,
-    CkPictureRecorder,
-    CkPath,
-    Constants
-} from 'glamor';
+import * as Fmt from '../../core/formatter';
+import { GskSampling} from './GskSampling';
+import { Color4f} from '../base/Color';
+import { Blender, BlendMode, ClipOp, Image, ImageFilter, Mat3x3, Paint, Path, Rect, RRect, Shader } from 'renderer';
+import { GskDLDrawOpInspect, GskDLDrawOpVerb, GskDrawOpArgType } from './GskDLDrawOpInfo';
+import { Optimizers, Translator } from './GskDLProcessors';
 
-import { GskPaintRecord } from './GskPaintRecord';
-import { Rect, RRect } from '../base/Rectangle';
-import { Mat3x3 } from '../base/Matrix';
-
-
-/**
- * DisplayList, an intermediate representation of draw commands between GSK's
- * scenegraph and rasterization backends.
- */
-export interface GskDisplayList {
-    save(): number;
-
-    saveLayer(bounds: Rect, paintRecord: GskPaintRecord): number;
-
-    getSaveCount(): number;
-
-    restore(): void;
-
-    restoreToCount(saveCount: number): void;
-
-    getTotalMatrix(): Mat3x3;
-
-    concatMatrix(ctm: Mat3x3): void;
-
-    clipRect(shape: Rect, antiAlias: boolean): void;
-
-    clipRRect(shape: RRect, antiAlias: boolean): void;
-
-    clipPath(path: CkPath, antiAlias: boolean): void;
-
-    get canvas(): CkCanvas;
+// Info that describes how a layer is composited with its underlying layer
+export interface DLLayerInfo {
+    bounds: Rect;
+    initWithPreviousLayerContent: boolean;
+    alpha: number;
+    blendMode: BlendMode;
+    blender: Blender | null;
+    filter: ImageFilter;
+    backdrop: ImageFilter | null;
 }
 
-interface GLSceneStateStackFrame {
-    SBDepth: number;
+function CompareDLLayerInfo(a: DLLayerInfo, b: DLLayerInfo): boolean {
+    return a.bounds.equalTo(b.bounds) &&
+           a.initWithPreviousLayerContent == b.initWithPreviousLayerContent &&
+           a.alpha == b.alpha &&
+           a.blendMode == b.blendMode &&
+           a.blender == b.blender &&
+           a.filter == b.filter &&
+           a.backdrop == b.backdrop;
+}
+
+function CompareRRect(a: RRect, b: RRect): boolean {
+    if (!a.rect.equalTo(b.rect) || a.uniformRadii != b.uniformRadii) {
+        return false;
+    }
+    return a.borderRadii.every((value, index) => {
+        return b.uniformRadii[index] == value;
+    });
+}
+
+function FormatDLLayerInfo(info: DLLayerInfo, ctx: Fmt.FormatterContext): Array<Fmt.TextBlock> {
+    const tbs = [
+        Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureBegin, [Fmt.TAG('{')])
+    ];
+
+    if (info.initWithPreviousLayerContent) {
+        tbs.push(
+            Fmt.TB(Fmt.TextBlockLayoutHint.kValue, [Fmt.TAG('init-previous-content', Fmt.TextColor.kBlue)]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(',')])
+        );
+    }
+    tbs.push(Fmt.TB(Fmt.TextBlockLayoutHint.kValue, [Fmt.TAG(`alpha=${info.alpha}`)]));
+    tbs.push(Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(',')]));
+
+    if (info.blender == null) {
+        const blendModeName = GskDLDrawOpInspect.StringifyBlendMode(info.blendMode);
+        tbs.push(Fmt.TB(Fmt.TextBlockLayoutHint.kValue, [Fmt.TAG(`blend-mode=${blendModeName}`)]));
+    } else {
+        tbs.push(Fmt.TB(Fmt.TextBlockLayoutHint.kValue, [Fmt.TAG('use-blender')]));
+    }
+
+    if (info.filter != null) {
+        tbs.push(Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(',')]),
+                 Fmt.TB(Fmt.TextBlockLayoutHint.kValue, [Fmt.TAG('filters')]));
+    }
+
+    if (info.backdrop != null) {
+        tbs.push(Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(',')]),
+                 Fmt.TB(Fmt.TextBlockLayoutHint.kValue, [Fmt.TAG('backdrop')]));
+    }
+
+    tbs.push(Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureEnd, [Fmt.TAG('}')]));
+    return tbs;
+}
+
+export enum DLClippingType {
+    kRect,
+    kRRect,
+    kPath,
+    kShader
+}
+
+export class DLSliceClipping {
+    public static Rect(rect: Rect, op: ClipOp, antiAlias: boolean): DLSliceClipping {
+        return new DLSliceClipping(DLClippingType.kRect, op, antiAlias, rect, null, null, null);
+    }
+
+    public static RRect(rrect: RRect, op: ClipOp, antiAlias: boolean): DLSliceClipping {
+        return new DLSliceClipping(DLClippingType.kRRect, op, antiAlias, null, rrect, null, null);
+    }
+
+    public static Path(path: Path, op: ClipOp, antiAlias: boolean): DLSliceClipping {
+        return new DLSliceClipping(DLClippingType.kPath, op, antiAlias, null, null, path, null);
+    }
+
+    public static Shader(shader: Shader, op: ClipOp): DLSliceClipping {
+        return new DLSliceClipping(DLClippingType.kShader, op, false, null, null, null, shader);
+    }
+
+    private constructor(public readonly fType: DLClippingType,
+                        public readonly fOp: ClipOp,
+                        public readonly fAntiAlias: boolean,
+                        public readonly fRectClip: Rect | null,
+                        public readonly fRRectClip: RRect | null,
+                        public readonly fPathClip: Path | null,
+                        public readonly fShaderClip: Shader | null) {}
+
+    public static IsEqual(c1: DLSliceClipping, c2: DLSliceClipping): boolean {
+        if (c1.fType != c2.fType || c1.fAntiAlias != c2.fAntiAlias || c1.fOp != c2.fOp) {
+            return false;
+        }
+        if (c1.fType == DLClippingType.kRect) {
+            return c1.fRectClip.equalTo(c2.fRectClip);
+        }
+        if (c1.fType == DLClippingType.kRRect) {
+            return CompareRRect(c1.fRRectClip, c2.fRRectClip);
+        }
+        if (c1.fType == DLClippingType.kShader) {
+            return c1.fShaderClip == c2.fShaderClip;
+        }
+        if (c1.fType == DLClippingType.kPath) {
+            return c1.fPathClip.equalTo(c2.fPathClip);
+        }
+        throw Error('unexpected clipping type');
+    }
+
+    public [Fmt.kObjectFormatter](ctx: Fmt.FormatterContext): Array<Fmt.TextBlock> {
+        const opName = this.fOp == ClipOp.Intersect ? 'Intersect' : 'Difference';
+        return [
+            Fmt.TB(Fmt.TextBlockLayoutHint.kPrefix, [Fmt.TAG('DLSliceClipping')]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureBegin, [Fmt.TAG('(')]),
+
+            Fmt.TB(Fmt.TextBlockLayoutHint.kValue, [Fmt.TAG(DLClippingType[this.fType])]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(',')]),
+
+            Fmt.TB(Fmt.TextBlockLayoutHint.kPropertyName, [Fmt.TAG('op=')]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kValue, [Fmt.TAG(opName)]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(',')]),
+
+            Fmt.TB(Fmt.TextBlockLayoutHint.kPropertyName, [Fmt.TAG('AA=')]),
+            ...Fmt.formatAnyValue(this.fAntiAlias, ctx),
+
+            Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureEnd, [Fmt.TAG(')')])
+        ];
+    }
+}
+
+export type SliceId = number;
+export type SliceComparisonCache = boolean[][];
+
+let sliceIdCounter = 0;
+
+export class DLDrawOpSlice {
+    public readonly fId: SliceId;
+    public fBounds: Rect;
+
+    // Child slice array. DrawSlice and DrawSliceLayer operation will find slices
+    // by indices of the array.
+    public fChildren: Array<DLDrawOpSlice>;
+
+    // Local CTM, relative to the parent node
+    public fMatrix: Mat3x3 | null;
+    public fClipping: Array<DLSliceClipping> | null;
+
+    // Stores the draw operations (verb and arguments) in order
+    public fOps: Array<unknown>;
+    public fCanvas: DLSliceCanvas;
+
+    // Internal information for translation
+    private fTrctxInfo: Translator.SliceTrctxInfo | null;
+
+    constructor(bounds: Rect, matrix: Mat3x3 | null = null,
+                clipping: Array<DLSliceClipping> | null = null) {
+        this.fId = ++sliceIdCounter;
+        this.fBounds = bounds;
+        this.fChildren = [];
+        this.fMatrix = matrix;
+        this.fClipping = clipping;
+        this.fOps = [];
+        this.fCanvas = null;
+        this.fTrctxInfo = null;
+    }
+
+    public _internal_setTrctxInfo(info: Translator.SliceTrctxInfo): void {
+        this.fTrctxInfo = info;
+    }
+
+    public _internal_getTrctxInfo(): Translator.SliceTrctxInfo {
+        return this.fTrctxInfo;
+    }
+
+    public insertSubSlice(child: DLDrawOpSlice): void {
+        this.fChildren.push(child);
+        this.fOps.push(GskDLDrawOpVerb.kDrawSlice, this.fChildren.length - 1);
+    }
+
+    public insertSubSliceLayer(child: DLDrawOpSlice, layerInfo: DLLayerInfo): void {
+        this.fChildren.push(child);
+        this.fOps.push(GskDLDrawOpVerb.kDrawSliceLayer, this.fChildren.length - 1, layerInfo);
+    }
+
+    public getCanvas(): DLSliceCanvas {
+        if (this.fCanvas == null) {
+            this.fCanvas = new DLSliceCanvas(this);
+        }
+        return this.fCanvas;
+    }
+
+    public isEmpty(): boolean {
+        return this.fOps.length == 0;
+    }
+
+    public concatMatrix(mat: Mat3x3): void {
+        if (this.fMatrix == null) {
+            this.fMatrix = mat.clone();
+            return;
+        }
+        this.fMatrix.preConcat(mat);
+    }
+
+    public appendClipping(clip: DLSliceClipping): void {
+        if (this.fClipping == null) {
+            this.fClipping = [];
+        }
+        this.fClipping.push(clip);
+    }
+
+    public static Compare(slice1: DLDrawOpSlice, slice2: DLDrawOpSlice, cache?: SliceComparisonCache): boolean {
+        if (cache == null) {
+            return DLDrawOpSlice.DoCompare(slice1, slice2, null);
+        }
+
+        const cacheValue = cache[slice1.fId][slice2.fId];
+        if (cacheValue != null) {
+            return cacheValue;
+        }
+        const compareValue = DLDrawOpSlice.DoCompare(slice1, slice2, cache);
+        cache[slice1.fId][slice2.fId] = compareValue;
+        cache[slice2.fId][slice1.fId] = compareValue;
+        return compareValue;
+    }
+
+    private static DoCompare(slice1: DLDrawOpSlice, slice2: DLDrawOpSlice, cache: SliceComparisonCache): boolean {
+        if (slice1.fId == slice2.fId) {
+            return true;
+        }
+
+        // Compare bounds, matrix, and clipping first to do a quick rejection.
+
+        if (!slice1.fBounds.equalTo(slice2.fBounds)) {
+            return false;
+        }
+        if ((slice1.fMatrix == null) != (slice2.fMatrix == null)) {
+            // nullability of matrix is not equal
+            return false;
+        }
+        if (slice1.fMatrix != null && slice2.fMatrix != null && !slice1.fMatrix.equalTo(slice2.fMatrix)) {
+            // matrix is not equal
+            return false;
+        }
+        if ((slice1.fClipping == null) != (slice2.fClipping == null)) {
+            // nullability of clipping is not equal
+            return false;
+        }
+        if (slice1.fClipping != null && slice2.fClipping != null) {
+            if (slice1.fClipping.length != slice2.fClipping.length) {
+                return false;
+            }
+            for (let i = 0; i < slice1.fClipping.length; i++) {
+                if (!DLSliceClipping.IsEqual(slice1.fClipping[i], slice2.fClipping[i])) {
+                    return false;
+                }
+            }
+        }
+
+        // Compare child slices
+        if (slice1.fChildren.length != slice2.fChildren.length) {
+            return false;
+        }
+        for (let i = 0; i < slice1.fChildren.length; i++) {
+            if (!DLDrawOpSlice.Compare(slice1.fChildren[i], slice2.fChildren[i], cache)) {
+                return false;
+            }
+        }
+
+        // Compare DrawOps
+
+        const seq1 = slice1.fOps, seq2 = slice2.fOps;
+        if (seq1.length != seq2.length) {
+            return false;
+        }
+
+        // Deep comparison, compare each DrawOp
+        const itr1 = GskDLDrawOpInspect.Iterate(seq1), itr2 = GskDLDrawOpInspect.Iterate(seq2);
+        while (true) {
+            const next1 = itr1.next(), next2 = itr2.next();
+            if (next1.done || next2.done) {
+                break;
+            }
+            const op1 = next1.value as GskDLDrawOpInspect.DrawOp,
+                  op2 = next2.value as GskDLDrawOpInspect.DrawOp;
+
+            if (op1.verb != op2.verb) {
+                continue;
+            }
+            for (let i = 0; i < op1.args.length; i++) {
+                switch (op1.reflection.args[i].type) {
+                    case GskDrawOpArgType.kInternal_Obj_DLLayerInfo:
+                        if (!CompareDLLayerInfo(op1.args[i] as DLLayerInfo, op2.args[i] as DLLayerInfo)) {
+                            return false;
+                        }
+                        break;
+
+                    case GskDrawOpArgType.kObj_Color4f:
+                        if (!(op1.args[i] as Color4f).equalTo(op2.args[i] as Color4f)) {
+                            return false;
+                        }
+                        break;
+
+                    case GskDrawOpArgType.kObj_Mat3x3:
+                        if (!(op1.args[i] as Mat3x3).equalTo(op2.args[i] as Mat3x3)) {
+                            return false;
+                        }
+                        break;
+
+                    case GskDrawOpArgType.kObj_Rect:
+                        if (!(op1.args[i] as Rect).equalTo(op2.args[i] as Rect)) {
+                            return false;
+                        }
+                        break;
+
+                    case GskDrawOpArgType.kObj_RRect:
+                        if (!CompareRRect(op1.args[i] as RRect, op2.args[i] as RRect)) {
+                            return false;
+                        }
+                        break;
+
+                    case GskDrawOpArgType.kObj_Paint:
+                        if (!(op1.args[i] as Paint).equalTo(op2.args[i] as Paint)) {
+                            return false;
+                        }
+                        break;
+
+                    default:
+                        // For primitive values and other `kObj_*` values, compare directly
+                        if (op1.args[i] != op2.args[i]) {
+                            return false;
+                        }
+                        break;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public [Fmt.kObjectFormatter](ctx: Fmt.FormatterContext): Array<Fmt.TextBlock> {
+        const blocks: Array<Fmt.TextBlock> = [
+            Fmt.TB(Fmt.TextBlockLayoutHint.kPrefix, [Fmt.TAG('DLDrawOpSlice', Fmt.TextColor.kBlueBright)]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureBegin, [Fmt.TAG('{')])
+        ];
+
+        const arrBounds = [this.fBounds.left, this.fBounds.top,
+                           this.fBounds.right, this.fBounds.bottom];
+        blocks.push(
+            Fmt.TB(Fmt.TextBlockLayoutHint.kPropertyName, [Fmt.TAG('@BoundsLTRB:')]),
+            ...Fmt.formatAnyValue(arrBounds, ctx),
+
+            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(';')]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kPropertyName, [Fmt.TAG('@Clipping:')]),
+            ...Fmt.formatAnyValue(this.fClipping, ctx),
+
+            Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(';')]),
+            Fmt.TB(Fmt.TextBlockLayoutHint.kPropertyName, [Fmt.TAG('@Matrix:')]),
+        );
+        if (this.fMatrix != null) {
+            blocks.push(...GskDLDrawOpInspect.FormatMat3x3(this.fMatrix, ctx));
+        } else {
+            blocks.push(Fmt.TB(Fmt.TextBlockLayoutHint.kValue,
+                               [Fmt.TAG('<Identity>', Fmt.TextColor.kGreen)]));
+        }
+
+        // Format DrawOps
+        for (const op of GskDLDrawOpInspect.Iterate(this.fOps)) {
+            blocks.push(
+                Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(';')]),
+                Fmt.TB(Fmt.TextBlockLayoutHint.kPropertyName,
+                       [Fmt.TAG(GskDLDrawOpInspect.GetName(op.verb), Fmt.TextColor.kCyanBright)]),
+                Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureBegin, [Fmt.TAG('(', Fmt.TextColor.kYellowBright)])
+            );
+
+            for (let i = 0; i < op.args.length; i++) {
+                const argInfo = op.reflection.args[i];
+                const argValue = op.args[i];
+                blocks.push(Fmt.TB(Fmt.TextBlockLayoutHint.kPropertyName, [
+                    Fmt.TAG(`${argInfo.name}`, Fmt.TextColor.kYellowBright),
+                    Fmt.TAG(` = <${argInfo.type}>`)
+                ]));
+
+                switch (argInfo.type) {
+                    case GskDrawOpArgType.kInternal_I32_ChildIndex:
+                        blocks.push(...Fmt.formatAnyValue(this.fChildren[argValue as number], ctx));
+                        break;
+
+                    case GskDrawOpArgType.kInternal_Obj_DLLayerInfo:
+                        blocks.push(...FormatDLLayerInfo(argValue as DLLayerInfo, ctx));
+                        break;
+
+                    case GskDrawOpArgType.kI32:
+                    case GskDrawOpArgType.kF32:
+                    case GskDrawOpArgType.kBool:
+                    case GskDrawOpArgType.kString:
+                        blocks.push(...Fmt.formatAnyValue(argValue, ctx));
+                        break;
+
+                    // TODO(sora): implement other types.
+                }
+
+                if (i < op.args.length - 1) {
+                    blocks.push(Fmt.TB(Fmt.TextBlockLayoutHint.kSeparator, [Fmt.TAG(',')]));
+                }
+            }
+
+            blocks.push(Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureEnd,
+                               [Fmt.TAG(')', Fmt.TextColor.kYellowBright)]));
+        }
+
+        blocks.push(Fmt.TB(Fmt.TextBlockLayoutHint.kCompoundStructureEnd, [Fmt.TAG('}')]));
+        return blocks;
+    }
+}
+
+interface RecorderState<T> {
     saveCount: number;
     matrix: Mat3x3;
-    bounds: Rect;
-
-    // A Picture is recording
-    isRecording: boolean;
-    recorder: CkPictureRecorder | null;
+    slice: DLDrawOpSlice;
+    extraStates: T;
 }
 
-/**
- * An implement of DisplayList that convert the DisplayList representation
- * into the layer tree representation of `[glamor] ContentAggregator`.
- */
-export class GskGLSceneDisplayList implements GskDisplayList {
-    private readonly fStateStack: Array<GLSceneStateStackFrame>;
-    private readonly fSB: SceneBuilder;
+export interface SaveLayerOptions {
+    bounds?: Rect;
+    initWithPreviousLayerContent?: boolean;
+    alpha?: number;
+    blendMode?: BlendMode;
+    blender?: Blender;
+    filter?: ImageFilter;
+    backdrop?: ImageFilter;
+}
 
-    constructor(viewport: { width: number, height: number }) {
+export abstract class GskDLRecorderBase<ExtraStates> {
+    private readonly fStateStack: Array<RecorderState<ExtraStates>>;
+    private readonly fRootSlice: DLDrawOpSlice;
+    private fTotalSliceCount: number;
+
+    protected constructor(bounds: Rect, initialExtraStates: ExtraStates) {
         this.fStateStack = [];
-        this.fSB = new SceneBuilder(viewport.width, viewport.height);
-
-        // Layer tree requires the root node must be a container
-        // node. For more details, see `//src/Glamor/Layers/LayerTree.cc` file.
-        this.fSB.pushOffset(0, 0);
-
+        this.fRootSlice = new DLDrawOpSlice(bounds);
+        this.fTotalSliceCount = 1;
         // Current state
         this.fStateStack.push({
-            SBDepth: 1,
             saveCount: 1,
             matrix: Mat3x3.Identity(),
-            bounds: Rect.MakeWH(viewport.width, viewport.height),
-            isRecording: false,
-            recorder: null
+            slice: this.fRootSlice,
+            extraStates: initialExtraStates
         });
     }
 
-    private currentState(): GLSceneStateStackFrame {
+    protected abstract onCopyExtraStates(from: ExtraStates): ExtraStates;
+
+    private currentState(): RecorderState<ExtraStates> {
         if (this.fStateStack.length == 0) {
             throw Error('State stack is empty');
         }
         return this.fStateStack[this.fStateStack.length - 1];
     }
 
-    private finishPossibleRecording(): boolean {
-        const current = this.currentState();
-        if (!current.isRecording) {
-            return;
-        }
-        const picture = current.recorder.finishRecordingAsPicture();
-        this.fSB.addPicture(picture, true);
-        current.isRecording = false;
-        current.recorder = null;
-    }
-
-    private restoreSBStateTo(saveCount: number): void {
-        const top = this.currentState();
-        const popCount = top.SBDepth - this.fStateStack[saveCount - 1].SBDepth;
-        for (let i = 0; i < popCount; i++) {
-            this.fSB.pop();
-        }
-    }
-
-    public build(): Scene {
-        this.finishPossibleRecording();
-        return this.fSB.build();
-    }
-
     public save(): number {
-        this.finishPossibleRecording();
         const top = this.currentState();
         this.fStateStack.push({
-            SBDepth: top.SBDepth,
             saveCount: top.saveCount + 1,
             matrix: top.matrix,
-            bounds: top.bounds,
-            isRecording: false,
-            recorder: null
+            // No states are changed, and we should not create a new slice.
+            slice: top.slice,
+            extraStates: this.onCopyExtraStates(top.extraStates)
         });
         return top.saveCount;
     }
 
-    public saveLayer(bounds: Rect, paintRecord: GskPaintRecord): number {
-        // Finish the current picture recording, if there is. This operation is necessary
-        // as the picture recording may be interrupted by `saveLayer()` calls.
-        // For example (pseudocode):
-        //   1. saveLayer(...)
-        //   2. get canvas and draw
-        //   3. saveLayer(...)
-        //   4. get canvas and draw
-        //   5. restore()
-        //   6. get canvas and draw
-        //
-        // Line 2 begins a recording on layer#1, but the SaveLayer operation at line 3
-        // interrupts it and draws something on layer#2, then at line 6 we draw on layer#1
-        // again. Things drawn at line 2 and line 6 cannot be stored in the same Picture,
-        // though they are on the same layer.
-        this.finishPossibleRecording();
+    public saveBounds(bounds: Rect): number {
+        const top = this.currentState();
 
-        let subtreeDepth = 0;
+        // Bounds is changed, so a new slice should be created.
+        const newSlice = new DLDrawOpSlice(bounds);
+        top.slice.insertSubSlice(newSlice);
+        this.fTotalSliceCount++;
 
-        if (!paintRecord.isOpaque()) {
-            this.fSB.pushOpacity(paintRecord.color.A);
-            subtreeDepth++;
-        }
-
-        if (paintRecord.imageFilter) {
-            this.fSB.pushImageFilter(paintRecord.imageFilter);
-            subtreeDepth++;
-        }
-
-        // TODO(sora): apply blender and colorfilter
-
-        // Create the new "current state"
-        const lastState = this.currentState();
         this.fStateStack.push({
-            SBDepth: lastState.SBDepth + subtreeDepth,
-            saveCount: lastState.saveCount + 1,
-            matrix: lastState.matrix,
-            bounds: bounds,
-            isRecording: false,
-            recorder: null
+            saveCount: top.saveCount + 1,
+            matrix: top.matrix,
+            slice: newSlice,
+            extraStates: this.onCopyExtraStates(top.extraStates)
         });
+        return top.saveCount;
+    }
 
-        return lastState.saveCount;
+    public saveLayer(options: SaveLayerOptions): number {
+        const top = this.currentState();
+
+        const layerInfo: DLLayerInfo = {
+            bounds: options.bounds != null ? options.bounds : top.slice.fBounds,
+            initWithPreviousLayerContent:
+                options.initWithPreviousLayerContent != null ? options.initWithPreviousLayerContent : false,
+            alpha: options.alpha != null ? options.alpha : 1,
+            blendMode: options.blendMode != null ? options.blendMode : BlendMode.SrcOver,
+            blender: options.blender != null ? options.blender : null,
+            filter: options.filter != null ? options.filter : null,
+            backdrop: options.backdrop != null ? options.backdrop : null
+        };
+        const newSlice = new DLDrawOpSlice(layerInfo.bounds);
+        top.slice.insertSubSliceLayer(newSlice, layerInfo);
+        this.fTotalSliceCount++;
+
+        this.fStateStack.push({
+            saveCount: top.saveCount + 1,
+            matrix: top.matrix,
+            slice: newSlice,
+            extraStates: this.onCopyExtraStates(top.extraStates)
+        });
+        return top.saveCount;
     }
 
     public getSaveCount(): number {
@@ -190,31 +548,44 @@ export class GskGLSceneDisplayList implements GskDisplayList {
     }
 
     public restore(): void {
-        this.finishPossibleRecording();
-        this.restoreSBStateTo(this.fStateStack.length - 1);
+        if (this.fStateStack.length == 1) {
+            return;
+        }
         this.fStateStack.pop();
     }
 
     public restoreToCount(saveCount: number): void {
-        this.finishPossibleRecording();
         const top = this.currentState();
         if (saveCount >= top.saveCount) {
             return;
         }
 
         saveCount = Math.max(1, saveCount);
-        this.restoreSBStateTo(saveCount);
         this.fStateStack.splice(saveCount);
     }
 
+    private getStateMutableSlice(): DLDrawOpSlice {
+        const top = this.currentState();
+        // The states of an empty slice are mutable, since the change of states
+        // does not affect any existing DrawOps.
+        if (top.slice.isEmpty()) {
+            return top.slice;
+        }
+        // The states of a non-empty are immutable. The slice has recorded some DrawOps,
+        // which are supposed to be in the original states. Create a new empty slice
+        // as the mutable slice.
+        const newSlice = new DLDrawOpSlice(top.slice.fBounds);
+        top.slice.insertSubSlice(newSlice);
+        top.slice = newSlice;
+        this.fTotalSliceCount++;
+        return newSlice;
+    }
+
     public concatMatrix(ctm: Mat3x3): void {
-        this.finishPossibleRecording();
         const top = this.currentState();
         top.matrix = top.matrix.clone();
         top.matrix.preConcat(ctm);
-
-        this.fSB.pushTransform(ctm.toCkMat3x3Array());
-        top.SBDepth++;
+        this.getStateMutableSlice().concatMatrix(ctm);
     }
 
     public getTotalMatrix(): Mat3x3 {
@@ -222,38 +593,88 @@ export class GskGLSceneDisplayList implements GskDisplayList {
         return top.matrix.clone();
     }
 
-    public clipRect(shape: Rect, antiAlias: boolean): void {
-        this.finishPossibleRecording();
-        this.currentState().SBDepth++;
-        this.fSB.pushRectClip(shape.toCkArrayXYWHRect(), antiAlias);
+    public clipRect(rect: Rect, op: ClipOp, antiAlias: boolean): void {
+        this.getStateMutableSlice().appendClipping(DLSliceClipping.Rect(rect, op, antiAlias));
     }
 
-    public clipRRect(shape: RRect, antiAlias: boolean): void {
-        this.finishPossibleRecording();
-        this.currentState().SBDepth++;
-        this.fSB.pushRRectClip(shape.toCkRRect(), antiAlias);
+    public clipRRect(rrect: RRect, op: ClipOp, antiAlias: boolean): void {
+        this.getStateMutableSlice().appendClipping(DLSliceClipping.RRect(rrect, op, antiAlias));
     }
 
-    public clipPath(path: CkPath, antiAlias: boolean): void {
-        this.finishPossibleRecording();
-        this.currentState().SBDepth++;
-        this.fSB.pushPathClip(path, Constants.CLIP_OP_INTERSECT, antiAlias);
+    public clipPath(path: Path, op: ClipOp, antiAlias: boolean): void {
+        this.getStateMutableSlice().appendClipping(DLSliceClipping.Path(path, op, antiAlias));
     }
 
-    public get canvas(): CkCanvas {
-        const top = this.currentState();
-        if (top.isRecording) {
-            return top.recorder.getRecordingCanvas();
+    public clipShader(shader: Shader, op: ClipOp): void {
+        this.getStateMutableSlice().appendClipping(DLSliceClipping.Shader(shader, op));
+    }
+
+    public get canvas(): DLSliceCanvas {
+        return this.currentState().slice.getCanvas();
+    }
+
+    public finalize(translationContext: Translator.Context): DLDrawOpSlice {
+        // introspect.print(`${Fmt.format(this.fRootSlice.fOps)}\n`);
+        /*
+        for (const op of GskDLDrawOpInspect.Iterate(this.fRootSlice.fOps)) {
+            introspect.print(`${GskDLDrawOpInspect.GetName(op.verb)}\n`);
         }
-        top.isRecording = true;
-        top.recorder = new CkPictureRecorder();
-        // TODO(sora): tighten the bounds to have more efficient caches
-        return top.recorder.beginRecording(top.bounds.toCkArrayXYWHRect());
+         */
+
+        Optimizers.EliminateRedundantSlices(this.fRootSlice);
+
+        // TODO(sora): perform translation and returns a `Scene`
+        Translator.Perform(this.fRootSlice, translationContext, this.fTotalSliceCount);
+
+        introspect.print(`${Fmt.format(this.fRootSlice, { numberToString: v => v.toFixed(2) })}\n`);
+        return this.fRootSlice;
+    }
+}
+
+// A generic implementation of DisplayList recorder.
+export class GskDLRecorder extends GskDLRecorderBase<undefined> {
+    constructor(viewport: Rect) {
+        super(viewport, undefined);
+    }
+    protected onCopyExtraStates(from: undefined): undefined {}
+}
+
+export class DLSliceCanvas {
+    private readonly fOps: Array<unknown>;
+
+    constructor(slice: DLDrawOpSlice) {
+        this.fOps = slice.fOps;
     }
 
-    public dumpStateStack(): void {
-        this.fStateStack.forEach(state => {
-            introspect.print(`[${state.saveCount}] depth=${state.SBDepth} recording=${state.isRecording}\n`);
-        });
+    public drawColor(color: Color4f, mode: BlendMode): void {
+        this.fOps.push(GskDLDrawOpVerb.kDrawColor, color, mode);
     }
+
+    public clear(color: Color4f): void {
+        this.fOps.push(GskDLDrawOpVerb.kClear, color);
+    }
+
+    public drawPaint(paint: Paint): void {
+        this.fOps.push(GskDLDrawOpVerb.kDrawPaint, paint.clone());
+    }
+
+    // `pts` should be immutable until `GskDLRecorderBase.finalize()` is called.
+    public drawPoints(mode: BlendMode, pts: Float32Array, paint: Paint): void {
+        this.fOps.push(GskDLDrawOpVerb.kDrawPoints, mode, pts, paint.clone());
+    }
+
+    public drawPoint(x: number, y: number, paint: Paint): void {
+        this.fOps.push(GskDLDrawOpVerb.kDrawPoint, x, y, paint.clone());
+    }
+
+    public drawRect(rect: Rect, paint: Paint): void {
+        this.fOps.push(GskDLDrawOpVerb.kDrawRect, rect, paint.clone());
+    }
+
+    // `image` should not be disposed until `GskDLRecorderBase.finalize()` is called.
+    public drawImage(image: Image, left: number, top: number, sampling: GskSampling, paint: Paint = null): void {
+        this.fOps.push(GskDLDrawOpVerb.kDrawImage, image, left, top, sampling, paint != null ? paint.clone() : null);
+    }
+
+    // TODO(sora): implement other DrawOps
 }

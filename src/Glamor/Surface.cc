@@ -159,6 +159,10 @@ void Surface::Close()
     // window surface, so it should be disposed first.
     content_aggregator_->Dispose();
 
+    // To clear all the (possible) pending frame states. For example, a frame callback
+    // committed to the Wayland compositor.
+    render_target_->TryCancelCurrentFrameRequest();
+
     // Notify implementor to close the window.
     this->OnClose();
     has_disposed_ = true;
@@ -205,12 +209,12 @@ uint32_t Surface::RequestNextFrame()
     return render_target_->RequestNextFrame();
 }
 
-const SkMatrix& Surface::GetRootTransformation() const
+SkMatrix Surface::GetRootTransformation() const
 {
     return this->OnGetRootTransformation();
 }
 
-const SkMatrix& Surface::OnGetRootTransformation() const
+SkMatrix Surface::OnGetRootTransformation() const
 {
     return SkMatrix::I();
 }

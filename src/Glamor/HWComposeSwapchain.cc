@@ -24,11 +24,13 @@
 #include "include/core/SkColorSpace.h"
 #include "include/gpu/vk/GrVkExtensions.h"
 #include "include/gpu/vk/GrVkBackendContext.h"
+#include "include/gpu/vk/VulkanMutableTextureState.h"
 #include "include/gpu/GrDirectContext.h"
 #include "include/gpu/GrBackendSemaphore.h"
 #include "include/gpu/MutableTextureState.h"
 #include "include/gpu/ganesh/SkSurfaceGanesh.h"
 #include "include/gpu/ganesh/vk/GrVkBackendSurface.h"
+#include "include/gpu/ganesh/vk/GrVkBackendSemaphore.h"
 #include "include/gpu/GrBackendSurface.h"
 
 #include "fmt/format.h"
@@ -39,6 +41,7 @@
 #include "Glamor/HWComposeContext.h"
 #include "Glamor/HWComposeSwapchain.h"
 #include "Glamor/HWComposeDevice.h"
+#include "Utau/HWDeviceContext.h"
 GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.HWComposeSwapchain)
@@ -140,7 +143,8 @@ std::unique_ptr<HWComposeSwapchain>
 HWComposeSwapchain::Make(const std::shared_ptr<HWComposeContext>& context,
                          VkSurfaceFactory& factory,
                          int32_t width, int32_t height,
-                         SkPixelGeometry pixel_geometry)
+                         SkPixelGeometry pixel_geometry,
+                         const PresentGpuContextOptions& gpu_context_options)
 {
     const ContextOptions& gl_options = GlobalScope::Ref().GetOptions();
     if (gl_options.GetDisableHWComposePresent())
@@ -150,6 +154,7 @@ HWComposeSwapchain::Make(const std::shared_ptr<HWComposeContext>& context,
     }
 
     auto ret = std::make_unique<HWComposeSwapchain>();
+    ret->options_ = gpu_context_options;
     ret->context_ = context;
     ret->pixel_geometry_ = pixel_geometry;
 
@@ -194,19 +199,58 @@ HWComposeSwapchain::Make(const std::shared_ptr<HWComposeContext>& context,
 
     // Create HWCompose logical device
     using Selector = HWComposeDevice::DeviceQueueSelector;
-    ret->device_ = HWComposeDevice::Make(context, {
-        { Selector::kGraphics, 1, {1.0f}, VK_NULL_HANDLE },
-        { Selector::kPresent,  1, {1.0f}, ret->vk_surface_ }
-    }, {
+    std::vector<HWComposeDevice::DeviceQueueSpecifier> queue_specs{
+        { Selector::kGraphicsWithPresent, 1, {1.0f}, ret->vk_surface_ }
+    };
+    std::vector<std::string> extra_device_ext{
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
-    });
+    };
+    const auto& avail_features = context->GetVkPhysicalDeviceFeatures();
+    VkPhysicalDeviceFeatures2 enable_features{};
+    enable_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    VkPhysicalDeviceVulkan12Features v12feature{};
+    v12feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    VkPhysicalDeviceVulkan13Features v13feature{};
+    v13feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+
+    // The `samplerYcbcrConversion` feature can also be enabled via `VkPhysicalDeviceVulkan11Features`,
+    // but Skia detects this feature through checking whether there is a `VkPhysicalDeviceSamplerYcbcr
+    // ConversionFeatures` structure in the pNext chain. So we have to use it.
+    // Also, according to the Vulkan spec VUID-VkDeviceCreateInfo-pNext-02829, `VkPhysicalDeviceVulkan11
+    // Features` and `VkPhysicalDeviceSamplerYcbcrConversionFeatures` structures are not allowed to
+    // exist on the pNext chain at the same time. So we have to remove the former one.
+    VkPhysicalDeviceSamplerYcbcrConversionFeatures ycbcr_conv_feature{};
+    ycbcr_conv_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES;
+
+    // Chain them together
+    enable_features.pNext = &v12feature;
+    v12feature.pNext = &v13feature;
+    v13feature.pNext = &ycbcr_conv_feature;
+    ycbcr_conv_feature.pNext = nullptr;
+
+    if (!avail_features.v12.timelineSemaphore)
+    {
+        QLOG(LOG_ERROR, "Could not create device since the physical device does not support timelineSemaphore feature");
+        return nullptr;
+    }
+    v12feature.timelineSemaphore = true;
+
+    if (gpu_context_options.video_decode_compatible)
+    {
+        utau::HWDeviceContext::AppendRequiredQueueSpecs(queue_specs);
+        utau::HWDeviceContext::AppendRequiredVkExtensions(context.get(), extra_device_ext);
+        utau::HWDeviceContext::EnableRequiredVkDeviceFeatures(
+            avail_features, enable_features, v13feature, ycbcr_conv_feature);
+    }
+
+    ret->device_ = HWComposeDevice::Make(context, queue_specs, extra_device_ext, enable_features);
     if (!ret->device_)
         return nullptr;
 
     auto graphics_queue = ret->device_->GetDeviceQueue(
-            HWComposeDevice::DeviceQueueSelector::kGraphics, 0);
+            HWComposeDevice::DeviceQueueSelector::kGraphicsWithPresent, 0);
     auto present_queue = ret->device_->GetDeviceQueue(
-            HWComposeDevice::DeviceQueueSelector::kPresent, 0);
+            HWComposeDevice::DeviceQueueSelector::kGraphicsWithPresent, 0);
     CHECK(graphics_queue.has_value() && present_queue.has_value());
     ret->device_graphics_queue_family_ = graphics_queue->family_index;
     ret->device_present_queue_family_ = present_queue->family_index;
@@ -215,7 +259,8 @@ HWComposeSwapchain::Make(const std::shared_ptr<HWComposeContext>& context,
     bool success = ret->InitializeSkiaGpuContext(SkiaGpuContextCreateInfo{
         .hw_context = context,
         .hw_device = ret->device_,
-        .graphics_queue_index = 0
+        .graphics_queue_index = 0,
+        .enabled_features = enable_features
     });
     if (!success)
     {
@@ -228,6 +273,18 @@ HWComposeSwapchain::Make(const std::shared_ptr<HWComposeContext>& context,
         return nullptr;
     if (!ret->CreateGpuBuffers())
         return nullptr;
+
+    if (gpu_context_options.video_decode_compatible)
+    {
+        ret->videodec_hwcontext_ = utau::HWDeviceContext::MakeFromCompatibleGLDevice(
+            ret->device_, enable_features);
+        if (!ret->videodec_hwcontext_)
+        {
+            QLOG(LOG_ERROR, "Failed to create a shared compatible video decode context");
+            return nullptr;
+        }
+    }
+
     return ret;
 }
 
@@ -247,15 +304,22 @@ HWComposeSwapchain::HWComposeSwapchain()
     , vk_swapchain_extent_{0, 0}
     , vk_images_sharing_mode_(VK_SHARING_MODE_MAX_ENUM)
     , current_buffer_idx_(0)
+    , videodec_hwcontext_(nullptr)
 {
 }
 
 HWComposeSwapchain::~HWComposeSwapchain()
 {
+    if (videodec_hwcontext_)
+        av_buffer_unref(&videodec_hwcontext_);
+
     ReleaseEntireSwapchain();
     DisposeSkiaGpuContext();
     if (vk_surface_ != VK_NULL_HANDLE)
         vkDestroySurfaceKHR(context_->GetVkInstance(), vk_surface_, nullptr);
+
+    // Device may not be disposed immediately, since `utau::HWDeviceContext` may still keep
+    // a reference to it.
     device_.reset();
 }
 
@@ -440,7 +504,7 @@ bool HWComposeSwapchain::Resize(int32_t width, int32_t height)
 
 SkSurface *HWComposeSwapchain::NextFrame()
 {
-    TRACE_EVENT("rendering", "HWComposeSwapchain::NextFrame");
+    TRACE_EVENT("present", "HWComposeSwapchain::NextFrame");
 
     GpuBufferInfo& buffer = gpu_buffers_[current_buffer_idx_];
     sk_sp<SkSurface> surface;
@@ -469,8 +533,7 @@ SkSurface *HWComposeSwapchain::NextFrame()
         buffer.buffer_index = static_cast<int32_t>(image_index);
         surface = skia_surfaces_[buffer.buffer_index];
 
-        GrBackendSemaphore backend_semaphore;
-        backend_semaphore.initVulkan(semaphore);
+        GrBackendSemaphore backend_semaphore = GrBackendSemaphores::MakeVk(semaphore);
         surface->wait(1, &backend_semaphore);
         buffer.acquired = true;
     }
@@ -484,7 +547,7 @@ SkSurface *HWComposeSwapchain::NextFrame()
 GrSemaphoresSubmitted
 HWComposeSwapchain::SubmitFrame(const std::vector<GrBackendSemaphore>& signal_semaphores)
 {
-    TRACE_EVENT("rendering", "HWComposeSwapchain::SubmitFrame");
+    TRACE_EVENT("present", "HWComposeSwapchain::SubmitFrame");
 
     GpuBufferInfo& buffer = gpu_buffers_[current_buffer_idx_];
     if (!buffer.acquired)
@@ -497,8 +560,7 @@ HWComposeSwapchain::SubmitFrame(const std::vector<GrBackendSemaphore>& signal_se
 
     std::vector<GrBackendSemaphore> total_semaphores;
     total_semaphores.reserve(1 + signal_semaphores.size());
-    total_semaphores.emplace_back();
-    total_semaphores.back().initVulkan(buffer.semaphore);
+    total_semaphores.emplace_back(GrBackendSemaphores::MakeVk(buffer.semaphore));
     for (const GrBackendSemaphore& sem : signal_semaphores)
         total_semaphores.push_back(sem);
 
@@ -508,8 +570,8 @@ HWComposeSwapchain::SubmitFrame(const std::vector<GrBackendSemaphore>& signal_se
     };
 
     GrDirectContext *direct_ctx = GetSkiaGpuContext();
-    skgpu::MutableTextureState state(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                                     device_present_queue_family_);
+    skgpu::MutableTextureState state = skgpu::MutableTextureStates::MakeVulkan(
+            VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, device_present_queue_family_);
 
     if (direct_ctx->flush(surface.get(), surface_flush_info, &state) != GrSemaphoresSubmitted::kYes)
     {
@@ -527,7 +589,7 @@ HWComposeSwapchain::SubmitFrame(const std::vector<GrBackendSemaphore>& signal_se
 
 void HWComposeSwapchain::PresentFrame()
 {
-    TRACE_EVENT("rendering", "HWComposeSwapchain::PresentFrame");
+    TRACE_EVENT("present", "HWComposeSwapchain::PresentFrame");
 
     GpuBufferInfo& buffer = gpu_buffers_[current_buffer_idx_];
     if (!buffer.acquired)

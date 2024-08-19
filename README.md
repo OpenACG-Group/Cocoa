@@ -6,45 +6,94 @@ This project belongs to [OpenACG Group](https://github.com/OpenACG-Group).
 
 [Documentations](https://openacg-group.github.io/)
 
-## Motivation & Introduction
-Cocoa is a project inspired by
-[*ATRI -My Dear Moments-*](https://atri-mdm.com/),
-initially aiming to improve the VN experience on the Linux platform and provide
-a framework for those who are interested in VN creation.  Although Cocoa is initially
-created for VN, it is completely a general-purposed 2D rendering framework that can
-fit other similar situations.
+## Introduction
+Basically another version of SDL library, but with many extensions and for JavaScript.
 
 The project name **Cocoa** comes from an anime called
 [_Is the Order a Rabbit?_](https://www.gochiusa.com/)
 which has a heroine named _Kokoa Hoto_. So its pronunciation is actually follows the Japanese
 Katakana ココア. But it also doesn't matter much if you pronounce it in English way.
 
-TypeScript is the official programming language of Cocoa. Cocoa itself can be treated
-as a JavaScript engine, which is written in C++17.
-Rendering framework part of Cocoa is mostly built by native C++,
-while the visual novel framework part is completely built by TypeScript.
-
-Cocoa is still being developed and haven't been ready for commercial use.
+Cocoa is still being developed and haven't been ready for practical use.
 Issues / Pull requests are welcome.
 
+## Example
+Here is a simple example to create a window and draw a rectangle.
+
+```javascript
+// `renderer` module provides canvas API for drawing geometries
+import * as renderer from 'renderer';
+// `present` module provides interface to manipulate windows and show contents on it
+import * as present from 'present';
+
+// A present thread dispatches the process of onscreen rendering
+const thread = present.PresentThread.Start();
+// A `Display` object is a standalone connection to the current system display server.
+// I.e. it connects to the Wayland compositor such as sway, kwin, mutter, etc.
+// It is asynchronous as the operation is sent to present thread to execute.
+const display = await thread.createDisplay();
+
+// Create a toplevel 512x512 Wayland surface, which represents a visible window.
+// `surface.contentAggregator` manages onscreen rendering of the window.
+const surface = await display.createSurface(512, 512, {
+    // Enable hardware acceleration for this window
+    enableGpuPipeline: true
+});
+
+// Add event listeners
+surface.addListener('close', () => {
+    // Close the window itself first
+    surface.close().then(() => {
+        // We can close the display server connection because we have no other windows.
+        return display.close();
+    }).then(() => {
+        // Finally we terminate the present thread, then the main event loop should exit.
+        thread.dispose();
+    });
+});
+
+
+// Preparations have been done, and we can start to draw something.
+
+// First, create a PictureRecorder to record our drawing commands:
+const recorder = new renderer.PictureRecorder();
+
+// Begin recording and get a canvas object. We will emit our commands using canvas API.
+recorder.beginRecording(renderer.Rect.MakeWH(512, 512));
+const canvas = recorder.getRecordingCanvas();
+
+// DRAW: clear the whole canvas
+canvas.clear([1, 1, 1, 1]);
+
+// DRAW: draw a rectangle
+const paint = new renderer.Paint();
+paint.color = 0xff66ccff;
+paint.antiAlias = true;
+paint.style = renderer.Style.Fill;
+canvas.drawRect(renderer.Rect.MakeXYWH(50, 50, 200, 200), paint);
+
+// Finish our recording to get a Picture object where the commands are stored.
+const picture = recorder.finishRecordingAsPicture();
+
+// Construct a layer tree and add our Picture object into it as a node.
+const layers = new present.SceneBuilder(renderer.Rect.MakeWH(512, 512))
+    .addPicture(picture, true)
+    .build();
+
+// Commit the layer tree. Layer tree we commited will be rasterized on the present
+// thread, and be presented when the next VSync signal arrives.
+await surface.contentAggregator.update(layers);
+```
+
 ## Platform
-A typical feature of GNU/Linux platform is that there are usually more than one
-technique/solution to solve the same problem. For example, both PipeWire and
-PulseAudio are designed to be the audio backend on Linux. Some solutions are too
-old (but they are usually more stable and compatible, like X11 vs Wayland) and
-Cocoa **does not and will not** support them.
+Cocoa **ONLY** supports GNU/Linux platform, with Wayland, Vulkan and PipeWire support.
 
-Generally, Cocoa always supports the newer technique when we have the choice,
-and there is a table showing what are or aren't supported:
-
-| Feature               | Support     | Not support |
-|-----------------------|-------------|-------------|
-| Display Server        | Wayland     | X11, Mir    |
-| Graphics Library      | Vulkan      | OpenGL      |
-| Audio Server          | PipeWire    | PulseAudio  |
-| Video Decoding Accel. | VAAPI (DRM) | VDPAU       |
-
-* For video decoding acceleration, Vulkan may be supported in the future.
+| Feature               | Backend  |
+|-----------------------|----------|
+| Display Server        | Wayland  |
+| Rendering             | Vulkan   |
+| Audio                 | PipeWire |
+| Video Decoding Accel. | Vulkan   |
 
 ## Features
 
@@ -55,31 +104,59 @@ and there is a table showing what are or aren't supported:
 * V8 inspector on WebSocket: debug JavaScript with VSCode
 * WebAssembly support: run WASM modules compiled by Emscripten
 
-### Rendering (_glamor_ module)
+### Rendering
 * Skia-like API
 * Onscreen and offscreen rendering targets
 * Wayland support
-* Raster (CPU) and Vulkan (GPU) rendering backends
+* Vulkan support
 * Asynchronous onscreen rasterization
 * LayerTree-based onscreen rendering
-* PNG, JPEG, Webp encoding and decoding
 
 ### Other graphical features
-* SVG support (draw SVGs or use SVG as a rendering target)
-* Text layout
-* Lottie animation support
-* Computer vision by OpenCV WASM
+* Image encoding and decoding
 
-### Multimedia (_utau_ module)
+### Multimedia
 * Multimedia decoding based on FFmpeg
-* Hardware-accelerated (VA-API) video decoding
-* Multimedia DAG filtering (some filters are hardware-accelerated)
+* Vulkan acceleration
+* Frame filtering (libavfilter)
 * PipeWire
-* Multimedia representation dispatcher
-* Video buffers can be exported as _glamor_ texture
+* Media dispatcher (for video playing)
 
 ## Building
+
+Clone the repository, and fetch dependencies:
+```shell
+$ ./script/deptools.py build libuv jsoncpp libwebsockets fmt libyuv skia v8 ffmpeg
+```
+
+Then build with CMake, using Clang toolchain:
+```shell
+$ mkdir -p out && cd out
+$ cmake -G Ninja -DCMAKE_C_COMPILER="clang" -DCMAKE_CXX_COMPILER="clang++" .
+$ ninja
+```
+
+Run a JavaScript file:
+```shell
+$ ./Cocoa /path/to/the/script.js
+```
+
 See [documentation](https://openacg-group.github.io) for more details.
+
+## TypeScript
+Cocoa provides a simple TypeScript library, including `.d.ts` files of native modules.
+
+To use it, extend the configuration file `//typescript/tsconfig.base.json`.
+An example configuration `tsconfig.json`:
+
+```json
+{
+    "extends": "/path/to/cocoa/typescript/tsconfig.base.json",
+    "files": [
+        "your-script-file.ts"
+    ]
+}
+```
 
 ## WebAssembly
 WebAssembly is an experimentally supported feature. WASM module compiled by Emscripten

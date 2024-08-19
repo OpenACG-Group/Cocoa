@@ -55,17 +55,26 @@ public:
         PipeWireAudioDevice *dev_;
     };
 
-    std::unique_ptr<AudioSinkStream> CreateSinkStream(const std::string &name) override;
+    /**
+     * If there are one or more listeners, the connection prevents the
+     * main thread's event loop from exiting.
+     */
+    void IncreaseEventListenerCount();
+    void DecreaseEventListenerCount();
 
-    g_private_api g_nodiscard g_inline pw_thread_loop *GetPipeWireLoop() const {
+    std::shared_ptr<AudioSinkStream> CreateSinkStream(
+            const std::string& name, AVSampleFormat format, int32_t sample_rate,
+            const AVChannelLayout& ch_layout, bool realtime) override;
+
+    g_private_api g_nodiscard pw_thread_loop *GetPipeWireLoop() const {
         return pw_loop_;
     }
 
-    g_private_api g_nodiscard g_inline pw_core *GetPipeWireCore() const {
+    g_private_api g_nodiscard pw_core *GetPipeWireCore() const {
         return pw_core_;
     }
 
-    g_private_api void InvokeFromMainThread(const std::function<void()>& proc);
+    g_private_api void SendTaskToMainThread(const std::function<void()>& proc);
 
     g_private_api void LockThreadLoop();
     g_private_api void UnlockThreadLoop();
@@ -73,7 +82,7 @@ public:
 private:
     static void AsyncHandler(uv_async_t *handle);
 
-    uv_loop_t                  *main_thread_loop_;
+    int32_t                     nb_event_listeners_;
     uv_async_t                 *uv_async_;
     pw_thread_loop             *pw_loop_;
     pw_core                    *pw_core_;

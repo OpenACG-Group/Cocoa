@@ -49,55 +49,27 @@ public:
     static std::unique_ptr<WaylandSeatPointerDevice>
     MakeFromPointerDevice(WaylandSeat *seat, wl_pointer *pointer);
 
-    g_nodiscard g_inline WaylandSeat *GetSeat() const {
+    g_nodiscard WaylandSeat *GetSeat() const {
         return seat_;
     }
 
     void ResetEventGroupStates();
 
     // Pointer device events
-    static void on_enter(void *data,
-                         wl_pointer *pointer,
-                         uint32_t serial,
-                         wl_surface *surface,
-                         wl_fixed_t surface_x,
-                         wl_fixed_t surface_y);
-    static void on_leave(void *data,
-                         wl_pointer *pointer,
-                         uint32_t serial,
-                         wl_surface *surface);
-    static void on_motion(void *data,
-                          wl_pointer *pointer,
-                          uint32_t time,
-                          wl_fixed_t surface_x,
+    static void on_enter(void *data, wl_pointer *pointer, uint32_t serial,
+                         wl_surface *surface, wl_fixed_t surface_x, wl_fixed_t surface_y);
+    static void on_leave(void *data, wl_pointer *pointer, uint32_t serial, wl_surface *surface);
+    static void on_motion(void *data, wl_pointer *pointer, uint32_t time, wl_fixed_t surface_x,
                           wl_fixed_t surface_y);
-    static void on_button(void *data,
-                          wl_pointer *pointer,
-                          uint32_t serial,
-                          uint32_t time,
-                          uint32_t button,
-                          uint32_t state);
-    static void on_axis(void *data,
-                        wl_pointer *pointer,
-                        uint32_t time,
-                        uint32_t axis,
-                        wl_fixed_t value);
+    static void on_button(void *data, wl_pointer *pointer, uint32_t serial, uint32_t time,
+                          uint32_t button, uint32_t state);
+    static void on_axis(void *data, wl_pointer *pointer, uint32_t time, uint32_t axis, wl_fixed_t value);
     static void on_frame(void *data, wl_pointer *pointer);
-    static void on_axis_source(void *data,
-                               wl_pointer *pointer,
-                               uint32_t axis_source);
-    static void on_axis_stop(void *data,
-                             wl_pointer *pointer,
-                             uint32_t time,
-                             uint32_t axis);
-    static void on_axis_discrete(void *data,
-                                 wl_pointer *pointer,
-                                 uint32_t axis,
-                                 int32_t discrete);
-    static void on_axis_value120(void *data,
-                                 wl_pointer *pointer,
-                                 uint32_t axis,
-                                 int32_t value120);
+    static void on_axis_source(void *data, wl_pointer *pointer, uint32_t axis_source);
+    static void on_axis_stop(void *data, wl_pointer *pointer, uint32_t time, uint32_t axis);
+    static void on_axis_discrete(void *data, wl_pointer *pointer, uint32_t axis, int32_t discrete);
+    static void on_axis_value120(void *data, wl_pointer *pointer, uint32_t axis, int32_t value120);
+    static void on_axis_rel_direction(void *data, wl_pointer *pointer, uint32_t axis, uint32_t direction);
 
 private:
     WaylandSeat     *seat_;

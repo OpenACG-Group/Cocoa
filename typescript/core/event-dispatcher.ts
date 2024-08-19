@@ -16,7 +16,7 @@
  */
 
 import { LinkedList } from './linked_list';
-import { EventEmitterBase as NativeEmitter } from 'synthetic://private/base';
+import { EventEmitterBase as NativeEmitter } from 'native://event';
 
 export class Event {
     public readonly name: string;

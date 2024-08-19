@@ -137,7 +137,7 @@ async function render(window: ui.Surface): Promise<void> {
     }
 
     const picture = recorder.finishRecordingAsPicture();
-    const scene = new ui.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
+    const scene = new ui.SceneBuilder([0, 0, WINDOW_WIDTH, WINDOW_HEIGHT])
         .pushOffset(0, 0)
         .addPicture(picture, true)
         .build();

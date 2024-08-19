@@ -101,7 +101,7 @@ public:
     g_nodiscard virtual size_t size() const = 0;
     g_nodiscard virtual uint8_t at(size_t index) const = 0;
 
-    g_nodiscard g_inline uint8_t operator[](size_t index) const {
+    g_nodiscard uint8_t operator[](size_t index) const {
         return this->at(index);
     }
 

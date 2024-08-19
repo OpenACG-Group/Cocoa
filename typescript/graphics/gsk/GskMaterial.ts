@@ -16,7 +16,6 @@
  */
 
 import { Color4f } from '../base/Color';
-import { Rect } from '../base/Rectangle';
 import {
     GskConcreteType,
     GskNode,
@@ -25,15 +24,8 @@ import {
     GskInvalidationRecorder
 } from './GskNode';
 
-import {
-    GskPaintRecord,
-    GskPaintStyle,
-    GskStrokeJoin,
-    GskStrokeCap
-} from './GskPaintRecord';
-
-import { GskBlendMode } from './GskBlendMode';
-import { Mat3x3 } from '../base/Matrix';
+import { GskPaintRecord } from './GskPaintRecord';
+import { Mat3x3, BlendMode, Rect, Style, LineCap, LineJoin } from 'renderer';
 
 export abstract class GskMaterial extends GskNode {
     @GskProperty<boolean, GskMaterial>(false)
@@ -42,8 +34,8 @@ export abstract class GskMaterial extends GskNode {
     @GskProperty<number, GskMaterial>(1)
     public opacity: number;
 
-    @GskProperty<GskBlendMode, GskMaterial>(GskBlendMode.kSrcOver)
-    public blendMode: GskBlendMode;
+    @GskProperty<BlendMode, GskMaterial>(BlendMode.SrcOver)
+    public blendMode: BlendMode;
 
     @GskProperty<number, GskMaterial>(1)
     public strokeWidth: number;
@@ -51,14 +43,14 @@ export abstract class GskMaterial extends GskNode {
     @GskProperty<number, GskMaterial>(4)
     public strokeMiter: number;
 
-    @GskProperty<GskPaintStyle, GskMaterial>(GskPaintStyle.kFill)
-    public style: GskPaintStyle;
+    @GskProperty<Style, GskMaterial>(Style.Fill)
+    public style: Style;
 
-    @GskProperty<GskStrokeJoin, GskMaterial>(GskStrokeJoin.kMiter)
-    public strokeJoin: GskStrokeJoin;
+    @GskProperty<LineJoin, GskMaterial>(LineJoin.Default)
+    public strokeJoin: LineJoin;
 
-    @GskProperty<GskStrokeCap, GskMaterial>(GskStrokeCap.kSquare)
-    public strokeCap: GskStrokeCap;
+    @GskProperty<LineCap, GskMaterial>(LineCap.Default)
+    public strokeCap: LineCap;
 
     protected constructor(type: GskConcreteType) {
         // Material nodes don't generate damage on their own,

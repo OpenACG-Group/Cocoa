@@ -20,55 +20,38 @@
 #include "Gallium/bindings/workers/Exports.h"
 GALLIUM_BINDINGS_WORKERS_NS_BEGIN
 
-v8::Local<v8::Value> MessagePortWrap::MakeConnectedPair()
+ffi::RetLocal<v8::Value> MessagePortWrap::MakeConnectedPair()
 {
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     RuntimeBase *runtime = RuntimeBase::FromIsolate(isolate);
     CHECK(runtime);
     auto pair = MessagePort::MakeConnectedPair(runtime->GetEventLoop());
-    return binder::to_v8(isolate, std::vector<v8::Local<v8::Value>>{
-        binder::NewObject<MessagePortWrap>(isolate, std::move(pair.first)),
-        binder::NewObject<MessagePortWrap>(isolate, std::move(pair.second))
-    });
+
+    v8::Local<v8::Value> ports[] = {
+        ffi::JSObject::New<MessagePortWrap>(isolate, std::move(pair.first)),
+        ffi::JSObject::New<MessagePortWrap>(isolate, std::move(pair.second))
+    };
+    return v8::Array::New(isolate, ports, 2);
 }
 
 namespace {
 
-class MessagePortWrapFlattenedData : public MessagePortWrap::FlattenedData
+class TransferData : public ffi::JSTransferData
 {
 public:
-    static MessagePortWrap::MaybeFlattened Transfer(v8::Isolate *isolate,
-                                                    ExportableObjectBase *base,
-                                                    bool pretest)
-    {
-        auto *wrap = base->Cast<MessagePortWrap>();
-        if (pretest)
-            // NOLINTNEXTLINE
-            return MessagePortWrap::FlattenPretestResult(!!wrap->GetPort());
-
-        // Close the port (detach it from current event loop) first.
-        // It should not attach to any event loop until it is delivered
-        // to the destination port.
-        wrap->close();
-
-        std::shared_ptr<MessagePort> port = wrap->GetPort();
-        return MessagePortWrap::JustFlattened(
-                std::make_shared<MessagePortWrapFlattenedData>(port));
-    }
-
-    explicit MessagePortWrapFlattenedData(std::shared_ptr<MessagePort> port)
+    explicit TransferData(std::shared_ptr<MessagePort> port)
         : port_(std::move(port)) {}
-    ~MessagePortWrapFlattenedData() override = default;
+    ~TransferData() override = default;
 
-    v8::MaybeLocal<v8::Object> Deserialize(v8::Isolate *isolate,
-                                           v8::Local<v8::Context> context) override
+    ffi::RetLocal<v8::Object> Construct(v8::Isolate *isolate,
+                                        v8::Local<v8::Context> context) override
     {
-        // Port has been delivered to the destination port, and
+        // The port has been delivered to the destination thread, and
         // attach it to the new event loop.
-        port_->AttachToEventLoop(
-                RuntimeBase::FromIsolate(isolate)->GetEventLoop());
+        uv_loop_t *event_loop = RuntimeBase::FromIsolate(isolate)->GetEventLoop();
+        port_->AttachToEventLoop(event_loop);
 
-        return binder::NewObject<MessagePortWrap>(isolate, port_);
+        return ffi::JSObject::New<MessagePortWrap>(isolate, port_);
     }
 
 private:
@@ -78,9 +61,7 @@ private:
 } // namespace anonymous
 
 MessagePortWrap::MessagePortWrap(std::shared_ptr<MessagePort> port)
-    : ExportableObjectBase(kMessagePort_Attr | kTransferable_Attr,
-                           {}, MessagePortWrapFlattenedData::Transfer)
-    , port_(std::move(port))
+    : port_(std::move(port))
 {
     EmitterDefineEvent("message", [this] {
         auto emit = EmitterWrapAsCallable("message");
@@ -96,7 +77,7 @@ MessagePortWrap::MessagePortWrap(std::shared_ptr<MessagePort> port)
         auto emit = EmitterWrapAsCallable("error");
         port_->SetErrorCallback([emit](const std::string& err) {
             v8::Isolate *isolate = v8::Isolate::GetCurrent();
-            emit({binder::to_v8(isolate, err)});
+            emit({ffi::Cast<std::string>::ToChecked(isolate, err)});
         });
         return 0;
     }, [this](uint64_t) {
@@ -104,66 +85,48 @@ MessagePortWrap::MessagePortWrap(std::shared_ptr<MessagePort> port)
     });
 }
 
-v8::Local<v8::Object> MessagePortWrap::OnGetObjectSelf(v8::Isolate *isolate)
+std::unique_ptr<ffi::JSTransferData>
+MessagePortWrap::OnObjectTransfer(v8::Isolate *isolate)
 {
-    return GetObjectWeakReference().Get(isolate);
+    // Close the port (detach it from the current event loop) first.
+    // It should not attach to any event loop until it is delivered
+    // to the destination thread.
+    this->close();
+    return std::make_unique<TransferData>(std::move(port_));
 }
 
-void MessagePortWrap::CheckClosedPort()
+ffi::Ret<void> MessagePortWrap::close()
 {
-    if (port_->IsDetached())
-        g_throw(Error, "Message port has been closed or transferred");
-}
-
-void MessagePortWrap::close()
-{
-    CheckClosedPort();
+    ffi::JSObject::NotifyDisposeState(DisposeState::kDisposing);
     EmitterDispose();
     port_->DetachFromEventLoop();
     port_->SetReceiveCallback({});
     port_->SetErrorCallback({});
+    ffi::JSObject::NotifyDisposeState(DisposeState::kDisposed);
+    return {};
 }
 
-void MessagePortWrap::postMessage(const v8::FunctionCallbackInfo<v8::Value>& info)
+ffi::Ret<void> MessagePortWrap::postMessage(v8::Local<v8::Value> message,
+                                            ffi::OptLocal<v8::Array> transfers)
 {
-    CheckClosedPort();
-
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     v8::Local<v8::Context> context = isolate->GetCurrentContext();
 
-    v8::Local<v8::Value> message;
-    std::vector<v8::Local<v8::Value>> transfers;
-    if (info.Length() == 1)
+    std::vector<v8::Local<v8::Value>> transfers_vec;
+    if (transfers)
     {
-        message = info[0];
-    }
-    else if (info.Length() == 2)
-    {
-        message = info[0];
-        if (!info[1]->IsArray())
-            g_throw(TypeError, "Argument `transfers` must be an array of values");
-
-        auto array = info[1].As<v8::Array>();
-        transfers.reserve(array->Length());
+        v8::Local<v8::Array> array = *transfers;
+        transfers_vec.reserve(array->Length());
         for (uint32_t i = 0; i < array->Length(); i++)
         {
             v8::Local<v8::Value> v;
             if (!array->Get(context, i).ToLocal(&v))
-                g_throw(Error, "Argument `transfers` is an invalid array");
-            transfers.emplace_back(v);
+                return ffi::Fail(ffi::kErr, "Argument `transfers` is an invalid array");
+            transfers_vec.emplace_back(v);
         }
     }
-    else
-    {
-        g_throw(TypeError, "Invalid number of arguments, expecting 1 or 2");
-    }
 
-    auto maybe = port_->PostMessage(message, transfers);
-    if (maybe.IsNothing())
-        return;
-
-    if (!maybe.ToChecked())
-        g_throw(Error, "Failed to post message");
+    return port_->PostMessage(message, transfers_vec);
 }
 
 GALLIUM_BINDINGS_WORKERS_NS_END

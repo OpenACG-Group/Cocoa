@@ -16,6 +16,7 @@
  */
 
 #include <fstream>
+#include <map>
 
 #include "fmt/format.h"
 #include "Core/ApplicationInfo.h"
@@ -24,7 +25,7 @@
 #include "Gallium/Gallium.h"
 #include "Gallium/ModuleImportURL.h"
 #include "Gallium/Internals.h"
-#include "Gallium/BindingManager.h"
+#include "Gallium/ffi/Module.h"
 GALLIUM_NS_BEGIN
 
 namespace {
@@ -41,16 +42,16 @@ std::string normalize(std::string url)
     return utils::GetAbsoluteDirectory(url);
 }
 
-std::string resolveRelativeFilePath(const std::string& refererUrl, const std::string& specifier)
+std::string resolve_rel_filepath(const std::string& base, const std::string& specifier)
 {
     std::string result;
     if (specifier[0] == '/')
         result = specifier;
     else
     {
-        auto where = refererUrl.find_last_of('/');
+        auto where = base.find_last_of('/');
         if (where != std::string::npos)
-            result = refererUrl.substr(0, where + 1);
+            result = base.substr(0, where + 1);
         result.append(specifier);
     }
     return normalize(result);
@@ -58,14 +59,14 @@ std::string resolveRelativeFilePath(const std::string& refererUrl, const std::st
 
 // NOLINTNEXTLINE
 std::map<std::string, ModuleImportURL::Protocol> protocols_ = {
-        {"internal://", ModuleImportURL::Protocol::kInternal},
-        {"synthetic://", ModuleImportURL::Protocol::kSynthetic},
-        {"file://", ModuleImportURL::Protocol::kFile}
+        { "internal://",    ModuleImportURL::Protocol::kInternal    },
+        { "native://",      ModuleImportURL::Protocol::kNative      },
+        { "file://",        ModuleImportURL::Protocol::kFile        }
 };
 
 const char *possible_file_ext_[] = {"", ".js", ".mjs"};
 
-const char *resolveInternalScript(const std::string& name, ModuleImportURL::ResolvedAs as)
+const char *resolve_internal_script(const std::string& name, ModuleImportURL::ResolvedAs as)
 {
     InternalScript::ScopeAttr scope;
     switch (as)
@@ -102,10 +103,13 @@ const char *resolveInternalScript(const std::string& name, ModuleImportURL::Reso
 } // namespace anonymous
 
 ModuleImportURL::SharedPtr
-ModuleImportURL::Resolve(ModuleImportURL *referer, const std::string &import, ResolvedAs resolvedAs)
+ModuleImportURL::Resolve(v8::Isolate *isolate,
+                         ModuleImportURL *referer,
+                         const std::string &import,
+                         ResolvedAs resolvedAs)
 {
-    /* Synthetic modules is not allowed to import other module */
-    if (referer && referer->getProtocol() == Protocol::kSynthetic)
+    /* Native modules are not allowed to import other modules */
+    if (referer && referer->GetProtocol() == Protocol::kNative)
         return nullptr;
 
     Protocol proto = Protocol::kInvalid;
@@ -120,8 +124,10 @@ ModuleImportURL::Resolve(ModuleImportURL *referer, const std::string &import, Re
         }
     }
 
-    bindings::BindingBase *bindingCache = nullptr;
-    const char *persistentCachedText = nullptr;
+    ffi::NativeModule *native_module = nullptr;
+    const char *persistent_cache_text = nullptr;
+
+    auto *registry = ffi::ModuleRegistry::FromIsolate(isolate);
 
     /* `import` URL doesn't start with an appropriate prefix */
     if (proto == Protocol::kInvalid)
@@ -129,20 +135,19 @@ ModuleImportURL::Resolve(ModuleImportURL *referer, const std::string &import, Re
         /* 'internal://' must be specified explicitly */
         proto = Protocol::kFile;
         path = import;
-        if ((bindingCache = BindingManager::Instance()->search(path)))
-            proto = Protocol::kSynthetic;
+        if ((native_module = registry->SearchModule(path)))
+            proto = Protocol::kNative;
     }
 
-    if (proto == Protocol::kSynthetic && !bindingCache)
+    if (proto == Protocol::kNative && !native_module)
     {
-        bindingCache = BindingManager::Instance()->search(path);
-        if (!bindingCache)
+        if (!(native_module = registry->SearchModule(path)))
             return nullptr;
     }
     else if (proto == Protocol::kFile)
     {
-        if (referer && referer->getProtocol() == Protocol::kFile)
-            path = resolveRelativeFilePath(referer->getPath(), path);
+        if (referer && referer->GetProtocol() == Protocol::kFile)
+            path = resolve_rel_filepath(referer->GetPath(), path);
         else
             path = normalize(path);
         bool ok = false;
@@ -162,34 +167,24 @@ ModuleImportURL::Resolve(ModuleImportURL *referer, const std::string &import, Re
     }
     else if (proto == Protocol::kInternal)
     {
-        if (!(persistentCachedText = resolveInternalScript(path, resolvedAs)))
+        if (!(persistent_cache_text = resolve_internal_script(path, resolvedAs)))
             return nullptr;
     }
-    return std::make_shared<ModuleImportURL>(proto, path,
-                                             bindingCache, persistentCachedText);
+
+    return std::make_shared<ModuleImportURL>(
+            proto, path, native_module, persistent_cache_text);
 }
 
-ModuleImportURL::SharedPtr
-ModuleImportURL::Resolve(const ModuleImportURL::SharedPtr& referer,
-                         const std::string& import, ResolvedAs resolvedAs)
+std::string ModuleImportURL::OnLoadResourceText() const
 {
-    return Resolve(referer.get(), import, resolvedAs);
-}
+    CHECK(protocol_ == Protocol::kFile);
 
-std::string ModuleImportURL::onLoadResourceText() const
-{
-    CHECK(fProtocol == Protocol::kFile);
-    if (fProtocol == Protocol::kFile)
-    {
-        std::ifstream fs(fPath);
-        /* We've determined that `fPath` must be valid in `Resolve()` */
-        CHECK(fs.is_open());
-        std::string content((std::istreambuf_iterator<char>(fs)),
-                            std::istreambuf_iterator<char>());
-        return content;
-    }
-    // Never executed. Just suppressing compiler's warning:
-    return {};
+    std::ifstream fs(path_);
+    /* We've determined that `fPath` must be valid in `Resolve()` */
+    CHECK(fs.is_open());
+    std::string content((std::istreambuf_iterator<char>(fs)),
+                        std::istreambuf_iterator<char>());
+    return content;
 }
 
 void ModuleImportURL::FreeInternalCaches()

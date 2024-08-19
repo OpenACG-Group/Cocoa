@@ -23,8 +23,7 @@ import {
     NodeTrait
 } from './GskNode';
 
-import { Mat3x3 } from '../base/Matrix';
-import { Rect } from '../base/Rectangle';
+import { Mat3x3, Rect } from 'renderer';
 
 export abstract class GskTransform extends GskNode {
     public static Concat(a: GskTransform, b: GskTransform): GskTransform {
@@ -107,12 +106,12 @@ class GskInverse extends GskTransform {
         this.fT.revalidate(recorder, ctm);
 
         const inv = this.fT.asMat3x3().invert();
-        if (!inv.has()) {
+        if (inv == null) {
             this.fInv = Mat3x3.Identity();
             return Rect.MakeEmpty();
         }
 
-        this.fInv = inv.unwrap();
+        this.fInv = inv;
         return Rect.MakeEmpty();
     }
 

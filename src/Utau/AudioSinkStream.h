@@ -22,82 +22,36 @@
 
 #include "Core/Errors.h"
 #include "Utau/Utau.h"
+#include "Utau/ffwrappers/libavutil.h"
 UTAU_NAMESPACE_BEGIN
 
 class AudioDevice;
 class AudioBuffer;
 
-class AudioSinkStreamEventListener
-{
-public:
-    virtual ~AudioSinkStreamEventListener() = default;
-
-    virtual void OnVolumeChanged(float volume) = 0;
-};
-
 class AudioSinkStream
 {
 public:
-    AudioSinkStream();
-    virtual ~AudioSinkStream() = default;
-
-    enum class ConnectStatus
+    class Listener
     {
-        kAlready,
-        kSuccess,
-        kError
+    public:
+        virtual ~Listener() = default;
+        virtual void OnVolumeChanged(const std::vector<float>& volume) = 0;
+        virtual void OnEmptyQueue(uint64_t last_frame_id) = 0;
     };
 
-    g_nodiscard g_inline int32_t GetUniqueId() const {
-        return unique_id_;
-    }
+    virtual ~AudioSinkStream() = default;
 
-    g_nodiscard g_inline bool IsConnected() const {
-        return connected_;
-    }
+    virtual std::shared_ptr<AudioDevice> GetDevice() = 0;
 
-    g_nodiscard g_inline std::shared_ptr<AudioDevice> GetDevice() {
-        return this->OnGetDevice();
-    }
+    virtual void Dispose() = 0;
 
-    g_nodiscard g_inline const auto& GetEventListener() const {
-        return event_listener_;
-    }
+    virtual std::shared_ptr<Listener> GetListener() const = 0;
+    virtual void SetListener(std::shared_ptr<Listener> listener) = 0;
 
-    g_inline void Dispose() {
-        event_listener_.reset();
-        this->OnDispose();
-    }
-
-    g_inline void SetEventListener(const std::shared_ptr<AudioSinkStreamEventListener>& listener) {
-        event_listener_ = listener;
-    }
-
-    ConnectStatus Connect(SampleFormat sample_format, AudioChannelMode channel_mode,
-                          int32_t sample_rate, bool realtime);
-
-    ConnectStatus Disconnect();
-
-    virtual bool Enqueue(const AudioBuffer& buffer) = 0;
+    virtual uint64_t Enqueue(const AVFrame *frame) = 0;
 
     virtual double GetDelayInUs() = 0;
-    virtual float GetVolume() = 0;
-    virtual void SetVolume(float volume) = 0;
-
-protected:
-    virtual void OnDispose() = 0;
-    virtual std::shared_ptr<AudioDevice> OnGetDevice() = 0;
-    virtual bool OnConnect(SampleFormat sample_format,
-                           AudioChannelMode channel_mode,
-                           int32_t sample_rate,
-                           bool realtime) = 0;
-    virtual bool OnDisconnect() = 0;
-
-private:
-    int32_t         unique_id_;
-    bool            connected_;
-    std::shared_ptr<AudioSinkStreamEventListener>
-                    event_listener_;
+    virtual void SetVolume(const std::vector<float>& volume) = 0;
 };
 
 UTAU_NAMESPACE_END

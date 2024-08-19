@@ -15,13 +15,14 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
+
 #include "fmt/format.h"
 
 #include "Core/Errors.h"
 #include "Core/Journal.h"
 #include "Gallium/bindings/workers/MessagePort.h"
 #include "Gallium/bindings/workers/Exports.h"
-#include "Gallium/binder/Class.h"
 #include "Gallium/RuntimeBase.h"
 GALLIUM_BINDINGS_WORKERS_NS_BEGIN
 
@@ -116,60 +117,59 @@ public:
     // By default, V8 recognize an `v8::Object` as a host object
     // if its internal field count is not 0.
     // See `ValueSerializer::Delegate::IsHostObject` defined in
-    // `//third_party/v8/src/api/api.cc`. But for Cocoa, exported
-    // objects (host objects) always have `binder::kInternalFieldsCount`
-    // internal fields.
+    // `//third_party/v8/src/api/api.cc`.
     v8::Maybe<bool> IsHostObject(v8::Isolate *isolate,
                                  v8::Local<v8::Object> object) override
     {
         return v8::Just(object->InternalFieldCount()
-                        == binder::kInternalFieldsCount);
+                            == ffi::ClassMetadata::kFields_count);
     }
 
     v8::Maybe<bool> WriteHostObject(v8::Isolate *isolate,
                                     v8::Local<v8::Object> object) override
     {
         // `Descriptor` can be treated as a "metaclass" of `object`
-        ExportableObjectBase::Descriptor *descriptor =
-                binder::UnwrapObjectDescriptor(isolate, object);
-        if (!descriptor)
+        ffi::JSObject *base_ptr = ffi::JSObject::UnwrapBaseUnsafe(isolate, object);
+        if (!base_ptr)
         {
-            isolate->ThrowError("Failed to get the descriptor of host object");
+            isolate->ThrowError("Failed to get the metadata of host object");
             return v8::Nothing<bool>();
         }
 
         for (uint32_t i = 0; i < host_objects_.size(); i++)
         {
-            if (descriptor->GetBase() != host_objects_[i].base)
+            if (base_ptr != host_objects_[i].base_ptr)
                 continue;
             serializer_->WriteUint32(i);
             return v8::Just(true);
         }
 
-        ExportableObjectBase::SerializerFunc pfn_serialize;
-        if (IsInTransferList(object))
-            pfn_serialize = descriptor->GetTransferSerializer();
-        else
-            pfn_serialize = descriptor->GetCloneSerializer();
-        if (!pfn_serialize)
+        uint32_t attrs = base_ptr->GetObjectAttributes();
+        bool require_transfer = IsInTransferList(object);
+        auto serialize_type = require_transfer ? ffi::JSObject::SerializeType::kTransfer
+                                               : ffi::JSObject::SerializeType::kClone;
+
+        if (require_transfer && !(attrs & ffi::ClassMetadata::kTransferable_Attr))
         {
-            isolate->ThrowError("Object does not support transfer or clone");
+            isolate->ThrowError("Object does not support transfer");
             return v8::Nothing<bool>();
         }
 
-        // Calling with `pretest == true` does not transfer or clone the
-        // object. Instead, we just check whether the object can be cloned
-        // or transferred.
-        if (pfn_serialize(isolate, descriptor->GetBase(), true).IsNothing())
+        if (!require_transfer && !(attrs & ffi::ClassMetadata::kCloneable_Attr))
         {
-            isolate->ThrowError("Object cannot be cloned or transferred. "
-                                "Maybe it has been transferred to other contexts.");
+            isolate->ThrowError("Object does not support clone");
+            return v8::Nothing<bool>();
+        }
+
+        if (base_ptr->GetDisposeState() != ffi::JSObject::DisposeState::kNot)
+        {
+            isolate->ThrowError("Object is disposing or has been disposed");
             return v8::Nothing<bool>();
         }
 
         host_objects_.push_back(HostObject{
-            descriptor->GetBase(),
-            pfn_serialize
+            base_ptr,
+            serialize_type
         });
         serializer_->WriteUint32(host_objects_.size() - 1);
         return v8::Just(true);
@@ -198,19 +198,17 @@ public:
         return v8::Just<uint32_t>(message_->wasm_modules.size() - 1);
     }
 
-    std::unique_ptr<MessagePort::Message> Finalize()
+    std::unique_ptr<MessagePort::Message> Finalize(v8::Isolate *isolate)
     {
-        v8::Isolate *isolate = v8::Isolate::GetCurrent();
         for (const HostObject& host_object : host_objects_)
         {
-            auto data = host_object.serialize(
-                    isolate, host_object.base, false).ToChecked();
+            std::shared_ptr<ffi::JSTransferData> data = host_object.base_ptr
+                    ->SerializeObject(isolate, host_object.serialize_type);
             CHECK(data);
             message_->flattened_objects.emplace_back(data);
         }
 
-        // Let `message_` take over the ownership of
-        // serialized buffer
+        // Let `message_` take over the ownership of the serialized buffer
         auto [data, size] = serializer_->Release();
         message_->payload = MessagePort::Message::PayloadArray(data, [](const uint8_t *ptr) {
             std::free(const_cast<uint8_t*>(ptr));
@@ -228,12 +226,12 @@ private:
 
     struct HostObject
     {
-        ExportableObjectBase *base;
-        ExportableObjectBase::SerializerFunc serialize;
+        ffi::JSObject *base_ptr;
+        ffi::JSObject::SerializeType serialize_type;
     };
 
-    std::unique_ptr<MessagePort::Message>  message_;
-    v8::ValueSerializer                   *serializer_;
+    std::unique_ptr<MessagePort::Message>           message_;
+    v8::ValueSerializer                            *serializer_;
     const std::vector<v8::Local<v8::Value>>&        transfer_list_;
     std::vector<v8::Local<v8::SharedArrayBuffer>>   seen_shared_abs_;
     std::vector<HostObject>                         host_objects_;
@@ -241,15 +239,15 @@ private:
 
 } // namespace anonymous
 
-v8::Maybe<bool> MessagePort::PostMessage(v8::Local<v8::Value> message,
-                                         const std::vector<v8::Local<v8::Value>>& transfer_list)
+ffi::Ret<void> MessagePort::PostMessage(v8::Local<v8::Value> message,
+                                        const std::vector<v8::Local<v8::Value>>& transfer_list)
 {
     if (port_detached_)
-        return v8::Just(false);
+        return ffi::Fail(ffi::kErr, "Message port has been detached");
 
     auto peer = peer_port_.lock();
     if (!peer)
-        return v8::Just(true);
+        return ffi::Fail(ffi::kErr, "No peer message port");
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     SerializerDelegate delegate(transfer_list);
@@ -263,29 +261,33 @@ v8::Maybe<bool> MessagePort::PostMessage(v8::Local<v8::Value> message,
         {
             auto ab = value.As<v8::ArrayBuffer>();
             if (!ab->IsDetachable())
-                g_throw(Error, "ArrayBuffer in transfer list is not detachable");
+                return ffi::Fail(ffi::kErr, "ArrayBuffer in transfer list is not detachable");
 
             auto itr = std::find(array_buffers.begin(),
                                  array_buffers.end(),
                                  ab);
             if (itr != array_buffers.end())
-                g_throw(Error, "Duplicate ArrayBuffer in transfer list");
+                return ffi::Fail(ffi::kErr, "Duplicate ArrayBuffer in transfer list");
 
             array_buffers.emplace_back(ab);
             serializer.TransferArrayBuffer(array_buffers.size() - 1, ab);
         }
-        else if (binder::UnwrapObjectDescriptor(isolate, value))
+        else if (value->IsObject())
         {
-            auto *desc = binder::UnwrapObjectDescriptor(isolate, value);
+            auto *base_ptr = ffi::JSObject::UnwrapBaseUnsafe(isolate, value.As<v8::Object>());
+            if (!base_ptr)
+                continue;
+
             // The source port and destination should not appear in the
             // transfer list. Let's check it.
-            if (desc->IsMessagePort())
+            if (base_ptr->GetObjectAttributes() & ffi::ClassMetadata::kMessagePort_Attr)
             {
-                auto *wrap = desc->GetBase()->Cast<MessagePortWrap>();
+                auto *wrap = static_cast<MessagePortWrap*>(base_ptr);
                 if (wrap->GetPort() && wrap->GetPort().get() == this)
-                    g_throw(Error, "Transfer list contains the source port");
+                    return ffi::Fail(ffi::kErr, "Transfer list contains the source port");
+
                 if (wrap->GetPort() && wrap->GetPort() == peer)
-                    g_throw(Error, "Transfer list contains the destination port");
+                    return ffi::Fail(ffi::kErr, "Transfer list contains the destination port");
             }
         }
     }
@@ -294,9 +296,9 @@ v8::Maybe<bool> MessagePort::PostMessage(v8::Local<v8::Value> message,
 
     serializer.WriteHeader();
     if (serializer.WriteValue(ctx, message).IsNothing())
-        return v8::Nothing<bool>();
+        return ffi::Fail(ffi::kErr, "Failed to serialize the message");
 
-    std::unique_ptr<MessagePort::Message> port_message = delegate.Finalize();
+    auto port_message = delegate.Finalize(isolate);
 
     for (v8::Local<v8::ArrayBuffer> ab : array_buffers)
     {
@@ -304,7 +306,8 @@ v8::Maybe<bool> MessagePort::PostMessage(v8::Local<v8::Value> message,
         ab->Detach();
     }
 
-    return v8::Just(PostSerializedMessage(peer, std::move(port_message)));
+    CHECK(PostSerializedMessage(peer, std::move(port_message)));
+    return {};
 }
 
 bool MessagePort::PostSerializedMessage(const std::shared_ptr<MessagePort>& peer,
@@ -374,8 +377,14 @@ public:
             return {};
         }
         CHECK(id < message_->flattened_objects.size());
-        return message_->flattened_objects[id]->Deserialize(
-                isolate, isolate->GetCurrentContext());
+        ffi::RetLocal<v8::Object> object = message_->flattened_objects[id]
+                ->Construct(isolate, isolate->GetCurrentContext());
+        if (object.HasError())
+        {
+            object.GetError().Throw(isolate);
+            return {};
+        }
+        return object.Extract();
     }
 
     v8::MaybeLocal<v8::SharedArrayBuffer>
@@ -458,7 +467,7 @@ void MessagePort::ReceiveSerializedMessage(Message& message)
 
 void MessagePort::HandleCaughtError(v8::Isolate *isolate, v8::TryCatch &try_catch)
 {
-    auto msg = binder::from_v8<std::string>(isolate, try_catch.Message()->Get());
+    auto msg = ffi::Cast<std::string>::FromChecked(isolate, try_catch.Message()->Get());
     QLOG(LOG_ERROR, "Message error: {}", msg);
     if (error_callback_)
         error_callback_(msg);

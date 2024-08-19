@@ -54,48 +54,50 @@ WaylandSHMRenderTarget::Make(const std::shared_ptr<WaylandDisplay>& display,
         return nullptr;
     }
 
-    auto renderTarget = std::make_shared<WaylandSHMRenderTarget>(display, width, height, format);
-
-    renderTarget->wl_event_queue_ = wl_display_create_queue(display->GetWaylandDisplay());
-
-    /* Allocate shm buffers */
-    renderTarget->AllocateAppendBuffers(RT_INITIAL_BUFFERS, width, height, format);
-    renderTarget->buffers_[0]->state = BufferState::kDrawing;
-    renderTarget->drawing_buffer_idx_ = 0;
-    renderTarget->committed_buffer_idx_ = RT_EMPTY_INDEX;
+    wl_event_queue *event_queue = wl_display_create_queue(display->GetWaylandDisplay());
+    if (!event_queue)
+    {
+        QLOG(LOG_ERROR, "Failed to create an event queue for render target");
+        return nullptr;
+    }
 
     wl_compositor *compositor = display->GetGlobalsRef()->wl_compositor_;
-    renderTarget->wl_surface_ = wl_compositor_create_surface(compositor);
-
-    if (!renderTarget->wl_surface_)
+    wl_surface *surface = wl_compositor_create_surface(compositor);
+    if (!surface)
     {
         QLOG(LOG_ERROR, "Failed to create Wayland compositor surface");
         return nullptr;
     }
+    wl_proxy_set_queue(reinterpret_cast<wl_proxy *>(surface), event_queue);
 
-    wl_proxy_set_queue(reinterpret_cast<wl_proxy *>(renderTarget->wl_surface_), renderTarget->wl_event_queue_);
-    wl_surface_set_user_data(renderTarget->wl_surface_, renderTarget.get());
+    auto rt = std::make_shared<WaylandSHMRenderTarget>(display, width, height, format, surface, event_queue);
 
-    return renderTarget;
+    /* Allocate shm buffers */
+    rt->AllocateAppendBuffers(RT_INITIAL_BUFFERS, width, height, format);
+    rt->buffers_[0]->state = BufferState::kDrawing;
+    rt->drawing_buffer_idx_ = 0;
+    rt->committed_buffer_idx_ = RT_EMPTY_INDEX;
+
+    return rt;
 }
 
-WaylandSHMRenderTarget::WaylandSHMRenderTarget(const std::shared_ptr<WaylandDisplay>& display,
-                                               int32_t width, int32_t height,
-                                               SkColorType format)
-    : WaylandRenderTarget(display, RenderDevice::kRaster, width, height, format)
+WaylandSHMRenderTarget::WaylandSHMRenderTarget(const std::shared_ptr<Display>& display,
+                                               int32_t width,
+                                               int32_t height,
+                                               SkColorType format,
+                                               wl_surface *surface,
+                                               wl_event_queue *surface_queue)
+    : WaylandRenderTarget(display, RenderDevice::kRaster, width, height, format,
+                          surface, surface_queue)
     , drawing_buffer_idx_(RT_EMPTY_INDEX)
     , committed_buffer_idx_(RT_EMPTY_INDEX)
+    , wl_frame_callback_(nullptr)
 {
 }
 
 WaylandSHMRenderTarget::~WaylandSHMRenderTarget()
 {
-    if (wl_surface_)
-        wl_surface_destroy(wl_surface_);
     ReleaseAllBuffers(true);
-
-    if (wl_event_queue_)
-        wl_event_queue_destroy(wl_event_queue_);
 }
 
 namespace {
@@ -242,7 +244,7 @@ int32_t WaylandSHMRenderTarget::GetNextDrawingBuffer()
 
 SkSurface *WaylandSHMRenderTarget::OnBeginFrame()
 {
-    TRACE_EVENT("rendering", "WaylandSHMRenderTarget::OnBeginFrame");
+    TRACE_EVENT("present", "WaylandSHMRenderTarget::OnBeginFrame");
 
     if (drawing_buffer_idx_ < 0)
         return nullptr;
@@ -256,8 +258,9 @@ void WaylandSHMRenderTarget::FrameDoneCallback(void *data, wl_callback *cb,
 {
     /* We do not submit next frame until this is called */
 
-    auto *rt = reinterpret_cast<WaylandSHMRenderTarget *>(data);
+    auto *rt = static_cast<WaylandSHMRenderTarget*>(data);
     rt->committed_buffer_idx_ = RT_EMPTY_INDEX;
+    rt->wl_frame_callback_ = nullptr;
     wl_callback_destroy(cb);
 }
 
@@ -280,7 +283,7 @@ void WaylandSHMRenderTarget::OnSubmitFrame(SkSurface *surface,
 void WaylandSHMRenderTarget::OnPresentFrame(SkSurface *surface,
                                             const FrameSubmitInfo& submit_info)
 {
-    TRACE_EVENT("rendering", "WaylandSHMRenderTarget::OnSubmitFrame");
+    TRACE_EVENT("present", "WaylandSHMRenderTarget::OnPresentFrame");
 
     CHECK(drawing_buffer_idx_ >= 0);
     if (surface != buffers_[drawing_buffer_idx_]->surface.get())
@@ -289,8 +292,7 @@ void WaylandSHMRenderTarget::OnPresentFrame(SkSurface *surface,
         return;
     }
 
-    const SkRegion& damage = submit_info.damage_region;
-    if (committed_buffer_idx_ != RT_EMPTY_INDEX || damage.isEmpty())
+    if (committed_buffer_idx_ != RT_EMPTY_INDEX)
         return;
 
     committed_buffer_idx_ = drawing_buffer_idx_;
@@ -300,21 +302,48 @@ void WaylandSHMRenderTarget::OnPresentFrame(SkSurface *surface,
     committed->state = BufferState::kCommitted;
     wl_surface_attach(wl_surface_, committed->buffer, 0, 0);
 
-    for (SkRegion::Iterator itr(damage); !itr.done(); itr.next())
+    /*
+    const SkRegion& damage = submit_info.damage_region;
+    for (SkRegion::Iterator itr(submit_info.damage_region); !itr.done(); itr.next())
     {
         SkIRect r = itr.rect();
         wl_surface_damage(wl_surface_, r.x(), r.y(), r.width(), r.height());
     }
+    */
 
-    wl_callback *frameCallback = wl_surface_frame(wl_surface_);
-    wl_callback_add_listener(frameCallback, &g_frame_callback_listener, this);
+    // XXX(sora): As we use multiple framebuffers for rendering, each frame
+    // a new framebuffer that is different from the previous frame is used.
+    // However, `submit_info.damage_region` represents the damage information
+    // of the current frame relative to the previous frame, which is not the
+    // actual damage of the submitting framebuffer. If we submit that wrong
+    // damage info, Wayland compositor may give us a weird rendering result.
+    // As a mitigation, we just tell the compositor that the whole frame is
+    // damaged so that it will repaint the whole window.
+    wl_surface_damage(wl_surface_, 0, 0, GetWidth(), GetHeight());
+
+    wl_callback *callback = wl_surface_frame(wl_surface_);
+    wl_callback_add_listener(callback, &g_frame_callback_listener, this);
     wl_surface_commit(wl_surface_);
+    wl_frame_callback_ = callback;
 }
 
-void WaylandSHMRenderTarget::OnResize(int32_t width, int32_t height)
+void WaylandSHMRenderTarget::OnTryCancelCurrentFrameRequest()
 {
+    if (wl_frame_callback_)
+    {
+        committed_buffer_idx_ = RT_EMPTY_INDEX;
+        wl_callback_destroy(wl_frame_callback_);
+        wl_frame_callback_ = nullptr;
+    }
+
+    WaylandRenderTarget::OnTryCancelCurrentFrameRequest();
+}
+
+void WaylandSHMRenderTarget::OnContentBufferDimensionsUpdate(const SkISize& dimensions)
+{
+    OnTryCancelCurrentFrameRequest();
     ReleaseAllBuffers(false);
-    AllocateAppendBuffers(RT_INITIAL_BUFFERS, width, height, GetColorType());
+    AllocateAppendBuffers(RT_INITIAL_BUFFERS, dimensions.width(), dimensions.height(), GetColorType());
     buffers_[0]->state = BufferState::kDrawing;
     drawing_buffer_idx_ = 0;
     committed_buffer_idx_ = RT_EMPTY_INDEX;

@@ -41,7 +41,7 @@ public:
     void OnDispose() override;
     std::shared_ptr<Cursor> OnLoadCursorFromName(const std::string &name) override;
 
-    g_nodiscard g_inline int GetCursorSize() const {
+    g_nodiscard int GetCursorSize() const {
         return cursor_size_;
     }
 

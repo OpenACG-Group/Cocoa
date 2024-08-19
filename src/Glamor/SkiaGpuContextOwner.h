@@ -38,6 +38,8 @@ struct SkiaGpuContextCreateInfo
     // Queue index is defined by `HWComposeDevice::DeviceQueueSpecifier` when
     // `HWComposeDevice` is created.
     int32_t graphics_queue_index;
+
+    VkPhysicalDeviceFeatures2 enabled_features;
 };
 
 class SkiaGpuContextOwner : public GraphicsResourcesTrackable
@@ -45,6 +47,8 @@ class SkiaGpuContextOwner : public GraphicsResourcesTrackable
 public:
     SkiaGpuContextOwner();
     ~SkiaGpuContextOwner() override = default;
+
+    uint32_t GetSkiaQueueFamilyIndex() const;
 
     g_nodiscard GrDirectContext *GetSkiaGpuContext() const {
         return direct_context_.get();
@@ -93,6 +97,7 @@ protected:
 
 private:
     std::shared_ptr<HWComposeDevice> hw_device_;
+    uint32_t                        queue_family_index_;
     sk_sp<GrDirectContext>          direct_context_;
     sk_sp<VulkanAMDAllocatorImpl>   vk_allocator_;
     bool                            device_support_memory_sharing_;

@@ -15,8 +15,7 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Vector2f } from './Vector';
-import { Rect } from './Rectangle';
+import { Vec2, Rect } from 'renderer';
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I) => void)
                             ? I : never;
@@ -33,10 +32,10 @@ export class EdgeInsets {
     public readonly width: number;
     public readonly height: number;
 
-    public readonly topLeft: Vector2f;
-    public readonly topRight: Vector2f;
-    public readonly bottomLeft: Vector2f;
-    public readonly bottomRight: Vector2f;
+    public readonly topLeft: Vec2;
+    public readonly topRight: Vec2;
+    public readonly bottomLeft: Vec2;
+    public readonly bottomRight: Vec2;
 
     public static None(): EdgeInsets {
         return new EdgeInsets(0, 0, 0, 0);
@@ -77,10 +76,10 @@ export class EdgeInsets {
         this.bottom = bottom;
         this.width = left + right;
         this.height = top + bottom;
-        this.topLeft = new Vector2f(left, top);
-        this.topRight = new Vector2f(-right, top);
-        this.bottomLeft = new Vector2f(left, -bottom);
-        this.bottomRight = new Vector2f(-right, -bottom);
+        this.topLeft = new Vec2(left, top);
+        this.topRight = new Vec2(-right, top);
+        this.bottomLeft = new Vec2(left, -bottom);
+        this.bottomRight = new Vec2(-right, -bottom);
     }
 
     public equalTo(other: EdgeInsets): boolean {

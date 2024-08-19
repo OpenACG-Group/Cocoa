@@ -30,10 +30,11 @@ public:
     TracingController();
     ~TracingController() override = default;
 
-    void StartTracing(const std::vector<std::string>& enabled);
+    void StartTracing();
     void StopTracing();
 
     const uint8_t *GetCategoryGroupEnabled(const char *name) override;
+
     uint64_t AddTraceEvent(char phase,
                            const uint8_t *category_enabled_flag,
                            const char *name,
@@ -47,6 +48,7 @@ public:
                            std::unique_ptr<v8::ConvertableToTraceFormat> *arg_convertables,
                            unsigned int flags) override;
 
+    /*
     uint64_t AddTraceEventWithTimestamp(char phase,
                                         const uint8_t *category_enabled_flag,
                                         const char *name,
@@ -60,13 +62,26 @@ public:
                                         std::unique_ptr<v8::ConvertableToTraceFormat> *arg_convertables,
                                         unsigned int flags,
                                         int64_t timestamp) override;
+    */
 
     void UpdateTraceEventDuration(const uint8_t *category_enabled_flag,
                                   const char *name, uint64_t handle) override;
 
 private:
-    bool tracing_started_;
-    std::vector<HashString<std::string>> enabled_;
+    const char *GetCategoryName(const uint8_t *category_enabled_flag);
+
+    constexpr static int kMaxCategories = 256;
+
+    struct CategoryState
+    {
+        uint8_t enabled;
+        const char *name;
+    };
+
+    std::mutex        lock_;
+    bool              trace_started_;
+    CategoryState     categories_[kMaxCategories];
+    int               nb_categories_;
 };
 
 GALLIUM_NS_END

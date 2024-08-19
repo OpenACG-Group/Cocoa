@@ -44,15 +44,15 @@ public:
 
     PresentRemoteCallMessage& operator=(const PresentRemoteCallMessage&) = delete;
 
-    g_nodiscard g_inline std::shared_ptr<PresentRemoteHandle> GetReceiver() const {
+    g_nodiscard std::shared_ptr<PresentRemoteHandle> GetReceiver() const {
         return receiver_;
     }
 
-    g_nodiscard g_inline PresentRemoteCall& GetClientCallInfo() {
+    g_nodiscard PresentRemoteCall& GetClientCallInfo() {
         return client_call_info_;
     }
 
-    g_nodiscard g_inline PresentRemoteCallResultCallback GetHostCallback() const {
+    g_nodiscard PresentRemoteCallResultCallback GetHostCallback() const {
         return host_callback_;
     }
 

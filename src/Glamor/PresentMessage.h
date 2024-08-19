@@ -30,33 +30,19 @@ public:
         kSignalEmit
     };
 
-    using Timepoint = std::chrono::steady_clock::time_point;
-
     explicit PresentMessage(Type type) : type_(type) {}
     virtual ~PresentMessage() = default;
 
-    g_nodiscard g_inline bool IsRemoteCall() const {
+    g_nodiscard bool IsRemoteCall() const {
         return (type_ == Type::kRemoteCall);
     }
 
-    g_nodiscard g_inline bool IsSignalEmit() const {
+    g_nodiscard bool IsSignalEmit() const {
         return (type_ == Type::kSignalEmit);
     }
 
-    g_inline void MarkProfileMilestone(PresentMessageMilestone tag) {
-        profile_milestones_[static_cast<uint8_t>(tag)] = std::chrono::steady_clock::now();
-    }
-
-    g_nodiscard g_inline Timepoint GetProfileMilestone(PresentMessageMilestone tag) const {
-        return profile_milestones_[static_cast<uint8_t>(tag)];
-    }
-
 private:
-    static constexpr size_t kMilestonesSize =
-            static_cast<uint8_t>(PresentMessageMilestone::kLast) + 1;
-
     Type        type_;
-    Timepoint   profile_milestones_[kMilestonesSize];
 };
 
 GLAMOR_NAMESPACE_END

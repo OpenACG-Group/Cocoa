@@ -30,12 +30,6 @@ public:
     virtual ~ExternalTextureAccessor() = default;
 
     /**
-     * Called on rendering thread to determine whether the generated
-     * texture is stored in GPU memory.
-     */
-    virtual bool IsGpuBackedTexture(bool has_gpu_context) = 0;
-
-    /**
      * Called on rendering thread to notify implementor that
      * `Acquire` function will be called soon (in several milliseconds or shorter).
      * For better performance, implementor can check pending asynchronous
@@ -55,12 +49,13 @@ public:
      * as small as possible (e.g. perform some preprocessing on other threads
      * before this call).
      *
-     * @param direct_context    A GPU context which can be used to create GPU backed
-     *                          texture. Maybe nullptr if GPU rendering is unavailable.
-     *                          This context should only be used for creating texture,
-     *                          and must NOT be shared with any other threads.
+     * @param gpu_context    A GPU context which can be used to create GPU backed
+     *                       texture. Maybe nullptr if GPU rendering is unavailable.
+     *                       This context should only be used for creating texture,
+     *                       and must NOT be shared with any other threads.
      */
-    virtual sk_sp<SkImage> Acquire(GrDirectContext *direct_context) = 0;
+    virtual sk_sp<SkImage> Acquire(SkiaGpuContextOwner *gpu_context,
+                                   const SkColorInfo& preferred_color_info) = 0;
 
     /**
      * Called on rendering thread, following `Acquire()`,

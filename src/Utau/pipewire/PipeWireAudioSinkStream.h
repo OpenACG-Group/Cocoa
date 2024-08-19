@@ -30,56 +30,71 @@ UTAU_NAMESPACE_BEGIN
 
 class PipeWireAudioDevice;
 
-class PipeWireAudioSinkStream : public AudioSinkStream
+class PipeWireAudioSinkStream : public AudioSinkStream,
+                                public std::enable_shared_from_this<PipeWireAudioSinkStream>
 {
 public:
     using time_point = std::chrono::steady_clock::time_point;
 
-    static std::unique_ptr<PipeWireAudioSinkStream> MakeFromDevice(
-            const std::shared_ptr<PipeWireAudioDevice>& device,
-            const std::string& name);
+    static std::shared_ptr<PipeWireAudioSinkStream> MakeFromDevice(
+        const std::shared_ptr<PipeWireAudioDevice>& device,
+        const std::string& name,
+        AVSampleFormat sample_format,
+        int32_t sample_rate,
+        const AVChannelLayout& ch_layout,
+        bool realtime
+    );
 
     PipeWireAudioSinkStream();
     ~PipeWireAudioSinkStream() override;
 
     struct BufferItem
     {
+        uint64_t id = 0;
         AVFrame *frame = nullptr;
         int64_t offset = 0;
     };
 
-    std::shared_ptr<AudioDevice> OnGetDevice() override;
-    void OnDispose() override;
-    bool OnConnect(SampleFormat sample_format, AudioChannelMode channel_mode,
-                   int32_t sample_rate, bool realtime) override;
-    bool OnDisconnect() override;
+    std::shared_ptr<AudioDevice> GetDevice() override;
 
-    bool Enqueue(const AudioBuffer &buffer) override;
+    void Dispose() override;
+
+    std::shared_ptr<Listener> GetListener() const override;
+    void SetListener(std::shared_ptr<Listener> listener) override;
+
+    uint64_t Enqueue(const AVFrame *frame) override;
 
     double GetDelayInUs() override;
-    float GetVolume() override;
-    void SetVolume(float volume) override;
+    void SetVolume(const std::vector<float>& volume) override;
 
     static void Process(void *userdata);
     static void OnControlInfo(void *userdata, uint32_t id, const pw_stream_control *ctl);
 
 private:
+    bool ConnectToStream(AVSampleFormat sample_format,
+                         int32_t sample_rate,
+                         const AVChannelLayout& ch_layout,
+                         bool realtime);
+    void DisconnectStream();
+    void DoDispose();
+
     bool HasExpiredBuffer();
     BufferItem& GetExpiredBuffer();
     void CurrentBufferConsumed();
 
+    uint64_t                                    frame_id_cnt_;
     bool                                        disposed_;
+    std::shared_ptr<Listener>                   listener_;
     std::shared_ptr<PipeWireAudioDevice>        device_;
     pw_stream                                  *pw_stream_;
-    SampleFormat                                sample_format_;
-    AudioChannelMode                            channel_mode_;
+    AVSampleFormat                              sample_format_;
+    AVChannelLayout                             ch_layout_;
     int32_t                                     sample_rate_;
     std::mutex                                  queue_lock_;
     std::queue<BufferItem>                      queue_;
     BufferItem                                  current_buffer_;
     int64_t                                     current_queued_samples_;
     double                                      delay_in_us_;
-    float                                       volume_;
 };
 
 UTAU_NAMESPACE_END

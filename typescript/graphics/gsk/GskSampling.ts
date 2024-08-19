@@ -15,11 +15,36 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Constants } from 'glamor';
+import {CubicSamplers, FilterMode, MipmapMode, SamplingOptions} from 'renderer';
 
-export enum GskSampling {
-    kNearest = Constants.SAMPLING_FILTER_NEAREST,
-    kLinear = Constants.SAMPLING_FILTER_LINEAR,
-    kCubicMitchell = Constants.SAMPLING_CUBIC_MITCHELL,
-    kCubicCatmullRom = Constants.SAMPLING_CUBIC_CATMULL_ROM
+export class GskSampling {
+    private readonly fOptions: SamplingOptions;
+
+    public static MakeLinear(mipmap: MipmapMode = MipmapMode.None): GskSampling {
+        return new GskSampling({ useCubic: false, filter: FilterMode.Linear, mipmap: mipmap });
+    }
+
+    public static MakeNearest(mipmap: MipmapMode = MipmapMode.None): GskSampling {
+        return new GskSampling({ useCubic: false, filter: FilterMode.Nearest, mipmap: mipmap });
+    }
+
+    public static MakeCubicCatmullRom(): GskSampling {
+        return new GskSampling(CubicSamplers.CatmullRom());
+    }
+
+    public static MakeCubicMitchell(): GskSampling {
+        return new GskSampling(CubicSamplers.Mitchell());
+    }
+
+    public static MakeAniso(maxAniso: number): GskSampling {
+        return new GskSampling({ useCubic: false, maxAniso: maxAniso });
+    }
+
+    private constructor(sampling: SamplingOptions) {
+        this.fOptions = Object.freeze(sampling);
+    }
+
+    public asSamplingOptions(): SamplingOptions {
+        return this.fOptions;
+    }
 }

@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.5.0)
 project(Cocoa VERSION 0.1.0)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 
 ## Build options
@@ -30,6 +30,8 @@ link_directories(third_party/build/lib)
 
 ## Compile options and targets
 add_compile_definitions(
+    __STDC_CONSTANT_MACROS
+
     COCOA_PROJECT=1
     # V8 options
     V8_COMPRESS_POINTERS
@@ -61,6 +63,7 @@ set(LINK_STATIC_JSONCPP ${COCOA_THIRDPARTY_DIR}/build/lib/libjsoncpp.a CACHE STR
 set(LINK_STATIC_JEMALLOC ${COCOA_THIRDPARTY_DIR}/build/lib/libjemalloc_pic.a CACHE STRING "Path of static library jemalloc")
 set(LINK_STATIC_FMT ${COCOA_THIRDPARTY_DIR}/build/lib/libfmt.a CACHE STRING "Path of static library fmt")
 set(LINK_STATIC_LIBUV ${COCOA_THIRDPARTY_DIR}/build/lib/libuv_a.a CACHE STRING "Path of static library libuv")
+set(LINK_STATIC_LIBYUV ${COCOA_THIRDPARTY_DIR}/build/lib/libyuv.a CACHE STRING "Path of static library libyuv")
 
 target_link_libraries(
         Cocoa
@@ -71,6 +74,7 @@ target_link_libraries(
         CRPKG
         Core
         ${LINK_STATIC_JSONCPP}
+        ${LINK_STATIC_LIBYUV}
 )
 
 if (${COCOA_BUILD_WITH_ASAN})

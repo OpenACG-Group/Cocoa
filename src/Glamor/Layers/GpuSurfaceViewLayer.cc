@@ -15,7 +15,8 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "include/gpu/MutableTextureState.h"
+#include "include/gpu/vk/VulkanMutableTextureState.h"
+#include "include/gpu/ganesh/vk/GrVkBackendSemaphore.h"
 
 #include "Core/Journal.h"
 #include "Glamor/ContentAggregator.h"
@@ -109,8 +110,7 @@ void GpuSurfaceViewLayer::Paint(PaintContext *context)
     // be signaled by user. It must make sure that when the `wait_sem` is signaled,
     // all the drawing commands are finished, and the queue family of it must be
     // `VK_QUEUE_FAMILY_EXTERNAL`.
-    GrBackendSemaphore wait_backend_sem;
-    wait_backend_sem.initVulkan(wait_sem);
+    GrBackendSemaphore wait_backend_sem = GrBackendSemaphores::MakeVk(wait_sem);
     if (!surface_view->wait(1, &wait_backend_sem, false))
     {
         QLOG(LOG_WARNING, "Could not wait on the required semaphore");
@@ -137,13 +137,13 @@ void GpuSurfaceViewLayer::Paint(PaintContext *context)
     // Semaphore `signal_sem` will be signaled by the present thread. It is guaranteed
     // that when the semaphore is signaled, all the drawing commands related to the view
     // surface are finished, and the queue family of it is `VK_QUEUE_FAMILY_EXTERNAL`.
-    GrBackendSemaphore signal_backend_sem;
-    signal_backend_sem.initVulkan(signal_sem);
+    GrBackendSemaphore signal_backend_sem = GrBackendSemaphores::MakeVk(signal_sem);
     GrFlushInfo flush_info{};
     flush_info.fNumSemaphores = 1;
     flush_info.fSignalSemaphores = &signal_backend_sem;
-    skgpu::MutableTextureState new_view_state(VK_IMAGE_LAYOUT_UNDEFINED,
-                                              VK_QUEUE_FAMILY_EXTERNAL);
+    skgpu::MutableTextureState new_view_state = skgpu::MutableTextureStates::MakeVulkan(
+            VK_IMAGE_LAYOUT_UNDEFINED, VK_QUEUE_FAMILY_EXTERNAL);
+
     GrSemaphoresSubmitted submitted = context->gr_context->flush(
             surface_view, flush_info, &new_view_state);
     if (submitted != GrSemaphoresSubmitted::kYes)

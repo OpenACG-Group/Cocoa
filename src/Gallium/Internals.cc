@@ -260,7 +260,7 @@ findFromCompressed(const std::string& name, InternalScript::ScopeAttr scope)
         script->scope[i::kUnknown] = v::kEmpty;
     }
 
-    epi.cancel();
+    epi.Cancel();
     iCachedScripts.push_back(script);
 
     if (!checkScriptScope(script, scope))

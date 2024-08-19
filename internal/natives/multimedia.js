@@ -1,0 +1,1 @@
+../../src/Gallium/bindings/multimedia/multimedia.js

@@ -16,4 +16,3 @@
  */
 
 import { GskConcreteType, GskNode } from './GskNode';
-import { CkShader } from 'glamor';

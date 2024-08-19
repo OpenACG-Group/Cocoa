@@ -69,7 +69,8 @@ struct WaylandVkSurfaceFactory : public HWComposeSwapchain::VkSurfaceFactory
 
 std::shared_ptr<WaylandHWComposeRenderTarget>
 WaylandHWComposeRenderTarget::Make(const std::shared_ptr<WaylandDisplay>& display,
-                                   int32_t width, int32_t height)
+                                   int32_t width, int32_t height,
+                                   const PresentGpuContextOptions& gpu_context_options)
 {
     if (width <= 0 || height <= 0)
     {
@@ -81,28 +82,31 @@ WaylandHWComposeRenderTarget::Make(const std::shared_ptr<WaylandDisplay>& displa
     auto hwcompose_ctx = GlobalScope::Ref().GetHWComposeContext();
     if (!hwcompose_ctx)
         return nullptr;
-
-    auto rt = std::make_shared<WaylandHWComposeRenderTarget>(
-            hwcompose_ctx, display, width, height,
-            SkColorType::kBGRA_8888_SkColorType);
-    CHECK(rt);
-
-    rt->wl_event_queue_ = wl_display_create_queue(display->GetWaylandDisplay());
-    if (!rt->wl_event_queue_)
+    
+    wl_event_queue *event_queue = wl_display_create_queue(display->GetWaylandDisplay());
+    if (!event_queue)
     {
         QLOG(LOG_ERROR, "Failed to create an event queue for render target");
         return nullptr;
     }
 
     wl_compositor *compositor = display->GetGlobalsRef()->wl_compositor_;
-    rt->wl_surface_ = wl_compositor_create_surface(compositor);
-    if (!rt->wl_surface_)
+    wl_surface *surface = wl_compositor_create_surface(compositor);
+    if (!surface)
     {
         QLOG(LOG_ERROR, "Failed to create Wayland compositor surface");
         return nullptr;
     }
-    wl_proxy_set_queue(reinterpret_cast<wl_proxy *>(rt->wl_surface_), rt->wl_event_queue_);
-    wl_surface_set_user_data(rt->wl_surface_, rt.get());
+    wl_proxy_set_queue(reinterpret_cast<wl_proxy *>(surface), event_queue);
+
+    auto rt = std::make_shared<WaylandHWComposeRenderTarget>(hwcompose_ctx,
+                                                             nullptr,
+                                                             display,
+                                                             width,
+                                                             height,
+                                                             kBGRA_8888_SkColorType,
+                                                             surface,
+                                                             event_queue);
 
     std::optional<MonitorSubpixel> subpixel;
     for (const auto& monitor : display->RequestMonitorList())
@@ -135,11 +139,14 @@ WaylandHWComposeRenderTarget::Make(const std::shared_ptr<WaylandDisplay>& displa
     case MonitorSubpixel::kVerticalBGR:
         sk_subpixel = SkPixelGeometry::kBGR_V_SkPixelGeometry;
         break;
+    default:
+        MARK_UNREACHABLE();
     }
 
     WaylandVkSurfaceFactory factory(rt);
-    rt->swapchain_ = HWComposeSwapchain::Make(
-            hwcompose_ctx, factory, width, height, sk_subpixel);
+    SkISize dimensions = rt->GetContentBufferDimensions();
+    rt->swapchain_ = HWComposeSwapchain::Make(hwcompose_ctx, factory, dimensions.width(), dimensions.height(),
+                                              sk_subpixel, gpu_context_options);
     if (!rt->swapchain_)
     {
         QLOG(LOG_ERROR, "Failed to create a HWCompose swapchain");
@@ -149,13 +156,18 @@ WaylandHWComposeRenderTarget::Make(const std::shared_ptr<WaylandDisplay>& displa
     return rt;
 }
 
-WaylandHWComposeRenderTarget::WaylandHWComposeRenderTarget(
-        std::shared_ptr<HWComposeContext> hwContext,
-        const std::shared_ptr<WaylandDisplay>& display,
-        int32_t width, int32_t height,
-        SkColorType format)
-    : WaylandRenderTarget(display, RenderDevice::kHWComposer, width, height, format)
-    , hw_compose_context_(std::move(hwContext))
+WaylandHWComposeRenderTarget::WaylandHWComposeRenderTarget(std::shared_ptr<HWComposeContext> hw_compose_context,
+                                                           std::shared_ptr<HWComposeSwapchain> hw_compose_swapchain,
+                                                           const std::shared_ptr<Display>& display,
+                                                           int32_t width,
+                                                           int32_t height,
+                                                           SkColorType format,
+                                                           wl_surface *surface,
+                                                           wl_event_queue *surface_queue)
+    : WaylandRenderTarget(display, RenderDevice::kHWComposer, width, height, format,
+                          surface, surface_queue)
+    , hw_compose_context_(std::move(hw_compose_context))
+    , swapchain_(std::move(hw_compose_swapchain))
 {
 }
 
@@ -167,11 +179,6 @@ WaylandHWComposeRenderTarget::~WaylandHWComposeRenderTarget()
         swapchain_.reset();
     }
     hw_compose_context_.reset();
-
-    if (wl_surface_)
-        wl_surface_destroy(wl_surface_);
-    if (wl_event_queue_)
-        wl_event_queue_destroy(wl_event_queue_);
 }
 
 void WaylandHWComposeRenderTarget::OnClearFrameBuffers()
@@ -185,7 +192,7 @@ void WaylandHWComposeRenderTarget::OnClearFrameBuffers()
 
 SkSurface *WaylandHWComposeRenderTarget::OnBeginFrame()
 {
-    TRACE_EVENT("rendering", "WaylandHWComposeRenderTarget::OnBeginFrame");
+    TRACE_EVENT("present", "WaylandHWComposeRenderTarget::OnBeginFrame");
     WaylandRoundtripScope scope(GetDisplay()->Cast<WaylandDisplay>());
     return swapchain_->NextFrame();
 }
@@ -193,22 +200,22 @@ SkSurface *WaylandHWComposeRenderTarget::OnBeginFrame()
 void WaylandHWComposeRenderTarget::OnSubmitFrame(SkSurface *surface,
                                                  const FrameSubmitInfo& submit_info)
 {
-    TRACE_EVENT("rendering", "WaylandHWComposeRenderTarget::OnSubmitFrame");
+    TRACE_EVENT("present", "WaylandHWComposeRenderTarget::OnSubmitFrame");
     swapchain_->SubmitFrame(submit_info.hw_signal_semaphores);
 }
 
 void WaylandHWComposeRenderTarget::OnPresentFrame(SkSurface *surface,
                                                   const FrameSubmitInfo &submit_info)
 {
-    TRACE_EVENT("rendering", "WaylandHWComposeRenderTarget::OnPresentFrame");
+    TRACE_EVENT("present", "WaylandHWComposeRenderTarget::OnPresentFrame");
     WaylandRoundtripScope scope(GetDisplay()->Cast<WaylandDisplay>());
     swapchain_->PresentFrame();
 }
 
-void WaylandHWComposeRenderTarget::OnResize(int32_t width, int32_t height)
+void WaylandHWComposeRenderTarget::OnContentBufferDimensionsUpdate(const SkISize& dimensions)
 {
     WaylandRoundtripScope scope(GetDisplay()->Cast<WaylandDisplay>());
-    swapchain_->Resize(width, height);
+    swapchain_->Resize(dimensions.width(), dimensions.height());
     OnClearFrameBuffers();
 }
 

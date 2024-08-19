@@ -19,13 +19,13 @@
 #define COCOA_GALLIUM_BINDINGS_TYPES_EXPORTS_H
 
 #include "include/v8.h"
+#include "Gallium/ffi/Module.h"
+#include "Gallium/ffi/ReturnValue.h"
 
 #define GALLIUM_BINDINGS_TYPETRAITS_NS_BEGIN namespace cocoa::gallium::bindings::typetraits {
 #define GALLIUM_BINDINGS_TYPETRAITS_NS_END   }
 
 GALLIUM_BINDINGS_TYPETRAITS_NS_BEGIN
-
-void SetInstanceProperties(v8::Local<v8::Object> instance);
 
 #define TYPES_METHOD_MAP(V)              \
     V(External)                          \
@@ -56,31 +56,74 @@ void SetInstanceProperties(v8::Local<v8::Object> instance);
     V(ModuleNamespaceObject)
 
 #define FUNC_DECL(type)                      \
-    bool Is##type(v8::Local<v8::Value> v);
+    ffi::Ret<bool> Is##type(v8::Local<v8::Value> v);
 
-//! TSDecl: function IsSomeType(value: any): boolean
+//! TSDecl: @function IsExternal(value: any): boolean
+//! TSDecl: @function IsTypedArray(value: any): boolean
+//! TSDecl: @function IsDate(value: any): boolean
+//! TSDecl: @function IsArgumentsObject(value: any): boolean
+//! TSDecl: @function IsBigIntObject(value: any): boolean
+//! TSDecl: @function IsBooleanObject(value: any): boolean
+//! TSDecl: @function IsNumberObject(value: any): boolean
+//! TSDecl: @function IsStringObject(value: any): boolean
+//! TSDecl: @function IsSymbolObject(value: any): boolean
+//! TSDecl: @function IsNativeError(value: any): boolean
+//! TSDecl: @function IsRegExp(value: any): boolean
+//! TSDecl: @function IsAsyncFunction(value: any): boolean
+//! TSDecl: @function IsGeneratorFunction(value: any): boolean
+//! TSDecl: @function IsGeneratorObject(value: any): boolean
+//! TSDecl: @function IsPromise(value: any): boolean
+//! TSDecl: @function IsMap(value: any): boolean
+//! TSDecl: @function IsSet(value: any): boolean
+//! TSDecl: @function IsMapIterator(value: any): boolean
+//! TSDecl: @function IsSetIterator(value: any): boolean
+//! TSDecl: @function IsWeakMap(value: any): boolean
+//! TSDecl: @function IsWeakSet(value: any): boolean
+//! TSDecl: @function IsArrayBuffer(value: any): boolean
+//! TSDecl: @function IsDataView(value: any): boolean
+//! TSDecl: @function IsSharedArrayBuffer(value: any): boolean
+//! TSDecl: @function IsProxy(value: any): boolean
+//! TSDecl: @function IsModuleNamespaceObject(value: any): boolean
 
 TYPES_METHOD_MAP(FUNC_DECL)
 
 #undef FUNC_DECL
 
-bool IsAnyArrayBuffer(v8::Local<v8::Value> v);
-bool IsBoxedPrimitive(v8::Local<v8::Value> v);
+//! TSDecl: @function IsAnyArrayBuffer(value: any): boolean
+ffi::Ret<bool> IsAnyArrayBuffer(v8::Local<v8::Value> v);
 
-//! TSDecl: function GetOwnNonIndexProperties(obj: object, filter: Bitfield<PropertyFilter>): string[]
-v8::Local<v8::Value> GetOwnNonIndexProperties(v8::Local<v8::Value> obj, int32_t filter);
+//! TSDecl: @function IsAnyArrayBuffer(value: any): boolean
+ffi::Ret<bool> IsBoxedPrimitive(v8::Local<v8::Value> v);
 
-//! TSDecl: function GetConstructorName(obj: object): string
-v8::Local<v8::Value> GetConstructorName(v8::Local<v8::Value> obj);
+//! TSDecl: @function GetOwnNonIndexProperties(obj: object, filter: u32): @array(string)
+ffi::RetLocal<v8::Value> GetOwnNonIndexProperties(v8::Local<v8::Object> obj, int32_t filter);
 
-//! TSDecl: function GetPromiseDetails(promise: Promise): {state: Enum<PromiseState>, result?: any}
-v8::Local<v8::Value> GetPromiseDetails(v8::Local<v8::Value> promise);
+//! TSDecl: @function GetConstructorName(obj: object): string
+ffi::RetLocal<v8::Value> GetConstructorName(v8::Local<v8::Object> obj);
 
-//! TSDecl: function GetProxyDetails(proxy: Proxy): {target: any, handler: any}
-v8::Local<v8::Value> GetProxyDetails(v8::Local<v8::Value> proxy);
+//! TSDecl: @interface PromiseDetails
+//! TSDecl: @property state: u32
+//! TSDecl: @property @optional result: any
+//! TSDecl: @end
 
-//! TSDecl: function PreviewEntries(obj: object): {entries: any[], isKeyValue: boolean}
-v8::Local<v8::Value> PreviewEntries(v8::Local<v8::Value> obj);
+//! TSDecl: @function GetPromiseDetails(promise: @generic(Promise, any)): PromiseDetails
+ffi::RetLocal<v8::Value> GetPromiseDetails(v8::Local<v8::Promise> promise);
+
+//! TSDecl: @interface ProxyDetails
+//! TSDecl: @property target: any
+//! TSDecl: @property handler: any
+//! TSDecl: @end
+
+//! TSDecl: @function GetProxyDetails(proxy: object): ProxyDetails
+ffi::RetLocal<v8::Value> GetProxyDetails(v8::Local<v8::Proxy> proxy);
+
+//! TSDecl: @interface EntriesInfo
+//! TSDecl: @property entries: @array(any)
+//! TSDecl: @property isKeyValue: boolean
+//! TSDecl: @end
+
+//! TSDecl: @function PreviewEntries(obj: object): EntriesInfo
+ffi::RetLocal<v8::Value> PreviewEntries(v8::Local<v8::Object> obj);
 
 GALLIUM_BINDINGS_TYPETRAITS_NS_END
 #endif //COCOA_GALLIUM_BINDINGS_TYPES_EXPORTS_H

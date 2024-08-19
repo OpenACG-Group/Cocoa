@@ -61,7 +61,7 @@ function playLottie(file: string) {
         animation.render(canvas, bounds, 0);
 
         const picture = recorder.finishRecordingAsPicture();
-        let scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
+        let scene = new GL.SceneBuilder(bounds)
                     .pushOffset(0, 0)
                     .addPicture(picture, false)
                     .build();

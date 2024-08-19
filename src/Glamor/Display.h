@@ -57,22 +57,24 @@ public:
     explicit Display(uv_loop_t *eventLoop);
     ~Display() override;
 
-    g_nodiscard g_inline uv_loop_t *GetEventLoop() const {
+    g_nodiscard uv_loop_t *GetEventLoop() const {
         return event_loop_;
     }
 
-    g_nodiscard g_inline const std::list<std::shared_ptr<Surface>>&
+    g_nodiscard const std::list<std::shared_ptr<Surface>>&
     GetSurfacesList() const {
         return surfaces_list_;
     }
 
-    g_nodiscard g_inline virtual std::vector<SkColorType> GetRasterColorFormats() = 0;
+    g_nodiscard virtual std::vector<SkColorType> GetRasterColorFormats() = 0;
 
     g_async_api void Close();
 
     g_async_api MonitorList RequestMonitorList();
-    g_async_api std::shared_ptr<Surface> CreateRasterSurface(int32_t width, int32_t height, SkColorType format);
-    g_async_api std::shared_ptr<Surface> CreateHWComposeSurface(int32_t width, int32_t height, SkColorType format);
+    g_async_api std::shared_ptr<Surface> CreateRasterSurface(int32_t width, int32_t height);
+
+    g_async_api std::shared_ptr<Surface> CreateHWComposeSurface(int32_t width, int32_t height,
+                                                                const PresentGpuContextOptions& options);
 
     g_async_api std::shared_ptr<Cursor> CreateCursor(const std::shared_ptr<SkBitmap>& bitmap,
                                                      int32_t hotspot_x, int32_t hotspot_y);
@@ -89,8 +91,8 @@ public:
 
 protected:
     virtual std::shared_ptr<Surface> OnCreateSurface(
-            int32_t width, int32_t height, SkColorType format,
-            RenderTarget::RenderDevice device) = 0;
+            int32_t width, int32_t height, RenderTarget::RenderDevice device,
+            const PresentGpuContextOptions& gpu_context_options) = 0;
 
     virtual std::shared_ptr<Cursor> OnCreateCursor(
             const std::shared_ptr<SkBitmap>& bitmap,

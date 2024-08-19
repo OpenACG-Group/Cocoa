@@ -98,13 +98,19 @@ void toplevel_close_callback(void *data, g_maybe_unused xdg_toplevel *toplevel)
 void toplevel_configure_bounds_callback(void *data, xdg_toplevel *toplevel,
                                         int32_t width, int32_t height)
 {
-    // TODO: implement this.
+    // TODO(present:sora): implement this.
+}
+
+void toplevel_wm_capabilities_callback(void *data, xdg_toplevel *toplevel, wl_array *capabilities)
+{
+    // TODO(present:sora): implement this
 }
 
 const xdg_toplevel_listener g_xdg_toplevel_listener = {
     .configure = toplevel_configure_callback,
     .close = toplevel_close_callback,
-    .configure_bounds = toplevel_configure_bounds_callback
+    .configure_bounds = toplevel_configure_bounds_callback,
+    .wm_capabilities = toplevel_wm_capabilities_callback
 };
 
 }
@@ -270,6 +276,12 @@ void WaylandSurface::OnSetCursor(const std::shared_ptr<Cursor>& cursor_base)
                           cursor->GetCursorSurface(),
                           cursor->GetHotspotVector().x(),
                           cursor->GetHotspotVector().y());
+}
+
+SkMatrix WaylandSurface::OnGetRootTransformation() const
+{
+    float scale = std::static_pointer_cast<WaylandRenderTarget>(GetRenderTarget())->GetHiDPIScaleFactor();
+    return SkMatrix::Scale(scale, scale);
 }
 
 void WaylandSurface::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept

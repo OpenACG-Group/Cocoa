@@ -19,6 +19,8 @@
 
 #include "Core/Journal.h"
 #include "Core/EventLoop.h"
+#include "Core/TraceEvent.h"
+
 #include "Glamor/PresentThread.h"
 #include "Glamor/PresentRemoteCallMessage.h"
 #include "Glamor/PresentSignalMessage.h"
@@ -78,9 +80,7 @@ PresentThread::LocalContext::EnqueueSignal(const std::shared_ptr<PresentRemoteHa
     auto shared_signal_info = std::make_shared<PresentSignal>(std::move(signal_info));
     auto message = std::make_unique<PresentSignalMessage>(
             shared_signal_info, emitter, signal_code);
-    main_thread_queue_->Enqueue(std::move(message), [](const Queue::Message& msg) {
-        msg->MarkProfileMilestone(PresentMessageMilestone::kClientEmitted);
-    });
+    main_thread_queue_->Enqueue(std::move(message));
 
     // Schedule local signals. If the signal is being listened by
     // listeners on this thread, they should be called in the next
@@ -112,11 +112,10 @@ PresentThread::LocalContext::EnqueueSignal(const std::shared_ptr<PresentRemoteHa
     local_signal_queue_.emplace(shared_signal_info, emitter, signal_code);
 }
 
-namespace {
 
-struct ThreadArgs
+struct PresentThread::ThreadPriv
 {
-    explicit ThreadArgs(std::shared_ptr<PresentThread::Queue> _main_thread_queue)
+    explicit ThreadPriv(std::shared_ptr<PresentThread::Queue> _main_thread_queue)
         : main_thread_queue(std::move(_main_thread_queue))
         , collector(std::make_shared<RemoteDestroyablesCollector>())
         , thread_ready_semaphore{}
@@ -124,14 +123,12 @@ struct ThreadArgs
         uv_sem_init(&thread_ready_semaphore, 0);
     }
 
-    void Post(std::weak_ptr<PresentThread::Queue> queue) {
-        present_thread_queue = std::move(queue);
+    void Post() {
         uv_sem_post(&thread_ready_semaphore);
     }
 
-    std::weak_ptr<PresentThread::Queue> WaitForPost() {
+    void WaitForPost() {
         uv_sem_wait(&thread_ready_semaphore);
-        return std::move(present_thread_queue);
     }
 
     // Filled by main thread
@@ -140,13 +137,12 @@ struct ThreadArgs
     uv_sem_t thread_ready_semaphore;
 
     // Filled by present thread
-    std::weak_ptr<PresentThread::Queue> present_thread_queue;
+    std::unique_ptr<PresentThread::Queue> present_thread_queue;
 };
 
-void *present_thread_entrypoint(void *args)
+void present_thread_entrypoint(const std::shared_ptr<PresentThread::ThreadPriv>& thread_args)
 {
     pthread_setname_np(pthread_self(), "PresentThread");
-    auto *thread_args = static_cast<ThreadArgs*>(args);
 
     QLOG(LOG_INFO, "Present thread has been started, tid={}", gettid());
 
@@ -154,28 +150,25 @@ void *present_thread_entrypoint(void *args)
     EventLoop::New();
     EventLoop *event_loop = EventLoop::GetCurrent();
 
-    std::shared_ptr<PresentThread::Queue> main_thread_queue =
-            thread_args->main_thread_queue;
-
+    auto main_thread_queue = thread_args->main_thread_queue;
     auto remote_collector = thread_args->collector;
 
     // Create present thread message queue.
-    auto present_thread_queue = std::make_shared<PresentThread::Queue>(
+    thread_args->present_thread_queue = std::make_unique<PresentThread::Queue>(
             event_loop->handle(), PresentThread::Queue::HandlerF{});
 
     // `Message` is `std::unique_ptr<PresentMessage>`
     using Message = PresentThread::Queue::Message;
     using Queue = PresentThread::Queue;
-    present_thread_queue->SetMessageHandler([main_thread_queue, &present_thread_queue]
-                                            (Message message, Queue*) {
+    thread_args->present_thread_queue->SetMessageHandler(
+    [main_thread_queue, thread_args](Message message, Queue*) {
 
         if (message == nullptr)
         {
             // A null message requests the present thread to exit.
-            // Destroying the event queue removes its corresponding
-            // handle from event loop, then the event loop will exit
-            // if there are no any other pending handles.
-            present_thread_queue.reset();
+            // The event loop will exit if there are no any other pending handles.
+            thread_args->present_thread_queue->SetNonBlocking(true);
+            thread_args->present_thread_queue->SetMessageHandler({});
             return;
         }
 
@@ -188,80 +181,70 @@ void *present_thread_entrypoint(void *args)
         auto *remote_call = static_cast<PresentRemoteCallMessage*>(message.get());
         auto receiver = remote_call->GetReceiver();
 
-        remote_call->MarkProfileMilestone(PresentMessageMilestone::kClientReceived);
+        TRACE_EVENT("present.request", "RemoteCallHandler", perfetto::Flow::FromPointer(message.get()));
+
         receiver->DoRemoteCall(remote_call->GetClientCallInfo());
-        remote_call->MarkProfileMilestone(PresentMessageMilestone::kClientProcessed);
-        main_thread_queue->Enqueue(std::move(message), [](const Queue::Message& msg) {
-            msg->MarkProfileMilestone(PresentMessageMilestone::kClientFeedback);
-        });
+        main_thread_queue->Enqueue(std::move(message));
     });
 
     // Now we can notify the main thread, which is waiting for
     // the present thread to prepare, that we have initiated all
     // the thread-local contexts, and will enter the event loop.
-    thread_args->Post(present_thread_queue);
+    thread_args->Post();
 
-    // Now the two pointers become dangling pointers, so they should
-    // be reset to `nullptr` to avoid illegal dereference.
-    thread_args = nullptr;
-    args = nullptr;
-
-    PresentThread::LocalContext::New(event_loop->handle(),
-                                     main_thread_queue,
-                                     remote_collector);
+    PresentThread::LocalContext::New(
+            event_loop->handle(), thread_args->main_thread_queue, thread_args->collector);
 
     event_loop->run();
     QLOG(LOG_INFO, "Present thread has exited");
 
-    // Send a null message to indicate that the present
-    // thread has exited.
-    main_thread_queue->Enqueue(nullptr, {});
-
     PresentThread::LocalContext::Delete();
     EventLoop::Delete();
-    return nullptr;
 }
-
-} // namespace anonymous
 
 std::unique_ptr<PresentThread> PresentThread::Start(uv_loop_t *loop)
 {
     auto main_thread_queue = std::make_shared<Queue>(loop, Queue::HandlerF());
-    ThreadArgs thread_args(main_thread_queue);
+    auto thread_args = std::make_shared<ThreadPriv>(main_thread_queue);
 
-    pthread_t thread;
-    int err = pthread_create(
-            &thread, nullptr, present_thread_entrypoint, &thread_args);
-    if (err < 0)
-    {
-        QLOG(LOG_ERROR, "Failed to create present thread: {}", strerror(err));
-        return nullptr;
-    }
+    std::thread thread(present_thread_entrypoint, thread_args);
+    // Wait until the thread has created its own event loop.
+    thread_args->WaitForPost();
 
-    // Wait until the thread has created its own event loop
-    // and message queue. The message queue will be used to
-    // send messages to the thread.
-    std::weak_ptr<Queue> present_thread_queue = thread_args.WaitForPost();
-
-    return std::make_unique<PresentThread>(std::move(present_thread_queue),
-                                           std::move(main_thread_queue),
-                                           thread,
-                                           std::move(thread_args.collector));
+    return std::make_unique<PresentThread>(std::move(main_thread_queue),
+                                           std::move(thread),
+                                           std::move(thread_args),
+                                           thread_args->collector);
 }
 
-PresentThread::PresentThread(std::weak_ptr<Queue> present_thread_queue,
-                             std::shared_ptr<Queue> main_thread_queue,
-                             pthread_t present_thread,
+PresentThread::PresentThread(std::shared_ptr<Queue> main_thread_queue,
+                             std::thread thread,
+                             std::shared_ptr<ThreadPriv> thread_priv,
                              std::shared_ptr<RemoteDestroyablesCollector> collector)
-    : present_thread_queue_(std::move(present_thread_queue))
-    , main_thread_queue_(std::move(main_thread_queue))
-    , present_thread_(present_thread)
-    , thread_has_exited_(false)
+    : main_thread_queue_(std::move(main_thread_queue))
+    , present_thread_(std::move(thread))
+    , thread_priv_(std::move(thread_priv))
     , task_runner_(std::make_shared<PresentThreadTaskRunner>())
     , remote_destroyables_collector_(std::move(collector))
 {
-    main_thread_queue_->SetMessageHandler([this](Queue::Message message, Queue*) {
-        OnMainThreadMessage(std::move(message));
+    main_thread_queue_->SetMessageHandler([](Queue::Message message, Queue*) {
+        if (message->IsRemoteCall())
+        {
+            TRACE_EVENT("present.request", "RemoteCallResponse",
+                        perfetto::TerminatingFlow::FromPointer(message.get()));
+
+            // NOLINTNEXTLINE
+            auto *remote_call = static_cast<PresentRemoteCallMessage*>(message.get());
+            PresentRemoteCallReturn call_return(remote_call);
+            remote_call->GetHostCallback()(call_return);
+        }
+        else if (message->IsSignalEmit())
+        {
+            // NOLINTNEXTLINE
+            auto *signal = static_cast<PresentSignalMessage*>(message.get());
+            signal->GetEmitter()->DoEmitSignal(
+                    signal->GetSignalCode(), *signal->GetSignalInfo(), false);
+        }
     });
 }
 
@@ -269,52 +252,18 @@ void PresentThread::EnqueueRemoteCall(std::shared_ptr<PresentRemoteHandle> recei
                                       PresentRemoteCall call_info,
                                       PresentRemoteCallResultCallback result_callback)
 {
-    std::shared_ptr<Queue> queue = present_thread_queue_.lock();
-    if (!queue)
-    {
-        QLOG(LOG_ERROR, "Failed to enqueue remote call: queue is not available");
-        return;
-    }
+    CHECK(thread_priv_->present_thread_queue);
+
+    PresentRemoteCall::OpCode opcode = call_info.GetOpCode();
     auto message = std::make_unique<PresentRemoteCallMessage>(
-            std::move(receiver), std::move(call_info), std::move(result_callback));
-    message->MarkProfileMilestone(PresentMessageMilestone::kHostConstruction);
-    queue->Enqueue(std::move(message), [](const Queue::Message& msg) {
-        msg->MarkProfileMilestone(PresentMessageMilestone::kHostEnqueued);
+            receiver, std::move(call_info), std::move(result_callback));
+
+    thread_priv_->present_thread_queue->Enqueue(std::move(message), [&](const Queue::Message& msg) {
+        TRACE_EVENT("present.request", nullptr, [&](perfetto::EventContext& ctx) {
+            auto type_name = gl::PresentRemoteHandle::GetTypeName(receiver->GetRealType());
+            ctx.event()->set_name(fmt::format("request:{}.opcode#{}", type_name, opcode));
+        }, perfetto::Flow::FromPointer(msg.get()));
     });
-}
-
-void PresentThread::OnMainThreadMessage(Queue::Message message)
-{
-    if (thread_has_exited_)
-        return;
-
-    if (message == nullptr)
-    {
-        // A null message means that the present thread has exited.
-        pthread_join(present_thread_, nullptr);
-        thread_has_exited_ = true;
-        // Allow the main thread event loop to exit.
-        main_thread_queue_->SetNonBlocking(true);
-        return;
-    }
-
-    message->MarkProfileMilestone(PresentMessageMilestone::kHostReceived);
-    if (message->IsRemoteCall())
-    {
-        // NOLINTNEXTLINE
-        auto *remote_call = static_cast<PresentRemoteCallMessage*>(message.get());
-        PresentRemoteCallReturn call_return(remote_call);
-        remote_call->GetHostCallback()(call_return);
-    }
-    else if (message->IsSignalEmit())
-    {
-        // NOLINTNEXTLINE
-        auto *signal = static_cast<PresentSignalMessage*>(message.get());
-        signal->GetEmitter()->DoEmitSignal(
-                signal->GetSignalCode(), *signal->GetSignalInfo(), false);
-    }
-
-    // TODO(sora): collect messaging samples for profiling
 }
 
 void PresentThread::SubmitTaskNoRet(std::function<void()> task_func,
@@ -338,10 +287,6 @@ void PresentThread::SubmitTaskNoRet(std::function<void()> task_func,
 
 void PresentThread::Dispose()
 {
-    std::shared_ptr<Queue> queue = present_thread_queue_.lock();
-    if (!queue)
-        return;
-
     // Collect all the remote destroyable objects.
     // If there actually are collectable living objects, they will be
     // collected. Registered callbacks will be called immediately, and
@@ -351,7 +296,14 @@ void PresentThread::Dispose()
 
     // This should be the last message in present thread queue.
     // The thread will prepare to exit once it received this message.
-    queue->Enqueue(nullptr);
+    thread_priv_->present_thread_queue->Enqueue(nullptr);
+
+    if (present_thread_.joinable())
+        present_thread_.join();
+
+    main_thread_queue_->SetNonBlocking(true);
+
+    thread_priv_ = nullptr;
 }
 
 GLAMOR_NAMESPACE_END

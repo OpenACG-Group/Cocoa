@@ -15,22 +15,19 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { Mat3x3, Rect, Image, Vec2 } from 'renderer';
 import { GskConcreteType, GskInvalidationRecorder, GskProperty } from './GskNode';
 import { GskRenderNode, RenderContext, GskScopedRenderContext } from './GskRenderNode';
 import { GskPaintRecord } from './GskPaintRecord';
 import { GskSampling } from './GskSampling';
-import { CkImage } from 'glamor';
-import { Rect } from '../base/Rectangle';
-import { Point2f } from '../base/Vector';
-import { GskDisplayList } from './GskDisplayList';
-import { Mat3x3 } from '../base/Matrix';
+import { GskDLRecorder } from './GskDisplayList';
 import { Maybe } from '../../core/error';
 
 export class GskImage extends GskRenderNode {
-    @GskProperty<CkImage, GskImage>()
-    public image: CkImage;
+    @GskProperty<Image, GskImage>()
+    public image: Image;
 
-    @GskProperty<GskSampling, GskImage>(GskSampling.kLinear)
+    @GskProperty<GskSampling, GskImage>(GskSampling.MakeLinear())
     public sampling: GskSampling;
 
     @GskProperty<boolean, GskImage>(true)
@@ -47,13 +44,13 @@ export class GskImage extends GskRenderNode {
         return Rect.MakeWH(this.image.width, this.image.height);
     }
 
-    protected onNodeAt(point: Point2f): Maybe<GskRenderNode> {
+    protected onNodeAt(point: Vec2): Maybe<GskRenderNode> {
         // ImageNode covers a rectangle area, so the hit-testing has been finished
         // through the bounds-rejection by `GskRenderNode.nodeAt()`.
         return Maybe.Ok(this);
     }
 
-    protected onRender(dl: GskDisplayList, context: RenderContext): void {
+    protected onRender(dl: GskDLRecorder, context: RenderContext): void {
         if (this.image == null) {
             return;
         }
@@ -68,8 +65,7 @@ export class GskImage extends GskRenderNode {
                 }
                 mutator.asRC().modulatePaint(dl.getTotalMatrix(), paintRec, false);
             }
-            dl.canvas.drawImage(
-                this.image, 0, 0, this.sampling, paintRec.instantiatePaint());
+            dl.canvas.drawImage(this.image, 0, 0, this.sampling, paintRec.instantiatePaint());
         });
     }
 }

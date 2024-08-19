@@ -112,15 +112,15 @@ public:
     explicit Surface(std::shared_ptr<RenderTarget> rt);
     ~Surface() override;
 
-    g_nodiscard g_inline std::shared_ptr<Display> GetDisplay() const {
+    g_nodiscard std::shared_ptr<Display> GetDisplay() const {
         return display_.lock();
     }
 
-    g_nodiscard g_inline std::shared_ptr<RenderTarget> GetRenderTarget() const {
+    g_nodiscard std::shared_ptr<RenderTarget> GetRenderTarget() const {
         return render_target_;
     }
 
-    g_nodiscard g_inline bool IsClosed() const {
+    g_nodiscard bool IsClosed() const {
         return has_disposed_;
     }
 
@@ -149,7 +149,7 @@ public:
     g_sync_api g_nodiscard int32_t GetHeight() const;
     g_sync_api g_nodiscard SkColorType GetColorType() const;
 
-    g_sync_api const SkMatrix& GetRootTransformation() const;
+    g_sync_api SkMatrix GetRootTransformation() const;
 
     g_sync_api void SetAttachedCursor(const std::shared_ptr<Cursor>& cursor);
 
@@ -171,7 +171,7 @@ protected:
     virtual void OnSetMaximized(bool value) = 0;
     virtual void OnSetMinimized(bool value) = 0;
     virtual void OnSetFullscreen(bool value, const std::shared_ptr<Monitor>& monitor) = 0;
-    virtual const SkMatrix& OnGetRootTransformation() const;
+    virtual SkMatrix OnGetRootTransformation() const;
     virtual void OnSetCursor(const std::shared_ptr<Cursor>& cursor) = 0;
     void OnFrameNotification(uint32_t sequence) override;
 

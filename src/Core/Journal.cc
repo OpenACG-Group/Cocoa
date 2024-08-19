@@ -518,6 +518,9 @@ bool Journal::filter(LogType type)
 
 void Journal::commit(LogType type, const std::string& str)
 {
+    if (!filter(type))
+        return;
+
     const char *levelStr = nullptr;
     const char *levelColor = nullptr;
     switch (type)

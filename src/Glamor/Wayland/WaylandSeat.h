@@ -36,32 +36,32 @@ public:
                 uint32_t registry_id);
     ~WaylandSeat();
 
-    static std::shared_ptr<WaylandSeat> Make(const std::shared_ptr<WaylandDisplay>& display,
+    static std::unique_ptr<WaylandSeat> Make(const std::shared_ptr<WaylandDisplay>& display,
                                              wl_seat *seat, uint32_t registry_id);
 
-    g_nodiscard g_inline uint32_t GetRegistryId() const {
+    g_nodiscard uint32_t GetRegistryId() const {
         return registry_id_;
     }
 
-    g_nodiscard g_inline const std::string& GetName() const {
+    g_nodiscard const std::string& GetName() const {
         return seat_name_;
     }
 
     std::shared_ptr<WaylandSurface> FindSurfaceByNativeHandle(wl_surface *surface);
 
-    g_nodiscard g_inline WaylandSeatKeyboardDevice *GetKeyboardDevice() const {
+    g_nodiscard WaylandSeatKeyboardDevice *GetKeyboardDevice() const {
         return keyboard_device_.get();
     }
 
-    g_nodiscard g_inline WaylandSeatPointerDevice *GetPointerDevice() const {
+    g_nodiscard WaylandSeatPointerDevice *GetPointerDevice() const {
         return pointer_device_.get();
     }
 
-    g_nodiscard g_inline wl_touch *GetTouchDevice() const {
+    g_nodiscard wl_touch *GetTouchDevice() const {
         return touch_device_;
     }
 
-    g_nodiscard g_inline std::shared_ptr<WaylandDisplay> GetDisplay() {
+    g_nodiscard std::shared_ptr<WaylandDisplay> GetDisplay() {
         return display_.lock();
     }
 

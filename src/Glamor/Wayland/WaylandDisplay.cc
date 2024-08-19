@@ -30,8 +30,9 @@
 #include "Glamor/Wayland/WaylandCursorTheme.h"
 #include "Glamor/Wayland/WaylandCursor.h"
 #include "Glamor/Wayland/WaylandInputContext.h"
+#include "protos/fractional-scale-v1.h"
+#include "protos/viewporter.h"
 GLAMOR_NAMESPACE_BEGIN
-
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.Wayland.Display)
 
 namespace {
@@ -167,41 +168,51 @@ void WaylandDisplay::RegistryHandleGlobal(void *data, wl_registry *registry, uin
 
     if (strcmp(interface, "wl_compositor") == 0)
     {
-        d->globals_->wl_compositor_ = (struct wl_compositor *)
-                wl_registry_bind(registry, id, &wl_compositor_interface, version);
+        d->globals_->wl_compositor_ = static_cast<wl_compositor *>(
+                wl_registry_bind(registry, id, &wl_compositor_interface, version));
     }
     else if (strcmp(interface, "xdg_wm_base") == 0)
     {
-        d->globals_->xdg_wm_base_ = (struct xdg_wm_base *)
-                wl_registry_bind(registry, id, &xdg_wm_base_interface, version);
+        d->globals_->xdg_wm_base_ = static_cast<xdg_wm_base *>(
+                wl_registry_bind(registry, id, &xdg_wm_base_interface, version));
         xdg_wm_base_add_listener(d->globals_->xdg_wm_base_, &g_wm_base_listener, d);
     }
     else if (strcmp(interface, "wl_shm") == 0)
     {
-        d->globals_->wl_shm_ = (struct wl_shm *)
-                wl_registry_bind(registry, id, &wl_shm_interface, std::min(WL_SHM_VERSION, version));
+        d->globals_->wl_shm_ = static_cast<wl_shm *>(
+                wl_registry_bind(registry, id, &wl_shm_interface, std::min(WL_SHM_VERSION, version)));
         wl_shm_add_listener(d->globals_->wl_shm_, &g_shm_listener, d);
     }
     else if (strcmp(interface, "zxdg_decoration_manager_v1") == 0)
     {
-        d->globals_->zxdg_deco_manager = (struct zxdg_decoration_manager_v1 *)
-                wl_registry_bind(registry, id, &zxdg_decoration_manager_v1_interface, 1);
+        d->globals_->zxdg_deco_manager = static_cast<zxdg_decoration_manager_v1 *>(
+                wl_registry_bind(registry, id, &zxdg_decoration_manager_v1_interface, 1));
     }
     else if (strcmp(interface, "org_kde_kwin_server_decoration_manager") == 0)
     {
-        d->globals_->kde_deco_manager = (struct org_kde_kwin_server_decoration_manager *)
-                wl_registry_bind(registry, id, &org_kde_kwin_server_decoration_manager_interface, 1);
+        d->globals_->kde_deco_manager = static_cast<org_kde_kwin_server_decoration_manager *>(
+                wl_registry_bind(registry, id, &org_kde_kwin_server_decoration_manager_interface, 1));
+    }
+    else if (strcmp(interface, "wp_viewporter") == 0)
+    {
+        d->globals_->viewporter = static_cast<wp_viewporter *>(
+            wl_registry_bind(registry, id, &wp_viewporter_interface, 1));
+    }
+    else if (strcmp(interface, "wp_fractional_scale_manager_v1") == 0)
+    {
+        d->globals_->fractional_scale_manager = static_cast<wp_fractional_scale_manager_v1 *>(
+            wl_registry_bind(registry, id, &wp_fractional_scale_manager_v1_interface, 1));
     }
     else if (strcmp(interface, "wl_output") == 0)
     {
-        auto *output = (struct wl_output *)
-                wl_registry_bind(registry, id, &wl_output_interface, version);
+        auto *output = static_cast<wl_output *>(
+                wl_registry_bind(registry, id, &wl_output_interface, version));
         d->AppendMonitor(WaylandMonitor::Make(shared_disp, output, id));
     }
     else if (strcmp(interface, "wl_seat") == 0)
     {
-        auto *seat = (struct wl_seat *)
-                wl_registry_bind(registry, id, &wl_seat_interface, version);
+        auto *seat = static_cast<wl_seat *>(
+                wl_registry_bind(registry, id, &wl_seat_interface, version));
         d->AppendSeat(WaylandSeat::Make(shared_disp, seat, id));
     }
 }
@@ -273,7 +284,7 @@ WaylandDisplay::Connect(uv_loop_t *loop, const std::string& name)
     }
     display->AppendDefaultCursorTheme(default_theme);
 
-    scope.cancel();
+    scope.Cancel();
     return display;
 }
 
@@ -374,6 +385,10 @@ WaylandDisplay::Globals::~Globals()
         zxdg_decoration_manager_v1_destroy(zxdg_deco_manager);
     if (kde_deco_manager)
         org_kde_kwin_server_decoration_manager_destroy(kde_deco_manager);
+    if (fractional_scale_manager)
+        wp_fractional_scale_manager_v1_destroy(fractional_scale_manager);
+    if (viewporter)
+        wp_viewporter_destroy(viewporter);
 }
 
 void WaylandDisplay::OnDispose()
@@ -382,13 +397,6 @@ void WaylandDisplay::OnDispose()
     uv_check_.reset();
     uv_poll_.reset();
 
-    // Check each seat to make sure they are not referenced by other scopes.
-    for (const auto& seat : seats_list_)
-    {
-        CHECK(seat.unique() && "WaylandSeat was referenced by other scopes");
-    }
-
-    // All the `WaylandSeat` objects should be destructed here.
     seats_list_.clear();
 
     input_context_.reset();
@@ -411,17 +419,12 @@ void WaylandDisplay::OnDispose()
 bool WaylandDisplay::TryRemoveSeat(uint32_t id)
 {
     auto itr = std::find_if(seats_list_.begin(), seats_list_.end(),
-                            [id](const std::shared_ptr<WaylandSeat>& ptr) {
+                            [id](const std::unique_ptr<WaylandSeat>& ptr) {
         return (ptr->GetRegistryId() == id);
     });
 
     if (itr == seats_list_.end())
         return false;
-
-    // `WaylandSeat` instances always keep resources of wayland server,
-    // unlike `WaylandMonitor`, so making sure it will be released immediately
-    // after removing from seats list is necessary.
-    CHECK(itr->unique() && "Multiple reference error");
 
     seats_list_.erase(itr);
     return true;
@@ -468,8 +471,8 @@ std::vector<SkColorType> WaylandDisplay::GetRasterColorFormats()
 }
 
 std::shared_ptr<Surface>
-WaylandDisplay::OnCreateSurface(int32_t width, int32_t height, SkColorType format,
-                                RenderTarget::RenderDevice device)
+WaylandDisplay::OnCreateSurface(int32_t width, int32_t height, RenderTarget::RenderDevice device,
+                                const PresentGpuContextOptions& gpu_context_options)
 {
     WaylandRoundtripScope scope(Self()->Cast<WaylandDisplay>());
 
@@ -477,11 +480,13 @@ WaylandDisplay::OnCreateSurface(int32_t width, int32_t height, SkColorType forma
     switch (device)
     {
     case RenderTarget::RenderDevice::kRaster:
-        rt = WaylandSHMRenderTarget::Make(this->Cast<WaylandDisplay>(), width, height, format);
+        // TODO(sora): select an appropriate pixel format
+        rt = WaylandSHMRenderTarget::Make(this->Cast<WaylandDisplay>(), width, height, kBGRA_8888_SkColorType);
         break;
 
     case RenderTarget::RenderDevice::kHWComposer:
-        rt = WaylandHWComposeRenderTarget::Make(this->Cast<WaylandDisplay>(), width, height);
+        rt = WaylandHWComposeRenderTarget::Make(this->Cast<WaylandDisplay>(), width, height,
+                                                gpu_context_options);
         break;
     }
 
@@ -517,7 +522,7 @@ bool WaylandDisplay::HasPointerDeviceInSeats()
         return false;
 
     auto itr = std::find_if(seats_list_.begin(), seats_list_.end(),
-                            [](const std::shared_ptr<WaylandSeat>& seat) -> bool {
+                            [](const std::unique_ptr<WaylandSeat>& seat) -> bool {
         return seat->GetPointerDevice();
     });
     return (itr != seats_list_.end());
@@ -529,7 +534,7 @@ bool WaylandDisplay::HasKeyboardDeviceInSeats()
         return false;
 
     auto itr = std::find_if(seats_list_.begin(), seats_list_.end(),
-                            [](const std::shared_ptr<WaylandSeat>& seat) -> bool {
+                            [](const std::unique_ptr<WaylandSeat>& seat) -> bool {
         return seat->GetKeyboardDevice();
     });
 

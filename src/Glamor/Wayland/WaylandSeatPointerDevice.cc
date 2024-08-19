@@ -44,7 +44,8 @@ const wl_pointer_listener g_pointer_listener = {
     .axis_source = WaylandSeatPointerDevice::on_axis_source,
     .axis_stop = WaylandSeatPointerDevice::on_axis_stop,
     .axis_discrete = WaylandSeatPointerDevice::on_axis_discrete,
-    .axis_value120 = WaylandSeatPointerDevice::on_axis_value120
+    .axis_value120 = WaylandSeatPointerDevice::on_axis_value120,
+    .axis_relative_direction = WaylandSeatPointerDevice::on_axis_rel_direction
 };
 
 std::shared_ptr<WaylandSurface> extract_surface_from_pointer(void *data, wl_pointer *pointer)
@@ -329,6 +330,12 @@ void WaylandSeatPointerDevice::on_axis_value120(void *data,
     default:
         MARK_UNREACHABLE("Unexpected enumeration value");
     }
+}
+
+void WaylandSeatPointerDevice::on_axis_rel_direction(void *data, wl_pointer *pointer,
+                                                     uint32_t axis, uint32_t direction)
+{
+    // TODO(sora): handle this event.
 }
 
 void WaylandSeatPointerDevice::on_frame(void *data, wl_pointer *pointer)

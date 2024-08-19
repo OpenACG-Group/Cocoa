@@ -368,7 +368,8 @@ bool PerIsolateData::PerformForegroundTasks()
     return did_work;
 }
 
-void PerIsolateData::PostTask(std::unique_ptr<v8::Task> task)
+void PerIsolateData::PostTaskImpl(std::unique_ptr<v8::Task> task,
+                                  const v8::SourceLocation& location)
 {
     // V8 may post tasks after the Isolate has been disposed,
     // and we can simply ignore it.
@@ -383,8 +384,9 @@ void PerIsolateData::PostTask(std::unique_ptr<v8::Task> task)
     uv_async_send(&tasks_notifier_);
 }
 
-void PerIsolateData::PostDelayedTask(std::unique_ptr<v8::Task> task,
-                                     double delay_in_seconds)
+void PerIsolateData::PostDelayedTaskImpl(std::unique_ptr<v8::Task> task,
+                                         double delay_in_seconds,
+                                         const v8::SourceLocation& location)
 {
     // V8 may post tasks after the Isolate has been disposed,
     // and we can simply ignore it.
@@ -398,18 +400,21 @@ void PerIsolateData::PostDelayedTask(std::unique_ptr<v8::Task> task,
     wrapped->per_isolate = this;
 }
 
-void PerIsolateData::PostNonNestableTask(std::unique_ptr<v8::Task> task)
+void PerIsolateData::PostNonNestableTaskImpl(std::unique_ptr<v8::Task> task,
+                                             const v8::SourceLocation& location)
 {
     return PostTask(std::move(task));
 }
 
-void PerIsolateData::PostNonNestableDelayedTask(std::unique_ptr<v8::Task> task,
-                                                double delay_in_seconds)
+void PerIsolateData::PostNonNestableDelayedTaskImpl(std::unique_ptr<v8::Task> task,
+                                                    double delay_in_seconds,
+                                                    const v8::SourceLocation& location)
 {
     return PostDelayedTask(std::move(task), delay_in_seconds);
 }
 
-void PerIsolateData::PostIdleTask(std::unique_ptr<v8::IdleTask> task)
+void PerIsolateData::PostIdleTaskImpl(std::unique_ptr<v8::IdleTask> task,
+                                      const v8::SourceLocation& location)
 {
     MARK_UNREACHABLE();
 }

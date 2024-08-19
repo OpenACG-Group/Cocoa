@@ -24,12 +24,9 @@ import {
 import { GskGeometry } from './GskGeometry';
 import { GskMaterial } from './GskMaterial';
 import { GskRenderNode, RenderContext } from './GskRenderNode';
-import { GskPaintStyle } from './GskPaintRecord';
-import { GskDisplayList } from './GskDisplayList';
+import { GskDLRecorder } from './GskDisplayList';
 import { Maybe } from '../../core/error';
-import { Point2f } from '../base/Vector';
-import { Rect } from '../base/Rectangle';
-import { Mat3x3 } from '../base/Matrix';
+import { Vec2, Mat3x3, Rect, Style } from 'renderer';
 
 export class GskDraw extends GskRenderNode {
     private readonly fGeometry: GskGeometry;
@@ -43,33 +40,39 @@ export class GskDraw extends GskRenderNode {
         this.observeChild(material);
     }
 
-    protected onRender(dl: GskDisplayList, context: RenderContext): void {
+    protected onRender(dl: GskDLRecorder, context: RenderContext): void {
         const paintRecord = this.fMaterial.makePaintRecord();
         if (context != null) {
             context.modulatePaint(dl.getTotalMatrix(), paintRecord, false);
         }
         const paint = paintRecord.instantiatePaint();
         const skipDraw = paint.nothingToDraw() ||
-            (paintRecord.style == GskPaintStyle.kStroke && paintRecord.strokeWidth <= 0);
+            (paintRecord.style == Style.Stroke && paintRecord.strokeWidth <= 0);
         if (!skipDraw) {
-            this.fGeometry.draw(dl.canvas, paint);
+            this.fGeometry.draw(dl, paint);
         }
     }
 
-    protected onNodeAt(point: Point2f): Maybe<GskRenderNode> {
+    protected onNodeAt(point: Vec2): Maybe<GskRenderNode> {
         const paintRecord = this.fMaterial.makePaintRecord();
         // Transparent geometry elements are completely invisible
         if (paintRecord.color.transparent()) {
             return Maybe.None();
         }
 
-        if (paintRecord.style == GskPaintStyle.kFill && this.fGeometry.contains(point)) {
+        // Given `PathEffect` cannot be used in Material specification, the shape of
+        // the geometry will not be transformed.
+        // So if we just want to fill the geometry, hittest can be done by simply determining
+        // whether the point lands IN the geometry's bounds.
+        if (paintRecord.style == Style.Fill && this.fGeometry.contains(point)) {
             return Maybe.Ok(this);
         }
 
-
+        // However, if we want to stroke instead of filling, since the Material may
+        // change the final shape (line cap, joint, etc.), a more accurate and complicated
+        // hittest should be done with the effects of Material considered.
         const strokePath = this.fGeometry.asPath().fillWithPaint(
-            paintRecord.instantiatePaint(), null, 1);
+            paintRecord.instantiatePaint(), null, null);
         if (strokePath == null) {
             return Maybe.None();
         }
@@ -86,6 +89,6 @@ export class GskDraw extends GskRenderNode {
             GskNodeError.Throw(this, 'Failed to compute the fast bounds of geometry node');
         }
 
-        return Rect.MakeFromGL(paint.computeFastBounds(bounds.toCkArrayXYWHRect()));
+        return paint.computeFastBounds(bounds);
     }
 }

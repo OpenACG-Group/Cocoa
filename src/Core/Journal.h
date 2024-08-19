@@ -67,16 +67,9 @@ public:
     Journal(LogLevel level, OutputDevice output, bool enableColor, char const *file = nullptr);
     ~Journal();
 
-    template<typename...ArgsT>
-    void operator()(LogType type, fmt::format_string<ArgsT...> format, ArgsT&&...args)
-    {
-        if (!this->filter(type))
-            return;
-        this->commit(type, fmt::format(format, std::forward<ArgsT>(args)...));
-    }
+    void commit(LogType type, const std::string& str);
 
 private:
-    void commit(LogType type, const std::string& str);
     bool filter(LogType type);
 
     bool                                    fEnableColor;
@@ -86,11 +79,9 @@ private:
     std::chrono::steady_clock::time_point   fStartTime;
 };
 
-#define QLOG(level, fmt, ...)                                                       \
-    do {                                                                            \
-        Journal::Ref()(level, "%fg<bl><{}>%reset " fmt,                             \
-                       THIS_FILE_MODULE __VA_OPT__(,) __VA_ARGS__);                 \
-    } while (false)
+#define QLOG(level, fmtstr, ...)                                                   \
+    Journal::Ref().commit(level, fmt::format(                                      \
+        "%fg<bl><{}>%reset " fmtstr, THIS_FILE_MODULE __VA_OPT__(,) __VA_ARGS__))
 
 #else  /* COCOA_JOURNAL_DISABLED is defined */
 

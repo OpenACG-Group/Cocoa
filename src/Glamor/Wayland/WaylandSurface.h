@@ -21,6 +21,8 @@
 #include <set>
 
 #include "Glamor/Glamor.h"
+#include "Glamor/Wayland/protos/fractional-scale-v1.h"
+#include "Glamor/Wayland/protos/viewporter.h"
 #include "Glamor/Surface.h"
 #include "Glamor/Wayland/WaylandDisplay.h"
 #include "Glamor/Wayland/WaylandRenderTarget.h"
@@ -34,7 +36,7 @@ public:
 
     static std::shared_ptr<Surface> Make(const std::shared_ptr<WaylandRenderTarget>& rt);
 
-    g_nodiscard g_inline wl_surface *GetWaylandSurface() const {
+    g_nodiscard wl_surface *GetWaylandSurface() const {
         return wl_surface_;
     }
 
@@ -46,26 +48,29 @@ public:
     void OnSetMaximized(bool value) override;
     void OnSetFullscreen(bool value, const std::shared_ptr<Monitor>& monitor) override;
 
+    // This returns the current surface transformations including HiDPI scale
+    SkMatrix OnGetRootTransformation() const override;
+
     void OnSetCursor(const std::shared_ptr<Cursor> &cursor) override;
 
-    g_private_api g_inline void SetPointerEntered(uint32_t serial, wl_pointer *device) {
+    g_private_api void SetPointerEntered(uint32_t serial, wl_pointer *device) {
         latest_pointer_enter_serial_ = serial;
         entered_pointer_device_ = device;
     }
 
-    g_private_api g_nodiscard g_inline uint32_t GetLatestPointerEnterEventSerial() const {
+    g_private_api g_nodiscard uint32_t GetLatestPointerEnterEventSerial() const {
         return latest_pointer_enter_serial_;
     }
 
-    g_private_api g_nodiscard g_inline wl_pointer *GetEnteredPointerDevice() const {
+    g_private_api g_nodiscard wl_pointer *GetEnteredPointerDevice() const {
         return entered_pointer_device_;
     }
 
-    g_private_api g_inline void SetKeyboardEntered(wl_keyboard *device) {
+    g_private_api void SetKeyboardEntered(wl_keyboard *device) {
         entered_keyboard_device_ = device;
     }
 
-    g_private_api g_nodiscard g_inline wl_keyboard *GetEnteredKeyboardDevice() const {
+    g_private_api g_nodiscard wl_keyboard *GetEnteredKeyboardDevice() const {
         return entered_keyboard_device_;
     }
 

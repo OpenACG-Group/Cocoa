@@ -1,7 +1,5 @@
 // %scope UserExecute:forbidden UserImport:forbidden SysExecute:allowed
 
-import * as std from 'core';
-
 const BOOTSTRAP_ID = 'Gallium Standard Bootstrap Script';
 const BOOTSTRAP_VERSION = '1.0.0-alpha';
 
@@ -17,11 +15,11 @@ global.getGalliumRuntimeInfo = function() {
 
 function printErrorObject(error) {
     if (!error.hasOwnProperty('stack')) {
-        std.print(`${error}\n`);
+        introspect.print(`${error}\n`);
         return;
     }
 
-    std.print(`${error.stack}\n`);
+    introspect.print(`${error.stack}\n`);
 }
 
 function bootstrapDefaultUncaughtExceptionHandler(error) {
@@ -29,11 +27,11 @@ function bootstrapDefaultUncaughtExceptionHandler(error) {
 }
 
 function bootstrapDefaultPromiseRejectionHandler(promise, value) {
-    std.print('Promise reject: ');
+    introspect.print('Promise reject: ');
     if (value instanceof Error) {
         printErrorObject(value);
     } else {
-        std.print(`${value}\n`);
+        introspect.print(`${value}\n`);
     }
 }
 

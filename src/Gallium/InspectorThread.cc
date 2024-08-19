@@ -29,7 +29,6 @@
 #include "Core/Data.h"
 #include "Core/UUIDGenerator.h"
 #include "Gallium/InspectorThread.h"
-#include "Gallium/ModuleImportURL.h"
 #include "CRPKG/ResourceManager.h"
 #include "CRPKG/VirtualDisk.h"
 GALLIUM_NS_BEGIN
@@ -265,7 +264,7 @@ void handle_normal_http_request(struct lws *wsi, WsContext *ctx)
     {
         Json::Value obj;
         obj["description"] = "Cocoa instance";
-        obj["faviconUrl"] = "http://localhost:{}/favicon";
+        obj["faviconUrl"] = fmt::format("http://localhost:{}/favicon", ctx->port);
 
         // Used to lead Chrome to open the DevTools page
         obj["devtoolsFrontendUrl"] = fmt::format(
@@ -281,13 +280,9 @@ void handle_normal_http_request(struct lws *wsi, WsContext *ctx)
         // V8 directly deliveries the script contents via the inspector protocol.
         const std::string& script_name = ApplicationInfo::Ref().js_first_script_name;
         obj["title"] = fmt::format("Cocoa [{}]", script_name);
-        auto script_resolved = ModuleImportURL::Resolve(
-                nullptr, script_name, ModuleImportURL::ResolvedAs::kUserExecute);
-        if (script_resolved)
-            obj["url"] = script_resolved->toString();
-
         obj["type"] = "node";
         obj["webSocketDebuggerUrl"] = fmt::format("ws://localhost:9005/{}", ctx->session_uuid);
+        // TODO(sora): add `url` field
 
         Json::Value root(Json::ValueType::arrayValue);
         root.append(obj);

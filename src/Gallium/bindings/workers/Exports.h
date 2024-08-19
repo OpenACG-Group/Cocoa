@@ -23,24 +23,26 @@
 
 #include "Gallium/Gallium.h"
 #include "Gallium/bindings/workers/Types.h"
-#include "Gallium/bindings/Base.h"
 #include "Gallium/bindings/EventEmitter.h"
+#include "Gallium/ffi/DefineClass.h"
 GALLIUM_BINDINGS_WORKERS_NS_BEGIN
 
 class MessagePort;
 
 //! TSDecl: class Worker
-class WorkerWrap : public ExportableObjectBase
+class WorkerWrap : public ffi::JSObject
 {
 public:
+    FFI_JSOBJECT_ATTRS(ffi::ClassMetadata::kNone_Attr)
+
     //! TSDecl: function MakeFromURL(url: string): Worker
-    static v8::Local<v8::Value> MakeFromURL(const std::string& url);
+    static ffi::RetLocal<v8::Value> MakeFromURL(const std::string& url);
 
     explicit WorkerWrap(std::shared_ptr<MessagePort> port);
-    ~WorkerWrap();
+    ~WorkerWrap() override;
 
     //! TSDecl: readonly port: MessagePort
-    v8::Local<v8::Value> getPort() {
+    ffi::RetLocal<v8::Value> getPort() {
         v8::Isolate *isolate = v8::Isolate::GetCurrent();
         return message_port_.Get(isolate);
     }
@@ -50,29 +52,31 @@ private:
 };
 
 //! TSDecl: class MessagePort
-class MessagePortWrap : public ExportableObjectBase,
-                        public EventEmitterBase
+class MessagePortWrap : public EventEmitterBase
 {
 public:
+    FFI_JSOBJECT_ATTRS(EventEmitterBase::kJSObjectAttrs |
+                       ffi::ClassMetadata::kTransferable_Attr |
+                       ffi::ClassMetadata::kMessagePort_Attr)
+
     //! TSDecl: function MakeConnectedPair(): [MessagePort, MessagePort]
-    static v8::Local<v8::Value> MakeConnectedPair();
+    static ffi::RetLocal<v8::Value> MakeConnectedPair();
 
     explicit MessagePortWrap(std::shared_ptr<MessagePort> port);
     ~MessagePortWrap() override = default;
 
-    g_nodiscard g_inline std::shared_ptr<MessagePort> GetPort() const {
+    g_nodiscard std::shared_ptr<MessagePort> GetPort() const {
         return port_;
     }
 
     //! TSDecl: function close(): void
-    void close();
+    ffi::Ret<void> close();
 
-    //! TSDecl: function postMessage(message: any, transfers?: Array<any>): void
-    void postMessage(const v8::FunctionCallbackInfo<v8::Value>& info);
+    //! TSDecl: function postMessage(message: any, transfers: Array<any> | null): void
+    ffi::Ret<void> postMessage(v8::Local<v8::Value> message, ffi::OptLocal<v8::Array> transfers);
 
 private:
-    void CheckClosedPort();
-    v8::Local<v8::Object> OnGetObjectSelf(v8::Isolate *isolate) override;
+    std::unique_ptr<ffi::JSTransferData> OnObjectTransfer(v8::Isolate *isolate) override;
 
     std::shared_ptr<MessagePort> port_;
 };

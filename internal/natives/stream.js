@@ -1,0 +1,1 @@
+../../src/Gallium/bindings/stream/stream.js

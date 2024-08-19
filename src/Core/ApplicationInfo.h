@@ -50,6 +50,9 @@ public:
     String     XDG_CACHE_HOME;
     String     XDG_RUNTIME_DIR;
 
+    /* Program options */
+    bool       enable_tracing = false;
+
     /* JavaScript arguments */
     StringV    js_arguments;
     StringV    js_native_preloads;

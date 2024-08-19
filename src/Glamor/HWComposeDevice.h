@@ -81,22 +81,32 @@ public:
         // graphics rendering pipeline.
         kGraphics,
 
-        // Requires `VkSurfaceKHR` support. Queue will be used for
+        // A graphics queue with `VkSurfaceKHR` present support. Queue will be used for
         // presenting frames on a certain window.
-        kPresent
+        kGraphicsWithPresent,
 
-        // TODO(sora): Compute queue may be supported in the future
+        kCompute,
+
+        kVideoDecode,
+
+        kVideoEncode
     };
 
     struct DeviceQueueSpecifier
     {
         DeviceQueueSelector selector;
+
+        // Number of queues that should be created. -1 to create the maximum number of queues
+        // supported by the device. In that case, `priorities` will be reset to `{1/count, 1/count, ...}`;
         int32_t count;
         std::vector<float> priorities;
 
-        // When `selector` is `kPresent`, this is used to determine whether a VkQueue
+        // When `selector` is `kGraphicsWithPresent`, this is used to determine whether a VkQueue
         // has present support. Otherwise, caller should leave this field `VK_NULL_HANDLE`.
         VkSurfaceKHR present_surface;
+
+        // Other queue requirements
+        bool transfer = true;
     };
 
     struct DeviceQueue
@@ -109,7 +119,8 @@ public:
     static std::unique_ptr<HWComposeDevice> Make(
             const std::shared_ptr<HWComposeContext>& context,
             const std::vector<DeviceQueueSpecifier>& queue_specs,
-            const std::vector<std::string>& extra_device_ext);
+            const std::vector<std::string>& extra_device_ext,
+            const VkPhysicalDeviceFeatures2& enabled_features = {});
 
     HWComposeDevice(std::shared_ptr<HWComposeContext> context,
                     std::vector<std::string> enabled_extensions,
@@ -129,10 +140,17 @@ public:
         return enabled_extensions_;
     }
 
-    std::optional<DeviceQueue> GetDeviceQueue(DeviceQueueSelector selector, int32_t index);
+    int32_t GetDeviceQueueCount(DeviceQueueSelector selector) const;
+    std::optional<DeviceQueue> GetDeviceQueue(DeviceQueueSelector selector, int32_t index) const;
 
     sk_sp<VulkanAMDAllocatorImpl> CreateAllocator(bool external_sync,
                                                   const skgpu::VulkanExtensions *extensions);
+
+    VkResult CreateBufferSimple(VkDeviceSize size,
+                                VkBufferUsageFlags usage,
+                                VkMemoryPropertyFlags properties,
+                                VkBuffer& buffer,
+                                VkDeviceMemory& bufferMemory);
 
     void Trace(Tracer *tracer) noexcept override;
 

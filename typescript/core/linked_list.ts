@@ -52,14 +52,25 @@ export class LinkedList<T> implements Iterable<T> {
         return (this.#head.next == this.#head);
     }
 
-    public forEach(callback: (value: T, index: number) => boolean): void {
+    public forEach(callback: (value: T, seq: number) => boolean): void {
         let current = this.#head.next;
-        let index = 0;
+        let seq = 0;
         while (!current.head) {
-            if (!callback(current.value, index))
+            if (!callback(current.value, seq))
                 break;
             current = current.next;
-            index++;
+            seq++;
+        }
+    }
+
+    public forEachReverse(callback: (value: T, seq: number) => boolean): void {
+        let current = this.#head.prev;
+        let seq = 0;
+        while (!current.head) {
+            if (!callback(current.value, seq))
+                break;
+            current = current.prev;
+            seq++;
         }
     }
 

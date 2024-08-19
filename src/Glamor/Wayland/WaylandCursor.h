@@ -24,7 +24,7 @@ public:
                    const std::shared_ptr<SkBitmap>& bitmap,
                    const SkIVector& hotspot);
 
-    g_nodiscard g_inline wl_surface *GetCursorSurface() const {
+    g_nodiscard wl_surface *GetCursorSurface() const {
         return surface_;
     }
 

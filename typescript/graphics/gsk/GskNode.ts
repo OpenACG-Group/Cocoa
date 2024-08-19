@@ -15,9 +15,9 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Rect } from '../base/Rectangle';
+import { Mat3x3, Vec2, Rect } from 'renderer';
 import { LinkedList } from '../../core/linked_list';
-import { Mat3x3 } from '../base/Matrix';
+import { Maybe } from '../../core/error';
 
 export enum GskConcreteType {
     kGroup = 'GskGroup',
@@ -36,7 +36,10 @@ export enum GskConcreteType {
     // Not exported, use `GskTransform.Concat()` to create it
     kConcat = 'GskConcat',
     // Not exported, use `GskTransform.Inverse()` to create it
-    kInverse = 'GskInverse'
+    kInverse = 'GskInverse',
+
+    /* Pipeline raster nodes */
+    kPipelineNativeSceneRaster = 'GskPipelineNativeSceneRaster'
 }
 
 export class GskNodeError extends Error {
@@ -178,7 +181,7 @@ export abstract class GskNode {
     private readonly fId: number;
     private readonly fType: GskConcreteType;
     private readonly fTrait: number;
-    private readonly fObservedInv: LinkedList<GskNode>;
+    private readonly fInvObservers: LinkedList<GskNode>;
     private fFlags: number;
     private fBounds: Rect;
 
@@ -188,7 +191,7 @@ export abstract class GskNode {
         this.fFlags = NodeFlags.kInvalidated;
         this.fTrait = trait;
         this.fBounds = Rect.MakeEmpty();
-        this.fObservedInv = new LinkedList<GskNode>();
+        this.fInvObservers = new LinkedList<GskNode>();
     }
 
     public get id(): number {
@@ -227,7 +230,7 @@ export abstract class GskNode {
         }
 
         this.fFlags |= NodeFlags.kInvalidated;
-        this.fObservedInv.forEach((node) => {
+        this.fInvObservers.forEach((node) => {
             node.invalidate(damage);
             return true;
         });
@@ -239,11 +242,12 @@ export abstract class GskNode {
         if (this.fFlags & NodeFlags.kInTraversal) {
             return this.fBounds;
         }
-        this.fFlags |= NodeFlags.kInTraversal;
 
         if (!this.hasInvalid()) {
             return this.fBounds;
         }
+
+        this.fFlags |= NodeFlags.kInTraversal;
 
         const flags = this.fFlags;
         const generateDamage = (recorder != null)
@@ -276,11 +280,15 @@ export abstract class GskNode {
     protected abstract onRevalidate(recorder: GskInvalidationRecorder, ctm: Mat3x3): Rect;
 
     protected observeChild(node: GskNode): void {
-        this.fObservedInv.push(node);
+        if (node.fInvObservers.findFirst(this).has()) {
+            // To make sure no duplicated observers
+            return;
+        }
+        node.fInvObservers.push(this);
     }
 
     protected unobserveChild(node: GskNode): void {
-        this.fObservedInv.removeIf(value => node === value);
+        node.fInvObservers.removeIf(current => current.fId === this.fId);
     }
 
     protected ASSERT_REVALIDATED(): void {
@@ -294,4 +302,8 @@ export abstract class GskNode {
             GskNodeError.Throw(this, 'Node should be invalidated');
         }
     }
+}
+
+export interface GskHitTestableNode<T extends GskNode> {
+    nodeAt(point: Vec2): Maybe<T>;
 }

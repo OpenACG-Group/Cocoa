@@ -15,7 +15,6 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { CkColor4f } from 'glamor';
 import * as Fmt from '../../core/formatter';
 
 /**
@@ -24,6 +23,13 @@ import * as Fmt from '../../core/formatter';
  * For the alpha component, 255 is 100% opaque, zero is 100% transparent.
  */
 export type Color32 = number;
+
+/**
+ * Four-channel color value represented by four float numbers in [0, 1].
+ * Components are always in the order of [R, G, B, A].
+ * For the alpha component, 1 is 100% opaque, zero is 100% transparent.
+ */
+export type Color4fTuple = [number, number, number, number];
 
 function clamp(v: number, lower: number, upper: number): number {
     return Math.min(Math.max(v, lower), upper);
@@ -37,7 +43,7 @@ export enum ARGBChannel {
 }
 
 /**
- * Float ARGB color value.
+ * Float RGBA color value.
  */
 export class Color4f implements Fmt.Formattable {
     public static FromColor32(from: Color32): Color4f {
@@ -216,7 +222,7 @@ export class Color4f implements Fmt.Formattable {
         return [H, S, V];
     }
 
-    public toCkColor4f(): CkColor4f {
+    public asRGBATuple(): Color4fTuple {
         return [this.R, this.G, this.B, this.A];
     }
 

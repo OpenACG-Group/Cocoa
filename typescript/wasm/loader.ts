@@ -1,0 +1,86 @@
+/**
+ * This file is part of Cocoa.
+ *
+ * Cocoa is free software: you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * Cocoa is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import * as fs from 'fs';
+import * as utils from 'utils';
+
+function executeScript<T>(wasmBinary: ArrayBuffer, script: string): Promise<T> {
+    let readyPromiseResolver: (v: any) => void = null;
+    let readyPromiseReject: (v: any) => void = null;
+
+    const readyPromise = new Promise<T>((resolve, reject) => {
+        readyPromiseResolver = resolve;
+        readyPromiseReject = reject;
+    });
+
+    // Emscripten uses `Module` object to interact with user's code,
+    // and the exported objects will also be mounted on `Module`.
+    const Module = {
+        onRuntimeInitialized() {
+            readyPromiseResolver(Module);
+        },
+
+        print(str: string) {
+            introspect.print(str + '\n');
+        }
+    };
+
+    // To emulate Web environment
+    const window = {};
+    const performance = {
+        now() {
+            return getMillisecondTimeCounter();
+        }
+    };
+
+    // This function will load WebAssembly binary code.
+    // It just provides a dummy implement of `fetch()` function
+    // in Web environment.
+    const fetch = () => {
+        return Promise.resolve({
+            ok: true,
+            arrayBuffer() {
+                return Promise.resolve(wasmBinary);
+            }
+        });
+    };
+
+    // Now executes the script to load and initialize the WebAssembly module.
+    const f = new Function('Module', 'window', 'fetch', 'performance', 'globalThis', script);
+    f(Module, window, fetch, performance, undefined);
+
+    return readyPromise;
+}
+
+export async function Load<T>(wasmBinary: ArrayBuffer, script: string): Promise<T> {
+    return executeScript(wasmBinary, script);
+}
+
+export async function LoadFromFile<T>(wasmPath: string, scriptPath: string): Promise<T> {
+    const wasmBinary = fs.ReadFile(wasmPath, 0, null).buffer;
+    const scriptData = fs.ReadFile(scriptPath, 0, null).buffer;
+
+    return executeScript(wasmBinary, utils.decodeText(scriptData, utils.TextCodec.UTF8));
+}
+
+export async function LoadFromProjectThirdParty<T>(wasmName: string, scriptName: string): Promise<T> {
+    const dir = fs.realpath(
+        import.meta.url.replace(/(file:\/\/)|\/[^\/]+$/g, '')
+        + '/../../../third_party/wasm-build/bin'
+    );
+    return LoadFromFile<T>(`${dir}/${wasmName}`, `${dir}/${scriptName}`);
+}

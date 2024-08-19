@@ -30,12 +30,14 @@
 #include "Gallium/ModuleImportURL.h"
 #include "Gallium/Platform.h"
 #include "Gallium/TracingController.h"
-#include "Gallium/binder/Function.h"
 GALLIUM_NS_BEGIN
 
 #define ISOLATE_DATA_SLOT_RUNTIME_PTR       0
 
-namespace bindings { class BindingBase; }
+namespace ffi {
+class TypeContext;
+class NativeModule;
+}
 
 /**
  * `JS_THROW_IF` macro throws a JavaScript exception and make current function
@@ -79,68 +81,52 @@ public:
     {
         ESModuleCache() = default;
         ESModuleCache(v8::Isolate *isolate, v8::Local<v8::Module> module)
-                : module(isolate, module)
-                , binding(nullptr) {}
+                : module(isolate, module) , native_module(nullptr) {}
         ESModuleCache(v8::Isolate *isolate, v8::Local<v8::Module> module,
-                      bindings::BindingBase *pBinding)
-                : module(isolate, module)
-                , binding(pBinding) {}
+                      ffi::NativeModule *native_module)
+                : module(isolate, module) , native_module(native_module) {}
         ESModuleCache(ESModuleCache&& rhs) noexcept
-                : module(std::move(rhs.module))
-                , exports(std::move(rhs.exports))
-                , binding(rhs.binding) {
-            rhs.binding = nullptr;
+                : module(std::move(rhs.module)) , native_module(rhs.native_module) {
+            rhs.native_module = nullptr;
         }
         ESModuleCache(const ESModuleCache&) = delete;
         ESModuleCache& operator=(ESModuleCache&& rhs) noexcept {
             module = std::move(rhs.module);
-            exports = std::move(rhs.exports);
-            binding = rhs.binding;
-            rhs.binding = nullptr;
+            native_module = rhs.native_module;
+            rhs.native_module = nullptr;
             return *this;
         }
         ESModuleCache& operator=(const ESModuleCache&) = delete;
 
-        inline void reset() {
-            module.Reset();
-            exports.Reset();
-            binding = nullptr;
-        }
-
-        inline void setExportsObject(v8::Isolate *isolate, v8::Local<v8::Object> obj) {
-            exports.Reset(isolate, obj);
-        }
-
         v8::Global<v8::Module> module;
-        v8::Global<v8::Object> exports;
-        bindings::BindingBase *binding = nullptr;
+        ffi::NativeModule *native_module;
     };
 
     using ModuleCacheMap = std::map<ModuleImportURL::SharedPtr, ESModuleCache>;
 
-    g_nodiscard g_inline const std::string& GetRuntimeId() const {
+    g_nodiscard const std::string& GetRuntimeId() const {
         return runtime_id_;
     }
 
-    g_nodiscard g_inline uv_loop_t *GetEventLoop() const {
+    g_nodiscard uv_loop_t *GetEventLoop() const {
         return event_loop_;
     }
 
-    g_nodiscard g_inline v8::Isolate *GetIsolate() const {
+    g_nodiscard v8::Isolate *GetIsolate() const {
         CHECK(isolate_);
         return isolate_;
     }
 
-    g_nodiscard g_inline v8::Local<v8::Context> GetContext() const {
+    g_nodiscard v8::Local<v8::Context> GetContext() const {
         CHECK(isolate_);
         return context_.Get(isolate_);
     }
 
-    g_nodiscard g_inline std::shared_ptr<Platform> GetPlatform() const {
+    g_nodiscard std::shared_ptr<Platform> GetPlatform() const {
         return platform_;
     }
 
-    g_nodiscard g_inline TracingController *GetTracingController() const {
+    g_nodiscard TracingController *GetTracingController() const {
         // RTTI is disabled, and we can make sure the type of
         // tracing controller, so `static_cast` is used instead
         // of `dynamic_cast`.
@@ -149,12 +135,14 @@ public:
         return static_cast<TracingController*>(platform_->GetTracingController());
     }
 
+    g_nodiscard ffi::TypeContext *GetFFIContext() const {
+        return ffi_type_context_.get();
+    }
+
     void Dispose();
     void Initialize();
 
-    g_nodiscard bindings::BindingBase *GetSyntheticModuleBinding(v8::Local<v8::Module> module);
-
-    g_nodiscard g_inline ModuleCacheMap& GetModuleCache() {
+    g_nodiscard ModuleCacheMap& GetModuleCache() {
         return module_cache_;
     }
 
@@ -170,7 +158,7 @@ public:
      * To solve this tough dependency problem, B can import A explicitly
      * by calling this method when it is imported.
      */
-    v8::MaybeLocal<v8::Module> GetAndCacheSyntheticModule(const ModuleImportURL::SharedPtr& url);
+    v8::Local<v8::Module> ImportNativeModule(const ModuleImportURL::SharedPtr& url);
 
     enum ScriptSourceFlags {
         kFromImport_ScriptSourceFlag = 0x01,
@@ -186,14 +174,9 @@ public:
                                              int script_source_flags = 0);
 
     v8::MaybeLocal<v8::Value> ExecuteScript(const char *script_name, const char *source);
+    v8::MaybeLocal<v8::Value> ExecuteScript(const std::string& url, int script_src_flags);
 
     void PerformTasksCheckpoint();
-
-    // Binder's memory management
-    using BinderExtValueHolderBase = binder::detail::external_data::value_holder_base;
-    g_private_api void RegisterExternalValueHolder(BinderExtValueHolderBase *value);
-    g_private_api void UnregisterExternalValueHolder(BinderExtValueHolderBase *value);
-    g_private_api void DeleteExternalValueHolders();
 
     void ReportUncaughtExceptionInCallback(const v8::TryCatch& catch_block);
 
@@ -203,6 +186,7 @@ public:
     {
         kBeforeSpinRunExit,
         kBeforeRuntimeDispose,
+        kAfterDisposeCleanup,
         kAfterRuntimeDispose,
         kAfterRuntimeInitialize,
         kAfterTasksCheckpoint
@@ -241,7 +225,7 @@ private:
     uv::IdleHandle               event_idle_;
     uint64_t                     nb_pending_resolved_promises_;
 
-    std::list<BinderExtValueHolderBase*> binder_external_value_holders_;
+    std::unique_ptr<ffi::TypeContext> ffi_type_context_;
 
     GroupedCallbackManager<ExternalCallbackType> external_callbacks_;
 };

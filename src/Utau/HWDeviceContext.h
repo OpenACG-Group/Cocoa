@@ -18,10 +18,12 @@
 #ifndef COCOA_UTAU_HWDEVICECONTEXT_H
 #define COCOA_UTAU_HWDEVICECONTEXT_H
 
-#include <va/va.h>
+#define FFWRAP_AVUTIL_USE_HWCONTEXT_VULKAN
 
-#define FFWRAP_AVUTIL_USE_HWCONTEXT_VAAPI
+#include <vulkan/vulkan_core.h>
 
+#include "Glamor/HWComposeContext.h"
+#include "Glamor/HWComposeDevice.h"
 #include "Utau/Utau.h"
 #include "Utau/ffwrappers/libavutil.h"
 UTAU_NAMESPACE_BEGIN
@@ -29,21 +31,52 @@ UTAU_NAMESPACE_BEGIN
 class HWDeviceContext
 {
 public:
-    struct DevicePriv;
+    class AttachedResource
+    {
+    public:
+        enum Key
+        {
+            kVideoFrameConversion
+        };
 
-    HWDeviceContext();
+        virtual ~AttachedResource() = default;
+    };
+
+    static void AppendRequiredVkExtensions(gl::HWComposeContext *context,
+                                           std::vector<std::string>& extra_device_ext);
+    static void AppendRequiredQueueSpecs(std::vector<gl::HWComposeDevice::DeviceQueueSpecifier>& specs);
+    static void EnableRequiredVkDeviceFeatures(const gl::HWComposeContext::DeviceFeatures& avail_features,
+                                               VkPhysicalDeviceFeatures2& features,
+                                               VkPhysicalDeviceVulkan13Features& v13feature,
+                                               VkPhysicalDeviceSamplerYcbcrConversionFeatures& ycbcr_conv_feature);
+
+    static HWDeviceContext *GetEmbedded(AVBufferRef *hwctx);
+    static HWDeviceContext *GetEmbedded(AVHWDeviceContext *hwctx);
+
+    explicit HWDeviceContext(std::shared_ptr<gl::HWComposeDevice> device, AVBufferRef *hwctx)
+        : vk_device(std::move(device)), hwctx_(hwctx) {}
     ~HWDeviceContext() = default;
 
-    g_nodiscard static std::shared_ptr<HWDeviceContext> MakeVAAPI();
+    g_nodiscard static AVBufferRef *MakeVulkan();
+    g_nodiscard static AVBufferRef *MakeFromCompatibleGLDevice(
+        const std::shared_ptr<gl::HWComposeDevice>& device,
+        const VkPhysicalDeviceFeatures2& enabled_features);
 
-    g_nodiscard AVBufferRef *GetAVContext();
+    g_nodiscard AVBufferRef *GetAVContext() const;
+    g_nodiscard AVPixelFormat GetDeviceFormat() const;
 
-    g_nodiscard AVPixelFormat GetDeviceFormat();
+    bool FillHWFramesContextBackendSpecific(AVHWFramesContext *frames_ctx);
 
-    g_nodiscard VADisplay GetVADisplay();
+    void StoreAttachedResource(AttachedResource::Key key, std::unique_ptr<AttachedResource> resource);
+    AttachedResource *LoadAttachedResource(AttachedResource::Key key) const;
+    void DeleteAttachedResource(AttachedResource::Key key);
 
 private:
-    std::unique_ptr<DevicePriv> priv_;
+    using AttachedResourceMap = std::map<AttachedResource::Key, std::unique_ptr<AttachedResource>>;
+
+    std::shared_ptr<gl::HWComposeDevice> vk_device;
+    AVBufferRef *hwctx_;
+    AttachedResourceMap attached_resource_map_;
 };
 
 UTAU_NAMESPACE_END

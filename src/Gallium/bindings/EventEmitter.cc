@@ -17,8 +17,10 @@
 
 #include "fmt/format.h"
 
+#include "Core/TraceEvent.h"
 #include "Gallium/bindings/EventEmitter.h"
 #include "Gallium/RuntimeBase.h"
+#include "Gallium/ffi/DefineClass.h"
 GALLIUM_BINDINGS_NS_BEGIN
 
 EventEmitterBase::EventEmitterBase()
@@ -44,7 +46,7 @@ EventEmitterBase::EmitterWrapAsCallable(const std::string &name)
     CHECK(events_map_.count(name) > 0 && "Undefined event name");
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
-    v8::Local<v8::Object> self = OnGetObjectSelf(isolate);
+    v8::Local<v8::Object> self = ffi::JSObject::GetThisHandle(isolate);
     CHECK(!self.IsEmpty());
     auto g_self_sp = std::make_shared<v8::Global<v8::Object>>(isolate, self);
 
@@ -52,8 +54,12 @@ EventEmitterBase::EmitterWrapAsCallable(const std::string &name)
     // valid during the whole lifetime of this object.
     EventData *event_data = &events_map_[name];
 
-    return [isolate, g_self_sp, event_data](const ListenerArgsT& args) {
+    return [isolate, g_self_sp, event_data, name](const ListenerArgsT& args) {
         CHECK(isolate == v8::Isolate::GetCurrent() && "Different v8::Isolate");
+        TRACE_EVENT("main", nullptr, [&](perfetto::EventContext& ctx) {
+            // TODO(sora): provide information about the event emitter (class name)
+            ctx.event()->set_name(fmt::format("event:{}", name));
+        });
         v8::HandleScope handle_scope(isolate);
         v8::Local<v8::Object> self = g_self_sp->Get(isolate);
         EventEmitterBase::CallListeners(*event_data, self, args);
@@ -109,18 +115,15 @@ void EventEmitterBase::CallListeners(EventData& event_data,
         event_data.on_listener_clear(event_data.on_listener_set_ret);
 }
 
-void EventEmitterBase::EmitterSetListener(const std::string &name,
-                                          v8::Local<v8::Value> func,
-                                          bool once)
+ffi::Ret<void> EventEmitterBase::EmitterSetListener(const std::string &name,
+                                                    v8::Local<v8::Function> func,
+                                                    bool once)
 {
     if (disposed_)
-        g_throw(Error, "Event emitter has been disposed (closed)");
+        return ffi::Fail(ffi::kErr, "Event emitter has been disposed (closed)");
 
     if (events_map_.count(name) == 0)
-        g_throw(Error, fmt::format("Undefined event name `{}`", name));
-
-    if (!func->IsFunction())
-        g_throw(TypeError, "Argument `func` must be a Function");
+        return ffi::Fail(ffi::kErr, fmt::format("Undefined event name `{}`", name));
 
     v8::Isolate *isolate = v8::Isolate::GetCurrent();
     EventData& event_data = events_map_[name];
@@ -130,6 +133,8 @@ void EventEmitterBase::EmitterSetListener(const std::string &name,
     // first listener on this event.
     if (event_data.on_listener_set && event_data.listeners.size() == 1)
         event_data.on_listener_set_ret = event_data.on_listener_set();
+
+    return {};
 }
 
 void EventEmitterBase::EmitterDispose()
@@ -137,14 +142,16 @@ void EventEmitterBase::EmitterDispose()
     disposed_ = true;
 }
 
-void EventEmitterBase::addListener(const std::string& name, v8::Local<v8::Value> func)
+ffi::Ret<void> EventEmitterBase::addListener(const std::string& name,
+                                             v8::Local<v8::Function> func)
 {
-    EmitterSetListener(name, func, false);
+    return EmitterSetListener(name, func, false);
 }
 
-void EventEmitterBase::addOnceListener(const std::string& name, v8::Local<v8::Value> func)
+ffi::Ret<void> EventEmitterBase::addOnceListener(const std::string& name,
+                                                 v8::Local<v8::Function> func)
 {
-    EmitterSetListener(name, func, true);
+    return EmitterSetListener(name, func, true);
 }
 
 auto EventEmitterBase::ListenerRemoveOrMarkRemoving(
@@ -162,12 +169,11 @@ auto EventEmitterBase::ListenerRemoveOrMarkRemoving(
     return itr;
 }
 
-bool EventEmitterBase::removeListener(const std::string& name, v8::Local<v8::Value> func)
+ffi::Ret<bool> EventEmitterBase::removeListener(const std::string& name,
+                                                v8::Local<v8::Function> func)
 {
     if (events_map_.count(name) == 0)
-        g_throw(Error, fmt::format("Undefined event name `{}`", name));
-    if (!func->IsFunction())
-        g_throw(TypeError, "Argument `func` must be a Function");
+        return ffi::Fail(ffi::kErr, fmt::format("Undefined event name `{}`", name));
 
     EventData& event_data = events_map_[name];
     if (event_data.listeners.empty())
@@ -194,14 +200,14 @@ bool EventEmitterBase::removeListener(const std::string& name, v8::Local<v8::Val
     return found;
 }
 
-void EventEmitterBase::removeAllListeners(const std::string &name)
+ffi::Ret<void> EventEmitterBase::removeAllListeners(const std::string &name)
 {
     if (events_map_.count(name) == 0)
-        g_throw(Error, fmt::format("Undefined event name `{}`", name));
+        return ffi::Fail(ffi::kErr, fmt::format("Undefined event name `{}`", name));
 
     EventData& event_data = events_map_[name];
     if (event_data.listeners.empty())
-        return;
+        return {};
 
     auto itr = event_data.listeners.begin();
     while (itr != event_data.listeners.end())
@@ -209,15 +215,18 @@ void EventEmitterBase::removeAllListeners(const std::string &name)
 
     if (event_data.listeners.empty() && event_data.on_listener_clear)
         event_data.on_listener_clear(event_data.on_listener_set_ret);
+
+    return {};
 }
 
 void EventEmitterBase::RegisterClass(v8::Isolate *isolate)
 {
-    binder::Class<EventEmitterBase>(isolate)
-        .set("addListener", &EventEmitterBase::addListener)
-        .set("addOnceListener", &EventEmitterBase::addOnceListener)
-        .set("removeListener", &EventEmitterBase::removeListener)
-        .set("removeAllListeners", &EventEmitterBase::removeAllListeners);
+    ffi::DefineClass<EventEmitterBase>(isolate)
+        .Method("addListener", &EventEmitterBase::addListener)
+        .Method("addOnceListener", &EventEmitterBase::addOnceListener)
+        .Method("removeListener", &EventEmitterBase::removeListener)
+        .Method("removeAllListeners", &EventEmitterBase::removeAllListeners)
+        .Finalize();
 }
 
 GALLIUM_BINDINGS_NS_END

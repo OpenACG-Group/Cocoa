@@ -67,4 +67,4 @@ export function IsBigUint64Array(v: any): boolean {
     return I(v) == 'BigUint64Array';
 }
 
-export * from 'synthetic://typetraits';
+export * from 'native://typetraits';

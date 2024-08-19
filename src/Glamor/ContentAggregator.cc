@@ -29,7 +29,6 @@
 #include "Glamor/RenderTarget.h"
 #include "Glamor/Surface.h"
 #include "Glamor/HWComposeSwapchain.h"
-#include "Glamor/GProfiler.h"
 
 #include "Glamor/Layers/LayerTree.h"
 #include "Glamor/Layers/ContainerLayer.h"
@@ -119,7 +118,6 @@ ContentAggregator::Make(const std::shared_ptr<Surface>& surface)
 ContentAggregator::ContentAggregator(const std::shared_ptr<Surface>& surface)
     : PresentRemoteHandle(RealType::kContentAggregator)
     , disposed_(false)
-    , surface_resize_slot_id_(0)
     , surface_frame_slot_id_(0)
     , weak_surface_(surface)
     , current_dirty_rect_(SkIRect::MakeEmpty())
@@ -129,17 +127,6 @@ ContentAggregator::ContentAggregator(const std::shared_ptr<Surface>& surface)
     , imported_resources_ids_cnt_(0)
 {
     CHECK(surface);
-
-    int32_t width = surface->GetWidth();
-    int32_t height = surface->GetHeight();
-    layer_tree_ = std::make_unique<LayerTree>(SkISize::Make(width, height));
-
-    ContextOptions& options = GlobalScope::Ref().GetOptions();
-    if (options.GetEnableProfiler())
-    {
-        QLOG(LOG_DEBUG, "Graphics profiler is available on the ContentAggregator");
-        gfx_profiler_ = std::make_shared<GProfiler>();
-    }
 
     auto device = surface->GetRenderTarget()->GetRenderDeviceType();
     std::shared_ptr<SkiaGpuContextOwner> gpu_context_owner;
@@ -161,14 +148,6 @@ ContentAggregator::ContentAggregator(const std::shared_ptr<Surface>& surface)
                         ContentAggregator_ImportGpuSkSurface_Trampoline);
     SetMethodTrampoline(GLOP_CONTENTAGGREGATOR_DELETE_IMPORTED_GPU_SKSURFACE,
                         ContentAggregator_DeleteImportedGpuSkSurface_Trampoline);
-
-    surface_resize_slot_id_ = surface->Connect(
-        GLSI_SURFACE_RESIZE,
-        [this](PresentSignalArgs& info) {
-            this->SurfaceResizeSlot(info.Get<int32_t>(0), info.Get<int32_t>(1));
-        },
-        true
-    );
 
     surface_frame_slot_id_ = surface->Connect(
         GLSI_SURFACE_FRAME,
@@ -212,27 +191,13 @@ SkColorInfo ContentAggregator::GetOutputColorInfo() const
             SkAlphaType::kPremul_SkAlphaType, nullptr};
 }
 
-#define GPROFILER_TRY_MARK(tag)                                                  \
-    if (gfx_profiler_) {                                                         \
-        gfx_profiler_->MarkMilestoneInFrame(GProfiler::k##tag##_FrameMilestone); \
-    }
-
-#define GPROFILER_TRY_BEGIN_FRAME()     \
-    if (gfx_profiler_) {                \
-        gfx_profiler_->BeginFrame();    \
-    }
-
-#define GPROFILER_TRY_END_FRAME()       \
-    if (gfx_profiler_) {                \
-        gfx_profiler_->EndFrame();      \
-    }
-
 void ContentAggregator::SurfaceFrameSlot()
 {
-    TRACE_EVENT("rendering", "ContentAggregator::SurfaceFrameSlot");
+    TRACE_EVENT("present", "ContentAggregator::SurfaceFrameSlot");
 
     if (frame_schedule_state_ != FrameScheduleState::kPendingFrame)
         return;
+    CHECK(layer_tree_);
 
     auto rt = GetSurfaceChecked()->GetRenderTarget();
     rt->Present();
@@ -240,15 +205,12 @@ void ContentAggregator::SurfaceFrameSlot()
     for (const auto& observer : layer_tree_->GetObservers())
         observer->EndFrame();
 
-    GPROFILER_TRY_MARK(Presented)
-    GPROFILER_TRY_END_FRAME()
-
     frame_schedule_state_ = FrameScheduleState::kPresented;
 }
 
 int32_t ContentAggregator::CaptureNextFrameAsPicture()
 {
-    TRACE_EVENT("rendering", "ContentAggregator::CaptureNextFrameAsPicture");
+    TRACE_EVENT("present", "ContentAggregator::CaptureNextFrameAsPicture");
     if (!should_capture_next_frame_)
     {
         should_capture_next_frame_ = true;
@@ -258,29 +220,29 @@ int32_t ContentAggregator::CaptureNextFrameAsPicture()
 }
 
 ContentAggregator::UpdateResult
-ContentAggregator::Update(const std::shared_ptr<LayerTree> &layer_tree)
+ContentAggregator::Update(const std::shared_ptr<LayerTree>& submitted_layers)
 {
-    TRACE_EVENT("rendering", "ContentAggregator::Update");
+    TRACE_EVENT("present", "ContentAggregator::Update");
 
     if (frame_schedule_state_ == FrameScheduleState::kPendingFrame)
         return UpdateResult::kFrameDropped;
 
-    GPROFILER_TRY_BEGIN_FRAME()
-
     int32_t vp_width = this->GetWidth();
     int32_t vp_height = this->GetHeight();
 
-    if (layer_tree_->GetRootLayer())
-        layer_tree_->GetRootLayer()->DiffUpdate(layer_tree->GetRootLayer());
+    if (layer_tree_)
+        layer_tree_->GetRootLayer()->DiffUpdate(submitted_layers->GetRootLayer());
     else
-        layer_tree_ = layer_tree;
+        layer_tree_ = submitted_layers;
 
     auto surface = GetSurfaceChecked();
     auto rt = surface->GetRenderTarget();
+    SkiaGpuContextOwner *gpu_context = nullptr;
     GrDirectContext *gr_context = nullptr;
     if (rt->GetHWComposeSwapchain())
     {
-        gr_context = rt->GetHWComposeSwapchain()->GetSkiaGpuContext();
+        gpu_context = rt->GetHWComposeSwapchain().get();
+        gr_context = gpu_context->GetSkiaGpuContext();
         CHECK(gr_context && "Failed to get Skia GPU direct context");
     }
 
@@ -288,25 +250,21 @@ ContentAggregator::Update(const std::shared_ptr<LayerTree> &layer_tree)
     Layer::PrerollContext preroll_context {
         .gr_context = gr_context,
         .root_surface_transformation = GetSurfaceChecked()->GetRootTransformation(),
-        .cull_rect = SkRect::MakeEmpty()
+        .cull_rect = layer_tree_->GetViewportCull()
     };
-
-    GPROFILER_TRY_MARK(PrerollBegin)
-
     if (!layer_tree_->Preroll(&preroll_context))
     {
         QLOG(LOG_ERROR, "Preroll stage was cancelled, no contents will be represented");
         return UpdateResult::kError;
     }
 
-    GPROFILER_TRY_MARK(PrerollEnd)
-
     // Prepare canvases
     SkSurface *frame_surface = rt->BeginFrame();
-    frame_surface->getCanvas()->clear(SK_ColorBLACK);
+    SkCanvas *frame_canvas = frame_surface->getCanvas();
+    SkAutoCanvasRestore frame_canvas_save(frame_canvas, true);
 
     SkNWayCanvas multiplexer_canvas(GetWidth(), GetHeight());
-    multiplexer_canvas.addCanvas(frame_surface->getCanvas());
+    multiplexer_canvas.addCanvas(frame_canvas);
     for (const auto& observer : layer_tree_->GetObservers())
     {
         SkCanvas *observer_canvas = observer->BeginFrame(
@@ -333,23 +291,22 @@ ContentAggregator::Update(const std::shared_ptr<LayerTree> &layer_tree)
     should_capture_next_frame_ = false;
 
     Layer::PaintContext paint_context {
+        .gpu_context_owner = gpu_context,
         .gr_context = gr_context,
         .is_generating_cache = false,
         .root_surface_transformation = surface->GetRootTransformation(),
         .frame_surface = frame_surface,
-        .frame_canvas = frame_surface->getCanvas(),
+        .frame_canvas = frame_canvas,
         .multiplexer_canvas = &multiplexer_canvas,
-        .cull_rect = preroll_context.cull_rect,
+        .cull_rect = layer_tree_->GetViewportCull(),
         .cache = layer_generation_cache_.get(),
         .content_aggregator = this
     };
 
     layer_generation_cache_->BeginFrame();
 
-    GPROFILER_TRY_MARK(PaintBegin)
+    multiplexer_canvas.clear(SK_ColorWHITE);
     layer_tree_->Paint(&paint_context);
-    GPROFILER_TRY_MARK(PaintEnd)
-
     layer_generation_cache_->EndFrame();
 
     if (picture_recorder.getRecordingCanvas())
@@ -367,7 +324,7 @@ ContentAggregator::Update(const std::shared_ptr<LayerTree> &layer_tree)
     // At last, we request a new frame from WSI layer. We will be notified
     // (slot function `SurfaceFrameSlot` will be called) later
     // when it is a good time to present a new frame (VSync).
-    current_dirty_rect_ = preroll_context.cull_rect.roundOut();
+    current_dirty_rect_ = layer_tree_->GetRootLayer()->GetPaintBounds().roundOut();
     surface->RequestNextFrame();
 
     surface->GetRenderTarget()->Submit({
@@ -375,16 +332,8 @@ ContentAggregator::Update(const std::shared_ptr<LayerTree> &layer_tree)
         .hw_signal_semaphores = std::move(paint_context.gpu_finished_semaphores)
     });
 
-    GPROFILER_TRY_MARK(Requested)
-
     frame_schedule_state_ = FrameScheduleState::kPendingFrame;
     return UpdateResult::kSuccess;
-}
-
-void ContentAggregator::SurfaceResizeSlot(int32_t width, int32_t height)
-{
-    TRACE_EVENT("rendering", "ContentAggregator::SurfaceResizeSlot");
-    layer_tree_->SetFrameSize(SkISize::Make(width, height));
 }
 
 void ContentAggregator::Dispose()
@@ -394,7 +343,6 @@ void ContentAggregator::Dispose()
 
     auto surface = GetSurfaceChecked();
 
-    surface->Disconnect(surface_resize_slot_id_);
     surface->Disconnect(surface_frame_slot_id_);
 
     // That the frame is in pending state means we have called the
@@ -437,7 +385,7 @@ void ContentAggregator::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexce
 
 void ContentAggregator::PurgeRasterCacheResources()
 {
-    TRACE_EVENT("rendering", "ContentAggregator::PurgeRasterCacheResources");
+    TRACE_EVENT("present", "ContentAggregator::PurgeRasterCacheResources");
     layer_generation_cache_->PurgeCacheResources(true);
 }
 
@@ -463,7 +411,7 @@ ContentAggregator::ImportedResourcesId ContentAggregator::ImportGpuSemaphoreFrom
     if (!swapchain)
         return -1;
 
-    auto_closer.cancel();
+    auto_closer.Cancel();
     ImportedResourcesId id = imported_resources_ids_cnt_++;
     imported_resources_ids_[id] = {
         .type = ImportedResourceEntry::kSemaphore,
@@ -505,7 +453,7 @@ ContentAggregator::ImportGpuSkSurface(const SkiaGpuContextOwner::ExportedSkSurfa
     if (!sk_surface)
         return -1;
 
-    auto_closer.cancel();
+    auto_closer.Cancel();
     ImportedResourcesId id = imported_resources_ids_cnt_++;
     imported_resources_ids_[id] = {
         .type = ImportedResourceEntry::kSkSurface,

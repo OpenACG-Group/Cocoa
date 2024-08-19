@@ -101,13 +101,13 @@ void WaylandSeat::on_name(void *data, g_maybe_unused wl_seat *seat, const char *
     seat_object->seat_name_ = name;
 }
 
-std::shared_ptr<WaylandSeat>
+std::unique_ptr<WaylandSeat>
 WaylandSeat::Make(const std::shared_ptr<WaylandDisplay>& display,
                   wl_seat *seat, uint32_t registry_id)
 {
     CHECK(display && seat);
 
-    auto seat_object = std::make_shared<WaylandSeat>(display, seat, registry_id);
+    auto seat_object = std::make_unique<WaylandSeat>(display, seat, registry_id);
 
     // Add listeners to wayland seat here. Callbacks will be fired
     // during the next roundtrip started by `WaylandDisplay::Connect`.

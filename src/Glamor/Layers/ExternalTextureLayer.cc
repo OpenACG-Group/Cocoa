@@ -20,8 +20,9 @@
 #include "fmt/format.h"
 
 #include "Glamor/Layers/ExternalTextureLayer.h"
-GLAMOR_NAMESPACE_BEGIN
 
+#include <include/core/SkSurface.h>
+GLAMOR_NAMESPACE_BEGIN
 ExternalTextureLayer::ExternalTextureLayer(std::unique_ptr<Accessor> frame_accessor,
                                            const SkPoint& offset,
                                            const SkISize& size,
@@ -62,7 +63,8 @@ void ExternalTextureLayer::Preroll(PrerollContext *context, const SkMatrix& matr
 
 void ExternalTextureLayer::Paint(PaintContext *context)
 {
-    sk_sp<SkImage> texture = frame_accessor_->Acquire(context->gr_context);
+    SkColorInfo preferred_color_info = context->frame_surface->imageInfo().colorInfo();
+    sk_sp<SkImage> texture = frame_accessor_->Acquire(context->gpu_context_owner, preferred_color_info);
     if (!texture)
     {
         frame_accessor_->Release();
@@ -96,7 +98,7 @@ void ExternalTextureLayer::Paint(PaintContext *context)
     frame_accessor_->Release();
 
     context->resource_usage_flags |= PaintContext::kExternalTexture_ResourceUsage;
-    if (frame_accessor_->IsGpuBackedTexture(context->gr_context))
+    if (texture->isTextureBacked())
         context->resource_usage_flags |= PaintContext::kGpu_ResourceUsage;
 }
 

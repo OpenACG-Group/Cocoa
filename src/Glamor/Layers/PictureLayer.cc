@@ -58,7 +58,10 @@ void PictureLayer::Paint(PaintContext *context)
         return;
 
     SkAutoCanvasRestore canvas_restore(canvas, true);
-    canvas->clipRect(sk_picture_->cullRect());
+    // If the content of the Picture reaches the boundary, and the Picture is rotated
+    // or scaled by the parent nodes, aliasing will occur at the clipping edges of the Picture.
+    // Therefore, enabling antialiasing for clip is necessary and significant.
+    canvas->clipRect(sk_picture_->cullRect(), SkClipOp::kIntersect, true);
     canvas->drawPicture(sk_picture_, nullptr, context->GetCurrentPaintPtr());
 }
 

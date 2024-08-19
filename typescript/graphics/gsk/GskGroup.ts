@@ -15,14 +15,12 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { Mat3x3, Rect, Vec2 } from 'renderer';
 import { GskConcreteType, GskInvalidationRecorder } from './GskNode';
 import { GskRenderNode, RenderContext, GskScopedRenderContext } from './GskRenderNode';
-import { Rect } from '../base/Rectangle';
-import { Point2f } from '../base/Vector';
-import { GskDisplayList } from './GskDisplayList';
+import { GskDLRecorder } from './GskDisplayList';
 import { Maybe } from '../../core/error';
 import { LinkedList } from '../../core/linked_list';
-import { Mat3x3 } from '../base/Matrix';
 
 export class GskGroup extends GskRenderNode {
     private fChildren: LinkedList<GskRenderNode>;
@@ -84,17 +82,22 @@ export class GskGroup extends GskRenderNode {
         return bounds;
     }
 
-    protected onNodeAt(point: Point2f): Maybe<GskRenderNode> {
-        for (const child of this.fChildren) {
-            const testResult = child.nodeAt(point);
-            if (testResult.has()) {
-                return testResult;
-            }
-        }
-        return Maybe.None();
+    protected onNodeAt(point: Vec2): Maybe<GskRenderNode> {
+        let result: Maybe<GskRenderNode> = Maybe.None();
+
+        // Do hittest in reverse order, since the bigger the index of child is, the frontier it
+        // is drawn on the canvas. The topmost child node (in the draw-order) should do hittest
+        // first.
+        this.fChildren.forEachReverse((child) => {
+            result = child.nodeAt(point);
+            return !result.has();
+
+        });
+
+        return result;
     }
 
-    protected onRender(dl: GskDisplayList, context: RenderContext): void {
+    protected onRender(dl: GskDLRecorder, context: RenderContext): void {
         GskScopedRenderContext(dl, context, (mutator) => {
             mutator.setIsolation(this.bounds, dl.getTotalMatrix(), this.fRequiresIsolation);
             for (const child of this.fChildren) {

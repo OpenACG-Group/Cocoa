@@ -59,7 +59,7 @@ sk_sp<VulkanAMDAllocatorImpl> VulkanAMDAllocatorImpl::Make(VkInstance instance,
     create_info.pHeapSizeLimit = nullptr;
     create_info.pVulkanFunctions = nullptr;
     create_info.instance = instance;
-    create_info.vulkanApiVersion = std::min(vk_api_version, VK_MAKE_VERSION(1, 2, 0));
+    create_info.vulkanApiVersion = std::min(vk_api_version, VK_API_VERSION_1_3);
 
     VmaAllocator allocator;
     vmaCreateAllocator(&create_info, &allocator);

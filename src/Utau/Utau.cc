@@ -18,76 +18,10 @@
 #include "Core/Errors.h"
 #include "Core/Journal.h"
 #include "Utau/Utau.h"
-#include "Utau/HWDeviceContext.h"
-#include "Utau/VideoFrameGLEmbedder.h"
 #include "Utau/ffwrappers/libavutil.h"
 UTAU_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Utau)
-
-namespace {
-
-struct SampleFormatInfo
-{
-    SampleFormat fmt;
-    int size_per_sample;
-    bool planar;
-    AVSampleFormat libav_format;
-} const g_sample_format_info[] = {
-    { SampleFormat::kUnknown, 0, false, AV_SAMPLE_FMT_NONE  },
-
-    // Interleaved formats
-    { SampleFormat::kU8,    1,  false, AV_SAMPLE_FMT_U8   },
-    { SampleFormat::kS16,   2,  false, AV_SAMPLE_FMT_S16  },
-    { SampleFormat::kS32,   4,  false, AV_SAMPLE_FMT_S32  },
-    { SampleFormat::kF32,   4,  false, AV_SAMPLE_FMT_FLT  },
-    { SampleFormat::kF64,   8,  false, AV_SAMPLE_FMT_DBL  },
-
-    // Planar formats
-    { SampleFormat::kU8P,   1,  true,  AV_SAMPLE_FMT_U8P  },
-    { SampleFormat::kS16P,  2,  true,  AV_SAMPLE_FMT_S16P },
-    { SampleFormat::kS32P,  4,  true,  AV_SAMPLE_FMT_S32P },
-    { SampleFormat::kF32P,  4,  true,  AV_SAMPLE_FMT_FLTP },
-    { SampleFormat::kF64P,  8,  true,  AV_SAMPLE_FMT_DBLP }
-};
-
-const SampleFormatInfo *find_sample_format_info(SampleFormat format)
-{
-    for (const auto& entry : g_sample_format_info)
-    {
-        if (entry.fmt == format)
-            return &entry;
-    }
-
-    MARK_UNREACHABLE();
-}
-
-} // namespace anonymous
-
-int GetPerSampleSize(SampleFormat fmt)
-{
-    return find_sample_format_info(fmt)->size_per_sample;
-}
-
-bool SampleFormatIsPlanar(SampleFormat format)
-{
-    return find_sample_format_info(format)->planar;
-}
-
-AVSampleFormat SampleFormatToLibavFormat(SampleFormat format)
-{
-    return find_sample_format_info(format)->libav_format;
-}
-
-SampleFormat LibavFormatToSampleFormat(AVSampleFormat format)
-{
-    for (const auto& entry : g_sample_format_info)
-    {
-        if (entry.libav_format == format)
-            return entry.fmt;
-    }
-    return SampleFormat::kUnknown;
-}
 
 namespace {
 
@@ -172,44 +106,11 @@ void DisposePlatform()
 
 GlobalContext::GlobalContext(const ContextOptions& options)
     : options_(options)
-    , hw_context_creation_failed_(false)
-    , vf_GL_embedder_(std::make_unique<VideoFrameGLEmbedder>())
-    , context_time_epoch_(std::chrono::steady_clock::now())
 {
 }
 
 GlobalContext::~GlobalContext()
 {
-    vf_GL_embedder_.reset();
-    if (hw_context_)
-    {
-        CHECK(hw_context_.use_count() == 1
-              && "HWDeviceContext is referenced by other objects");
-    }
-}
-
-const std::shared_ptr<HWDeviceContext>& GlobalContext::GetHWDeviceContext()
-{
-    if (hw_context_ || hw_context_creation_failed_)
-        return hw_context_;
-
-    hw_context_ = HWDeviceContext::MakeVAAPI();
-    if (!hw_context_)
-        hw_context_creation_failed_ = true;
-
-    return hw_context_;
-}
-
-bool GlobalContext::HasHWDeviceContext() const
-{
-    return static_cast<bool>(hw_context_);
-}
-
-uint64_t GlobalContext::GetCurrentTimestampMs() const
-{
-    auto now = std::chrono::steady_clock::now();
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-            now - context_time_epoch_).count();
 }
 
 UTAU_NAMESPACE_END

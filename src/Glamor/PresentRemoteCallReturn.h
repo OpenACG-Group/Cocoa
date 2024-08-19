@@ -39,7 +39,7 @@ public:
 
     g_nodiscard PresentRemoteCall::OpCode GetOpcode() const;
 
-    g_nodiscard g_inline bool HasReturnValue() const {
+    g_nodiscard bool HasReturnValue() const {
         return has_return_value_;
     }
 
@@ -50,16 +50,13 @@ public:
     }
 
     template<typename T>
-    g_nodiscard g_inline T& GetClosure() {
+    g_nodiscard T& GetClosure() {
         return std::any_cast<T&>(GetClosureValue());
     }
 
     g_nodiscard PresentRemoteCall::Status GetReturnStatus() const;
 
     g_nodiscard const std::string& GetCaughtException() const;
-
-    g_nodiscard std::chrono::steady_clock::time_point
-    GetProfileMilestone(PresentMessageMilestone tag) const;
 
 private:
     std::any& GetClosureValue();

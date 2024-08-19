@@ -33,14 +33,8 @@ WaylandCursorTheme::MakeDefault(const std::shared_ptr<WaylandDisplay>& disp)
     const char *env_cursor_theme = getenv(ENV_GL_XCURSOR_THEME);
     const char *env_cursor_size = getenv(ENV_GL_XCURSOR_SIZE);
 
-    if (!env_cursor_theme)
-    {
-        QLOG(LOG_ERROR, "Failed to load default cursor theme, missing XCURSOR_THEME.");
-        return nullptr;
-    }
-
     // A default cursor size
-    int cursor_size = 32;
+    int cursor_size = 24;
 
     if (env_cursor_size)
     {
@@ -54,18 +48,29 @@ WaylandCursorTheme::MakeDefault(const std::shared_ptr<WaylandDisplay>& disp)
             cursor_size = static_cast<int>(size_in_long);
     }
 
-    return MakeFromName(disp, env_cursor_theme, cursor_size);
+    if (!env_cursor_theme)
+        env_cursor_theme = "default";
+
+    wl_cursor_theme *theme = wl_cursor_theme_load(
+            env_cursor_theme, cursor_size, disp->GetGlobalsRef()->wl_shm_);
+    if (!theme)
+    {
+        QLOG(LOG_ERROR, "failed to load default cursor theme with size {}", cursor_size);
+        return nullptr;
+    }
+
+    return std::make_shared<WaylandCursorTheme>(disp.get(), theme, cursor_size);
 }
 
 std::shared_ptr<WaylandCursorTheme>
 WaylandCursorTheme::MakeFromName(const std::shared_ptr<WaylandDisplay>& display,
                                  const std::string& name, int size)
 {
-    wl_cursor_theme *theme = wl_cursor_theme_load(name.c_str(), size,
-                                                  display->GetGlobalsRef()->wl_shm_);
+    wl_cursor_theme *theme = wl_cursor_theme_load(
+            name.c_str(), size, display->GetGlobalsRef()->wl_shm_);
     if (!theme)
     {
-        QLOG(LOG_ERROR, "Unable to load default cursor theme \"{}\" with size {}", name, size);
+        QLOG(LOG_ERROR, "failed to load cursor theme \"{}\" with size {}", name, size);
         return nullptr;
     }
 

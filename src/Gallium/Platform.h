@@ -50,22 +50,31 @@ public:
     PerIsolateData(v8::Isolate *isolate, EventLoop *main_loop);
     ~PerIsolateData() override;
 
-    void PostTask(std::unique_ptr<v8::Task> task) override;
-    void PostNonNestableTask(std::unique_ptr<v8::Task> task) override;
-    void PostDelayedTask(std::unique_ptr<v8::Task> task,
-                         double delay_in_seconds) override;
-    void PostNonNestableDelayedTask(std::unique_ptr<v8::Task> task,
-                                    double delay_in_seconds) override;
-    void PostIdleTask(std::unique_ptr<v8::IdleTask> task) override;
+    void PostTaskImpl(std::unique_ptr<v8::Task> task,
+                      const v8::SourceLocation& location) override;
 
-    g_nodiscard g_inline bool IdleTasksEnabled() override {
+    void PostNonNestableTaskImpl(std::unique_ptr<v8::Task> task,
+                                 const v8::SourceLocation& location) override;
+
+    void PostDelayedTaskImpl(std::unique_ptr<v8::Task> task,
+                         double delay_in_seconds,
+                         const v8::SourceLocation& location) override;
+
+    void PostNonNestableDelayedTaskImpl(std::unique_ptr<v8::Task> task,
+                                        double delay_in_seconds,
+                                        const v8::SourceLocation& location) override;
+
+    void PostIdleTaskImpl(std::unique_ptr<v8::IdleTask> task,
+                          const v8::SourceLocation& location) override;
+
+    g_nodiscard bool IdleTasksEnabled() override {
         return false;
     }
 
-    g_nodiscard g_inline bool NonNestableTasksEnabled() const override {
+    g_nodiscard bool NonNestableTasksEnabled() const override {
         return true;
     }
-    g_nodiscard g_inline bool NonNestableDelayedTasksEnabled() const override {
+    g_nodiscard bool NonNestableDelayedTasksEnabled() const override {
         return true;
     }
 

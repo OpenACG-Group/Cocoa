@@ -42,11 +42,11 @@ public:
         other.hash_ = 0;
     }
 
-    g_nodiscard g_inline const Base& Get() const {
+    g_nodiscard const Base& Get() const {
         return base_;
     }
 
-    g_nodiscard g_inline uint64_t GetHash() const {
+    g_nodiscard uint64_t GetHash() const {
         return hash_;
     }
 

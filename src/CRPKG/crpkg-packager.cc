@@ -63,7 +63,7 @@ Entry read_directory_entries(const std::string& path,
                 return {};
             entry.children.emplace_back(std::move(subentry));
         }
-        else if (d->d_type == DT_REG)
+        else if (d->d_type == DT_REG || d->d_type == DT_LNK)
         {
             entry.children.emplace_back(
                     entry_name, crpkg::Composer::DataAccessor::MakeFromFile(subpath));

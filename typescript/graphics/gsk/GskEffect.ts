@@ -15,37 +15,27 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    GskConcreteType,
-    NodeTrait,
-    GskNode,
-    GskInvalidationRecorder,
-    GskProperty
-} from './GskNode';
-
-import { GskRenderNode, RenderContext, GskScopedRenderContext } from './GskRenderNode';
-import { GskDisplayList } from './GskDisplayList';
-import { Point2f } from '../base/Vector';
-import { Rect } from '../base/Rectangle';
+import { GskConcreteType, GskInvalidationRecorder, GskNode, GskProperty, NodeTrait } from './GskNode';
+import { GskRenderNode, GskScopedRenderContext, RenderContext } from './GskRenderNode';
+import { GskDLRecorder } from './GskDisplayList';
 import { Maybe } from '../../core/error';
-import { CkImageFilter, CkMatrix, Constants } from 'glamor';
-import { Mat3x3 } from '../base/Matrix';
 import { GskTransform } from './GskTransform';
+import { ImageFilter, MapDirection, Mat3x3, Rect, TileMode, Vec2 } from 'renderer';
 
 export class GskEffect extends GskRenderNode {
     protected readonly fChild: GskRenderNode;
 
-    protected constructor(child: GskRenderNode, type: GskConcreteType, traits: number) {
+    protected constructor(renderChild: GskRenderNode, type: GskConcreteType, traits: number) {
         super(type, traits);
-        this.fChild = child;
-        this.observeChild(child);
+        this.fChild = renderChild;
+        this.observeChild(renderChild);
     }
 
-    protected onRender(dl: GskDisplayList, context: RenderContext): void {
+    protected onRender(dl: GskDLRecorder, context: RenderContext): void {
         this.fChild.render(dl, context);
     }
 
-    protected onNodeAt(point: Point2f): Maybe<GskRenderNode> {
+    protected onNodeAt(point: Vec2): Maybe<GskRenderNode> {
         return this.fChild.nodeAt(point);
     }
 
@@ -63,7 +53,7 @@ export class GskOpacityEffect extends GskEffect {
         super(child, GskConcreteType.kOpacityEffect, 0);
     }
 
-    protected onRender(dl: GskDisplayList, context: RenderContext): void {
+    protected onRender(dl: GskDLRecorder, context: RenderContext): void {
         // opacity <= 0 disables rendering
         if (this.opacity <= 0) {
             return;
@@ -81,7 +71,7 @@ export class GskOpacityEffect extends GskEffect {
         });
     }
 
-    protected onNodeAt(point: Point2f): Maybe<GskRenderNode> {
+    protected onNodeAt(point: Vec2): Maybe<GskRenderNode> {
         return (this.opacity > 0 ? super.onNodeAt(point) : Maybe.None());
     }
 
@@ -96,11 +86,11 @@ export class GskOpacityEffect extends GskEffect {
  * This node is one of the descendants of `GskImageFilterEffect` node.
  */
 export class GskImageFilter extends GskNode {
-    @GskProperty<CkImageFilter, GskImageFilter>()
-    public filter: CkImageFilter;
+    @GskProperty<ImageFilter, GskImageFilter>()
+    public filter: ImageFilter;
 
     private fCropRect: Rect;
-    private fCroppedFilter: CkImageFilter;
+    private fCroppedFilter: ImageFilter;
 
     constructor() {
         super(GskConcreteType.kImageFilter, 0);
@@ -108,7 +98,7 @@ export class GskImageFilter extends GskNode {
         this.fCroppedFilter = null;
     }
 
-    public resolveCroppedFilter(crop: Rect): CkImageFilter {
+    public resolveCroppedFilter(crop: Rect): ImageFilter {
         // No cropping is applied so the original filter is returned
         if (crop.isEmpty()) {
             return this.filter;
@@ -121,10 +111,7 @@ export class GskImageFilter extends GskNode {
         // If a valid cropping should be applied, and the cache is not available,
         // the cropped filter need creating.
         this.fCropRect = crop;
-        this.fCroppedFilter = CkImageFilter.MakeFromDSL('crop(%crop, _, %input)', {
-            crop: new Float32Array([crop.x, crop.y, crop.width, crop.height]),
-            input: this.filter
-        });
+        this.fCroppedFilter = ImageFilter.Crop(crop, TileMode.Clamp, this.filter);
 
         return this.fCroppedFilter;
     }
@@ -142,7 +129,7 @@ export enum GskFilterCropping {
 
 export class GskImageFilterEffect extends GskEffect {
     private readonly fFilter: GskImageFilter;
-    private fResolvedFilter: CkImageFilter;
+    private fResolvedFilter: ImageFilter;
 
     @GskProperty<GskFilterCropping, GskImageFilterEffect>(GskFilterCropping.kNone)
     public cropping: GskFilterCropping;
@@ -151,6 +138,7 @@ export class GskImageFilterEffect extends GskEffect {
         super(child, GskConcreteType.kImageFilterEffect, NodeTrait.kOverrideDamage);
         this.fFilter = filter;
         this.fResolvedFilter = null;
+        this.observeChild(filter);
     }
 
     protected onRevalidate(recorder: GskInvalidationRecorder, ctm: Mat3x3): Rect {
@@ -162,21 +150,15 @@ export class GskImageFilterEffect extends GskEffect {
                      : this.fFilter.filter;
 
         this.fResolvedFilter = filter;
-
-        return Rect.MakeFromGL(filter.filterBounds(
-            contentBounds.toCkArrayXYWHRect(),
-            CkMatrix.Identity(),
-            Constants.IMAGE_FILTER_MAP_DIRECTION_FORWARD,
-            null
-        ));
+        return filter.filterBounds(contentBounds, Mat3x3.Identity(), MapDirection.Forward, null);
     }
 
-    protected onNodeAt(point: Point2f): Maybe<GskRenderNode> {
+    protected onNodeAt(point: Vec2): Maybe<GskRenderNode> {
         // FIXME: Map `point` through the filter before dispatching to descendants?
         return super.onNodeAt(point);
     }
 
-    protected onRender(dl: GskDisplayList, context: RenderContext) {
+    protected onRender(dl: GskDLRecorder, context: RenderContext) {
         GskScopedRenderContext(dl, context, (mutator) => {
             // Note: we're using source content bounds for new layer,
             //       not the filtered bounds.
@@ -194,6 +176,7 @@ export class GskTransformEffect extends GskEffect {
         super(child, GskConcreteType.kTransformEffect, 0);
         this.fT = transform;
         this.fInvCache = null;
+        this.observeChild(transform);
     }
 
     protected onRevalidate(recorder: GskInvalidationRecorder, ctm: Mat3x3): Rect {
@@ -204,26 +187,26 @@ export class GskTransformEffect extends GskEffect {
         const matrix = this.fT.asMat3x3();
 
         const bounds = super.onRevalidate(recorder, Mat3x3.Concat(ctm, matrix));
-        return matrix.mapRect(bounds, true);
+        // TODO(sora): map with perspective-clip instead of affine
+        return matrix.mapAffineRect(bounds);
     }
 
-    protected onRender(dl: GskDisplayList, context: RenderContext) {
+    protected onRender(dl: GskDLRecorder, context: RenderContext): void {
         const saveCount = dl.save();
         dl.concatMatrix(this.fT.asMat3x3());
         super.onRender(dl, context);
         dl.restoreToCount(saveCount);
     }
 
-    protected onNodeAt(point: Point2f): Maybe<GskRenderNode> {
+    protected onNodeAt(point: Vec2): Maybe<GskRenderNode> {
         const m = this.fT.asMat3x3();
         if (this.fInvCache == null) {
             const inverse = m.invert();
-            if (!inverse.has()) {
+            if (inverse == null) {
                 return Maybe.None();
             }
-            this.fInvCache = inverse.unwrap();
+            this.fInvCache = inverse;
         }
         return super.onNodeAt(this.fInvCache.mapPoint(point));
     }
 }
-

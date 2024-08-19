@@ -18,6 +18,7 @@
 #ifndef COCOA_GLAMOR_PRESENTTHREAD_H
 #define COCOA_GLAMOR_PRESENTTHREAD_H
 
+#include <thread>
 #include <queue>
 #include <functional>
 #include <list>
@@ -77,11 +78,13 @@ public:
                                             remote_destroyables_collector_;
     };
 
+    struct ThreadPriv;
+
     static std::unique_ptr<PresentThread> Start(uv_loop_t *loop);
 
-    PresentThread(std::weak_ptr<Queue> present_thread_queue,
-                  std::shared_ptr<Queue> main_thread_queue,
-                  pthread_t present_thread,
+    PresentThread(std::shared_ptr<Queue> main_thread_queue,
+                  std::thread thread,
+                  std::shared_ptr<ThreadPriv> thread_priv,
                   std::shared_ptr<RemoteDestroyablesCollector> collector);
 
     g_nodiscard RemoteDestroyablesCollector *GetRemoteDestroyablesCollector() const {
@@ -103,15 +106,10 @@ public:
                          std::function<void()> result_callback,
                          std::function<void(std::string)> caught_callback);
 
-    // TODO(sora): implement message queue profiling API
-
 private:
-    void OnMainThreadMessage(Queue::Message message);
-
-    std::weak_ptr<Queue>        present_thread_queue_;
     std::shared_ptr<Queue>      main_thread_queue_;
-    pthread_t                   present_thread_;
-    bool                        thread_has_exited_;
+    std::thread                 present_thread_;
+    std::shared_ptr<ThreadPriv> thread_priv_;
     std::shared_ptr<PresentThreadTaskRunner>
                                 task_runner_;
     std::shared_ptr<RemoteDestroyablesCollector>
@@ -132,7 +130,7 @@ void PresentThread::SubmitTask(std::function<Ret(void)> task_func,
             if (ret.GetReturnStatus() == PresentRemoteCall::Status::kCaught)
                 caught(ret.GetCaughtException());
             else if (func)
-                func(ret.GetReturnValue<Ret>());
+                func(std::move(ret.GetReturnValue<Ret>()));
         },
         task
     );

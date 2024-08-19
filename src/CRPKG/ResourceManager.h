@@ -32,7 +32,7 @@ class VirtualDisk;
 class ResourceManager : public UniquePersistent<ResourceManager>
 {
 public:
-    constexpr static std::string_view kInternalResourceName = "@internal";
+    constexpr static const char *kInternalResourceName = "@internal";
 
     ResourceManager();
     ~ResourceManager() = default;

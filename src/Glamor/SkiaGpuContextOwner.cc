@@ -31,7 +31,8 @@
 GLAMOR_NAMESPACE_BEGIN
 
 SkiaGpuContextOwner::SkiaGpuContextOwner()
-    : direct_context_(nullptr)
+    : queue_family_index_(std::numeric_limits<std::uint32_t>::max())
+    , direct_context_(nullptr)
     , device_support_memory_sharing_(false)
     , device_support_semaphore_sharing_(false)
     , pfn_vkGetSemaphoreFdKHR_(nullptr)
@@ -90,31 +91,33 @@ bool SkiaGpuContextOwner::InitializeSkiaGpuContext(const SkiaGpuContextCreateInf
     auto queue = device->GetDeviceQueue(
             HWComposeDevice::DeviceQueueSelector::kGraphics, create_info.graphics_queue_index);
     if (!queue)
+    {
+        queue = device->GetDeviceQueue(HWComposeDevice::DeviceQueueSelector::kGraphicsWithPresent,
+                                       create_info.graphics_queue_index);
+    }
+    if (!queue)
         return false;
 
     // Populate extensions and device features info
     GrVkExtensions extensions;
     populate_gr_vk_extensions(extensions, *create_info.hw_context, *device);
     VkPhysicalDevice physical_device = create_info.hw_context->GetVkPhysicalDevice();
-    VkPhysicalDeviceFeatures2 features{};
-    features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    vkGetPhysicalDeviceFeatures2(physical_device, &features);
 
     // Create Vulkan memory allocator.
     sk_sp<VulkanAMDAllocatorImpl> vk_allocator = device->CreateAllocator(false, &extensions);
     if (!vk_allocator)
         return false;
 
-    GrVkBackendContext backend{};
+    GrVkBackendContext backend;
     backend.fInstance = create_info.hw_context->GetVkInstance();
     backend.fPhysicalDevice = physical_device;
     backend.fDevice = device->GetVkDevice();
     backend.fQueue = queue->queue;
     backend.fGraphicsQueueIndex = queue->family_index;
-    backend.fMaxAPIVersion = VK_API_VERSION_1_2;
+    backend.fMaxAPIVersion = VK_API_VERSION_1_3;
     backend.fVkExtensions = &extensions;
     backend.fGetProc = vk_skia_proc_getter;
-    backend.fDeviceFeatures2 = &features;
+    backend.fDeviceFeatures2 = &create_info.enabled_features;
     backend.fMemoryAllocator = vk_allocator;
 
     GrContextOptions context_options;
@@ -124,7 +127,7 @@ bool SkiaGpuContextOwner::InitializeSkiaGpuContext(const SkiaGpuContextCreateInf
     context_options.fContextDeleteContext = new GrContextDeviceClosure{device};
     context_options.fContextDeleteProc = [](void *userdata) {
         CHECK(userdata);
-        delete reinterpret_cast<GrContextDeviceClosure*>(userdata);
+        delete static_cast<GrContextDeviceClosure*>(userdata);
     };
 
     sk_sp<GrDirectContext> ctx = GrDirectContexts::MakeVulkan(backend, context_options);
@@ -133,6 +136,7 @@ bool SkiaGpuContextOwner::InitializeSkiaGpuContext(const SkiaGpuContextCreateInf
 
     // Fill fields
     hw_device_ = create_info.hw_device;
+    queue_family_index_ = backend.fGraphicsQueueIndex;
     vk_allocator_ = vk_allocator;
     direct_context_ = ctx;
 
@@ -162,6 +166,12 @@ bool SkiaGpuContextOwner::InitializeSkiaGpuContext(const SkiaGpuContextCreateInf
 #undef GET_PFN
 
     return true;
+}
+
+uint32_t SkiaGpuContextOwner::GetSkiaQueueFamilyIndex() const
+{
+    CHECK(queue_family_index_ != std::numeric_limits<uint32_t>::max());
+    return queue_family_index_;
 }
 
 void SkiaGpuContextOwner::DisposeSkiaGpuContext()

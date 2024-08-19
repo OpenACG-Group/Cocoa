@@ -38,7 +38,6 @@ class Surface;
 
 class ContentAggregator;
 class LayerTree;
-class GProfiler;
 
 #define GLOP_CONTENTAGGREGATOR_DISPOSE                            1
 #define GLOP_CONTENTAGGREGATOR_UPDATE                             2
@@ -93,18 +92,6 @@ public:
         return layer_tree_;
     }
 
-    /**
-     * The profiler is associated with the blender uniquely when the blender
-     * is created. It will NOT be removed or changed during the lifetime
-     * of blender.
-     * It is always safe to use the profiler after the corresponding blender
-     * has been destroyed.
-     */
-    g_sync_api g_nodiscard const std::shared_ptr<GProfiler>&
-    GetAttachedProfiler() const {
-        return gfx_profiler_;
-    }
-
     g_nodiscard RenderTarget::RenderDevice GetRenderDeviceType() const;
     g_nodiscard int32_t GetWidth() const;
     g_nodiscard int32_t GetHeight() const;
@@ -130,7 +117,6 @@ public:
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 
 private:
-    void SurfaceResizeSlot(int32_t width, int32_t height);
     void SurfaceFrameSlot();
 
     std::shared_ptr<HWComposeSwapchain> TryGetSwapchain();
@@ -138,7 +124,6 @@ private:
     std::shared_ptr<Surface> GetSurfaceChecked() const;
 
     bool                           disposed_;
-    uint32_t                       surface_resize_slot_id_;
     uint32_t                       surface_frame_slot_id_;
     std::weak_ptr<Surface>         weak_surface_;
     std::shared_ptr<LayerTree>     layer_tree_;
@@ -146,7 +131,6 @@ private:
     FrameScheduleState             frame_schedule_state_;
     std::unique_ptr<LayerGenerationCache>
                                    layer_generation_cache_;
-    std::shared_ptr<GProfiler>     gfx_profiler_;
 
     bool                           should_capture_next_frame_;
     int32_t                        capture_next_frame_serial_;

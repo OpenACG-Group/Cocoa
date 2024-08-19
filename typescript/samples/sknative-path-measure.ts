@@ -84,7 +84,7 @@ function render(): void {
     canvas.drawCircle(position[0], position[1], 4, pointPaint);
 
     const pict = recorder.finishRecordingAsPicture();
-    const scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
+    const scene = new GL.SceneBuilder([0, 0, WINDOW_WIDTH, WINDOW_HEIGHT])
         .pushOffset(0, 0)
         .addPicture(pict, true)
         .build();

@@ -21,6 +21,7 @@
 #include "uv.h"
 
 #include "Utau/Utau.h"
+#include "Utau/ffwrappers/libavutil.h"
 UTAU_NAMESPACE_BEGIN
 
 class AudioSinkStream;
@@ -38,11 +39,13 @@ public:
     explicit AudioDevice(Backend backend) : backend_(backend) {}
     virtual ~AudioDevice() = default;
 
-    g_nodiscard g_inline Backend GetBackend() const {
+    g_nodiscard Backend GetBackend() const {
         return backend_;
     }
 
-    virtual std::unique_ptr<AudioSinkStream> CreateSinkStream(const std::string& name) = 0;
+    virtual std::shared_ptr<AudioSinkStream> CreateSinkStream(
+            const std::string& name, AVSampleFormat format, int32_t sample_rate,
+            const AVChannelLayout& ch_layout, bool realtime) = 0;
 
 private:
     Backend backend_;

@@ -36,11 +36,10 @@ RenderTarget::RenderTarget(const std::shared_ptr<Display>& display, RenderDevice
 
 SkSurface *RenderTarget::BeginFrame()
 {
-    TRACE_EVENT("rendering", "RenderTarget::BeginFrame");
+    TRACE_EVENT("present", "RenderTarget::BeginFrame");
     if (current_frame_)
     {
-        QLOG(LOG_WARNING, "Could not begin a new frame: a pending frame has"
-                          " not been presented yet");
+        QLOG(LOG_WARNING, "Could not begin a new frame: a pending frame has not been presented yet");
         return nullptr;
     }
     current_frame_ = this->OnBeginFrame();
@@ -54,11 +53,10 @@ SkSurface *RenderTarget::GetCurrentFrameSurface()
 
 void RenderTarget::Submit(const FrameSubmitInfo& submit_info)
 {
-    TRACE_EVENT("rendering", "RenderTarget::Submit");
+    TRACE_EVENT("present", "RenderTarget::Submit");
     if (last_submit_info_)
     {
-        QLOG(LOG_WARNING, "Frame cannot be submitted more than once"
-                          " in a rendering cycle");
+        QLOG(LOG_WARNING, "Frame cannot be submitted more than once in a rendering cycle");
         return;
     }
     last_submit_info_ = submit_info;
@@ -67,7 +65,7 @@ void RenderTarget::Submit(const FrameSubmitInfo& submit_info)
 
 void RenderTarget::Present()
 {
-    TRACE_EVENT("rendering", "RenderTarget::Present");
+    TRACE_EVENT("present", "RenderTarget::Present");
     if (!last_submit_info_)
     {
         QLOG(LOG_WARNING, "Frame must be submitted before being presented");
@@ -109,8 +107,13 @@ sk_sp<SkSurface> RenderTarget::CreateOffscreenBackendSurface(const SkImageInfo& 
 
 uint32_t RenderTarget::RequestNextFrame()
 {
-    TRACE_EVENT("rendering", "RenderTarget::RequestNextFrame");
+    TRACE_EVENT("present", "RenderTarget::RequestNextFrame");
     return this->OnRequestNextFrame();
+}
+
+void RenderTarget::TryCancelCurrentFrameRequest()
+{
+    this->OnTryCancelCurrentFrameRequest();
 }
 
 void RenderTarget::Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept

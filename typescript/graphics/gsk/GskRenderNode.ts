@@ -15,24 +15,13 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { GskNode, NodeTrait, GskConcreteType, GskProperty } from './GskNode';
-import {
-    CkColorFilter,
-    CkShader,
-    CkBlender,
-    CkMatrix,
-    CkPaint,
-    CkImageFilter
-} from 'glamor';
-import { Point2f } from '../base/Vector';
+import { GskConcreteType, GskHitTestableNode, GskNode, GskProperty, NodeTrait } from './GskNode';
+import { Blender, BlendMode, ColorFilter, ImageFilter, Mat3x3, Paint, Rect, Vec2, Shader } from 'renderer';
 import { Maybe } from '../../core/error';
 import { GskPaintRecord } from './GskPaintRecord';
-import { GskBlendMode } from './GskBlendMode';
-import { GskDisplayList } from './GskDisplayList';
-import { Rect } from '../base/Rectangle';
-import { Mat3x3 } from '../base/Matrix';
+import { GskDLRecorder } from './GskDisplayList';
 
-function stripShaderCTM(shader: CkShader, base: Mat3x3, ctm: Mat3x3): CkShader {
+function stripShaderCTM(shader: Shader, base: Mat3x3, ctm: Mat3x3): Shader {
     // Mask filters / shaders are declared to operate under a specific transform, but due to the
     // deferral mechanism, other transformations might have been pushed to the state.
     // We want to undo these transforms (T):
@@ -45,27 +34,27 @@ function stripShaderCTM(shader: CkShader, base: Mat3x3, ctm: Mat3x3): CkShader {
     //
     //   =>  Inv(T) = Inv(ctm) x baseCTM
 
-    let lm = ctm.invert();
-    if (!base.equalTo(ctm) && lm.has()) {
-        return shader.makeWithLocalMatrix(lm.unwrap().preConcat(base).toCkMat3x3Array());
+    let inv = ctm.invert();
+    if (!base.equalTo(ctm) && inv != null) {
+        return shader.makeWithLocalMatrix(inv.preConcat(base));
     } else {
-        return shader.makeWithLocalMatrix(CkMatrix.Identity());
+        return shader;
     }
 }
 
 export class RenderContext {
-    public fColorFilter: CkColorFilter;
-    public fShader: CkShader;
-    public fMaskShader: CkShader;
-    public fBlender: CkBlender;
+    public fColorFilter: ColorFilter;
+    public fShader: Shader;
+    public fMaskShader: Shader;
+    public fBlender: Blender;
     public fShaderCTM: Mat3x3;
     public fMaskCTM: Mat3x3;
     public fOpacity: number;
 
-    constructor(colorFilter: CkColorFilter = null,
-                shader: CkShader = null,
-                maskShader: CkShader = null,
-                blender: CkBlender = null,
+    constructor(colorFilter: ColorFilter = null,
+                shader: Shader = null,
+                maskShader: Shader = null,
+                blender: Blender = null,
                 shaderCTM: Mat3x3 = Mat3x3.Identity(),
                 maskCTM: Mat3x3 = Mat3x3.Identity(),
                 opacity: number = 1)
@@ -117,22 +106,22 @@ export class RenderContext {
         // Only apply the shader mask for regular paints. Isolation layers require
         // special handling on restore. (See `RenderContextMutator.restore()` method).
         if (this.fMaskShader != null && !isLayerPaint) {
-            paint.shader = CkShader.MakeFromDSL('blend(%mode, %dst, %src)', {
-                mode: GskBlendMode.kSrcIn,
-                dst: stripShaderCTM(this.fMaskShader, this.fMaskCTM, ctm),
-                src: paint.shader
-            });
+            paint.shader = Shader.Blend(
+                BlendMode.SrcIn,
+                stripShaderCTM(this.fMaskShader, this.fMaskCTM, ctm),
+                paint.shader
+            );
         }
     }
 }
 
 export class RenderContextMutator {
-    private readonly fDL: GskDisplayList;
+    private readonly fDL: GskDLRecorder;
     private readonly fRestoreCount: number;
     private fCtx: RenderContext;
-    private fMaskShader: CkShader | null;
+    private fMaskShader: Shader | null;
 
-    constructor(dl: GskDisplayList, ctx: RenderContext) {
+    constructor(dl: GskDLRecorder, ctx: RenderContext) {
         this.fDL = dl;
         if (ctx == null) {
             ctx = new RenderContext();
@@ -151,10 +140,11 @@ export class RenderContextMutator {
 
     public restore(): void {
         if (this.fRestoreCount >= 0) {
+            // TODO(sora): maybe we can use `canvas.clipShader` instead of handle it manually?
             if (this.fMaskShader != null) {
-                const maskPaint = new CkPaint();
-                maskPaint.setBlendMode(GskBlendMode.kDstIn);
-                maskPaint.setShader(this.fMaskShader);
+                const maskPaint = new Paint();
+                maskPaint.blendMode = BlendMode.DstIn;
+                maskPaint.shader = this.fMaskShader;
                 this.fDL.canvas.drawPaint(maskPaint);
             }
             this.fDL.restoreToCount(this.fRestoreCount);
@@ -169,21 +159,18 @@ export class RenderContextMutator {
         return this;
     }
 
-    public modulateColorFilter(cf: CkColorFilter): RenderContextMutator {
+    public modulateColorFilter(cf: ColorFilter): RenderContextMutator {
         if (cf == null) {
             this.fCtx.fColorFilter = null;
         } else if (this.fCtx.fColorFilter == null) {
             this.fCtx.fColorFilter = cf;
         } else {
-            this.fCtx.fColorFilter = CkColorFilter.MakeFromDSL(
-                'compose(%outer, %inner)',
-                { outer: this.fCtx.fColorFilter, inner: cf }
-            );
+            this.fCtx.fColorFilter = ColorFilter.Compose(this.fCtx.fColorFilter, cf);
         }
         return this;
     }
 
-    public modulateShader(shader: CkShader, ctm: Mat3x3): RenderContextMutator {
+    public modulateShader(shader: Shader, ctm: Mat3x3): RenderContextMutator {
         // Topmost shader takes precedence
         if (this.fCtx.fShader == null) {
             this.fCtx.fShader = shader;
@@ -192,7 +179,7 @@ export class RenderContextMutator {
         return this;
     }
 
-    public modulateMaskShader(shader: CkShader, ctm: Mat3x3): RenderContextMutator {
+    public modulateMaskShader(shader: Shader, ctm: Mat3x3): RenderContextMutator {
         if (this.fCtx.fMaskShader != null) {
             // As we compose mask filters, use the relative transform T for the inner mask:
             //
@@ -201,12 +188,12 @@ export class RenderContextMutator {
             //   => T = Inv(maskCTM) x ctm
             //
             const invMaskCTM = this.fCtx.fMaskCTM.invert();
-            if (invMaskCTM.has() && shader != null) {
-                this.fCtx.fMaskShader = CkShader.MakeFromDSL('blend(%mode, %dst, %src)', {
-                    mode: GskBlendMode.kSrcIn,
-                    dst: this.fCtx.fMaskShader,
-                    src: shader.makeWithLocalMatrix(invMaskCTM.unwrap().postConcat(ctm).toCkMat3x3Array())
-                });
+            if (invMaskCTM != null && shader != null) {
+                this.fCtx.fMaskShader = Shader.Blend(
+                    BlendMode.SrcIn,
+                    this.fCtx.fMaskShader,
+                    shader.makeWithLocalMatrix(invMaskCTM.postConcat(ctm))
+                );
             }
         } else {
             this.fCtx.fMaskShader = shader;
@@ -215,7 +202,7 @@ export class RenderContextMutator {
         return this;
     }
 
-    public modulateBlender(blender: CkBlender): RenderContextMutator {
+    public modulateBlender(blender: Blender): RenderContextMutator {
         this.fCtx.fBlender = blender;
         return this;
     }
@@ -224,7 +211,12 @@ export class RenderContextMutator {
         if (isolation && this.fCtx.requiresIsolation()) {
             const layerPaintRec = new GskPaintRecord();
             this.fCtx.modulatePaint(ctm, layerPaintRec, true);
-            this.fDL.saveLayer(bounds, layerPaintRec);
+            this.fDL.saveLayer({
+                bounds: bounds,
+                alpha: layerPaintRec.color.A,
+                blendMode: layerPaintRec.blendMode,
+                blender: layerPaintRec.blender
+            });
 
             // Fetch the mask shader for restore
             if (this.fCtx.fMaskShader != null) {
@@ -240,13 +232,18 @@ export class RenderContextMutator {
         return this;
     }
 
-    public setFilterIsolation(bounds: Rect, ctm: Mat3x3, filter: CkImageFilter): RenderContextMutator {
+    public setFilterIsolation(bounds: Rect, ctm: Mat3x3, filter: ImageFilter): RenderContextMutator {
         if (filter != null) {
             const layerPaintRec = new GskPaintRecord();
             this.fCtx.modulatePaint(ctm, layerPaintRec, false);
 
-            layerPaintRec.imageFilter = filter;
-            this.fDL.saveLayer(bounds, layerPaintRec);
+            this.fDL.saveLayer({
+                bounds: bounds,
+                alpha: layerPaintRec.color.A,
+                blendMode: layerPaintRec.blendMode,
+                blender: layerPaintRec.blender,
+                filter: filter
+            });
             this.fCtx = new RenderContext();
         }
 
@@ -255,7 +252,7 @@ export class RenderContextMutator {
 }
 
 export function GskScopedRenderContext<ThisT>(
-    dl: GskDisplayList,
+    dl: GskDLRecorder,
     ctx: RenderContext | null,
     callback: (this: ThisT, mutator: RenderContextMutator) => void,
     thisArg: ThisT = undefined,
@@ -265,7 +262,7 @@ export function GskScopedRenderContext<ThisT>(
     mutator.restore();
 }
 
-export abstract class GskRenderNode extends GskNode {
+export abstract class GskRenderNode extends GskNode implements GskHitTestableNode<GskRenderNode> {
     @GskProperty<boolean, GskRenderNode>(true)
     public visible: boolean;
 
@@ -276,10 +273,14 @@ export abstract class GskRenderNode extends GskNode {
     /**
      * Render the node and its descendants to the canvas.
      */
-    public render(dl: GskDisplayList, context: RenderContext): void {
+    public render(dl: GskDLRecorder, context: RenderContext): void {
         this.ASSERT_REVALIDATED();
         if (this.visible && !this.bounds.isEmpty()) {
+            // Providing the bounds of DrawOps explicitly helps the optimization of
+            // LayerTree structure.
+            const saveCount = dl.saveBounds(this.bounds);
             this.onRender(dl, context);
+            dl.restoreToCount(saveCount);
         }
         this.ASSERT_REVALIDATED();
     }
@@ -288,7 +289,7 @@ export abstract class GskRenderNode extends GskNode {
      * Perform a front-to-back hit-test, and return the RenderNode located
      * at `point`. Normally, hit-testing stops at leaf `GskDraw` nodes.
      */
-    public nodeAt(point: Point2f): Maybe<GskRenderNode> {
+    public nodeAt(point: Vec2): Maybe<GskRenderNode> {
         // Do a fast computation to eject most of the points (bounds-rejection).
         if (!this.bounds.contains(point.x, point.y)) {
             return Maybe.None();
@@ -297,6 +298,6 @@ export abstract class GskRenderNode extends GskNode {
         return this.onNodeAt(point);
     }
 
-    protected abstract onRender(dl: GskDisplayList, context: RenderContext): void;
-    protected abstract onNodeAt(point: Point2f): Maybe<GskRenderNode>;
+    protected abstract onRender(dl: GskDLRecorder, context: RenderContext): void;
+    protected abstract onNodeAt(point: Vec2): Maybe<GskRenderNode>;
 }

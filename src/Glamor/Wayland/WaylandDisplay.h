@@ -27,6 +27,8 @@
 #include "Glamor/Wayland/protos/xdg-shell-client-protocol.h"
 #include "Glamor/Wayland/protos/xdg-decoration-unstable-protocol.h"
 #include "Glamor/Wayland/protos/kde-server-decoration-protocol.h"
+#include "Glamor/Wayland/protos/fractional-scale-v1.h"
+#include "Glamor/Wayland/protos/viewporter.h"
 GLAMOR_NAMESPACE_BEGIN
 
 class WaylandRoundtripScope;
@@ -43,14 +45,17 @@ public:
     {
         ~Globals();
 
-        wl_compositor   *wl_compositor_{nullptr};
-        xdg_wm_base     *xdg_wm_base_{nullptr};
-        wl_shm          *wl_shm_{nullptr};
-        zxdg_decoration_manager_v1      *zxdg_deco_manager{nullptr};
-        org_kde_kwin_server_decoration_manager *kde_deco_manager{nullptr};
+        wl_compositor   *wl_compositor_ = nullptr;
+        xdg_wm_base     *xdg_wm_base_ = nullptr;
+        wl_shm          *wl_shm_ = nullptr;
+        zxdg_decoration_manager_v1      *zxdg_deco_manager = nullptr;
+        org_kde_kwin_server_decoration_manager *kde_deco_manager = nullptr;
+
+        wp_viewporter *viewporter = nullptr;
+        wp_fractional_scale_manager_v1 *fractional_scale_manager = nullptr;
     };
 
-    static g_inline WaylandDisplay *BareCast(void *data) {
+    static WaylandDisplay *BareCast(void *data) {
         return reinterpret_cast<WaylandDisplay*>(data);
     }
 
@@ -59,15 +64,15 @@ public:
     WaylandDisplay(uv_loop_t *loop, int fd);
     ~WaylandDisplay() override;
 
-    g_nodiscard g_inline auto& GetGlobalsIdMap() {
+    g_nodiscard auto& GetGlobalsIdMap() {
         return globals_id_map_;
     }
 
-    g_nodiscard g_inline const std::unique_ptr<Globals>& GetGlobalsRef() {
+    g_nodiscard const std::unique_ptr<Globals>& GetGlobalsRef() {
         return globals_;
     }
 
-    g_nodiscard g_inline wl_display *GetWaylandDisplay() {
+    g_nodiscard wl_display *GetWaylandDisplay() {
         return wl_display_;
     }
 
@@ -75,12 +80,12 @@ public:
         return input_context_.get();
     }
 
-    g_inline void AppendSeat(const std::shared_ptr<WaylandSeat>& seat) {
+    void AppendSeat(std::unique_ptr<WaylandSeat> seat) {
         CHECK(seat && "Invalid seat");
 
         auto itr = std::find(seats_list_.begin(), seats_list_.end(), seat);
         if (itr == seats_list_.end())
-            seats_list_.push_back(seat);
+            seats_list_.emplace_back(std::move(seat));
     }
 
     bool HasPointerDeviceInSeats();
@@ -106,8 +111,8 @@ public:
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 
 private:
-    std::shared_ptr<Surface> OnCreateSurface(int32_t width, int32_t height, SkColorType format,
-                                             RenderTarget::RenderDevice device) override;
+    std::shared_ptr<Surface> OnCreateSurface(int32_t width, int32_t height, RenderTarget::RenderDevice device,
+                                             const PresentGpuContextOptions& gpu_context_options) override;
     std::shared_ptr<Cursor> OnCreateCursor(const std::shared_ptr<SkBitmap> &bitmap,
                                            int32_t hotspot_x, int32_t hotspot_y) override;
     std::shared_ptr<CursorTheme> OnLoadCursorTheme(const std::string &name, int size) override;
@@ -124,7 +129,7 @@ private:
     std::unique_ptr<Globals>        globals_;
     std::vector<wl_shm_format>      wl_shm_formats_;
 
-    std::list<std::shared_ptr<WaylandSeat>> seats_list_;
+    std::list<std::unique_ptr<WaylandSeat>> seats_list_;
     std::unique_ptr<WaylandInputContext>    input_context_;
 
     std::optional<uv::PrepareHandle> uv_prepare_;

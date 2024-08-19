@@ -39,7 +39,7 @@ public:
     static std::unique_ptr<WaylandSeatKeyboardDevice>
     MakeFromKeyboardDevice(WaylandSeat *seat, wl_keyboard *keyboard);
 
-    g_nodiscard g_inline WaylandSeat *GetSeat() const {
+    g_nodiscard WaylandSeat *GetSeat() const {
         return seat_;
     }
 

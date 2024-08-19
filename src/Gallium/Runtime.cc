@@ -31,10 +31,6 @@
 #include "Gallium/Platform.h"
 #include "Gallium/Inspector.h"
 #include "Gallium/TracingController.h"
-
-#include "Gallium/binder/Module.h"
-#include "Gallium/binder/Class.h"
-#include "Gallium/bindings/Base.h"
 GALLIUM_NS_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Gallium.Runtime)
@@ -54,10 +50,7 @@ std::shared_ptr<Runtime> Runtime::Make(EventLoop *loop, const Options& options)
 {
     Options dump_options(options);
     if (dump_options.v8_platform_thread_pool <= 0)
-    {
-        dump_options.v8_platform_thread_pool = static_cast<int32_t>(
-                std::thread::hardware_concurrency());
-    }
+        dump_options.v8_platform_thread_pool = 4;
 
     // std::unique_ptr<v8::Platform> platform =
     //        v8::platform::NewDefaultPlatform(static_cast<int>(options.v8_platform_thread_pool),
@@ -153,10 +146,10 @@ void Runtime::RunWithMainLoop()
         auto eval_main_script = [url = options_.startup, this]() {
             v8::Isolate *isolate = GetIsolate();
             v8::HandleScope handle_scope(isolate);
-            v8::TryCatch cache_block(isolate);
+            v8::TryCatch catch_block(isolate);
             EvaluateModule(url);
-            if (cache_block.HasCaught())
-                ReportUncaughtExceptionInCallback(cache_block);
+            if (catch_block.HasCaught())
+                ReportUncaughtExceptionInCallback(catch_block);
         };
 
         if (options_.start_with_inspector)

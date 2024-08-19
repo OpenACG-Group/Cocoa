@@ -40,6 +40,18 @@ export interface Formattable {
     [kObjectFormatter](ctx: FormatterContext): Array<TextBlock>;
 }
 
+export enum ObjectKeyEnumeration {
+    // Use `Object.getOwnProperties()` to enumerate object keys
+    kGetOwnProperties,
+
+    // Use `for...in` syntax to enumerate object keys
+    kForIn,
+
+    // Use a custom callback function to enumerate object keys.
+    // In that case, the `enumerateObjectKeys` option must be provided.
+    kCustom
+}
+
 export interface ObjectFormatOptions {
     colorANSI?: boolean;
 
@@ -48,8 +60,8 @@ export interface ObjectFormatOptions {
     maximumInlineWidth?: number;
     maximumStringLength?: number;
 
-    showSymbols?: boolean;
-    showProperties?: boolean;
+    enumerateObjectKeysBy?: ObjectKeyEnumeration;
+    enumerateObjectKeys?: (o: object) => string[];
 
     numberToString?: (v: number) => string;
     bigintToString?: (v: bigint) => string;
@@ -60,8 +72,16 @@ const defaultOptions = Object.freeze<ObjectFormatOptions>({
     indentInSpaces: 2,
     maximumInlineWidth: 80,
     maximumStringLength: 90,
-    showSymbols: false,
-    showProperties: true,
+    enumerateObjectKeysBy: ObjectKeyEnumeration.kForIn,
+
+    // The default behavior is same to `ObjectKeyEnumeration.kForIn`
+    enumerateObjectKeys: (o: object): string[] => {
+        const result = [];
+        for (const key in o) {
+            result.push(key);
+        }
+        return result;
+    },
 
     numberToString: (v: number): string => {
         return v.toString(10);
@@ -623,7 +643,23 @@ export function formatObjectValue(value: object, ctx: FormatterContext): Array<T
     const result: Array<TextBlock> = [
         TB(TextBlockLayoutHint.kCompoundStructureBegin, [TAG('{')])
     ];
-    const propertyNames = Object.getOwnPropertyNames(value);
+
+    let propertyNames: string[] = null;
+    if (ctx.options.enumerateObjectKeysBy == ObjectKeyEnumeration.kGetOwnProperties) {
+        propertyNames = Object.getOwnPropertyNames(value);
+    } else if (ctx.options.enumerateObjectKeysBy == ObjectKeyEnumeration.kForIn) {
+        propertyNames = [];
+        for (const key in value) {
+            propertyNames.push(key);
+        }
+    } else if (ctx.options.enumerateObjectKeysBy == ObjectKeyEnumeration.kCustom) {
+        if (typeof ctx.options.enumerateObjectKeys != 'function') {
+            throw Error('use ObjectKeyEnumeration.kCustom to enumerate object keys, '
+                        + 'but the provided callback is invalid');
+        }
+        propertyNames = ctx.options.enumerateObjectKeys(value);
+    }
+
     let isFirstProp = true;
     for (const key of propertyNames) {
         if (isFirstProp) {

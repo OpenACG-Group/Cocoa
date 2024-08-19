@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "module": "ESNext",
+        "target": "ES2022",
+        "moduleResolution": "Classic",
+        "isolatedModules": false,
+        "baseUrl": ".",
+        "paths": {
+            "internal://*": [ "internal/*" ],
+            "native://*": [ "natives/*" ],
+            "*": [ "natives/*" ]
+        },
+        "sourceMap": true,
+        "allowJs": true,
+        "lib": [ "ES2023", "DOM" ],
+        "strictBindCallApply": true,
+        "strictFunctionTypes": true,
+        "strictNullChecks": false,
+        "strictPropertyInitialization": false,
+        // TODO(sora): enable strictNullChecks and structPropertyInitialization,
+        "useDefineForClassFields": false
+    },
+    "include": [
+        "./global/infrastructure.d.ts"
+    ]
+}

@@ -25,8 +25,8 @@
 
 #include "Core/Errors.h"
 #include "Gallium/Gallium.h"
-#include "Gallium/binder/Class.h"
-#include "Gallium/bindings/ExportableObjectBase.h"
+#include "Gallium/ffi/ReturnValue.h"
+#include "Gallium/ffi/JSObject.h"
 GALLIUM_BINDINGS_NS_BEGIN
 
 #define EVENT_EMITTER_LISTENER_SETTER(name) \
@@ -83,13 +83,18 @@ GALLIUM_BINDINGS_NS_BEGIN
  *    event emitter". Those EventEmitters should NOT block the event loop
  *    (implementors may use `uv_ref()` and `uv_unref()` to implement this).
  */
-class EventEmitterBase
+
+//! TSDecl: @class @nonconstructible EventEmitterBase
+class EventEmitterBase : public ffi::JSObject
 {
 public:
+    FFI_JSOBJECT_ATTRS(ffi::ClassMetadata::kNone_Attr)
+
     using ListenerArgsT = std::vector<v8::Local<v8::Value>>;
+    using EventEmitFuncT = std::function<void(const ListenerArgsT&)>;
 
     explicit EventEmitterBase();
-    virtual ~EventEmitterBase() = default;
+    ~EventEmitterBase() override = default;
 
     /**
      * Implementors should call this to define (register) its events.
@@ -116,20 +121,19 @@ public:
      */
     std::function<void(const ListenerArgsT&)> EmitterWrapAsCallable(const std::string& name);
 
-    void EmitterSetListener(const std::string& name, v8::Local<v8::Value> func, bool once = false);
     void EmitterDispose();
 
-    //! TSDecl: function addListener(name: string, func: Function): void
-    void addListener(const std::string& name, v8::Local<v8::Value> func);
+    //! TSDecl: @method addListener(name: string, func: Function): void
+    ffi::Ret<void> addListener(const std::string& name, v8::Local<v8::Function> func);
 
-    //! TSDecl: function addOnceListener(name: string, func: Function): void
-    void addOnceListener(const std::string& name, v8::Local<v8::Value> func);
+    //! TSDecl: @method addOnceListener(name: string, func: Function): void
+    ffi::Ret<void> addOnceListener(const std::string& name, v8::Local<v8::Function> func);
 
-    //! TSDecl: function removeListener(name: string, func: Function): boolean
-    bool removeListener(const std::string& name, v8::Local<v8::Value> func);
+    //! TSDecl: @method removeListener(name: string, func: Function): boolean
+    ffi::Ret<bool> removeListener(const std::string& name, v8::Local<v8::Function> func);
 
-    //! TSDecl: function removeAllListeners(name: string): void
-    void removeAllListeners(const std::string& name);
+    //! TSDecl: @method removeAllListeners(name: string): void
+    ffi::Ret<void> removeAllListeners(const std::string& name);
 
     /**
      * This class will be exported to the JavaScript land as a base class
@@ -144,22 +148,10 @@ public:
      */
     static void RegisterClass(v8::Isolate *isolate);
 
-protected:
-    /**
-     * Implementors return a `v8::Object` which is the corresponding
-     * JavaScript object of this object itself (`this`).
-     * Usually implementors also inherit `ExportableObjectBase` class,
-     * and, in that case, `ExportableObjectBase::GetObjectWeakReference()`
-     * could be used to implement this method:
-     * @code
-     *     v8::Local<v8::Object> impl::OnGetObjectSelf(v8::Isolate *isolate) {
-     *       return GetObjectWeakReference().Get(isolate);
-     *     }
-     * @endcode
-     */
-    virtual v8::Local<v8::Object> OnGetObjectSelf(v8::Isolate *isolate) = 0;
-
 private:
+    ffi::Ret<void> EmitterSetListener(const std::string& name,
+                                      v8::Local<v8::Function> func, bool once);
+
     struct ListenerData
     {
         ListenerData(bool once_, v8::Isolate *i, v8::Local<v8::Function> f)
@@ -190,6 +182,7 @@ private:
     bool                    disposed_;
     EventsMap               events_map_;
 };
+//! TSDecl: @end
 
 GALLIUM_BINDINGS_NS_END
 #endif //COCOA_GALLIUM_BINDINGS_EVENTEMITTER_H

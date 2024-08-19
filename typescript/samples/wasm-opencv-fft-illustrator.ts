@@ -308,7 +308,7 @@ async function main(): Promise<void> {
         paintSurface.draw(canvas, 0, 0, gl.Constants.SAMPLING_FILTER_LINEAR, null);
         canvas.drawCircle(pts[pts.length - 1][0], pts[pts.length - 1][1], 5, headPaint);
 
-        const scene = new gl.SceneBuilder(vpWidth, vpHeight)
+        const scene = new gl.SceneBuilder([0, 0, vpWidth, vpHeight])
             .pushOffset(0, 0)
             .addPicture(recorder.finishRecordingAsPicture(), true)
             .build();

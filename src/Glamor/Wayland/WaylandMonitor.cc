@@ -183,4 +183,9 @@ WaylandMonitor::WaylandMonitor(const std::weak_ptr<WaylandDisplay>& display,
 {
 }
 
+WaylandMonitor::~WaylandMonitor()
+{
+    wl_output_destroy(wl_output_);
+}
+
 GLAMOR_NAMESPACE_END

@@ -16,51 +16,35 @@
  */
 
 import { Color4f, Const as Colors } from '../base/Color';
-import { GskBlendMode } from './GskBlendMode';
 import {
-    Constants,
-    CkPaint,
-    CkPathEffect,
-    CkShader,
-    CkColorFilter,
-    CkImageFilter,
-    CkBlender
-} from 'glamor';
-
-export enum GskPaintStyle {
-    kFill = Constants.PAINT_STYLE_FILL,
-    kStroke = Constants.PAINT_STYLE_STROKE,
-    kStrokeFill = Constants.PAINT_STYLE_STROKE_FILL
-}
-
-export enum GskStrokeJoin {
-    kMiter = Constants.PAINT_JOIN_MITER,
-    kRound = Constants.PAINT_JOIN_ROUND,
-    kBevel = Constants.PAINT_JOIN_BEVEL
-}
-
-export enum GskStrokeCap {
-    kButt = Constants.PAINT_CAP_BUTT,
-    kRound = Constants.PAINT_JOIN_ROUND,
-    kSquare = Constants.PAINT_CAP_SQUARE
-}
+    Blender,
+    BlendMode,
+    ColorFilter,
+    ImageFilter,
+    LineCap,
+    LineJoin,
+    Paint,
+    PathEffect,
+    Shader,
+    Style
+} from 'renderer';
 
 export class GskPaintRecord {
-    public pathEffect: CkPathEffect = null;
-    public shader: CkShader = null;
-    public colorFilter: CkColorFilter = null;
-    public imageFilter: CkImageFilter = null;
-    public blender: CkBlender = null;
+    public pathEffect: PathEffect = null;
+    public shader: Shader = null;
+    public colorFilter: ColorFilter = null;
+    public imageFilter: ImageFilter = null;
+    public blender: Blender = null;
 
     public strokeWidth: number = 1;
     public strokeMiter: number = 4;
     public color: Color4f = Colors.kColorBlackF;
     public antiAlias: boolean = false;
     public dither: boolean = false;
-    public strokeCap: GskStrokeCap = GskStrokeCap.kSquare;
-    public strokeJoin: GskStrokeJoin = GskStrokeJoin.kMiter;
-    public style: GskPaintStyle = GskPaintStyle.kFill;
-    public blendMode: GskBlendMode = GskBlendMode.kSrcOver;
+    public strokeCap: LineCap = LineCap.Default;
+    public strokeJoin: LineJoin = LineJoin.Default;
+    public style: Style = Style.Fill;
+    public blendMode: BlendMode = BlendMode.SrcOver;
 
     constructor(from?: GskPaintRecord) {
         if (from) {
@@ -85,87 +69,34 @@ export class GskPaintRecord {
         return Math.round(this.color.A * 255) === 255;
     }
 
-    public instantiatePaint(): CkPaint {
-        const paint = new CkPaint();
-        if (this.pathEffect) {
-            paint.setPathEffect(this.pathEffect);
+    public instantiatePaint(): Paint {
+        const paint = new Paint();
+        paint.pathEffect = this.pathEffect;
+        paint.shader = this.shader;
+        paint.colorFilter = this.colorFilter;
+        paint.imageFilter = this.imageFilter;
+        paint.strokeWidth = this.strokeWidth;
+        paint.strokeMiter = this.strokeMiter;
+        paint.color = this.color.toColor32();
+        paint.antiAlias = this.antiAlias;
+        paint.dither = this.dither;
+        paint.strokeCap = this.strokeCap;
+        paint.strokeJoin = this.strokeJoin;
+        paint.style = this.style;
+        // Blender has higher priority than BlendMode
+        if (this.blender != null) {
+            paint.blender = this.blender;
+        } else {
+            paint.blendMode = this.blendMode;
         }
-        if (this.shader) {
-            paint.setShader(this.shader);
-        }
-        if (this.colorFilter) {
-            paint.setColorFilter(this.colorFilter);
-        }
-        if (this.imageFilter) {
-            paint.setImageFilter(this.imageFilter);
-        }
-        if (this.blender) {
-            paint.setBlender(this.blender);
-        }
-        paint.setStrokeWidth(this.strokeWidth);
-        paint.setStrokeMiter(this.strokeMiter);
-        paint.setColor4f(this.color.toCkColor4f());
-        paint.setAntiAlias(this.antiAlias);
-        paint.setDither(this.dither);
-        paint.setStrokeCap(this.strokeCap);
-        paint.setStrokeJoin(this.strokeJoin);
-        paint.setStyle(this.style);
         return paint;
     }
 
-    /**
-     * Assuming the original color filter is G(c), and the provided filter is F(c).
-     * The result filter is G(F(c)).
-     */
-    public preConcatColorFilter(f: CkColorFilter): GskPaintRecord {
+    public postConcatColorFilter(cf: ColorFilter): void {
         if (this.colorFilter == null) {
-            this.colorFilter = f;
-        } else {
-            this.colorFilter = CkColorFilter.MakeFromDSL('compose(%outer, %inner)', {
-                outer: this.colorFilter,
-                inner: f
-            });
+            this.colorFilter = cf;
+            return;
         }
-        return this;
-    }
-
-    /**
-     * Assuming the original color filter is G(c), and the provided filter is F(c).
-     * The result filter is F(G(c)).
-     */
-    public postConcatColorFilter(f: CkColorFilter): GskPaintRecord {
-        if (this.colorFilter == null) {
-            this.colorFilter = f;
-        } else {
-            this.colorFilter = CkColorFilter.MakeFromDSL('compose(%outer, %inner)', {
-                outer: f,
-                inner: this.colorFilter
-            });
-        }
-        return this;
-    }
-
-    public preConcatImageFilter(f: CkImageFilter): GskPaintRecord {
-        if (this.imageFilter == null) {
-            this.imageFilter = f;
-        } else {
-            this.imageFilter = CkImageFilter.MakeFromDSL('compose(%outer, %inner)', {
-                outer: this.imageFilter,
-                inner: f
-            });
-        }
-        return this;
-    }
-
-    public postConcatImageFilter(f: CkImageFilter): GskPaintRecord {
-        if (this.imageFilter == null) {
-            this.imageFilter = f;
-        } else {
-            this.imageFilter = CkImageFilter.MakeFromDSL('compose(%outer, %inner)', {
-                outer: f,
-                inner: this.imageFilter
-            });
-        }
-        return this;
+        this.colorFilter = ColorFilter.Compose(cf, this.colorFilter);
     }
 }

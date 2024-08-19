@@ -123,7 +123,7 @@ async function main(): Promise<void> {
         }
 
         window.contentAggregator.update(
-            new ui.SceneBuilder(800, 600)
+            new ui.SceneBuilder([0, 0, 800, 600])
                 .pushOffset(0, 0)
                 .addPicture(recorder.finishRecordingAsPicture(), true)
                 .build()

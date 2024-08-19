@@ -51,19 +51,9 @@ enum class Backends
     kDefault = kWayland
 };
 
-enum class PresentMessageMilestone : uint8_t
+struct PresentGpuContextOptions
 {
-    kHostConstruction   = 0,
-    kHostEnqueued       = 1,
-    kClientReceived     = 2,
-    kClientProcessed    = 3,
-    kClientFeedback     = 4,
-
-    kHostReceived       = 5,
-
-    kClientEmitted      = 6,
-
-    kLast = 7
+    bool video_decode_compatible = false;
 };
 
 class GProfiler;
@@ -79,19 +69,18 @@ public:
 
     g_nodiscard Backends GetBackend() const;
     g_nodiscard bool GetSkiaJIT() const;
-    g_nodiscard bool GetProfileRenderHostTransfer() const;
     g_nodiscard int32_t GetTileWidth() const;
     g_nodiscard int32_t GetTileHeight() const;
 
-    g_nodiscard g_inline uint32_t GetRenderWorkersConcurrencyCount() const {
+    g_nodiscard uint32_t GetRenderWorkersConcurrencyCount() const {
         return render_workers_concurrency_count_;
     }
 
-    g_nodiscard g_inline bool GetShowTileBoundaries() const {
+    g_nodiscard bool GetShowTileBoundaries() const {
         return show_tile_boundaries_;
     }
 
-    g_nodiscard g_inline bool GetDisableHWComposePresent() const {
+    g_nodiscard bool GetDisableHWComposePresent() const {
         return disable_hw_compose_present_;
     }
 
@@ -101,69 +90,50 @@ public:
     // Whether allow Skia to use JIT compilation to acceleration CPU-bound operations
     void SetSkiaJIT(bool allow);
 
-    // Whether to collect profiling samples for RenderHost's message queue
-    void SetProfileRenderHostTransfer(bool value = true);
-
     // Set tile dimensions if tile-based rendering is available
     void SetTileWidth(int32_t width);
     void SetTileHeight(int32_t height);
 
     // Set the number of RenderWorker threads to run in parallel.
     // RenderWorker threads are usually used to perform tile-based rendering.
-    g_inline void SetRenderWorkersConcurrencyCount(uint32_t count) {
+    void SetRenderWorkersConcurrencyCount(uint32_t count) {
         render_workers_concurrency_count_ = count;
     }
 
     // Whether draw a grid of tiles if tile-based rendering is available
-    g_inline void SetShowTileBoundaries(bool v) {
+    void SetShowTileBoundaries(bool v) {
         show_tile_boundaries_ = v;
     }
 
-    g_inline void SetEnableProfiler(bool v) {
-        enable_profiler_ = v;
-    }
-
-    g_nodiscard g_inline bool GetEnableProfiler() const {
-        return enable_profiler_;
-    }
-
-    g_inline void SetProfilerRingBufferThreshold(size_t v) {
-        profiler_rb_threshold_ = v;
-    }
-
-    g_nodiscard g_inline size_t GetProfilerRingBufferThreshold() const {
-        return profiler_rb_threshold_;
-    }
-
-    g_nodiscard g_inline bool GetDisableHWCompose() const {
+    g_nodiscard bool GetDisableHWCompose() const {
         return disable_hw_compose_;
     }
 
-    g_inline void SetDisableHWCompose(bool v) {
+    void SetDisableHWCompose(bool v) {
         disable_hw_compose_ = v;
     }
 
-    g_nodiscard g_inline bool GetEnableVkDBG() const {
+    g_nodiscard bool GetEnableVkDBG() const {
         return enable_vkdbg_;
     }
 
-    g_inline void SetEnableVkDBG(bool v) {
+    void SetEnableVkDBG(bool v) {
         enable_vkdbg_ = v;
     }
 
-    g_nodiscard g_inline std::vector<std::string>& GetVkDBGFilterSeverities() {
+    g_nodiscard std::vector<std::string>& GetVkDBGFilterSeverities() {
         return vkdbg_filter_severities_;
     }
 
-    g_nodiscard g_inline std::vector<std::string>& GetVkDBGFilterLevels() {
+    g_nodiscard std::vector<std::string>& GetVkDBGFilterLevels() {
         return vkdbg_filter_levels_;
     }
 
-    g_inline void SetVkDBGFilterSeverities(const std::vector<std::string>& v) {
+    void SetVkDBGFilterSeverities(const std::vector<std::string>& v) {
         vkdbg_filter_severities_ = v;
     }
 
-    g_inline void SetVkDBGFilterLevels(const std::vector<std::string>& v) {
+    void SetVkDBGFilterLevels(const std::vector<std::string>& v) {
         vkdbg_filter_levels_ = v;
     }
 
@@ -182,26 +152,33 @@ public:
      * That is, `HWComposeSwapchain` (for presentation) cannot be created,
      * and only `HWComposeOffscreen` can be created.
      */
-    g_inline void SetDisableHWComposePresent(bool v) {
+    void SetDisableHWComposePresent(bool v) {
         disable_hw_compose_present_ = v;
+    }
+
+    void SetVkDeviceNameHint(const std::string& hint) {
+        vk_devicename_hint_ = hint;
+    }
+
+    g_nodiscard const std::string& GetVkDeviceNameHint() {
+        return vk_devicename_hint_;
     }
 
 private:
     Backends    backend_;
     bool        skia_jit_;
-    bool        profile_render_host_transfer_;
     int32_t     tile_width_;
     int32_t     tile_height_;
     uint32_t    render_workers_concurrency_count_;
     bool        show_tile_boundaries_;
-    bool        enable_profiler_;
-    size_t      profiler_rb_threshold_;
     bool        disable_hw_compose_;
     bool        disable_hw_compose_present_;
 
     bool        enable_vkdbg_;
     std::vector<std::string> vkdbg_filter_severities_;
     std::vector<std::string> vkdbg_filter_levels_;
+
+    std::string vk_devicename_hint_;
 };
 
 class GlobalScope : public UniquePersistent<GlobalScope>

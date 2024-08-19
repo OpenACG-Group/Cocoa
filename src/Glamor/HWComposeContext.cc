@@ -16,7 +16,9 @@
  */
 
 #include <cstring>
+#include <string>
 #include <set>
+#include <algorithm>
 
 #include "Core/Project.h"
 #include "Core/Journal.h"
@@ -33,10 +35,6 @@ namespace {
 
 const char *g_validation_layers[] = {
     "VK_LAYER_KHRONOS_validation"
-};
-
-const char *g_device_extensions[] = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
 template<typename T>
@@ -146,7 +144,7 @@ VkInstance vk_create_instance_from_options(const HWComposeContext::Options& opti
     QLOG(LOG_INFO, "Available Vulkan instance API version: %fg<bl>{}.{}.{}%reset",
          VK_API_VERSION_MAJOR(version), VK_API_VERSION_MINOR(version), VK_API_VERSION_PATCH(version));
 
-    if (version < VK_API_VERSION_1_2)
+    if (version < VK_API_VERSION_1_3)
     {
         QLOG(LOG_ERROR, "Unsupported Vulkan instance API version");
         return nullptr;
@@ -168,7 +166,7 @@ VkInstance vk_create_instance_from_options(const HWComposeContext::Options& opti
     applicationInfo.engineVersion = VK_MAKE_VERSION(COCOA_MAJOR,
                                                     COCOA_MINOR,
                                                     COCOA_PATCH);
-    applicationInfo.apiVersion = VK_API_VERSION_1_2;
+    applicationInfo.apiVersion = VK_API_VERSION_1_3;
     applicationInfo.pNext = nullptr;
 
     VkInstanceCreateInfo instanceCreateInfo{};
@@ -277,21 +275,37 @@ VkPhysicalDevice vk_pick_physical_device(VkInstance instance, const HWComposeCon
         QLOG(LOG_INFO, "  [{}] {}", idx++, prop.deviceName);
     }
 
+    VkPhysicalDevice physical_device = VK_NULL_HANDLE;
+    int max_supported_optional_exts = std::numeric_limits<int>::min();
     for (VkPhysicalDevice device : phys)
     {
+        if (!options.device_name_hint.empty())
+        {
+            VkPhysicalDeviceProperties device_props{};
+            vkGetPhysicalDeviceProperties(device, &device_props);
+            std::string devicename(device_props.deviceName);
+            if (devicename.find(options.device_name_hint) == std::string::npos)
+            {
+                QLOG(LOG_INFO, "Device \"{}\" is ignored since it does not match the device name hint", devicename);
+                continue;
+            }
+        }
+
         auto props = vk_typed_enumerate<VkExtensionProperties>(
                 [device](uint32_t *c, VkExtensionProperties *p) {
                     return vkEnumerateDeviceExtensionProperties(device, nullptr, c, p);
                 });
 
-        bool satisfied = true;
+        auto has_extension = [&props](const std::string& name) {
+            return std::find_if(props.begin(), props.end(), [name](const VkExtensionProperties& p) {
+                return name == p.extensionName;
+            }) != props.end();
+        };
 
-        for (const char *required : g_device_extensions)
+        bool satisfied = true;
+        for (const std::string& required : options.device_extensions)
         {
-            auto r = std::find_if(props.begin(), props.end(), [required](const VkExtensionProperties& p) {
-                return (std::strcmp(required, p.extensionName) == 0);
-            });
-            if (r == props.end())
+            if (!has_extension(required))
             {
                 satisfied = false;
                 break;
@@ -301,24 +315,22 @@ VkPhysicalDevice vk_pick_physical_device(VkInstance instance, const HWComposeCon
         if (!satisfied)
             continue;
 
-        for (const std::string& required : options.device_extensions)
+        int nb_optional_exts = 0;
+        for (const std::string& name : options.optional_device_extensions)
         {
-            auto r = std::find_if(props.begin(), props.end(), [required](const VkExtensionProperties& p) {
-                return (required == p.extensionName);
-            });
-            if (r == props.end())
-            {
-                satisfied = false;
-                break;
-            }
+            if (has_extension(name))
+                nb_optional_exts++;
         }
-
-        if (satisfied)
-            return device;
+        if (nb_optional_exts > max_supported_optional_exts)
+        {
+            max_supported_optional_exts = nb_optional_exts;
+            physical_device = device;
+        }
     }
 
-    QLOG(LOG_ERROR, "No suitable physical devices were found");
-    return VK_NULL_HANDLE;
+    if (physical_device == VK_NULL_HANDLE)
+        QLOG(LOG_ERROR, "No suitable physical devices were found");
+    return physical_device;
 }
 
 } // namespace anonymous
@@ -343,27 +355,35 @@ std::shared_ptr<HWComposeContext> HWComposeContext::MakeVulkan(const Options& op
     if (context->vk_physical_device_ == VK_NULL_HANDLE)
         return nullptr;
 
-    std::set<std::string> deviceExtSet;
-    for (const char *str : g_device_extensions)
-        deviceExtSet.emplace(str);
-    for (const std::string& str : options.device_extensions)
-        deviceExtSet.emplace(str);
-
-    for (const std::string& str : deviceExtSet)
-        context->device_enabled_extensions_.push_back(str);
-
-    QLOG(LOG_INFO, "Enabled extensions of Vulkan device:");
-    for (const auto& name : deviceExtSet)
-        QLOG(LOG_INFO, "  %italic<>%fg<bl>{}%reset", name);
+    auto extensions = vk_typed_enumerate<VkExtensionProperties>(
+        [device = context->vk_physical_device_](uint32_t *c, VkExtensionProperties *p) {
+            return vkEnumerateDeviceExtensionProperties(device, nullptr, c, p);
+        });
+    for (const auto& ext : extensions)
+        context->device_extensions_.emplace_back(ext.extensionName);
 
     for (const char *str : vk_select_required_instance_extensions(options))
         context->instance_enabled_extensions_.emplace_back(str);
 
-    vkGetPhysicalDeviceProperties(context->vk_physical_device_,
-                                  &context->vk_physical_device_properties_);
+    DeviceFeatures& devfeatures = context->vk_physical_device_features_;
+    VkPhysicalDeviceFeatures2 features;
+    features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    features.pNext = &devfeatures.v11;
+    devfeatures.v11.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+    devfeatures.v11.pNext = &devfeatures.v12;
+    devfeatures.v12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    devfeatures.v12.pNext = &devfeatures.v13;
+    devfeatures.v13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    devfeatures.v13.pNext = &devfeatures.ycbcr_conversion;
+    devfeatures.ycbcr_conversion.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES;
+    devfeatures.ycbcr_conversion.pNext = nullptr;
 
-    QLOG(LOG_INFO, "Using physical device: %fg<cy,hl>{}%reset",
-         context->vk_physical_device_properties_.deviceName);
+    vkGetPhysicalDeviceFeatures2(context->vk_physical_device_, &features);
+    devfeatures.base = features.features;
+
+    vkGetPhysicalDeviceProperties(context->vk_physical_device_, &context->vk_physical_device_properties_);
+
+    QLOG(LOG_INFO, "Using physical device: %fg<cy,hl>{}%reset", context->vk_physical_device_properties_.deviceName);
 
     return context;
 }

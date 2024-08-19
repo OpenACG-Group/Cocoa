@@ -18,10 +18,11 @@
 #ifndef COCOA_GLAMOR_HWCOMPOSECONTEXT_H
 #define COCOA_GLAMOR_HWCOMPOSECONTEXT_H
 
+#include <algorithm>
+
 #include <vulkan/vulkan.h>
 
 #include "Core/EnumClassBitfield.h"
-#include "Glamor/Glamor.h"
 #include "Glamor/GraphicsResourcesTrackable.h"
 GLAMOR_NAMESPACE_BEGIN
 
@@ -62,6 +63,19 @@ public:
         int32_t                     application_version_patch;
         std::vector<std::string>    instance_extensions;
         std::vector<std::string>    device_extensions;
+        // Physical device that supports the more optional extensions has higher priority
+        // for physical device selection.
+        std::vector<std::string>    optional_device_extensions;
+        std::string                 device_name_hint;
+    };
+
+    struct DeviceFeatures
+    {
+        VkPhysicalDeviceFeatures base;
+        VkPhysicalDeviceVulkan11Features v11;
+        VkPhysicalDeviceVulkan12Features v12;
+        VkPhysicalDeviceVulkan13Features v13;
+        VkPhysicalDeviceSamplerYcbcrConversionFeatures ycbcr_conversion;
     };
 
     static std::shared_ptr<HWComposeContext> MakeVulkan(const Options& options);
@@ -69,24 +83,39 @@ public:
     HWComposeContext();
     ~HWComposeContext() override;
 
-    g_nodiscard g_inline VkInstance GetVkInstance() const {
+    g_nodiscard VkInstance GetVkInstance() const {
         return vk_instance_;
     }
 
-    g_nodiscard g_inline VkPhysicalDevice GetVkPhysicalDevice() const {
+    g_nodiscard VkPhysicalDevice GetVkPhysicalDevice() const {
         return vk_physical_device_;
     }
 
-    g_nodiscard g_inline const VkPhysicalDeviceProperties& GetVkPhysicalDeviceProperties() const {
+    g_nodiscard const VkPhysicalDeviceProperties& GetVkPhysicalDeviceProperties() const {
         return vk_physical_device_properties_;
     }
 
-    g_nodiscard g_inline const std::vector<std::string>& GetDeviceEnabledExtensions() const {
-        return device_enabled_extensions_;
+    g_nodiscard const DeviceFeatures& GetVkPhysicalDeviceFeatures() const {
+        return vk_physical_device_features_;
     }
 
-    g_nodiscard g_inline const std::vector<std::string>& GetInstanceEnabledExtensions() const {
+    g_nodiscard const std::vector<std::string>& GetDeviceExtensions() const {
+        return device_extensions_;
+    }
+
+    g_nodiscard const std::vector<std::string>& GetInstanceEnabledExtensions() const {
         return instance_enabled_extensions_;
+    }
+
+    g_nodiscard bool HasDeviceExtension(const std::string& name) const
+    {
+        return std::find(device_extensions_.begin(), device_extensions_.end(), name)
+            != device_extensions_.end();
+    }
+
+    g_nodiscard bool HasInstanceExtension(const std::string& name) const {
+        return std::find(instance_enabled_extensions_.begin(), instance_enabled_extensions_.end(), name)
+            != instance_enabled_extensions_.end();
     }
 
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
@@ -96,7 +125,8 @@ private:
     VkDebugUtilsMessengerEXT        vk_debug_messenger_;
     VkPhysicalDevice                vk_physical_device_;
     VkPhysicalDeviceProperties      vk_physical_device_properties_;
-    std::vector<std::string>        device_enabled_extensions_;
+    DeviceFeatures                  vk_physical_device_features_;
+    std::vector<std::string>        device_extensions_;
     std::vector<std::string>        instance_enabled_extensions_;
 };
 

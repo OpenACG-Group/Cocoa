@@ -1,4 +1,4 @@
-file(GLOB INTERNAL_RESOURCES_FILES ${INTERNAL_RESOURCES_DIR}/*)
+file(GLOB_RECURSE INTERNAL_RESOURCES_FILES ${INTERNAL_RESOURCES_DIR}/*)
 
 add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/@internal.crpkg
@@ -40,5 +40,5 @@ add_executable(
         Protocol.cc
 )
 
-target_link_libraries(crpkg-packager PRIVATE Core ${LINK_STATIC_FMT} ${LINK_STATIC_LIBUV})
+target_link_libraries(crpkg-packager PRIVATE ${LINK_STATIC_FMT} Core)
 set_target_properties(crpkg-packager PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})

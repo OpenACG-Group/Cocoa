@@ -34,12 +34,12 @@ public:
         : weak_blender_(blender) {}
     virtual ~FrameGeneratorBase() = default;
 
-    g_nodiscard g_inline Shared<ContentAggregator> GetBlender() const {
+    g_nodiscard Shared<ContentAggregator> GetBlender() const {
         CHECK(!weak_blender_.expired());
         return weak_blender_.lock();
     }
 
-    g_inline void Paint(SkSurface *surface, const sk_sp<SkPicture>& picture, const SkIRect& rect) {
+    void Paint(SkSurface *surface, const sk_sp<SkPicture>& picture, const SkIRect& rect) {
         CHECK(surface && picture);
         this->OnPaint(surface, picture, rect);
     }

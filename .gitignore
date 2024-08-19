@@ -1,18 +1,14 @@
-# Deprecated
-/deprecated
-
 # External sources
 /third_party/*
+/typescript/third_party/*
 /res/*
 
 # Building directories
-/cmake-build-*
 /out
-/build
 /typescript/out
-/typescript/devtools/packages
+
+# Experimental
 /typescript/experimental
-/typescript/vizmoe/main.ts
 
 /tools
 

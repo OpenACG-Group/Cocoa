@@ -56,18 +56,24 @@ public:
             const std::shared_ptr<WaylandDisplay>& display,
             int32_t width, int32_t height, SkColorType format);
 
-    WaylandSHMRenderTarget(const std::shared_ptr<WaylandDisplay>& display,
-                           int32_t width, int32_t height, SkColorType format);
+    WaylandSHMRenderTarget(const std::shared_ptr<Display>& display,
+                           int32_t width,
+                           int32_t height,
+                           SkColorType format,
+                           wl_surface *surface,
+                           wl_event_queue *surface_queue);
     ~WaylandSHMRenderTarget() override;
 
     SkSurface *OnBeginFrame() override;
     void OnSubmitFrame(SkSurface *surface, const FrameSubmitInfo& submit_info) override;
     void OnPresentFrame(SkSurface *surface, const FrameSubmitInfo& submit_info) override;
-    void OnResize(int32_t width, int32_t height) override;
     sk_sp<SkSurface> OnCreateOffscreenBackendSurface(const SkImageInfo& info) override;
+    void OnTryCancelCurrentFrameRequest() override;
 
     std::string GetBufferStateDescriptor() override;
     void OnClearFrameBuffers() override;
+
+    void OnContentBufferDimensionsUpdate(const SkISize& dimensions) override;
 
     static void BufferReleaseCallback(void *data, wl_buffer *buffer);
     static void FrameDoneCallback(void *data, wl_callback *cb, uint32_t extraData);
@@ -83,6 +89,7 @@ private:
     std::vector<std::unique_ptr<Buffer>> deferred_destructing_buffers_;
     int32_t                              drawing_buffer_idx_;
     int32_t                              committed_buffer_idx_;
+    wl_callback                         *wl_frame_callback_;
 };
 
 GLAMOR_NAMESPACE_END

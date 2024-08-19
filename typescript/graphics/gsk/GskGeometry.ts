@@ -15,22 +15,9 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { CkPath, CkCanvas, CkPaint, Constants } from 'glamor';
-import {
-    GskNode,
-    GskConcreteType,
-    GskInvalidationRecorder,
-    NodeTrait,
-    GskProperty
-} from './GskNode';
-import { Rect } from '../base/Rectangle';
-import { Point2f } from '../base/Vector';
-import { Mat3x3 } from '../base/Matrix';
-
-export enum PathDirection {
-    kCW = Constants.PATH_DIRECTION_CW,
-    kCCW = Constants.PATH_DIRECTION_CCW
-}
+import { ClipOp, Mat3x3, Paint, Path, PathBuilder, PathDirection, Rect, Vec2 } from 'renderer';
+import { GskConcreteType, GskInvalidationRecorder, GskNode, GskProperty, NodeTrait } from './GskNode';
+import { GskDLRecorder } from './GskDisplayList';
 
 /**
  * Base class of drawable geometries, like Rect, RRect, Path, etc.
@@ -44,17 +31,17 @@ export abstract class GskGeometry extends GskNode {
         super(type, NodeTrait.kBubbleDamage);
     }
 
-    public draw(canvas: CkCanvas, paint: CkPaint): void {
+    public draw(dl: GskDLRecorder, paint: Paint): void {
         this.ASSERT_REVALIDATED();
-        this.onGeometryDraw(canvas, paint);
+        this.onGeometryDraw(dl, paint);
     }
 
-    public clip(canvas: CkCanvas, antialias: boolean): void {
+    public clip(dl: GskDLRecorder, antialias: boolean): void {
         this.ASSERT_REVALIDATED();
-        this.onGeometryClip(canvas, antialias);
+        this.onGeometryClip(dl, antialias);
     }
 
-    public contains(p: Point2f): boolean {
+    public contains(p: Vec2): boolean {
         this.ASSERT_REVALIDATED();
         // Quick reject
         if (!this.bounds.contains(p.x, p.y)) {
@@ -63,22 +50,22 @@ export abstract class GskGeometry extends GskNode {
         return this.onGeometryContains(p);
     }
 
-    public asPath(): CkPath {
+    public asPath(): Path {
         this.ASSERT_REVALIDATED();
         return this.onGeometryAsPath();
     }
 
-    protected abstract onGeometryDraw(canvas: CkCanvas, paint: CkPaint): void;
-    protected abstract onGeometryClip(canvas: CkCanvas, antialias: boolean): void;
-    protected abstract onGeometryContains(p: Point2f): boolean;
-    protected abstract onGeometryAsPath(): CkPath;
+    protected abstract onGeometryDraw(dl: GskDLRecorder, paint: Paint): void;
+    protected abstract onGeometryClip(dl: GskDLRecorder, antialias: boolean): void;
+    protected abstract onGeometryContains(p: Vec2): boolean;
+    protected abstract onGeometryAsPath(): Path;
 }
 
 export class GskRect extends GskGeometry {
     @GskProperty<Rect, GskRect>(Rect.MakeEmpty())
     public rect: Rect;
 
-    @GskProperty<PathDirection, GskRect>(PathDirection.kCW)
+    @GskProperty<PathDirection, GskRect>(PathDirection.CW)
     public direction: PathDirection;
 
     @GskProperty<number, GskRect>(0)
@@ -88,21 +75,21 @@ export class GskRect extends GskGeometry {
         super(GskConcreteType.kGeometryRect);
     }
 
-    protected onGeometryDraw(canvas: CkCanvas, paint: CkPaint): void {
+    protected onGeometryDraw(dl: GskDLRecorder, paint: Paint): void {
         if (this.rect.isEmpty()) {
             return;
         }
-        canvas.drawRect(this.rect.toCkArrayXYWHRect(), paint);
+        dl.canvas.drawRect(this.rect, paint);
     }
 
-    protected onGeometryClip(canvas: CkCanvas, antialias: boolean): void {
+    protected onGeometryClip(dl: GskDLRecorder, antialias: boolean): void {
         if (this.rect.isEmpty()) {
             return;
         }
-        canvas.clipRect(this.rect.toCkArrayXYWHRect(), Constants.CLIP_OP_INTERSECT, antialias);
+        dl.clipRect(this.rect, ClipOp.Intersect, antialias);
     }
 
-    protected onGeometryContains(p: Point2f): boolean {
+    protected onGeometryContains(p: Vec2): boolean {
         return this.rect.contains(p.x, p.y);
     }
 
@@ -110,9 +97,7 @@ export class GskRect extends GskGeometry {
         return this.rect;
     }
 
-    protected onGeometryAsPath(): CkPath {
-        const path = new CkPath();
-        path.addRect(this.rect.toCkArrayXYWHRect(), this.direction, this.initialPointIndex);
-        return path;
+    protected onGeometryAsPath(): Path {
+        return new PathBuilder().addRect(this.rect, this.direction, this.initialPointIndex).detach();
     }
 }

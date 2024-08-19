@@ -64,31 +64,31 @@ public:
                  int32_t width, int32_t height, SkColorType format);
     ~RenderTarget() override = default;
 
-    g_nodiscard g_inline std::shared_ptr<Display> GetDisplay() const {
+    g_nodiscard std::shared_ptr<Display> GetDisplay() const {
         return display_weak_.lock();
     }
 
-    g_nodiscard g_inline RenderDevice GetRenderDeviceType() const {
+    g_nodiscard RenderDevice GetRenderDeviceType() const {
         return device_type_;
     }
 
-    g_nodiscard g_inline int32_t GetWidth() const {
+    g_nodiscard int32_t GetWidth() const {
         return width_;
     }
 
-    g_nodiscard g_inline int32_t GetHeight() const {
+    g_nodiscard int32_t GetHeight() const {
         return height_;
     }
 
-    g_nodiscard g_inline SkColorType GetColorType() const {
+    g_nodiscard SkColorType GetColorType() const {
         return color_format_;
     }
 
-    g_inline void SetFrameNotificationRouter(FrameNotificationRouter *router) {
+    void SetFrameNotificationRouter(FrameNotificationRouter *router) {
         frame_notification_router_ = router;
     }
 
-    g_nodiscard g_inline FrameNotificationRouter *GetFrameNotificationRouter() const {
+    g_nodiscard FrameNotificationRouter *GetFrameNotificationRouter() const {
         return frame_notification_router_;
     }
 
@@ -101,6 +101,9 @@ public:
     void Submit(const FrameSubmitInfo& submit_info);
     void Present();
     uint32_t RequestNextFrame();
+
+    // Called before closing the window to clear the (possible) pending frame callbacks
+    void TryCancelCurrentFrameRequest();
 
     const std::shared_ptr<HWComposeSwapchain>& GetHWComposeSwapchain();
 
@@ -116,6 +119,7 @@ protected:
     virtual const std::shared_ptr<HWComposeSwapchain>& OnGetHWComposeSwapchain();
     virtual sk_sp<SkSurface> OnCreateOffscreenBackendSurface(const SkImageInfo& info) = 0;
     virtual uint32_t OnRequestNextFrame() = 0;
+    virtual void OnTryCancelCurrentFrameRequest() = 0;
 
 private:
     std::weak_ptr<Display>          display_weak_;

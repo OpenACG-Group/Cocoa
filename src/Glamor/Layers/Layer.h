@@ -39,6 +39,7 @@ static constexpr SkRect kGiantRect = SkRect::MakeLTRB(-1E9F, -1E9F, 1E9F, 1E9F);
 class LayerGenerationCache;
 class HWComposeSwapchain;
 class ContentAggregator;
+class SkiaGpuContextOwner;
 
 class Layer
 {
@@ -77,6 +78,7 @@ public:
             kGpu_ResourceUsage = 0x04
         };
 
+        SkiaGpuContextOwner *gpu_context_owner;
         GrDirectContext *gr_context;
 
         bool is_generating_cache;

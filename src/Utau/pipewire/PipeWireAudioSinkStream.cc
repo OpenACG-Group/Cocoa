@@ -15,13 +15,14 @@
  * along with Cocoa. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <unordered_map>
+
 #include <pipewire/pipewire.h>
 #include <spa/param/audio/format-utils.h>
 #include <spa/support/loop.h>
 #include <spa/param/props.h>
 
 #include "Core/Journal.h"
-#include "Utau/AudioBuffer.h"
 #include "Utau/pipewire/PipeWireAudioSinkStream.h"
 #include "Utau/pipewire/PipeWireAudioDevice.h"
 UTAU_NAMESPACE_BEGIN
@@ -40,24 +41,24 @@ const pw_stream_events g_stream_events = {
 
 struct PWFormatsMapEntry
 {
-    SampleFormat format;
+    AVSampleFormat format;
     spa_audio_format spa_format;
     int32_t stride;
     bool planar;
 } const g_pw_formats_map[] = {
-    { SampleFormat::kU8, SPA_AUDIO_FORMAT_U8, 1, false },
-    { SampleFormat::kS16, SPA_AUDIO_FORMAT_S16, 2, false },
-    { SampleFormat::kS32, SPA_AUDIO_FORMAT_S32, 4, false },
-    { SampleFormat::kF32, SPA_AUDIO_FORMAT_F32, 4, false },
-    { SampleFormat::kF64, SPA_AUDIO_FORMAT_F64, 8, false },
-    { SampleFormat::kU8P, SPA_AUDIO_FORMAT_U8P, 1, true },
-    { SampleFormat::kS16P, SPA_AUDIO_FORMAT_S16P, 2, true },
-    { SampleFormat::kS32P, SPA_AUDIO_FORMAT_S32P, 4, true },
-    { SampleFormat::kF32P, SPA_AUDIO_FORMAT_F32P, 4, true },
-    { SampleFormat::kF64P, SPA_AUDIO_FORMAT_F64P, 8, true }
+    { AV_SAMPLE_FMT_U8, SPA_AUDIO_FORMAT_U8, 1, false },
+    { AV_SAMPLE_FMT_S16, SPA_AUDIO_FORMAT_S16, 2, false },
+    { AV_SAMPLE_FMT_S32, SPA_AUDIO_FORMAT_S32, 4, false },
+    { AV_SAMPLE_FMT_FLT, SPA_AUDIO_FORMAT_F32, 4, false },
+    { AV_SAMPLE_FMT_DBL, SPA_AUDIO_FORMAT_F64, 8, false },
+    { AV_SAMPLE_FMT_U8P, SPA_AUDIO_FORMAT_U8P, 1, true },
+    { AV_SAMPLE_FMT_S16P, SPA_AUDIO_FORMAT_S16P, 2, true },
+    { AV_SAMPLE_FMT_S32P, SPA_AUDIO_FORMAT_S32P, 4, true },
+    { AV_SAMPLE_FMT_FLTP, SPA_AUDIO_FORMAT_F32P, 4, true },
+    { AV_SAMPLE_FMT_DBLP, SPA_AUDIO_FORMAT_F64P, 8, true }
 };
 
-spa_audio_format get_spa_audio_format(SampleFormat format)
+spa_audio_format get_spa_audio_format(AVSampleFormat format)
 {
     for (const auto& entry : g_pw_formats_map)
     {
@@ -67,7 +68,7 @@ spa_audio_format get_spa_audio_format(SampleFormat format)
     return SPA_AUDIO_FORMAT_UNKNOWN;
 }
 
-const PWFormatsMapEntry& get_sample_format_info(SampleFormat format)
+const PWFormatsMapEntry& get_sample_format_info(AVSampleFormat format)
 {
     for (const auto& entry : g_pw_formats_map)
     {
@@ -77,16 +78,71 @@ const PWFormatsMapEntry& get_sample_format_info(SampleFormat format)
     MARK_UNREACHABLE();
 }
 
+const std::unordered_map<AVChannel, spa_audio_channel> g_channel_map{
+    { AV_CHAN_FRONT_LEFT, SPA_AUDIO_CHANNEL_FL },
+    { AV_CHAN_FRONT_RIGHT, SPA_AUDIO_CHANNEL_FR },
+    { AV_CHAN_FRONT_CENTER, SPA_AUDIO_CHANNEL_FC },
+    { AV_CHAN_LOW_FREQUENCY_2, SPA_AUDIO_CHANNEL_LFE },
+    { AV_CHAN_SIDE_LEFT, SPA_AUDIO_CHANNEL_SL },
+    { AV_CHAN_SIDE_RIGHT, SPA_AUDIO_CHANNEL_SR },
+    { AV_CHAN_FRONT_LEFT_OF_CENTER, SPA_AUDIO_CHANNEL_FLC },
+    { AV_CHAN_FRONT_RIGHT_OF_CENTER, SPA_AUDIO_CHANNEL_FRC },
+    { AV_CHAN_BACK_CENTER, SPA_AUDIO_CHANNEL_RC },
+    { AV_CHAN_BACK_LEFT, SPA_AUDIO_CHANNEL_RL },
+    { AV_CHAN_BACK_RIGHT, SPA_AUDIO_CHANNEL_RR },
+    { AV_CHAN_TOP_CENTER, SPA_AUDIO_CHANNEL_TC },
+    { AV_CHAN_TOP_FRONT_LEFT, SPA_AUDIO_CHANNEL_TFL },
+    { AV_CHAN_TOP_FRONT_CENTER, SPA_AUDIO_CHANNEL_TFC },
+    { AV_CHAN_TOP_FRONT_RIGHT, SPA_AUDIO_CHANNEL_TFR },
+    { AV_CHAN_TOP_BACK_LEFT, SPA_AUDIO_CHANNEL_TRL },
+    { AV_CHAN_TOP_BACK_CENTER, SPA_AUDIO_CHANNEL_TRC },
+    { AV_CHAN_TOP_BACK_RIGHT, SPA_AUDIO_CHANNEL_TRR },
+    { AV_CHAN_WIDE_RIGHT, SPA_AUDIO_CHANNEL_FRW },
+    { AV_CHAN_WIDE_LEFT, SPA_AUDIO_CHANNEL_FLW },
+    { AV_CHAN_LOW_FREQUENCY_2, SPA_AUDIO_CHANNEL_LFE2 },
+    { AV_CHAN_TOP_SIDE_LEFT, SPA_AUDIO_CHANNEL_TSL },
+    { AV_CHAN_TOP_SIDE_RIGHT, SPA_AUDIO_CHANNEL_TSR },
+    { AV_CHAN_BOTTOM_FRONT_CENTER, SPA_AUDIO_CHANNEL_BC },
+    // FIXME(sora): is the following two map correct?
+    { AV_CHAN_BOTTOM_FRONT_LEFT, SPA_AUDIO_CHANNEL_BLC },
+    { AV_CHAN_BOTTOM_FRONT_RIGHT, SPA_AUDIO_CHANNEL_BRC }
+};
+
+bool fill_spa_audio_channel_info(spa_audio_info_raw& dst, const AVChannelLayout& ch_layout)
+{
+    // For unspecified channel order, we do not know how to
+    // handle them.
+    if (ch_layout.order == AV_CHANNEL_ORDER_UNSPEC ||
+        ch_layout.nb_channels > SPA_AUDIO_MAX_CHANNELS)
+    {
+        return false;
+    }
+
+    dst.channels = ch_layout.nb_channels;
+    for (int32_t i = 0; i < dst.channels; i++)
+    {
+        AVChannel ch = av_channel_layout_channel_from_index(&ch_layout, i);
+        if (!g_channel_map.contains(ch))
+            return false;
+        dst.position[i] = g_channel_map.at(ch);
+    }
+    return true;
+}
+
 } // namespace anonymous
 
-std::unique_ptr<PipeWireAudioSinkStream>
+std::shared_ptr<PipeWireAudioSinkStream>
 PipeWireAudioSinkStream::MakeFromDevice(const std::shared_ptr<PipeWireAudioDevice>& device,
-                                        const std::string& name)
+                                        const std::string& name,
+                                        AVSampleFormat sample_format,
+                                        int32_t sample_rate,
+                                        const AVChannelLayout& ch_layout,
+                                        bool realtime)
 {
     if (name.empty() || !device)
         return nullptr;
 
-    auto stream = std::make_unique<PipeWireAudioSinkStream>();
+    auto stream = std::make_shared<PipeWireAudioSinkStream>();
 
     pw_loop *loop = pw_thread_loop_get_loop(device->GetPipeWireLoop());
     CHECK(loop);
@@ -115,15 +171,21 @@ PipeWireAudioSinkStream::MakeFromDevice(const std::shared_ptr<PipeWireAudioDevic
     }
 
     stream->disposed_ = false;
+    if (!stream->ConnectToStream(sample_format, sample_rate, ch_layout, realtime))
+    {
+        pw_properties_free(props);
+        return nullptr;
+    }
 
     return stream;
 }
 
 PipeWireAudioSinkStream::PipeWireAudioSinkStream()
-    : disposed_(true)
+    : frame_id_cnt_(0)
+    , disposed_(true)
     , pw_stream_(nullptr)
-    , sample_format_(SampleFormat::kUnknown)
-    , channel_mode_(AudioChannelMode::kUnknown)
+    , sample_format_(AV_SAMPLE_FMT_NONE)
+    , ch_layout_{}
     , sample_rate_(0)
     , current_queued_samples_(0)
     , delay_in_us_(0)
@@ -132,22 +194,25 @@ PipeWireAudioSinkStream::PipeWireAudioSinkStream()
 
 PipeWireAudioSinkStream::~PipeWireAudioSinkStream()
 {
-    CHECK(disposed_ && "Object must be disposed before destruction");
+    DoDispose();
 }
 
-std::shared_ptr<AudioDevice> PipeWireAudioSinkStream::OnGetDevice()
+std::shared_ptr<AudioDevice> PipeWireAudioSinkStream::GetDevice()
 {
     return device_;
 }
 
-void PipeWireAudioSinkStream::OnDispose()
+void PipeWireAudioSinkStream::Dispose()
+{
+    DoDispose();
+}
+
+void PipeWireAudioSinkStream::DoDispose()
 {
     if (disposed_)
         return;
 
-    if (this->IsConnected())
-        this->Disconnect();
-
+    DisconnectStream();
     {
         PipeWireAudioDevice::ScopedThreadLoopLock lock(device_.get());
         pw_stream_destroy(pw_stream_);
@@ -156,12 +221,28 @@ void PipeWireAudioSinkStream::OnDispose()
     pw_stream_ = nullptr;
     device_.reset();
     disposed_ = true;
+    av_channel_layout_uninit(&ch_layout_);
 }
 
-bool PipeWireAudioSinkStream::OnConnect(SampleFormat sample_format,
-                                        AudioChannelMode channel_mode,
-                                        int32_t sample_rate,
-                                        bool realtime)
+auto PipeWireAudioSinkStream::GetListener() const -> std::shared_ptr<Listener>
+{
+    return listener_;
+}
+
+void PipeWireAudioSinkStream::SetListener(std::shared_ptr<Listener> listener)
+{
+    if (listener_ && !listener)
+        device_->DecreaseEventListenerCount();
+    else if (!listener_ && listener)
+        device_->IncreaseEventListenerCount();
+
+    listener_ = std::move(listener);
+}
+
+bool PipeWireAudioSinkStream::ConnectToStream(AVSampleFormat sample_format,
+                                              int32_t sample_rate,
+                                              const AVChannelLayout& ch_layout,
+                                              bool realtime)
 {
     PipeWireAudioDevice::ScopedThreadLoopLock lock(device_.get());
 
@@ -172,17 +253,20 @@ bool PipeWireAudioSinkStream::OnConnect(SampleFormat sample_format,
         return false;
     }
 
+    spa_audio_info_raw audio_info{
+        .format = spa_fmt,
+        .rate = static_cast<uint32_t>(sample_rate)
+    };
+    if (!fill_spa_audio_channel_info(audio_info, ch_layout))
+    {
+        QLOG(LOG_ERROR, "The channel layout is not supported by PipeWire");
+        return false;
+    }
+
     // Prepare POD buffer and connect to the stream
     auto pod_buffer = std::make_unique<uint8_t[]>(POD_BUFFER_SIZE);
     spa_pod_builder builder = SPA_POD_BUILDER_INIT(pod_buffer.get(), POD_BUFFER_SIZE);
     const spa_pod *params[1];
-
-    uint32_t channels = (channel_mode == AudioChannelMode::kStereo ? 2 : 1);
-    spa_audio_info_raw audio_info{
-        .format = spa_fmt,
-        .rate = static_cast<uint32_t>(sample_rate),
-        .channels = channels
-    };
 
     params[0] = spa_format_audio_raw_build(&builder,
                                            SPA_PARAM_EnumFormat,
@@ -201,18 +285,18 @@ bool PipeWireAudioSinkStream::OnConnect(SampleFormat sample_format,
     }
 
     sample_format_ = sample_format;
-    channel_mode_ = channel_mode;
+    av_channel_layout_copy(&ch_layout_, &ch_layout);
     sample_rate_ = sample_rate;
 
     return true;
 }
 
-bool PipeWireAudioSinkStream::OnDisconnect()
+void PipeWireAudioSinkStream::DisconnectStream()
 {
     {
         PipeWireAudioDevice::ScopedThreadLoopLock lock(device_.get());
         if (pw_stream_disconnect(pw_stream_) < 0)
-            return false;
+            return;
     }
 
     if (current_buffer_.frame)
@@ -230,55 +314,44 @@ bool PipeWireAudioSinkStream::OnDisconnect()
     }
 
     current_queued_samples_ = 0;
-
-    return true;
 }
 
-
-bool PipeWireAudioSinkStream::Enqueue(const AudioBuffer& buffer)
+uint64_t PipeWireAudioSinkStream::Enqueue(const AVFrame *frame)
 {
-    if (!this->IsConnected())
-        return false;
-
-    if (buffer.GetInfo().GetSampleFormat() != sample_format_ ||
-        buffer.GetInfo().GetChannelMode() != channel_mode_ ||
-        buffer.GetInfo().GetSampleRate() != sample_rate_)
+    // Verify sample characteristics
+    if (frame->format != sample_format_ ||
+        av_channel_layout_compare(&frame->ch_layout, &ch_layout_) != 0 ||
+        frame->sample_rate != sample_rate_)
     {
-        return false;
+        return 0;
     }
 
-    AVFrame *frame_dup = av_frame_clone(buffer.CastUnderlyingPointer<AVFrame>());
-    CHECK(frame_dup && "Failed to allocate memory");
+    AVFrame *frame_dup = av_frame_clone(frame);
+    CHECK(frame_dup && "allocation failed");
 
-    {
-        std::scoped_lock<std::mutex> lock(queue_lock_);
-        queue_.emplace(BufferItem{
-            .frame = frame_dup,
-            .offset = 0
-        });
-        current_queued_samples_ += frame_dup->nb_samples;
-    }
+    std::scoped_lock<std::mutex> lock(queue_lock_);
+    frame_id_cnt_++;
+    queue_.emplace(BufferItem{ .id = frame_id_cnt_, .frame = frame_dup, .offset = 0 });
+    current_queued_samples_ += frame_dup->nb_samples;
 
-    return true;
+    return frame_id_cnt_;
 }
 
 void PipeWireAudioSinkStream::OnControlInfo(void *userdata,
                                             uint32_t id,
                                             const pw_stream_control *ctl)
 {
-    auto *self = reinterpret_cast<PipeWireAudioSinkStream*>(userdata);
+    auto *self_bare = reinterpret_cast<PipeWireAudioSinkStream*>(userdata);
+    CHECK(self_bare);
+    auto self = self_bare->shared_from_this();
     CHECK(self);
 
     if (id == SPA_PROP_channelVolumes)
     {
-        float avg_vol = 0;
-        for (int i = 0; i < ctl->n_values; i++)
-            avg_vol += ctl->values[i] / static_cast<float>(ctl->n_values);
-
-        self->device_->InvokeFromMainThread([self, avg_vol] {
-            self->volume_ = avg_vol;
-            if (self->GetEventListener())
-                self->GetEventListener()->OnVolumeChanged(avg_vol);
+        std::vector<float> volumes(ctl->values, ctl->values + ctl->n_values);
+        self->device_->SendTaskToMainThread([self, volumes] {
+            if (self->GetListener())
+                self->GetListener()->OnVolumeChanged(volumes);
         });
     }
 }
@@ -313,7 +386,7 @@ void PipeWireAudioSinkStream::Process(void *userdata)
     spa_buffer *spabuf = buffer->buffer;
 
     const PWFormatsMapEntry& format_info = get_sample_format_info(self->sample_format_);
-    int channels = (self->channel_mode_ == AudioChannelMode::kStereo ? 2 : 1);
+    int channels = self->ch_layout_.nb_channels;
     uint32_t stride = format_info.stride, nb_buffers = channels;
     if (!format_info.planar)
     {
@@ -379,6 +452,14 @@ PipeWireAudioSinkStream::BufferItem& PipeWireAudioSinkStream::GetExpiredBuffer()
         current_buffer_ = queue_.front();
         queue_.pop();
         current_queued_samples_ -= current_buffer_.frame->nb_samples;
+
+        if (queue_.empty())
+        {
+            device_->SendTaskToMainThread([self = shared_from_this(), id = current_buffer_.id]{
+                if (self->GetListener())
+                    self->GetListener()->OnEmptyQueue(id);
+            });
+        }
     }
 
     return current_buffer_;
@@ -396,21 +477,17 @@ double PipeWireAudioSinkStream::GetDelayInUs()
     queue_lock_.lock();
     double queue_delay = static_cast<double>(current_queued_samples_) / sample_rate_ * SPA_USEC_PER_SEC;
     queue_lock_.unlock();
-
     return delay_in_us_ + queue_delay;
 }
 
-float PipeWireAudioSinkStream::GetVolume()
+void PipeWireAudioSinkStream::SetVolume(const std::vector<float>& volume)
 {
-    return volume_;
-}
+    if (volume.size() != ch_layout_.nb_channels)
+        return;
 
-void PipeWireAudioSinkStream::SetVolume(float volume)
-{
     PipeWireAudioDevice::ScopedThreadLoopLock lock(device_.get());
-    int channels = (channel_mode_ == AudioChannelMode::kStereo ? 2 : 1);
-    float values[2] = {volume, volume};
-    pw_stream_set_control(pw_stream_, SPA_PROP_channelVolumes, channels, values);
+    pw_stream_set_control(pw_stream_, SPA_PROP_channelVolumes, volume.size(),
+                          const_cast<float*>(volume.data()));
 }
 
 UTAU_NAMESPACE_END

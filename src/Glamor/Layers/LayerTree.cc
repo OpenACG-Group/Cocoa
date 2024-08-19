@@ -27,8 +27,8 @@ GLAMOR_NAMESPACE_BEGIN
 
 #define THIS_FILE_MODULE COCOA_MODULE_NAME(Glamor.Layers.LayerTree)
 
-LayerTree::LayerTree(const SkISize& frameSize)
-    : frame_size_(frameSize)
+LayerTree::LayerTree(const SkRect& viewport_cull)
+    : viewport_cull_(viewport_cull)
 {
 }
 
@@ -36,7 +36,7 @@ LayerTree::~LayerTree() = default;
 
 bool LayerTree::Preroll(Layer::PrerollContext *context)
 {
-    TRACE_EVENT("rendering", "LayerTree::Preroll");
+    TRACE_EVENT("present", "LayerTree::Preroll");
 
     if (!root_layer_)
     {
@@ -45,17 +45,20 @@ bool LayerTree::Preroll(Layer::PrerollContext *context)
     }
 
     root_layer_->Preroll(context, context->root_surface_transformation);
-    context->cull_rect = root_layer_->GetPaintBounds();
-
     return true;
 }
 
 void LayerTree::Paint(Layer::PaintContext *context)
 {
-    TRACE_EVENT("rendering", "LayerTree::Paint");
+    TRACE_EVENT("present", "LayerTree::Paint");
 
     if (!root_layer_)
         return;
+
+    SkAutoCanvasRestore auto_restore(context->frame_canvas, true);
+
+    // Output transformation, including HiDPI scale, happens here.
+    context->frame_canvas->concat(context->root_surface_transformation);
 
     // In the wayland CPU backend, Wayland compositor supports to submit a pixel
     // buffer with a certain "damage region" which indicates the dirty region

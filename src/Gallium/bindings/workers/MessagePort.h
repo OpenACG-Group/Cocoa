@@ -27,8 +27,8 @@
 
 #include "Core/EventLoop.h"
 #include "Gallium/Gallium.h"
+#include "Gallium/ffi/JSObject.h"
 #include "Gallium/bindings/workers/Types.h"
-#include "Gallium/bindings/ExportableObjectBase.h"
 GALLIUM_BINDINGS_WORKERS_NS_BEGIN
 
 class MessagePort
@@ -42,12 +42,12 @@ public:
         using PayloadDeleter = std::function<void(const uint8_t*)>;
         using PayloadArray = std::unique_ptr<const uint8_t[], PayloadDeleter>;
 
-        PayloadArray                                payload;
-        size_t                                      payload_size;
-        SpVec<v8::BackingStore>                     array_buffers;
-        SpVec<v8::BackingStore>                     shared_array_buffers;
-        std::vector<v8::CompiledWasmModule>         wasm_modules;
-        SpVec<ExportableObjectBase::FlattenedData>  flattened_objects;
+        PayloadArray                          payload;
+        size_t                                payload_size;
+        SpVec<v8::BackingStore>               array_buffers;
+        SpVec<v8::BackingStore>               shared_array_buffers;
+        std::vector<v8::CompiledWasmModule>   wasm_modules;
+        SpVec<ffi::JSTransferData>            flattened_objects;
     };
 
     using ReceiveCallback = std::function<void(v8::Local<v8::Value>)>;
@@ -74,7 +74,7 @@ public:
     void SetReceiveCallback(ReceiveCallback callback);
     void SetErrorCallback(ErrorCallback callback);
 
-    g_nodiscard g_inline bool IsDetached() const {
+    g_nodiscard bool IsDetached() const {
         return port_detached_;
     }
 
@@ -82,8 +82,8 @@ public:
      * Send a message, with optional transferable objects, to the peer
      * message port.
      */
-    v8::Maybe<bool> PostMessage(v8::Local<v8::Value> message,
-                                const std::vector<v8::Local<v8::Value>>& transfer_list);
+    ffi::Ret<void> PostMessage(v8::Local<v8::Value> message,
+                               const std::vector<v8::Local<v8::Value>>& transfer_list);
 
     /**
      * Detach current message port from its attached event loop,

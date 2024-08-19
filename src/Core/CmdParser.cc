@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 #include <climits>
 
 #include "fmt/format.h"
@@ -54,6 +55,11 @@ const Template g_templates[] = {
             .long_name = "disable-traceback-symbol-folding",
             .desc = "Disable symbols folding of traceback information\n"
                     "in exception report."
+        },
+        {
+            .long_name = "enable-tracing",
+            .desc = "Allows JavaScript to start a perfetto tracing session and\n"
+                    "save the tracing recording."
         },
         {
             .long_name = "v8-concurrent-workers",
@@ -146,12 +152,6 @@ const Template g_templates[] = {
             .desc = "Specify a working directory."
         },
         {
-            .long_name = "gl-transfer-queue-profile",
-            .has_value = Template::RequireValue::kEmpty,
-            .desc = "Enable profiling on the message queue and the profiling\n"
-                    "result will be stored as a JSON file in working directory."
-        },
-        {
             .long_name = "gl-use-jit",
             .has_value = Template::RequireValue::kNecessary,
             .value_type = ValueType::kBoolean,
@@ -195,19 +195,6 @@ const Template g_templates[] = {
                     "types for vulkan debug utils."
         },
         {
-            .long_name = "gl-enable-profiler",
-            .has_value = Template::RequireValue::kEmpty,
-            .desc = "Allow JavaScript to examine statistics of frames.\n"
-                    "(if enabled, slight performance loss is possible)"
-        },
-        {
-            .long_name = "gl-profiler-ringbuffer-threshold",
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kInteger,
-            .desc = "Limit the maximum number of samples recorded by \n"
-                    "the internal graphics profiler (32 by default)."
-        },
-        {
             .long_name = "gl-hwcompose-disable-presentation",
             .has_value = Template::RequireValue::kEmpty,
             .desc = "Disable the presentation capability (onscreen rendering)\n"
@@ -215,18 +202,12 @@ const Template g_templates[] = {
                     "graphics API extensions (e.g. VK_KHR_wayland_surface)."
         },
         {
-            .long_name = "utau-hwdevice-drm-devicepath",
+            .long_name = "gl-hwcompose-devicename-hint",
             .has_value = Template::RequireValue::kNecessary,
             .value_type = ValueType::kString,
-            .desc = "Specify a DRM device to be used for hardware-accelerated\n"
-                    "video decoding and processing, /dev/dri/renderD128 by default."
-        },
-        {
-            .long_name = "utau-filtergraph-max-threads",
-            .has_value = Template::RequireValue::kNecessary,
-            .value_type = ValueType::kInteger,
-            .desc = "Specify the maximum number of threads that the filtergraph use;\n"
-                    "Zero (the default) means that it is determined automatically."
+            .desc = "Specify a hint that influences the Vulkan device selection.\n"
+                    "The hint should be a substring of the device name, case insensitive.\n"
+                    "If it cannot match any existing device, the default device will be selected."
         }
 };
 
@@ -307,45 +288,13 @@ bool interpret_and_set_option_value(ParseResult::Option& opt, const std::string_
     return true;
 }
 
-/* size = 2^7 * 2^7 * sizeof(int) = 2^16 bytes = 64KB */
-int dp[128][128];
-
-// If user gives an unrecognized option name due to spelling mistake, we try guessing
-// the most possibly right option name by calculating Levenshtein Distance.
-// Supposing `s1` and `s2` are two strings, their Levenshtein Distance `lev(s1, s2)`
-// is a number N which represents that `s1` can be changed into `s2` after N times' single-character
-// edits (insertions, deletions, substitutions) at least.
-int solve_levenshtein_distance(const std::string_view& a, const std::string_view& b)
-{
-    CHECK(a.size() < 128 && b.size() < 128);
-
-    size_t m = a.size(), n = b.size();
-
-    for (int i = 0; i <= m; i++)
-        dp[i][0] = i;
-    for (int j = 0; j <= n; j++)
-        dp[0][j] = j;
-
-    for (int i = 1; i <= m; i++)
-    {
-        for (int j = 1; j <= n; j++)
-        {
-            if (a[i - 1] == b[j - 1])
-                dp[i][j] = dp[i - 1][j - 1];
-            else
-                dp[i][j] = std::min({dp[i][j-1] + 1, dp[i-1][j] + 1, dp[i-1][j-1] + 1});
-        }
-    }
-    return dp[m][n];
-}
-
 const char *most_possible_long_option_spell(const std::string_view& opt)
 {
     int minDis = INT_MAX;
     const char *minOpt;
     for (const auto& t : g_templates)
     {
-        int dis = solve_levenshtein_distance(opt, t.long_name);
+        int dis = utils::SolveLevenshteinDistance(opt, t.long_name);
         if (dis < minDis)
         {
             minDis = dis;

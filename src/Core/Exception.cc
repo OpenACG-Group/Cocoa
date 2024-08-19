@@ -50,21 +50,6 @@ std::string demangle_cpp_symbol(char const *sym)
 
 namespace cocoa {
 
-ScopeExitAutoInvoker::ScopeExitAutoInvoker(std::function<void()> func)
-    : fFunction(std::move(func))
-{
-}
-
-ScopeExitAutoInvoker::~ScopeExitAutoInvoker()
-{
-    fFunction();
-}
-
-void ScopeExitAutoInvoker::cancel()
-{
-    fFunction = []() -> void {};
-}
-
 RuntimeException::Builder::Builder(std::string who)
     : fWho(std::move(who))
 {

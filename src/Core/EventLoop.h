@@ -101,20 +101,25 @@ class HandleBase
     CO_NONCOPYABLE(HandleBase)
 
 public:
-    HandleBase() : handle_(new T{}) {}
+    HandleBase() : ref_count_(1), handle_(new T{}) {}
 
     HandleBase(HandleBase<T>&& rhs) noexcept
-        : handle_(rhs.handle_) { rhs.handle_ = nullptr; }
+        : handle_(rhs.handle_), ref_count_(rhs.ref_count_) { rhs.handle_ = nullptr; }
 
     ~HandleBase() {
+        Close();
+    }
+
+    void Close() {
         if (!handle_)
             return;
         uv_close(reinterpret_cast<uv_handle_t *>(handle_), [](uv_handle_t *p) {
             delete reinterpret_cast<T *>(p);
         });
+        handle_ = nullptr;
     }
 
-    g_nodiscard g_inline T *Get() const {
+    g_nodiscard T *Get() const {
         return handle_;
     }
 
@@ -126,7 +131,24 @@ public:
         uv_ref(reinterpret_cast<uv_handle_t *>(handle_));
     }
 
+    void RefCounted() {
+        ref_count_++;
+        Ref();
+    }
+
+    void UnrefCounted() {
+        CHECK(ref_count_ > 0 && "UnrefCount() without its counterpart RefCount()");
+        if (ref_count_ == 1)
+        {
+            Unref();
+            ref_count_ = 0;
+            return;
+        }
+        ref_count_--;
+    }
+
 private:
+    int32_t ref_count_;
     T *handle_;
 };
 
@@ -188,16 +210,60 @@ public:
     void Start(int events, std::function<void(int, int)> func) {
         func_ = std::move(func);
         uv_poll_start(Get(), events, [](uv_poll_t *h, int status, int events) {
-            static_cast<PollHandle*>(h->data)->func_(status, events);
+            PollHandle *self = static_cast<PollHandle*>(h->data);
+            std::function<void(int, int)> func  = std::move(self->func_);
+            func(status, events);
+            if (!self->func_)
+                self->func_ = std::move(func);
         });
     }
 
     void Stop() {
         uv_poll_stop(Get());
-    }
+        func_ = {};
+    };
 
 private:
     std::function<void(int, int)> func_;
+};
+
+class TimerHandle : public HandleBase<uv_timer_t>
+{
+public:
+    explicit TimerHandle(uv_loop_t *loop) {
+        uv_timer_init(loop, Get());
+        Get()->data = this;
+    }
+
+    void Start(int64_t timeout, int64_t repeat, std::function<void()> func) {
+        CHECK(func && "callback must be provided");
+        func_ = std::move(func);
+        uv_timer_start(Get(), [](uv_timer_t *handle) {
+            TimerHandle *self = static_cast<TimerHandle*>(handle->data);
+
+            // The user may reset the callback function in `func()`, by calling `Start()`
+            // to update the timer. If that happens, the function should be moved out and
+            // stored in the stack temporarily to keep the lambda captures alive.
+            std::function<void()> func = std::move(self->func_);
+            func();
+
+            // If the user does not reset the callback function, restore it.
+            if (!self->func_)
+                self->func_ = std::move(func);
+        }, timeout, repeat);
+    }
+
+    void Stop() {
+        uv_timer_stop(Get());
+        func_ = {};
+    }
+
+    void Again() {
+        uv_timer_again(Get());
+    }
+
+private:
+    std::function<void()> func_;
 };
 
 } // namespace uv

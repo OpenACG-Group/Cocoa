@@ -43,11 +43,11 @@ public:
     explicit RasterCacheItem(const sk_sp<SkImage>& image)
         : type_(Type::kImageSnapshot), image_snapshot_(image) {}
 
-    g_nodiscard g_inline Type GetType() const {
+    g_nodiscard Type GetType() const {
         return type_;
     }
 
-    g_nodiscard g_inline sk_sp<SkImage> GetImageSnapshot() const {
+    g_nodiscard sk_sp<SkImage> GetImageSnapshot() const {
         CHECK(type_ == Type::kImageSnapshot);
         return image_snapshot_;
     }
@@ -67,11 +67,11 @@ public:
         : direct_context_(direct_context)
         , frame_counter_(0) {}
 
-    g_nodiscard g_inline bool HasDirectContext() const {
+    g_nodiscard bool HasDirectContext() const {
         return direct_context_;
     }
 
-    g_nodiscard g_inline GrDirectContext *GetDirectContext() const {
+    g_nodiscard GrDirectContext *GetDirectContext() const {
         CHECK(direct_context_);
         return direct_context_;
     }

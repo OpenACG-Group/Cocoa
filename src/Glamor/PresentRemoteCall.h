@@ -56,39 +56,39 @@ public:
             , closure_ptr_(std::move(rhs.closure_ptr_)) {}
     ~PresentRemoteCall() = default;
 
-    g_nodiscard g_inline OpCode GetOpCode() const {
+    g_nodiscard OpCode GetOpCode() const {
         return op_code_;
     }
 
-    g_nodiscard g_inline size_t Length() const {
+    g_nodiscard size_t Length() const {
         return args_vector_.size();
     }
 
     template<typename T>
-    g_inline void SetClosure(T&& value) {
+    void SetClosure(T&& value) {
         closure_ptr_ = std::forward<T>(value);
     }
 
-    g_nodiscard g_inline std::any& GetClosure() {
+    g_nodiscard std::any& GetClosure() {
         return closure_ptr_;
     }
 
     template<typename T>
-    g_nodiscard g_inline T& Get(size_t index) {
+    g_nodiscard T& Get(size_t index) {
         CHECK(index < args_vector_.size());
         CHECK(args_vector_[index].has_value());
         return std::any_cast<T&>(args_vector_[index]);
     }
 
     template<typename T>
-    g_nodiscard g_inline const T& GetConst(size_t index) {
+    g_nodiscard const T& GetConst(size_t index) {
         CHECK(index < args_vector_.size());
         CHECK(args_vector_[index].has_value());
         return std::any_cast<const T&>(args_vector_[index]);
     }
 
     template<typename T>
-    g_inline PresentRemoteCall& PushBack(T&& value) {
+    PresentRemoteCall& PushBack(T&& value) {
         args_vector_.push_back(value);
         return *this;
     }
@@ -115,53 +115,53 @@ public:
      * They will also be destructed in the host thread after host callback is called.
      */
     template<typename T, typename...Args>
-    g_inline PresentRemoteCall& EmplaceBack(Args&&...args) {
+    PresentRemoteCall& EmplaceBack(Args&&...args) {
         args_vector_.emplace_back(std::in_place_type_t<T>{}, std::forward<Args>(args)...);
         return *this;
     }
 
-    g_inline PresentRemoteCall& SwallowBack(std::any&& rvalue) {
+    PresentRemoteCall& SwallowBack(std::any&& rvalue) {
         args_vector_.emplace_back(std::forward<std::any>(rvalue));
         return *this;
     }
 
     /* This method only can be called once */
     template<typename T>
-    g_inline const T& SetReturnValue(T&& value) {
+    const T& SetReturnValue(T&& value) {
         CHECK(!return_value_.has_value());
         return_value_ = value;
         return std::any_cast<T&>(return_value_);
     }
 
-    g_inline const std::any& SetReturnValueAny(std::any&& value) {
+    const std::any& SetReturnValueAny(std::any&& value) {
         return_value_ = std::move(value);
         return return_value_;
     }
 
     /* This method only can be called once */
-    g_inline void SetReturnStatus(Status status) {
+    void SetReturnStatus(Status status) {
         CHECK(return_status_ == Status::kPending);
         CHECK(status != Status::kPending && "Set a pending ReturnStatus is meaningless");
         return_status_ = status;
     }
 
-    g_nodiscard g_inline std::shared_ptr<PresentRemoteHandle> GetThis() const {
+    g_nodiscard std::shared_ptr<PresentRemoteHandle> GetThis() const {
         return this_;
     }
 
-    g_private_api g_nodiscard g_inline std::any MoveReturnValue() {
+    g_private_api g_nodiscard std::any MoveReturnValue() {
         return std::move(return_value_);
     }
 
-    g_private_api g_nodiscard g_inline Status GetReturnStatus() {
+    g_private_api g_nodiscard Status GetReturnStatus() {
         return return_status_;
     }
 
-    g_private_api g_inline void SetThis(const std::shared_ptr<PresentRemoteHandle>& pThis) {
+    g_private_api void SetThis(const std::shared_ptr<PresentRemoteHandle>& pThis) {
         this_ = pThis;
     }
 
-    g_private_api g_inline void SetCaughtException(const std::string& what) {
+    g_private_api void SetCaughtException(const std::string& what) {
         caught_exception_ = what;
     }
 

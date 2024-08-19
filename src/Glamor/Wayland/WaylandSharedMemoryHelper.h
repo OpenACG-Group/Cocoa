@@ -51,19 +51,19 @@ public:
     g_nodiscard static std::shared_ptr<WaylandSharedMemoryHelper>
     Make(wl_shm *shm, size_t size, BufferRole role);
 
-    g_nodiscard g_inline wl_shm *GetShm() const {
+    g_nodiscard wl_shm *GetShm() const {
         return shm_registry_;
     }
 
-    g_nodiscard g_inline wl_shm_pool *GetShmPool() const {
+    g_nodiscard wl_shm_pool *GetShmPool() const {
         return shm_pool_;
     }
 
-    g_nodiscard g_inline size_t GetPoolSize() const {
+    g_nodiscard size_t GetPoolSize() const {
         return pool_size_;
     }
 
-    g_nodiscard g_inline void *GetMappedAddress() const {
+    g_nodiscard void *GetMappedAddress() const {
         return vma_mapped_address_;
     }
 

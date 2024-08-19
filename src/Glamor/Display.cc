@@ -50,17 +50,16 @@ GLAMOR_TRAMPOLINE_IMPL(Display, Close)
 
 GLAMOR_TRAMPOLINE_IMPL(Display, CreateRasterSurface)
 {
-    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(3);
+    GLAMOR_TRAMPOLINE_CHECK_ARGS_NUMBER(2);
     auto this_ = info.GetThis()->As<Display>();
     auto result = this_->CreateRasterSurface(info.Get<int32_t>(0),
-                                             info.Get<int32_t>(1),
-                                             info.Get<SkColorType>(2));
+                                             info.Get<int32_t>(1));
     if (result == nullptr)
         info.SetReturnStatus(PresentRemoteHandle::ReturnStatus::kOpFailed);
     else
     {
         info.SetReturnStatus(PresentRemoteHandle::ReturnStatus::kOpSuccess);
-        info.SetReturnValue(result->Cast<PresentRemoteHandle>());
+        info.SetReturnValue(result);
     }
 }
 
@@ -70,13 +69,13 @@ GLAMOR_TRAMPOLINE_IMPL(Display, CreateHWComposeSurface)
     auto this_ = info.GetThis()->As<Display>();
     auto result = this_->CreateHWComposeSurface(info.Get<int32_t>(0),
                                                 info.Get<int32_t>(1),
-                                                info.Get<SkColorType>(2));
+                                                info.Get<PresentGpuContextOptions>(2));
     if (result == nullptr)
         info.SetReturnStatus(PresentRemoteHandle::ReturnStatus::kOpFailed);
     else
     {
         info.SetReturnStatus(PresentRemoteHandle::ReturnStatus::kOpSuccess);
-        info.SetReturnValue(result->Cast<PresentRemoteHandle>());
+        info.SetReturnValue(result);
     }
 }
 
@@ -187,6 +186,8 @@ void Display::Close()
         }
         created_cursors_list_.clear();
 
+        monitors_list_.clear();
+
         // Implementation can release platform-specific resources now.
         this->OnDispose();
 
@@ -199,15 +200,16 @@ void Display::Close()
 }
 
 std::shared_ptr<Surface>
-Display::CreateRasterSurface(int32_t width, int32_t height, SkColorType format)
+Display::CreateRasterSurface(int32_t width, int32_t height)
 {
-    return this->OnCreateSurface(width, height, format, RenderTarget::RenderDevice::kRaster);
+    return this->OnCreateSurface(width, height, RenderTarget::RenderDevice::kRaster, {});
 }
 
 std::shared_ptr<Surface>
-Display::CreateHWComposeSurface(int32_t width, int32_t height, SkColorType format)
+Display::CreateHWComposeSurface(int32_t width, int32_t height,
+                                const PresentGpuContextOptions& gpu_context_options)
 {
-    return this->OnCreateSurface(width, height, format, RenderTarget::RenderDevice::kHWComposer);
+    return this->OnCreateSurface(width, height, RenderTarget::RenderDevice::kHWComposer, gpu_context_options);
 }
 
 void Display::AppendSurface(const std::shared_ptr<Surface>& surface)

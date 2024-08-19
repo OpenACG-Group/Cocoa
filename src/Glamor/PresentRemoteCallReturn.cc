@@ -46,12 +46,6 @@ PresentRemoteCall::Status PresentRemoteCallReturn::GetReturnStatus() const
     return invocation_->GetClientCallInfo().GetReturnStatus();
 }
 
-std::chrono::steady_clock::time_point
-PresentRemoteCallReturn::GetProfileMilestone(PresentMessageMilestone tag) const
-{
-    return invocation_->GetProfileMilestone(tag);
-}
-
 const std::string& PresentRemoteCallReturn::GetCaughtException() const
 {
     return invocation_->GetClientCallInfo().GetCaughtException();

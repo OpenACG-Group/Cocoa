@@ -19,6 +19,7 @@
 #define COCOA_GLAMOR_WAYLANDHWCOMPOSERENDERTARGET_H
 
 #include <wayland-client.h>
+#include <Glamor/Display.h>
 
 #include "Glamor/Glamor.h"
 #include "Glamor/Wayland/WaylandRenderTarget.h"
@@ -31,21 +32,28 @@ class WaylandHWComposeRenderTarget : public WaylandRenderTarget
 {
 public:
     static std::shared_ptr<WaylandHWComposeRenderTarget>
-    Make(const std::shared_ptr<WaylandDisplay>& display, int32_t width, int32_t height);
+    Make(const std::shared_ptr<WaylandDisplay>& display, int32_t width, int32_t height,
+         const PresentGpuContextOptions& gpu_context_options);
 
-    WaylandHWComposeRenderTarget(std::shared_ptr<HWComposeContext> hwContext,
-                                 const std::shared_ptr<WaylandDisplay>& display,
-                                 int32_t width, int32_t height, SkColorType format);
+    WaylandHWComposeRenderTarget(std::shared_ptr<HWComposeContext> hw_compose_context,
+                                 std::shared_ptr<HWComposeSwapchain> hw_compose_swapchain,
+                                 const std::shared_ptr<Display>& display,
+                                 int32_t width,
+                                 int32_t height,
+                                 SkColorType format,
+                                 wl_surface *surface,
+                                 wl_event_queue *surface_queue);
     ~WaylandHWComposeRenderTarget() override;
 
     void OnClearFrameBuffers() override;
     SkSurface *OnBeginFrame() override;
     void OnSubmitFrame(SkSurface *surface, const FrameSubmitInfo& submit_info) override;
     void OnPresentFrame(SkSurface *surface, const FrameSubmitInfo& submit_info) override;
-    void OnResize(int32_t width, int32_t height) override;
     const std::shared_ptr<HWComposeSwapchain>& OnGetHWComposeSwapchain() override;
     sk_sp<SkSurface> OnCreateOffscreenBackendSurface(const SkImageInfo& info) override;
     std::string GetBufferStateDescriptor() override;
+
+    void OnContentBufferDimensionsUpdate(const SkISize& dimensions) override;
 
     void Trace(GraphicsResourcesTrackable::Tracer *tracer) noexcept override;
 

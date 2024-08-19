@@ -63,7 +63,7 @@ struct [[gnu::packed]] StringTableEntry
 
     static Ptr Allocate(const std::string_view& str);
 
-    g_nodiscard g_inline size_t ComputeSizeInBytes() const {
+    g_nodiscard size_t ComputeSizeInBytes() const {
         return sizeof(StringTableEntry) + length;
     }
 
@@ -82,7 +82,7 @@ struct [[gnu::packed]] DirTreeFlattenedEntry
 #define DT_FLAG_FILE        (1 << 0)
 #define DT_FLAG_DIRECTORY   (1 << 1)
 
-    g_nodiscard g_inline size_t ComputeSizeInBytes() const {
+    g_nodiscard size_t ComputeSizeInBytes() const {
         return sizeof(DirTreeFlattenedEntry) + nb_children * sizeof(uint64_t);
     }
 
@@ -97,7 +97,7 @@ struct [[gnu::packed]] DirTreeFlattenedEntry
 
 struct [[gnu::packed]] DataTableEntry
 {
-    g_nodiscard g_inline size_t ComputeSizeInBytes() const {
+    g_nodiscard size_t ComputeSizeInBytes() const {
         return sizeof(DataTableEntry) + size;
     }
 

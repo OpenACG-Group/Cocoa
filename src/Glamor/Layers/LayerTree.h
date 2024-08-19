@@ -39,7 +39,7 @@ public:
     CO_NONCOPYABLE(LayerTree)
     CO_NONASSIGNABLE(LayerTree)
 
-    explicit LayerTree(const SkISize& frameSize);
+    explicit LayerTree(const SkRect& viewport_cull);
     ~LayerTree();
 
     MaybeGpuObject<SkPicture> Flatten(const SkRect& bounds);
@@ -47,20 +47,16 @@ public:
     bool Preroll(Layer::PrerollContext *context);
     void Paint(Layer::PaintContext *context);
 
+    g_nodiscard const SkRect& GetViewportCull() const {
+        return viewport_cull_;
+    }
+
     void SetRootLayer(const std::shared_ptr<ContainerLayer>& root) {
         root_layer_ = root;
     }
 
-    void SetFrameSize(const SkISize& size) {
-        frame_size_ = size;
-    }
-
     g_nodiscard std::shared_ptr<ContainerLayer> GetRootLayer() const {
         return root_layer_;
-    }
-
-    g_nodiscard const SkISize& GetFrameSize() const {
-        return frame_size_;
     }
 
     void AppendObserver(const std::shared_ptr<RasterDrawOpObserver>& observer) {
@@ -88,7 +84,7 @@ public:
 private:
     using ObserverList = std::list<std::shared_ptr<RasterDrawOpObserver>>;
 
-    SkISize                         frame_size_;
+    SkRect                          viewport_cull_;
     std::shared_ptr<ContainerLayer> root_layer_;
     ObserverList                    raster_draw_op_observers_;
 };

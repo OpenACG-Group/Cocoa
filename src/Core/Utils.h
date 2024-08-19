@@ -51,6 +51,8 @@ size_t GetMemTotalSize();
 std::vector<std::string_view> SplitString(const std::string_view& str,
                                           std::string::value_type delimiter);
 
+int SolveLevenshteinDistance(const std::string_view& a, const std::string_view& b);
+
 void SetThreadName(const char *name);
 
 void PrintStackBacktrace(const std::string_view& title);

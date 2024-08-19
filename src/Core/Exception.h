@@ -45,13 +45,23 @@ namespace cocoa {
 class ScopeExitAutoInvoker
 {
 public:
-    explicit ScopeExitAutoInvoker(std::function<void(void)> func);
-    ~ScopeExitAutoInvoker();
+    explicit ScopeExitAutoInvoker(std::function<void(void)> func = {})
+        : func_(std::move(func)) {}
+    ~ScopeExitAutoInvoker() {
+        if (func_)
+            func_();
+    }
 
-    void cancel();
+    void Cancel() {
+        func_ = {};
+    }
+
+    void Reset(std::function<void(void)> func) {
+        func_ = std::move(func);
+    }
 
 private:
-    std::function<void(void)>   fFunction;
+    std::function<void(void)> func_;
 };
 
 class RuntimeException : public std::exception

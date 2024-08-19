@@ -38,16 +38,13 @@ void WorkerRuntime::OnInitialize(v8::Isolate *isolate, v8::Local<v8::Context> co
     isolate->SetCaptureStackTraceForUncaughtExceptions(true, 50, v8::StackTrace::kDetailed);
 
     // Import `workers` synthetic module in worker runtime.
-    // Exportable classes are registered after this call so that `binder::NewObject`
-    // can be used to create a `MessagePortWrap` object.
-    CHECK(!GetAndCacheSyntheticModule(ModuleImportURL::Resolve(
-            nullptr, "workers", ModuleImportURL::ResolvedAs::kSysImport)).IsEmpty());
+    CHECK(!ImportNativeModule(ModuleImportURL::Resolve(
+            isolate, nullptr, "workers", ModuleImportURL::ResolvedAs::kSysImport)).IsEmpty());
 
     auto global = context->Global();
     global->Set(context,
-                binder::to_v8(isolate, "port"),
-                binder::NewObject<MessagePortWrap>(isolate, message_port_))
-                .Check();
+                v8::String::NewFromUtf8Literal(isolate, "port"),
+                ffi::JSObject::New<MessagePortWrap>(isolate, message_port_)).Check();
 }
 
 void WorkerRuntime::OnReportUncaughtExceptionInCallback(const v8::TryCatch& try_catch)

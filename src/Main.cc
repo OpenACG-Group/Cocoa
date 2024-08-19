@@ -34,7 +34,6 @@
 #include "Core/ApplicationInfo.h"
 #include "Core/TraceEvent.h"
 #include "Gallium/Runtime.h"
-#include "Gallium/BindingManager.h"
 #include "Glamor/Glamor.h"
 #include "Utau/Utau.h"
 
@@ -306,35 +305,21 @@ cmd::ParseState startup_initialize(int argc, char const **argv,
             glamor_options.SetVkDBGFilterLevels(string_view_vec_dup(
                     utils::SplitString(arg.value->v_str, ',')));
         }
-        else if arg_longopt_match("gl-transfer-queue-profile")
-        {
-            glamor_options.SetProfileRenderHostTransfer(true);
-        }
-        else if arg_longopt_match("gl-enable-profiler")
-        {
-            glamor_options.SetEnableProfiler(true);
-        }
-        else if arg_longopt_match("gl-profiler-ringbuffer-threshold")
-        {
-            size_t v = arg.value->v_int;
-            glamor_options.SetProfilerRingBufferThreshold(v);
-        }
         else if arg_longopt_match("gl-hwcompose-disable-presentation")
         {
             glamor_options.SetDisableHWComposePresent(true);
         }
-        else if arg_longopt_match("utau-hwdevice-drm-devicepath")
+        else if arg_longopt_match("gl-hwcompose-devicename-hint")
         {
-            utau_options.hwdevice_drm_device_path = arg.value->v_str;
+            glamor_options.SetVkDeviceNameHint(arg.value->v_str);
         }
-        else if arg_longopt_match("utau-filtergraph-max-threads")
+        else if arg_longopt_match("enable-tracing")
         {
-            utau_options.filtergraph_max_threads = arg.value->v_int;
-            if (utau_options.filtergraph_max_threads < 0)
-            {
-                fmt::print(stderr, "Error: Option --utau-filtergraph-max-threads has an invalid value");
-                return cmd::ParseState::kError;
-            }
+            perfetto::TracingInitArgs tracing_args;
+            tracing_args.backends |= perfetto::kInProcessBackend;
+            perfetto::Tracing::Initialize(tracing_args);
+            perfetto::TrackEvent::Register();
+            app_env->enable_tracing = true;
         }
     }
 
@@ -368,14 +353,6 @@ void mainloop_execute(bool justInitialize,
     // Initialize Utau (multimedia processing engine)
     utau::InitializePlatform(utau_options);
 
-    // Initialize binding manager
-    gallium::BindingManager::New(options);
-
-    for (const auto& lib : ApplicationInfo::Ref().js_native_preloads)
-    {
-        gallium::BindingManager::Ref().loadDynamicObject(lib);
-    }
-
     if (!justInitialize)
     {
         auto runtime = gallium::Runtime::Make(EventLoop::GetCurrent(), options);
@@ -384,24 +361,13 @@ void mainloop_execute(bool justInitialize,
             runtime->Dispose();
         });
 
-        {
-            v8::Isolate::Scope isolateScope(runtime->GetIsolate());
-            v8::HandleScope handleScope(runtime->GetIsolate());
-            v8::Context::Scope contextScope(runtime->GetContext());
+        v8::Isolate::Scope isolate_scope(runtime->GetIsolate());
+        v8::HandleScope handle_scope(runtime->GetIsolate());
+        v8::Context::Scope context_scope(runtime->GetContext());
 
-            runtime->RunWithMainLoop();
-            runtime->NotifyRuntimeWillExit();
-        }
+        runtime->RunWithMainLoop();
+        runtime->NotifyRuntimeWillExit();
 
-        disposer.cancel();
-
-        // Language bindings have objects which is referenced by JavaScript,
-        // and disposing `Runtime` object makes all those objects collected (deleted)
-        // to avoid memory leaking. Therefore, it is necessary to dispose the
-        // `Runtime` object before deleting the binding manager.
-        runtime->Dispose();
-
-        gallium::BindingManager::Delete();
         CHECK(runtime.unique() && "Runtime is referenced by other scopes");
     }
     else
@@ -416,7 +382,7 @@ void mainloop_execute(bool justInitialize,
     gl::GlobalScope::Delete();
 
     // RenderHost message queue profiler may register a threadpool work.
-    // To make sure the task performed properly, we run event loop again.
+    // To make sure the task is performed properly, we run event loop again.
     EventLoop::GetCurrent()->run();
 
     crpkg::ResourceManager::Delete();
@@ -426,13 +392,6 @@ void mainloop_execute(bool justInitialize,
 int startup_main(int argc, char const **argv)
 {
     InstallPrimarySignalHandler();
-
-    {
-        perfetto::TracingInitArgs args;
-        args.backends |= perfetto::kInProcessBackend;
-        perfetto::Tracing::Initialize(args);
-        perfetto::TrackEvent::Register();
-    }
 
     ScopeExitAutoInvoker epilogue([]() -> void {
         ApplicationInfo::Delete();

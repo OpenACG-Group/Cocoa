@@ -26,11 +26,11 @@
 #include "include/v8.h"
 #include "Gallium/Gallium.h"
 
-GALLIUM_BINDINGS_NS_BEGIN
+GALLIUM_FFI_NS_BEGIN
 
-class BindingBase;
+class NativeModule;
 
-GALLIUM_BINDINGS_NS_END
+GALLIUM_FFI_NS_END
 
 GALLIUM_NS_BEGIN
 
@@ -42,14 +42,11 @@ public:
 
     enum class Protocol
     {
-        /* Synthetic modules consists of native symbols */
-        kSynthetic,
+        kNative,
         /* Internal modules contains internal source code */
         kInternal,
         /* Absolute path is required */
         kFile,
-
-        /* Object was moved */
         kInvalid
     };
 
@@ -62,39 +59,46 @@ public:
     };
 
     ModuleImportURL(Protocol protocol, std::string path,
-                    bindings::BindingBase *bind = nullptr,
-                    const char *persistentCachedText = nullptr)
-            : fProtocol(protocol)
-            , fPath(std::move(path))
-            , fBinding(bind)
-            , fPersistentCachedText(persistentCachedText) {}
+                    ffi::NativeModule *native_module = nullptr,
+                    const char *persistent_cache_text = nullptr)
+            : protocol_(protocol)
+            , path_(std::move(path))
+            , native_module_(native_module)
+            , persistent_cache_text_(persistent_cache_text) {}
     ~ModuleImportURL() = default;
 
-    static SharedPtr Resolve(const SharedPtr& referer, const std::string& import, ResolvedAs resolvedAs);
-    static SharedPtr Resolve(ModuleImportURL *referer, const std::string& import, ResolvedAs resolvedAs);
+    static SharedPtr Resolve(v8::Isolate *isolate,
+                             ModuleImportURL *referer,
+                             const std::string& import,
+                             ResolvedAs resolvedAs);
 
     static void FreeInternalCaches();
 
-    g_nodiscard inline Protocol getProtocol() const {
-        CHECK(fProtocol != Protocol::kInvalid);
-        return fProtocol;
+    g_nodiscard Protocol GetProtocol() const {
+        CHECK(protocol_ != Protocol::kInvalid);
+        return protocol_;
     }
 
-    g_nodiscard inline const std::string& getPath() const {
-        CHECK(fProtocol != Protocol::kInvalid);
-        return fPath;
+    g_nodiscard const std::string& GetPath() const {
+        CHECK(protocol_ != Protocol::kInvalid);
+        return path_;
     }
 
-    g_nodiscard inline std::string toString() const {
-        CHECK(fProtocol != Protocol::kInvalid);
+    g_nodiscard ffi::NativeModule *GetNativeModule() const {
+        CHECK(protocol_ == Protocol::kNative);
+        return native_module_;
+    }
+
+    g_nodiscard std::string ToString() const {
+        CHECK(protocol_ != Protocol::kInvalid);
         std::string url;
-        switch (fProtocol)
+        switch (protocol_)
         {
         case Protocol::kFile:
             url = "file://";
             break;
-        case Protocol::kSynthetic:
-            url = "synthetic://";
+        case Protocol::kNative:
+            url = "native://";
             break;
         case Protocol::kInternal:
             url = "internal://";
@@ -102,44 +106,40 @@ public:
         default:
             return {};
         }
-        return (url + fPath);
+        return (url + path_);
     }
 
-    g_nodiscard inline std::optional<std::string> loadResourceText() const {
-        CHECK(fProtocol != Protocol::kInvalid);
-        if (fPersistentCachedText)
-            return fPersistentCachedText;
-        return (fProtocol == Protocol::kSynthetic
+    g_nodiscard std::optional<std::string> LoadResourceText() const {
+        CHECK(protocol_ != Protocol::kInvalid);
+        if (persistent_cache_text_)
+            return persistent_cache_text_;
+        return (protocol_ == Protocol::kNative
                 ? std::optional<std::string>()
-                : std::make_optional<std::string>(onLoadResourceText()));
-    }
-
-    g_nodiscard bindings::BindingBase *getSyntheticBinding() const {
-        return fBinding;
+                : std::make_optional<std::string>(OnLoadResourceText()));
     }
 
     bool operator==(const ModuleImportURL& other) const {
-        CHECK(fProtocol != Protocol::kInvalid);
-        return (fProtocol == other.fProtocol && fPath == other.fPath);
+        CHECK(protocol_ != Protocol::kInvalid);
+        return (protocol_ == other.protocol_ && path_ == other.path_);
     }
 
     bool operator<(const ModuleImportURL& other) const {
-        CHECK(fProtocol != Protocol::kInvalid);
-        return (toString() < other.toString());
+        CHECK(protocol_ != Protocol::kInvalid);
+        return (ToString() < other.ToString());
     }
 
     bool operator>(const ModuleImportURL& other) const {
-        CHECK(fProtocol != Protocol::kInvalid);
-        return (toString() > other.toString());
+        CHECK(protocol_ != Protocol::kInvalid);
+        return (ToString() > other.ToString());
     }
 
 private:
-    g_nodiscard std::string onLoadResourceText() const;
+    g_nodiscard std::string OnLoadResourceText() const;
 
-    Protocol                fProtocol;
-    std::string             fPath;
-    bindings::BindingBase  *fBinding;
-    const char             *fPersistentCachedText;
+    Protocol                protocol_;
+    std::string             path_;
+    ffi::NativeModule      *native_module_;
+    const char             *persistent_cache_text_;
 };
 
 

@@ -130,7 +130,7 @@ function render(ctx: WindowContext, pts: GL.CkPoint[]): void {
     }
 
     const pict = rec.finishRecordingAsPicture();
-    const scene = new GL.SceneBuilder(WINDOW_WIDTH, WINDOW_HEIGHT)
+    const scene = new GL.SceneBuilder([0, 0, WINDOW_WIDTH, WINDOW_HEIGHT])
         .pushOffset(0, 0)
         .addPicture(pict, true)
         .build();

@@ -26,7 +26,6 @@
 
 #include "Core/Exception.h"
 #include "Gallium/RuntimeBase.h"
-#include "Gallium/binder/Convert.h"
 #include "Gallium/Gallium.h"
 #include "Gallium/ModuleImportURL.h"
 #include "Gallium/GlobalIsolateGuard.h"

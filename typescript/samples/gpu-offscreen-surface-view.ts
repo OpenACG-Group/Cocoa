@@ -96,7 +96,7 @@ async function main(): Promise<void> {
         paint.setColor4f([1, 1, 1, 1]);
         canvas.drawRect([x, y, 10, 10], paint);
 
-        const sceneBuilder = new SceneBuilder(400, 400)
+        const sceneBuilder = new SceneBuilder([0, 0, 400, 400])
             .pushOffset(0, 0);
         offscreen.submitToScene(sceneBuilder);
 

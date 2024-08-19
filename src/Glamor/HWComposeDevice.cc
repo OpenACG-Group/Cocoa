@@ -49,6 +49,8 @@ struct QueueMatcher
     DeviceQueueSpecifier specifier;
     std::function<bool(const QueueMatcher*, int32_t, const VkQueueFamilyProperties&)> matcher;
     int32_t matched_family_index = kNoGpuQueue;
+    int32_t queue_count = 0;
+    std::vector<float> priorities;
 };
 
 std::vector<QueueMatcher>
@@ -59,21 +61,35 @@ queue_matchers_from_specifiers(VkPhysicalDevice physical_device,
     queue_matchers.reserve(queue_specs.size());
     for (const DeviceQueueSpecifier& specifier : queue_specs)
     {
-        CHECK(specifier.count > 0);
-        CHECK(specifier.priorities.size() == specifier.count);
+        CHECK(specifier.count < 0 || specifier.priorities.size() == specifier.count);
+
+#define SIMPLE_MATCHER(bit)                                                                                         \
+        [](const QueueMatcher *self, int32_t idx, const VkQueueFamilyProperties& props) {                           \
+            if (self->specifier.transfer && (props.queueFlags & VK_QUEUE_TRANSFER_BIT) != VK_QUEUE_TRANSFER_BIT)    \
+                return false;                                                                                       \
+            return (props.queueFlags & bit) == bit &&                                                               \
+                   (static_cast<int32_t>(props.queueCount) >= self->specifier.count);                               \
+        };
 
         QueueMatcher matcher;
         matcher.specifier = specifier;
         if (specifier.selector == DeviceQueueSelector::kGraphics)
         {
-            matcher.matcher = [](const QueueMatcher *self,
-                                 int32_t idx,
-                                 const VkQueueFamilyProperties& props) {
-                return (props.queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
-                       (props.queueCount >= self->specifier.count);
-            };
+            matcher.matcher = SIMPLE_MATCHER(VK_QUEUE_GRAPHICS_BIT)
         }
-        else if (specifier.selector == DeviceQueueSelector::kPresent)
+        else if (specifier.selector == DeviceQueueSelector::kCompute)
+        {
+            matcher.matcher = SIMPLE_MATCHER(VK_QUEUE_COMPUTE_BIT)
+        }
+        else if (specifier.selector == DeviceQueueSelector::kVideoDecode)
+        {
+            matcher.matcher = SIMPLE_MATCHER(VK_QUEUE_VIDEO_DECODE_BIT_KHR)
+        }
+        else if (specifier.selector == DeviceQueueSelector::kVideoEncode)
+        {
+            matcher.matcher = SIMPLE_MATCHER(VK_QUEUE_VIDEO_ENCODE_BIT_KHR)
+        }
+        else if (specifier.selector == DeviceQueueSelector::kGraphicsWithPresent)
         {
             if (specifier.present_surface == VK_NULL_HANDLE)
             {
@@ -81,10 +97,12 @@ queue_matchers_from_specifiers(VkPhysicalDevice physical_device,
                 return {};
             }
 
-            matcher.matcher = [physical_device](const QueueMatcher *self,
-                                                int32_t idx,
+            matcher.matcher = [physical_device](const QueueMatcher *self, int32_t idx,
                                                 const VkQueueFamilyProperties& props) {
-                if (props.queueCount < self->specifier.count)
+                // This selects a graphics queue with present support
+                if (props.queueCount < self->specifier.count || !(props.queueFlags & VK_QUEUE_GRAPHICS_BIT))
+                    return false;
+                if (self->specifier.transfer && (props.queueFlags & VK_QUEUE_TRANSFER_BIT) != VK_QUEUE_TRANSFER_BIT)
                     return false;
                 VkBool32 support = false;
                 vkGetPhysicalDeviceSurfaceSupportKHR(physical_device,
@@ -102,7 +120,8 @@ queue_matchers_from_specifiers(VkPhysicalDevice physical_device,
 
 VkDevice create_vk_device(VkPhysicalDevice physical_device,
                           const std::vector<std::string>& enabled_extensions,
-                          std::vector<QueueMatcher>& queue_matchers)
+                          std::vector<QueueMatcher>& queue_matchers,
+                          const VkPhysicalDeviceFeatures2& enabled_features)
 {
     auto queue_families = vk_typed_enumerate<VkQueueFamilyProperties>(
         [physical_device](auto *c, auto *out) {
@@ -110,16 +129,18 @@ VkDevice create_vk_device(VkPhysicalDevice physical_device,
         }
     );
     int32_t nb_satisfied_matchers = 0;
+
     for (int32_t family = 0; family < queue_families.size(); family++)
     {
         for (QueueMatcher& matcher : queue_matchers)
         {
-            if (matcher.matched_family_index > 0)
+            if (matcher.matched_family_index >= 0)
                 continue;
             if (matcher.matcher(&matcher, family, queue_families[family]))
             {
                 matcher.matched_family_index = family;
                 nb_satisfied_matchers++;
+                break;
             }
         }
         if (nb_satisfied_matchers == queue_matchers.size())
@@ -134,19 +155,39 @@ VkDevice create_vk_device(VkPhysicalDevice physical_device,
     }
     CHECK(nb_satisfied_matchers == queue_matchers.size());
 
+    // To detect duplicated family id (if more than one matcher matched the same family)
+    std::map<int, bool> selected_queue_families;
+
     // Populate device queue create infos, which will be used
     // to create VkDevice later.
     std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
     queue_create_infos.reserve(queue_matchers.size());
-    for (const QueueMatcher& matcher : queue_matchers)
+    for (QueueMatcher& matcher : queue_matchers)
     {
         CHECK(matcher.matched_family_index >= 0);
+        if (selected_queue_families.contains(matcher.matched_family_index))
+        {
+            QLOG(LOG_ERROR, "more than one matcher matched the same queue family");
+            return VK_NULL_HANDLE;
+        }
+
+        if (matcher.specifier.count < 0)
+        {
+            matcher.queue_count = static_cast<int32_t>(queue_families[matcher.matched_family_index].queueCount);
+            matcher.priorities.resize(matcher.queue_count, 1.0f / static_cast<float>(matcher.queue_count));
+        }
+        else
+        {
+            matcher.queue_count = matcher.specifier.count;
+            matcher.priorities = matcher.specifier.priorities;
+        }
+
         queue_create_infos.push_back({
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
             .pNext = nullptr,
             .queueFamilyIndex = static_cast<uint32_t>(matcher.matched_family_index),
-            .queueCount = static_cast<uint32_t>(matcher.specifier.count),
-            .pQueuePriorities = matcher.specifier.priorities.data()
+            .queueCount = static_cast<uint32_t>(matcher.queue_count),
+            .pQueuePriorities = matcher.priorities.data()
         });
     }
 
@@ -156,25 +197,21 @@ VkDevice create_vk_device(VkPhysicalDevice physical_device,
     for (const std::string& str : enabled_extensions)
         enabled_ext_cstr.push_back(str.c_str());
 
-    // TODO(sora): Optionally enable some features
-    VkPhysicalDeviceFeatures physical_features{};
-
     VkDeviceCreateInfo device_create_info{};
     device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    device_create_info.pNext = nullptr;
+    device_create_info.pNext = enabled_features.pNext;
     device_create_info.queueCreateInfoCount = queue_create_infos.size();
     device_create_info.pQueueCreateInfos = queue_create_infos.data();
-    device_create_info.pEnabledFeatures = &physical_features;
+    device_create_info.pEnabledFeatures = &enabled_features.features;
     device_create_info.enabledExtensionCount = enabled_ext_cstr.size();
-    device_create_info.ppEnabledExtensionNames = enabled_ext_cstr.data(),
+    device_create_info.ppEnabledExtensionNames = enabled_ext_cstr.data();
 
     // TODO(sora): Enable validation layer if HWComposeContext is in debug mode
     device_create_info.enabledLayerCount = 0;
     device_create_info.ppEnabledLayerNames = nullptr;
 
     VkDevice result;
-    if (vkCreateDevice(physical_device, &device_create_info,
-                       nullptr, &result) != VK_SUCCESS)
+    if (vkCreateDevice(physical_device, &device_create_info, nullptr, &result) != VK_SUCCESS)
     {
         // TODO(sora): Give a more detailed error report
         QLOG(LOG_ERROR, "Failed to create a VkDevice");
@@ -189,7 +226,8 @@ VkDevice create_vk_device(VkPhysicalDevice physical_device,
 std::unique_ptr<HWComposeDevice>
 HWComposeDevice::Make(const std::shared_ptr<HWComposeContext>& context,
                       const std::vector<DeviceQueueSpecifier>& queue_specs,
-                      const std::vector<std::string>& extra_device_ext)
+                      const std::vector<std::string>& extra_device_ext,
+                      const VkPhysicalDeviceFeatures2& enabled_features)
 {
     if (!context)
         return nullptr;
@@ -212,14 +250,11 @@ HWComposeDevice::Make(const std::shared_ptr<HWComposeContext>& context,
             return;
         enabled_extensions.emplace_back(ext);
     };
-    for (const std::string& ext : context->GetDeviceEnabledExtensions())
-        extensions_add(ext);
     for (const std::string& ext : extra_device_ext)
         extensions_add(ext);
 
     // Now we can create Vulkan logical device
-    VkDevice vk_device = create_vk_device(
-            physical_device, enabled_extensions, queue_matchers);
+    VkDevice vk_device = create_vk_device(physical_device, enabled_extensions, queue_matchers, enabled_features);
     if (vk_device == VK_NULL_HANDLE)
         return nullptr;
 
@@ -233,7 +268,7 @@ HWComposeDevice::Make(const std::shared_ptr<HWComposeContext>& context,
         DeviceQueueSelector selector = matcher.specifier.selector;
 
         std::vector<DeviceQueue> queues;
-        for (int32_t i = 0; i < matcher.specifier.count; i++)
+        for (int32_t i = 0; i < matcher.queue_count; i++)
         {
             VkQueue queue = VK_NULL_HANDLE;
             vkGetDeviceQueue(vk_device, matcher.matched_family_index, i, &queue);
@@ -273,14 +308,21 @@ HWComposeDevice::~HWComposeDevice()
 }
 
 std::optional<HWComposeDevice::DeviceQueue>
-HWComposeDevice::GetDeviceQueue(DeviceQueueSelector selector, int32_t index)
+HWComposeDevice::GetDeviceQueue(DeviceQueueSelector selector, int32_t index) const
 {
     if (device_queue_multimap_.count(selector) == 0)
         return {};
-    const std::vector<DeviceQueue>& queues = device_queue_multimap_[selector];
+    const std::vector<DeviceQueue>& queues = device_queue_multimap_.at(selector);
     if (index < 0 || index >= queues.size())
         return {};
     return queues[index];
+}
+
+int32_t HWComposeDevice::GetDeviceQueueCount(DeviceQueueSelector selector) const
+{
+    if (!device_queue_multimap_.contains(selector))
+        return 0;
+    return static_cast<int32_t>(device_queue_multimap_.at(selector).size());
 }
 
 sk_sp<VulkanAMDAllocatorImpl>
@@ -295,12 +337,76 @@ HWComposeDevice::CreateAllocator(bool external_sync,
             context_->GetVkInstance(),
             context_->GetVkPhysicalDevice(),
             vk_device_,
-            VK_API_VERSION_1_2,
+            VK_API_VERSION_1_3,
             external_sync,
             extensions,
             /* force_coherent_host_visible_mem= */ false);
 
     return allocator_impl;
+}
+
+VkResult HWComposeDevice::CreateBufferSimple(VkDeviceSize size, VkBufferUsageFlags usage,
+                                             VkMemoryPropertyFlags properties,
+                                             VkBuffer& out_buffer, VkDeviceMemory& out_memory)
+{
+    VkBuffer buffer;
+    VkDeviceMemory memory;
+
+    VkBufferCreateInfo buffer_create_info{
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .size = size,
+        .usage = usage,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = nullptr
+    };
+    VkResult result = vkCreateBuffer(vk_device_, &buffer_create_info, nullptr, &buffer);
+    if (result != VK_SUCCESS)
+        return result;
+
+    VkMemoryRequirements mem_reqs;
+    vkGetBufferMemoryRequirements(vk_device_, buffer, &mem_reqs);
+
+    // Find memory type index
+    uint32_t memory_type_idx = std::numeric_limits<uint32_t>::max();
+
+    VkPhysicalDeviceMemoryProperties mem_props;
+    vkGetPhysicalDeviceMemoryProperties(context_->GetVkPhysicalDevice(), &mem_props);
+    for (uint32_t i = 0; i < mem_props.memoryTypeCount; i++)
+    {
+        if ((mem_reqs.memoryTypeBits & (1 << i)) &&
+            (mem_props.memoryTypes[i].propertyFlags & properties) == properties)
+        {
+            memory_type_idx = i;
+            break;
+        }
+    }
+    if (memory_type_idx == std::numeric_limits<uint32_t>::max())
+    {
+        vkDestroyBuffer(vk_device_, buffer, nullptr);
+        return VK_ERROR_UNKNOWN;
+    }
+
+    VkMemoryAllocateInfo memory_allocate_info{
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .pNext = nullptr,
+        .allocationSize = mem_reqs.size,
+        .memoryTypeIndex = memory_type_idx
+    };
+    result = vkAllocateMemory(vk_device_, &memory_allocate_info, nullptr, &memory);
+    if (result != VK_SUCCESS)
+    {
+        vkDestroyBuffer(vk_device_, buffer, nullptr);
+        return result;
+    }
+
+    vkBindBufferMemory(vk_device_, buffer, memory, 0);
+    out_buffer = buffer;
+    out_memory = memory;
+
+    return VK_SUCCESS;
 }
 
 void HWComposeDevice::Trace(Tracer *tracer) noexcept

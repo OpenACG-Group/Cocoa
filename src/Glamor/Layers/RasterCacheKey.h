@@ -44,23 +44,23 @@ public:
         , picture_unique_id_(0)
         , child_ids_(std::move(child_ids)) {}
 
-    g_nodiscard g_inline Type GetType() const {
+    g_nodiscard Type GetType() const {
         return id_type_;
     }
 
-    g_nodiscard g_inline uint64_t GetHash() const {
+    g_nodiscard uint64_t GetHash() const {
         if (cached_hash_)
             return *cached_hash_;
         cached_hash_ = ComputeHashValue();
         return *cached_hash_;
     }
 
-    g_nodiscard g_inline uint64_t GetPictureUniqueId() const {
+    g_nodiscard uint64_t GetPictureUniqueId() const {
         CHECK(id_type_ == Type::kPicture);
         return picture_unique_id_;
     }
 
-    g_inline bool operator==(const RasterCacheLayerId& other) const {
+    bool operator==(const RasterCacheLayerId& other) const {
         return (GetHash() == other.GetHash());
     }
 
@@ -101,11 +101,11 @@ public:
         matrix_[SkMatrix::kMTransY] = 0;
     }
 
-    g_nodiscard g_inline const SkMatrix& GetMatrix() const {
+    g_nodiscard const SkMatrix& GetMatrix() const {
         return matrix_;
     }
 
-    g_nodiscard g_inline const RasterCacheLayerId& GetLayerId() const {
+    g_nodiscard const RasterCacheLayerId& GetLayerId() const {
         return layer_id_;
     }
 
